@@ -612,6 +612,77 @@ export async function recallUnregistered(allocationId: number, confirm = false) 
   });
 }
 
+/**
+ * [스펙 §9/§22.6 재배정] 회수(RECALLED)된 쿠폰을 다른(또는 동일) 업체에 재배정한다.
+ * 재배정 조건(§9 "재배정 조건"): "아직 사용되지 않았고(redeemedAt null) 다른 회원에게
+ * 유효하게 배정되지 않은(assignedUserId null) 쿠폰만" 허용 — 고객에게 이미 전달된
+ * 쿠폰이 갑자기 무효가 되는 일을 막기 위함이다.
+ *
+ * allocateToPartner()와 동일하게 "부분 재배정을 조용히 넘기지 않는다" 원칙을 따르며,
+ * 새 BokjuCouponAllocation 레코드를 생성해 기존(RECALLED) allocation과 실적 집계가
+ * 섞이지 않도록 한다. campaign.allocatedCount는 최초 배정 시 이미 1회 증가했으므로
+ * 재배정 시에는 다시 증가시키지 않는다(동일 쿠폰이 업체만 바뀌어 순환할 뿐 신규 발행이
+ * 아니기 때문 — 중복 카운트 방지).
+ */
+export async function reassignRecalledCoupons(
+  input: { campaignId: number; newPartnerId: number; qty: number; distributeDeadline?: Date },
+  actorId: string
+) {
+  return prisma.$transaction(async (tx) => {
+    const campaign = await tx.bokjuCouponCampaign.findUnique({ where: { id: input.campaignId } });
+    if (!campaign) throw new BokjuCouponError("CAMPAIGN_NOT_FOUND", "캠페인을 찾을 수 없습니다.");
+
+    const partner = await tx.bokjuPartner.findUnique({ where: { id: input.newPartnerId } });
+    if (!partner) throw new BokjuCouponError("PARTNER_NOT_FOUND", "재배정 대상 업체를 찾을 수 없습니다.");
+
+    const candidates = await tx.bokjuCoupon.findMany({
+      where: {
+        campaignId: input.campaignId,
+        status: "RECALLED",
+        redeemedAt: null,
+        assignedUserId: null,
+      },
+      take: input.qty,
+      orderBy: { id: "asc" },
+    });
+    if (candidates.length < input.qty) {
+      throw new BokjuCouponError(
+        "REASSIGN_EXCEEDED",
+        `재배정 가능한 회수 쿠폰이 부족합니다. 가용 ${candidates.length}장 / 요청 ${input.qty}장`
+      );
+    }
+
+    const allocation = await tx.bokjuCouponAllocation.create({
+      data: {
+        campaignId: input.campaignId,
+        partnerId: input.newPartnerId,
+        allocatedQty: input.qty,
+        distributeDeadline: input.distributeDeadline,
+        createdBy: actorId,
+      },
+    });
+
+    // ★ 부분 재배정을 조용히 넘기지 않는다 — 건별 UPDATE가 모두 적용됐는지 결과로 확인.
+    const result = await tx.bokjuCoupon.updateMany({
+      where: { id: { in: candidates.map((c) => c.id) }, status: "RECALLED" },
+      data: {
+        status: "ALLOCATED",
+        partnerId: input.newPartnerId,
+        allocationId: allocation.id,
+        rowVersion: { increment: 1 },
+      },
+    });
+    if (result.count !== input.qty) {
+      throw new BokjuCouponError(
+        "REASSIGN_EXCEEDED",
+        `재배정 가능한 쿠폰이 부족합니다. 요청 ${input.qty}장 / 실제 ${result.count}장`
+      );
+    }
+
+    return { allocationId: allocation.id, reassignedQty: result.count };
+  });
+}
+
 // ────────────────────────────────────────────────────────── 등록(redeem) — 심장부
 export interface RedeemInput {
   userId: number;

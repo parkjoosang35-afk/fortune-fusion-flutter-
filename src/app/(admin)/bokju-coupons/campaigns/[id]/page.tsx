@@ -26,7 +26,7 @@ export default async function BokjuCampaignDetailPage({
   const campaign = await prisma.bokjuCouponCampaign.findUnique({ where: { id: campaignId } });
   if (!campaign) notFound();
 
-  const [statusGroups, latestImageJob, partners, allocationsRaw] = await Promise.all([
+  const [statusGroups, latestImageJob, partners, allocationsRaw, recalledAvailable] = await Promise.all([
     prisma.bokjuCoupon.groupBy({ by: ["status"], where: { campaignId }, _count: { _all: true } }),
     prisma.bokjuCouponImageJob.findFirst({ where: { campaignId }, orderBy: { createdAt: "desc" } }),
     prisma.bokjuPartner.findMany({ where: { status: "ACTIVE" }, orderBy: { name: "asc" } }),
@@ -34,6 +34,10 @@ export default async function BokjuCampaignDetailPage({
       where: { campaignId },
       include: { partner: true, reports: true },
       orderBy: { createdAt: "desc" },
+    }),
+    // [§9/§22.6 재배정] RECALLED + 미사용 + 미배정만 재배정 가능 수량으로 집계
+    prisma.bokjuCoupon.count({
+      where: { campaignId, status: "RECALLED", redeemedAt: null, assignedUserId: null },
     }),
   ]);
 
@@ -102,6 +106,7 @@ export default async function BokjuCampaignDetailPage({
         }
         partners={partners.map((p) => ({ id: p.id, name: p.name }))}
         allocations={allocations}
+        recalledAvailable={recalledAvailable}
         canWrite={canWrite}
       />
     </div>

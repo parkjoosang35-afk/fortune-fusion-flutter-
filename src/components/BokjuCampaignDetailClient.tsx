@@ -72,6 +72,7 @@ export default function BokjuCampaignDetailClient({
   latestImageJob,
   partners,
   allocations,
+  recalledAvailable,
   canWrite,
 }: {
   campaign: Campaign;
@@ -79,6 +80,7 @@ export default function BokjuCampaignDetailClient({
   latestImageJob: ImageJob | null;
   partners: Partner[];
   allocations: Allocation[];
+  recalledAvailable: number;
   canWrite: boolean;
 }) {
   const router = useRouter();
@@ -88,6 +90,8 @@ export default function BokjuCampaignDetailClient({
   const [issueCount, setIssueCount] = useState(100);
   const [allocPartnerId, setAllocPartnerId] = useState<number | "">("");
   const [allocQty, setAllocQty] = useState(10);
+  const [reassignPartnerId, setReassignPartnerId] = useState<number | "">("");
+  const [reassignQty, setReassignQty] = useState(1);
 
   const [job, setJob] = useState<ImageJob | null>(latestImageJob);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -237,6 +241,26 @@ export default function BokjuCampaignDetailClient({
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "회수 처리 실패");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function handleReassign() {
+    if (!reassignPartnerId) return setError("재배정할 업체를 선택하세요.");
+    setPending("reassign");
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/bokju-coupons/campaigns/${campaign.id}/reassign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPartnerId: reassignPartnerId, qty: reassignQty }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "재배정 실패");
     } finally {
       setPending(null);
     }
@@ -519,6 +543,60 @@ export default function BokjuCampaignDetailClient({
         </div>
         <p className="mt-2 text-xs text-slate-400">
           * &quot;업체보고&quot;는 업체가 직접 제출한 수치이며, &quot;시스템등록&quot;은 실제 QR 등록(복주머니 적립) 완료 건수입니다. 두 수치는 절대 합산하지 않습니다.
+        </p>
+      </div>
+
+      {/* 회수 쿠폰 재배정 (§9/§22.6) */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <h3 className="mb-1 text-sm font-bold text-slate-900">회수 쿠폰 재배정</h3>
+        <p className="mb-3 text-xs text-slate-500">
+          재배정 가능 수량(회수됨 · 미사용 · 미배정): <strong className="text-rose-700">{recalledAvailable}장</strong>
+        </p>
+        {canWrite && recalledAvailable > 0 ? (
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">재배정 업체 선택</label>
+              <select
+                value={reassignPartnerId}
+                onChange={(e) => setReassignPartnerId(e.target.value ? Number(e.target.value) : "")}
+                className="w-48 rounded border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">선택...</option>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">수량(회수 가용 {recalledAvailable}장)</label>
+              <input
+                type="number"
+                min={1}
+                max={recalledAvailable}
+                value={reassignQty}
+                onChange={(e) => setReassignQty(Number(e.target.value))}
+                className="w-28 rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <button
+              onClick={handleReassign}
+              disabled={pending === "reassign"}
+              className="rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+            >
+              {pending === "reassign" ? "재배정 중..." : "선택 업체에 재배정"}
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">
+            {recalledAvailable === 0
+              ? "현재 재배정 가능한 회수 쿠폰이 없습니다."
+              : "쓰기 권한이 없어 재배정할 수 없습니다."}
+          </p>
+        )}
+        <p className="mt-2 text-xs text-slate-400">
+          * 재배정 조건: 아직 사용되지 않았고(미등록) 다른 회원에게 유효하게 배정되지 않은 회수(RECALLED) 쿠폰만 허용됩니다. 재배정 시 새 배정 건이 생성되며, 기존 회수 이력의 실적과는 분리되어 집계됩니다.
         </p>
       </div>
     </div>
