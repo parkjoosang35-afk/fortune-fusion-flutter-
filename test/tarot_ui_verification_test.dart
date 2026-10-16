@@ -217,12 +217,29 @@ void main() {
       expect(overlayFinder, findsOneWidget);
       final overlay =
           tester.widget<RepaintBoundary>(overlayFinder).key! as GlobalKey;
+      // [사용자 요청 — 외부 검수 지시 ④ hang 수정, story_detail_screen_c07_test.dart와
+      // 동일 원인] captureOriginalResult 내부의
+      // `Future<void>.delayed(120ms)`가 tester.runAsync() 밖(FakeAsync
+      // 테스트 zone)에서 생성되면 가상 시계가 전진하기 전까지 영원히
+      // 완료되지 않는다(실제 재현: 수정 전 41초+ 동일 테스트명 반복
+      // 출력, hang 확정). 명시적 pump(duration)로 가상 시계를 전진시켜
+      // 해소한다.
+      // [알려진 잔여 이슈 — 재검수에서 발견, 완전 해결 못함] 이 화면은
+      // OzBackground의 무한 Ticker 배경 애니메이션이 있어, pump(duration)
+      // 로 가상 시계를 전진시키면 captureOriginalResult 내부 캡처 시점과
+      // 그 직후 재비교용 재캡처(toImage) 시점 사이에 배경 프레임이 미세하게
+      // 달라져 픽셀 단위 바이트 비교(expect(... orderedEquals ...))가
+      // RGBA 1-unit 차이로 실패할 수 있음을 확인함(runAsync로 완전히
+      // 감싸는 대안을 시도했으나 그 경우 hang이 재발해 더 나쁨 — hang
+      // 방지를 우선함). 근본 해결(배경 애니메이션 일시정지 또는 픽셀
+      // 허용오차 비교 도입)은 다음 세션 과제로 남긴다.
       final png = captureOriginalResult(
         body.captureKey,
         trailingKeys: [footer.captureKey],
         overlayKeys: [overlay],
       );
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.runAsync(() async {
         final bytes = await png;
         if (Platform.environment['EXPORT_TAROT_FIXTURE'] == '1') {
