@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor, CORS_HEADERS } from "@/lib/page-config-helpers";
 import { recallUnregistered, BokjuCouponError } from "@/lib/bokju-coupon-service";
+import { writeCouponAuditLog } from "@/lib/bokju-coupon-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,13 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const confirm = body?.confirm === true;
     const result = await recallUnregistered(allocationId, confirm);
+    await writeCouponAuditLog({
+      actorId: actor.adminId,
+      targetType: "ALLOCATION",
+      targetId: allocationId,
+      actionType: "RECALL",
+      summary: `미등록 쿠폰 ${result.recalledQty}장 회수`,
+    });
     return jsonOk(result);
   } catch (e) {
     if (e instanceof BokjuCouponError) {

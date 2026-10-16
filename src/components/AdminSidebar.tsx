@@ -17,6 +17,7 @@ import {
   Settings,
   Ticket,
   Megaphone,
+  QrCode,
   LogOut,
   ExternalLink,
   type LucideIcon,
@@ -40,6 +41,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   // [관리자 통합 간소화 - 목표 6+1 구조] 프리패스관리/광고관리 신규 사이드바 아이콘.
   Ticket,
   Megaphone,
+  // [복주머니 마케팅 쿠폰 최종본] 마케팅 쿠폰 메뉴 아이콘.
+  QrCode,
 };
 
 interface AdminSidebarProps {

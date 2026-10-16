@@ -3,6 +3,7 @@
 // 요청 수량만큼 정확히 확보되지 않으면 전체 롤백한다(서비스 레이어에서 보장).
 import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor } from "@/lib/page-config-helpers";
 import { allocateToPartner, BokjuCouponError } from "@/lib/bokju-coupon-service";
+import { writeCouponAuditLog } from "@/lib/bokju-coupon-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,14 @@ export async function POST(request: Request) {
       },
       actor.adminId
     );
+    await writeCouponAuditLog({
+      actorId: actor.adminId,
+      campaignId,
+      targetType: "ALLOCATION",
+      targetId: result.allocationId,
+      actionType: "ALLOCATE",
+      summary: `업체(${partnerId})에 쿠폰 ${qty}장 배정`,
+    });
     return jsonOk(result, 201);
   } catch (e) {
     if (e instanceof BokjuCouponError) return jsonError(e.message, 400);

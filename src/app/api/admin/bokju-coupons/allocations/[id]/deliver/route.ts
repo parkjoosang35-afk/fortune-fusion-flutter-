@@ -2,6 +2,7 @@
 // 관리자가 실물(쿠폰 카드/스티커 등)을 업체에 발송 완료 처리(ALLOCATED→DELIVERED).
 import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor } from "@/lib/page-config-helpers";
 import { markDelivered, BokjuCouponError } from "@/lib/bokju-coupon-service";
+import { writeCouponAuditLog } from "@/lib/bokju-coupon-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,13 @@ export async function POST(
 
   try {
     const result = await markDelivered(allocationId);
+    await writeCouponAuditLog({
+      actorId: actor.adminId,
+      targetType: "ALLOCATION",
+      targetId: allocationId,
+      actionType: "DELIVER",
+      summary: `배정 ${allocationId}번 실물 발송 완료 처리`,
+    });
     return jsonOk(result);
   } catch (e) {
     if (e instanceof BokjuCouponError) return jsonError(e.message, 400);

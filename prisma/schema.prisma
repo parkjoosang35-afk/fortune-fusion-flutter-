@@ -1684,6 +1684,82 @@ model BokjuCouponRedemption {
   @@map("bokju_coupon_redemptions")
 }
 
+/**
+ * [복주머니 마케팅 쿠폰 최종본 §5/§12] 모바일 쿠폰 이미지 대량 생성 백그라운드 작업.
+ * 캠페인 1건 발행 시 1건 생성되며, 쿠폰 수량만큼의 이미지를 순차 처리하면서
+ * processedCount/failedCount로 진행률을 추적한다. 실패 항목은 failedCouponIds에
+ * JSON 배열로 기록해 "실패만 재시도"를 지원한다(전체 재생성 금지 원칙).
+ */
+model BokjuCouponImageJob {
+  id              Int       @id @default(autoincrement())
+  campaignId      Int       @map("campaign_id")
+  status          String    @default("PENDING") // PENDING/RUNNING/COMPLETED/FAILED
+  totalCount      Int       @map("total_count")
+  processedCount  Int       @default(0) @map("processed_count")
+  failedCount     Int       @default(0) @map("failed_count")
+  failedCouponIds String?   @map("failed_coupon_ids") // JSON 배열 문자열
+  zipPath         String?   @map("zip_path") // 완료 후 ZIP 산출물 상대 경로
+  excelPath       String?   @map("excel_path") // 완료 후 엑셀 산출물 상대 경로
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  createdBy       String?   @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([campaignId])
+  @@map("bokju_coupon_image_jobs")
+}
+
+/**
+ * [복주머니 마케팅 쿠폰 최종본 §12] 발행·배정·배포·회수·재배정·중지 등 운영
+ * 담당자 행위를 전부 기록하는 감사 로그 — 기존 PageAuditLog와 동일한 패턴이지만
+ * 도메인이 달라 전용 테이블로 분리한다(한 테이블에 서로 다른 pageKey 의미의
+ * actionType을 섞으면 조회·필터링이 꼬이기 때문).
+ */
+model BokjuCouponAuditLog {
+  id         Int      @id @default(autoincrement())
+  actorId    String?  @map("actor_id") // 관리자 adminId 또는 업체 accountId(문자열로 통일)
+  actorType  String   @default("ADMIN") @map("actor_type") // ADMIN/PARTNER/SYSTEM
+  campaignId Int?     @map("campaign_id")
+  targetType String   @map("target_type") // CAMPAIGN/COUPON/ALLOCATION/PARTNER
+  targetId   Int?     @map("target_id")
+  actionType String   @map("action_type") // ISSUE/ALLOCATE/DELIVER/REPORT/RECALL/REVOKE/REASSIGN/STATUS_CHANGE
+  summary    String
+  payload    String? // JSON 문자열(변경 전/후 스냅샷)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([campaignId, createdAt])
+  @@index([targetType, targetId])
+  @@map("bokju_coupon_audit_logs")
+}
+
+/**
+ * [복주머니 마케팅 쿠폰 최종본 §10] 회원 대상 쿠폰 이벤트 푸시 발송 작업.
+ * 기존 notification-engine.ts(createNotification)를 그대로 호출해 실제 발송을
+ * 수행하고, 이 테이블은 "쿠폰 캠페인과 연결된 발송"이라는 맥락 + 결과 집계만
+ * 담당한다(알림 자체의 전송 로직을 중복 구현하지 않음).
+ */
+model BokjuCouponPushJob {
+  id            Int       @id @default(autoincrement())
+  campaignId    Int       @map("campaign_id")
+  sendMode      String    @map("send_mode") // BROADCAST/INDIVIDUAL
+  targetFilter  String    @default("ALL") @map("target_filter") // ALL/NEW/EXISTING/SPECIFIC
+  targetUserIds String?   @map("target_user_ids") // INDIVIDUAL일 때 JSON 배열(회원ID)
+  title         String
+  body          String
+  deepLink      String?   @map("deep_link")
+  scheduledAt   DateTime? @map("scheduled_at") // null이면 즉시 발송
+  status        String    @default("PENDING") // PENDING/SENDING/COMPLETED/FAILED
+  successCount  Int       @default(0) @map("success_count")
+  failCount     Int       @default(0) @map("fail_count")
+  isTest        Boolean   @default(false) @map("is_test")
+  createdBy     String?   @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  completedAt   DateTime? @map("completed_at")
+
+  @@index([campaignId])
+  @@map("bokju_coupon_push_jobs")
+}
+
 // ══════════════════════════════════════════════════════════════════
 // 05§3.5 "커뮤니티 관리" — 1차 소단위: L-1/L-2/L-3 게시판/게시글/소원 관리
 // [범위 결정] 원칙⑤(소단위 개발): 05§3.5 6개 화면 중 "게시판 관리"(community_boards

@@ -2,6 +2,7 @@
 // 단건 쿠폰 사용 중지(이미 REDEEMED면 거부 — 적립 정정은 지갑 도메인 절차로 별도 처리).
 import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor } from "@/lib/page-config-helpers";
 import { revokeCoupon, BokjuCouponError } from "@/lib/bokju-coupon-service";
+import { writeCouponAuditLog } from "@/lib/bokju-coupon-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,13 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const reason = typeof body.reason === "string" ? body.reason : "관리자 수동 중지";
     const result = await revokeCoupon(couponId, reason);
+    await writeCouponAuditLog({
+      actorId: actor.adminId,
+      targetType: "COUPON",
+      targetId: couponId,
+      actionType: "REVOKE",
+      summary: `쿠폰 중지: ${reason}`,
+    });
     return jsonOk(result);
   } catch (e) {
     if (e instanceof BokjuCouponError) return jsonError(e.message, 400);

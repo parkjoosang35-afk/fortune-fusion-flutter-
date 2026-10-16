@@ -26,6 +26,11 @@ export async function GET(
       _count: { _all: true },
     });
 
+    const latestImageJob = await prisma.bokjuCouponImageJob.findFirst({
+      where: { campaignId },
+      orderBy: { createdAt: "desc" },
+    });
+
     return jsonOk({
       campaign: {
         id: campaign.id,
@@ -47,6 +52,18 @@ export async function GET(
         createdAt: campaign.createdAt.toISOString(),
       },
       statusCounts: Object.fromEntries(statusGroups.map((g) => [g.status, g._count._all])),
+      latestImageJob: latestImageJob
+        ? {
+            id: latestImageJob.id,
+            status: latestImageJob.status,
+            totalCount: latestImageJob.totalCount,
+            processedCount: latestImageJob.processedCount,
+            failedCount: latestImageJob.failedCount,
+            zipPath: latestImageJob.zipPath,
+            excelPath: latestImageJob.excelPath,
+            createdAt: latestImageJob.createdAt.toISOString(),
+          }
+        : null,
     });
   } catch (e) {
     console.error("[GET /api/admin/bokju-coupons/campaigns/:id] 실패:", e);

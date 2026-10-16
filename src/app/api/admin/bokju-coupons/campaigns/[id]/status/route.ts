@@ -2,6 +2,7 @@
 // DRAFT→ACTIVE(발행 시작), ACTIVE↔PAUSED(일시중지/재개), ACTIVE/PAUSED→CLOSED(종료).
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor } from "@/lib/page-config-helpers";
+import { writeCouponAuditLog } from "@/lib/bokju-coupon-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,14 @@ export async function PATCH(
     const updated = await prisma.bokjuCouponCampaign.update({
       where: { id: campaignId },
       data: { status: nextStatus },
+    });
+    await writeCouponAuditLog({
+      actorId: actor.adminId,
+      campaignId,
+      targetType: "CAMPAIGN",
+      targetId: campaignId,
+      actionType: "STATUS_CHANGE",
+      summary: `캠페인 상태 ${campaign.status} → ${nextStatus}`,
     });
     return jsonOk({ id: updated.id, status: updated.status });
   } catch (e) {

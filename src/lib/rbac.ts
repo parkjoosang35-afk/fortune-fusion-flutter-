@@ -128,6 +128,13 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   // 그 전까지는 ai_content와 분리된 전용 메뉴코드로 가드해 책임 범위를 명확히 한다.
   { code: "wishroom", label: "소원방 운영", path: "/wishroom/reports", icon: "Heart" },
   { code: "ad_management", label: "광고관리", path: "/reward/fortune-ads", icon: "Megaphone" },
+  // [복주머니 마케팅 쿠폰 최종본] 쿠폰 대량 발행→모바일 이미지 제작→제휴업체
+  // 배정→고객 QR 등록→복주머니 적립까지 연결하는 전용 메뉴. 기존 "복주머니관리"
+  // (pouch, LuckPouchRule 적립/소비 "정책")와는 완전히 다른 도메인(BokjuCoupon*
+  // 테이블)이라 혼동 방지를 위해 별도 메뉴 코드로 분리한다. 사이드바 전용 신규
+  // 코드이므로 RBAC_MATRIX에는 "reward"와 동일 권한을 미러링한다(pass/pouch와
+  // 동일 패턴, 실제 접근 제어는 각 페이지의 reward 가드가 최종 담당).
+  { code: "bokju_coupon", label: "마케팅 쿠폰", path: "/bokju-coupons/campaigns", icon: "QrCode" },
   { code: "users", label: "회원·이용내역", path: "/users", icon: "Users" },
   // [§8단계] 상점 관리 진입점을 부적(amulets, 앱 진입경로 없는 죽은 기능)에서
   // 복주머니뽑기(luckybag, 실제 앱에서 라이브 사용 중)로 변경한다.
@@ -205,6 +212,9 @@ export const RBAC_MATRIX: Record<string, Record<AdminRoleCode, Perm>> = {
   // [관리자 통합 간소화] 광고관리 허브 — 1차 진입점은 기존 reward/fortune-ads(이미
   // canAccessMenu(roleCode,"reward")로 가드됨)이므로 reward와 동일 권한.
   ad_management: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+  // [복주머니 마케팅 쿠폰 최종본] 신규 독립 메뉴. 위 §8단계에서 삭제된 "shop"
+  // 하위 구 쿠폰 화면과는 완전히 다른 도메인(BokjuCoupon*)이므로 별도 코드로 분리.
+  bokju_coupon: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
   // [§8단계] 쿠폰 관리 화면을 삭제하며 RBAC_MATRIX.coupons 같은 별도 엔트리는
   // 애초에 없었다(쿠폰은 "shop" 메뉴코드 하위 화면이었음 — shop은 amulets/
   // luckybag/giftcards 3개 화면이 여전히 쓰므로 그대로 유지).
