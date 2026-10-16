@@ -24,9 +24,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:nested/nested.dart' show SingleChildWidget;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -145,8 +147,19 @@ MockClient _buildMockClient({
 /// [CrossCheckResultScreen]을 띄우도록 onGenerateRoute에 그 경로 하나만
 /// 등록한다(전체 AppRouter를 그대로 쓰면 다른 화면의 전역 의존성까지
 /// 전부 Provider로 등록해야 해서 테스트가 불필요하게 무거워진다).
+// [버그 수정 — 실제 재현 확인] 파라미터 타입을 List<ChangeNotifierProvider>로
+// 선언하면, 각기 다른 제네릭 타입 인자를 가진 ChangeNotifierProvider<T>
+// 리터럴들이 리스트 리터럴의 타입을 아래로 추론(downward inference)받아
+// 전부 ChangeNotifierProvider<dynamic>으로 묵시적 캐스팅된다. 그 결과
+// MultiProvider가 각 Provider를 `Provider<dynamic>`으로 등록해버려,
+// 화면이 `context.watch<FaceProvider>()`처럼 구체 타입으로 조회하면
+// ProviderNotFoundException이 발생한다(실제 재현: 아래 flutter test 실행
+// 로그에서 "Could not find the correct Provider<FaceProvider>" 확인).
+// provider 패키지가 공개 의존성으로 노출하는 공용 상위 타입
+// [SingleChildWidget]을 쓰면 각 ChangeNotifierProvider<T> 리터럴이 자신의
+// 구체 타입 그대로 보존된다.
 Widget _wrapWithCrossCheckRoute({
-  required List<ChangeNotifierProvider> providers,
+  required List<SingleChildWidget> providers,
   required Widget home,
 }) {
   return MultiProvider(

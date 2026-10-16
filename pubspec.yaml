@@ -188,6 +188,16 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  # [테스트 전용 — cross_check_cta_navigation_test.dart] provider 6.1.5+1가
+  # 내부적으로 의존하는 nested 패키지의 공개 타입(SingleChildWidget)을
+  # 테스트 헬퍼 시그니처에 직접 사용하기 위한 명시적 dev 의존성 추가.
+  # List<ChangeNotifierProvider> 로 선언하면 서로 다른 제네릭 타입 인자를
+  # 가진 Provider 리터럴들이 전부 ChangeNotifierProvider<dynamic>으로
+  # 다운캐스트되어 MultiProvider가 Provider<dynamic>으로 등록해버리는
+  # 실측 버그(ProviderNotFoundException)가 있어, 각 Provider의 구체
+  # 타입을 보존하는 SingleChildWidget을 공용 상위 타입으로 사용한다.
+  nested: ^1.0.0
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
