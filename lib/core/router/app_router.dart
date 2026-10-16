@@ -33,6 +33,8 @@ import '../../features/name_fortune/presentation/name_fortune_result_screen.dart
 import '../../features/compatibility/domain/compatibility_model.dart';
 import '../../features/compatibility/presentation/compatibility_input_screen.dart';
 import '../../features/compatibility/presentation/compatibility_result_screen.dart';
+// [엔진 통합 지시문 STEP 3] 교차검증 결과 화면.
+import '../orchestrator/presentation/cross_check_result_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../../features/attendance/presentation/attendance_calendar_screen.dart';
 import '../../features/mission/presentation/mission_screen.dart';
@@ -114,6 +116,8 @@ class AppRouter {
 
   // [타로 섹션 전면 개편 §2] 신규 라우트 이름 상수. 화면 내부(홈/허브)에서
   // 문자열 리터럴을 중복 작성하지 않도록 여기서 단일 소스로 정의한다.
+  // [엔진 통합 지시문 STEP 3] 교차검증 결과 화면 라우트.
+  static const String crossCheckResultRoute = '/cross-check/result';
   static const String tarotHomeRoute = '/tarot/home';
   static const String tarotHubRoute = '/tarot/hub';
   static const String tarotCategoryDetailRoute = '/tarot/category';
@@ -572,6 +576,14 @@ class AppRouter {
         return _pageNamed(
           '/compatibility/result',
           const CompatibilityResultScreen(),
+        );
+
+      // ── [엔진 통합 지시문 STEP 3] 교차검증 결과 화면. 사주/타로/관상/
+      // 손금/궁합 결과화면 각각의 CTA에서 1탭으로 도달한다.
+      case crossCheckResultRoute:
+        return _pageNamed(
+          crossCheckResultRoute,
+          const CrossCheckResultScreen(),
         );
 
       // ── [신통방통 정통사주 리뉴얼 — 기존 AI 사주 정리] 기존 AI/LLM 기반

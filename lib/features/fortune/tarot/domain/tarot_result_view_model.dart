@@ -177,7 +177,7 @@ class TarotResultView {
 /// 심화해석 / 히스토리. 각 액션의 처리 로직은 화면(State)에 두고, 이
 /// enum은 액션 바를 데이터 기반으로 렌더링하기 위한 식별자 + 표시 정보만
 /// 담는다.
-enum TarotResultAction { history, redraw, save, share, deepDive }
+enum TarotResultAction { history, redraw, save, share, deepDive, compare }
 
 extension TarotResultActionX on TarotResultAction {
   String get label {
@@ -192,6 +192,10 @@ extension TarotResultActionX on TarotResultAction {
         return '공유하기';
       case TarotResultAction.deepDive:
         return '심화해석';
+      // [엔진 통합 지시문 STEP 3 — 2탭 도달성] 기존 5액션 바를 그대로
+      // 유지하면서 교차검증 화면 진입점만 6번째 액션으로 추가한다.
+      case TarotResultAction.compare:
+        return '운세비교';
     }
   }
 
@@ -207,6 +211,8 @@ extension TarotResultActionX on TarotResultAction {
         return Icons.ios_share_rounded;
       case TarotResultAction.deepDive:
         return Icons.auto_awesome_rounded;
+      case TarotResultAction.compare:
+        return Icons.compare_arrows_rounded;
     }
   }
 }

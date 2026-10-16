@@ -92,6 +92,10 @@ import 'features/result_access/data/result_access_repository.dart';
 import 'features/saju_renewal/state/saju_renewal_provider.dart';
 import 'features/saju_renewal/data/saju_renewal_api.dart';
 import 'features/saju_renewal/data/saju_recent_story_store.dart';
+// [엔진 통합 지시문 STEP 3] 사주/타로/관상/손금/궁합 교차검증 오케스트레이터.
+import 'core/orchestrator/orchestrator_provider.dart';
+import 'core/orchestrator/fortune_orchestrator.dart';
+import 'core/orchestrator/door_engine_gateway.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -294,6 +298,25 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => SajuRenewalProvider(SajuRenewalApi()),
         ),
+        // [엔진 통합 지시문 STEP 3] 사주/타로/관상/손금/궁합 교차검증
+        // 오케스트레이터. 기존 TarotProvider/FaceProvider/PalmProvider/
+        // CompatibilityProvider와는 별개의 Repository 인스턴스를 사용한다
+        // (각 Repository는 상태가 없거나, 있어도 "서버 실패 시 세션
+        // 로컬 폴백"용 _history뿐이라 별도 인스턴스로 둬도 안전하다 —
+        // 오케스트레이터는 조회(getHistory)만 호출하고 신규 분석을
+        // 트리거하지 않으므로 화면 쪽 상태와 충돌하지 않는다).
+        ChangeNotifierProvider(
+          create: (_) => OrchestratorProvider(
+            FortuneOrchestrator(
+              gateway: DefaultDoorEngineGateway(
+                tarotRepository: TarotRepository(),
+                faceRepository: FaceRepository(),
+                palmRepository: PalmRepository(),
+                compatibilityRepository: CompatibilityRepository(),
+              ),
+            ),
+          ),
+        ),
       ],
       // [Stage2 결함수정 — 결함-A10-01] MultiProvider의 모든 Provider가
       // 트리에 생성된 직후(child 슬롯) 단 한 번, 개인정보/이력을 담은 각
@@ -428,6 +451,12 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     // — 기존에는 등록이 누락돼 로그아웃 후에도 이전 계정의 지도 메타와
     // 멤버(이름·생년월일) 정보가 메모리에 잔존했다.
     auth.registerLogoutCallback(context.read<GuinjiProvider>().clearOnLogout);
+    // [엔진 통합 지시문 STEP 3] 교차검증 오케스트레이터도 동일한 계정
+    // 격리 원칙을 적용한다 — 이전 계정의 사주/타로/관상/손금/궁합 원본
+    // 데이터가 응축된 UnifiedFortuneProfile이 로그아웃 후 잔존하면 안 된다.
+    auth.registerLogoutCallback(
+      context.read<OrchestratorProvider>().clearOnLogout,
+    );
   }
 
   @override

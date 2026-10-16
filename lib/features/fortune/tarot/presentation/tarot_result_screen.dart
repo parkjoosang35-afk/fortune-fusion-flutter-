@@ -82,6 +82,10 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
             builder: (_) => TarotDeepDiveScreen(result: view.result),
           ),
         );
+      // [엔진 통합 지시문 STEP 3 — 2탭 도달성] 기존 5액션 바 구조를 그대로
+      // 유지하면서 교차검증 화면 진입점만 추가한다.
+      case TarotResultAction.compare:
+        Navigator.of(context).pushNamed('/cross-check/result');
     }
   }
 

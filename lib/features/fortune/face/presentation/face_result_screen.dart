@@ -180,6 +180,14 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
           onTap: () =>
               Navigator.of(context).pushNamed('/ai-fortune/face/history'),
         ),
+        // [엔진 통합 지시문 STEP 3 — 2탭 도달성] 이 결과화면 자체가 이미
+        // 홈에서 1~2탭 거리이므로, 여기서 교차검증까지 1탭이면 전체
+        // 2탭 도달성을 만족한다.
+        ResultCta(
+          label: '다른 운세와 비교해보기',
+          icon: Icons.compare_arrows_rounded,
+          onTap: () => Navigator.of(context).pushNamed('/cross-check/result'),
+        ),
       ],
     );
   }

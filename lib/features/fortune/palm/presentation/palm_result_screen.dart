@@ -178,6 +178,13 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
           onTap: () =>
               Navigator.of(context).pushNamed('/ai-fortune/palm/history'),
         ),
+        // [엔진 통합 지시문 STEP 3 — 2탭 도달성] face_result_screen.dart와
+        // 동일한 패턴으로 교차검증 화면 진입점을 추가한다.
+        ResultCta(
+          label: '다른 운세와 비교해보기',
+          icon: Icons.compare_arrows_rounded,
+          onTap: () => Navigator.of(context).pushNamed('/cross-check/result'),
+        ),
       ],
     );
   }
