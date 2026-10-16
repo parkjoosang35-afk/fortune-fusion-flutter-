@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import BokjuCouponSubNav from "@/components/BokjuCouponSubNav";
 import BokjuCampaignDetailClient from "@/components/BokjuCampaignDetailClient";
+import BokjuCouponShareSection from "@/components/BokjuCouponShareSection";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,7 @@ export default async function BokjuCampaignDetailPage({
           useLimitPerMember: campaign.useLimitPerMember,
           sharedTotalLimit: campaign.sharedTotalLimit,
           distributionMethod: campaign.distributionMethod,
+          designTemplate: campaign.designTemplate,
           status: campaign.status,
           validFrom: campaign.validFrom.toISOString(),
           validTo: campaign.validTo.toISOString(),
@@ -109,6 +111,18 @@ export default async function BokjuCampaignDetailPage({
         recalledAvailable={recalledAvailable}
         canWrite={canWrite}
       />
+
+      {campaign.issuedCount > 0 && (
+        <div className="mt-6">
+          <BokjuCouponShareSection
+            campaignId={campaign.id}
+            campaignTitle={campaign.title}
+            grantAmount={campaign.grantAmount}
+            validTo={campaign.validTo.toISOString()}
+            canWrite={canWrite}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -47,7 +47,7 @@ async function loadCouponByToken(token: string) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { token } = await params;
   const coupon = await loadCouponByToken(token);
-  const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:4300";
   const pageUrl = `${baseUrl}/coupon/${token}`;
   const ogImageUrl = `${baseUrl}/share-og/bokju-coupon.png`;
 

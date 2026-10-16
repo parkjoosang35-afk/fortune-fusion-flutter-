@@ -3,7 +3,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor } from "@/lib/page-config-helpers";
-import { createCampaign, BokjuCouponError, type CreateCampaignInput } from "@/lib/bokju-coupon-service";
+import {
+  createCampaign,
+  BokjuCouponError,
+  BOKJU_COUPON_DESIGN_TEMPLATES,
+  type CreateCampaignInput,
+} from "@/lib/bokju-coupon-service";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +28,8 @@ export async function GET() {
         issueType: c.issueType,
         targetAudience: c.targetAudience,
         distributionMethod: c.distributionMethod,
+        designTemplate: c.designTemplate,
+        customTemplateId: c.customTemplateId,
         status: c.status,
         validFrom: c.validFrom.toISOString(),
         validTo: c.validTo.toISOString(),
@@ -67,6 +74,15 @@ export async function POST(request: NextRequest) {
       distributionMethod: ["DIRECT", "PARTNER", "GIFT"].includes(body.distributionMethod)
         ? body.distributionMethod
         : "PARTNER",
+      designTemplate: BOKJU_COUPON_DESIGN_TEMPLATES.includes(body.designTemplate)
+        ? body.designTemplate
+        : "CLASSIC",
+      customTemplateId:
+        body.customTemplateId === null || body.customTemplateId === undefined || body.customTemplateId === ""
+          ? null
+          : Number.isInteger(Number(body.customTemplateId))
+            ? Number(body.customTemplateId)
+            : null,
     };
 
     const result = await createCampaign(input, actor.adminId);

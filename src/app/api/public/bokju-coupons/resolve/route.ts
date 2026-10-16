@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser, unauthorizedResponse, CORS_HEADERS } from "../../wishes/_shared";
+import { findCouponByIdentifier } from "@/lib/bokju-coupon-service";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +29,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const coupon = await prisma.bokjuCoupon.findUnique({
-      where: { redeemToken: token },
-      include: { campaign: true },
-    });
+    // [쿠폰번호 간소화 — 구조적 버그 수정] QR의 redeemToken뿐 아니라 쿠폰
+    // 이미지에 인쇄된 couponNo(수동 입력)로도 동일하게 조회되도록 공용
+    // 헬퍼를 사용한다 — bokju-coupon-service.ts의 findCouponByIdentifier
+    // 문서 주석 참고.
+    const coupon = await findCouponByIdentifier(prisma, token);
     if (!coupon) {
       return NextResponse.json(
         { success: false, error: "존재하지 않거나 사용할 수 없는 쿠폰입니다.", code: "COUPON_NOT_FOUND" },

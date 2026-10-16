@@ -14,6 +14,8 @@ const ACTION_LABEL: Record<string, string> = {
   RECALL: "미등록 회수",
   REVOKE: "쿠폰 중지",
   IMAGE_GENERATE_START: "이미지 생성 시작",
+  DELETE: "삭제",
+  BULK_DELETE: "일괄 삭제",
 };
 
 export default async function BokjuAuditLogsPage() {

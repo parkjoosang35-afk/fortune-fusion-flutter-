@@ -1,0 +1,13 @@
+-- [카카오톡 스타일 쿠폰 디자인 템플릿 4종] bokju_coupon_campaigns에 디자인 템플릿
+-- 선택 필드를 추가한다. 값: CLASSIC(전통 복주머니, 기본값) / PREMIUM(고급 선물) /
+-- KAKAO(카카오톡 말풍선 스타일) / MINIMAL(미니멀). 캠페인 생성 시 선택하고,
+-- bokju-coupon-image-service.ts의 renderCouponImage()가 이 값에 따라 다른 SVG
+-- 레이아웃/색감을 적용한다. 기존 캠페인은 전부 CLASSIC으로 간주(기존 디자인과
+-- 100% 동일한 렌더링 유지, 하위 호환 깨짐 없음).
+--
+-- 이 프로젝트는 `prisma migrate deploy`로 배포하며 _prisma_migrations 테이블이
+-- 마이그레이션별 1회 적용을 보장하므로(20261013001112_add_funnel_events 등
+-- 기존 마이그레이션과 동일한 전제), ALTER TABLE ADD COLUMN에 별도 IF NOT EXISTS
+-- 가드가 필요 없다(SQLite 3.44 기준 ADD COLUMN은 IF NOT EXISTS 문법 자체를
+-- 지원하지 않음 — CREATE TABLE/INDEX의 IF NOT EXISTS와는 다른 제약).
+ALTER TABLE "bokju_coupon_campaigns" ADD COLUMN "design_template" TEXT NOT NULL DEFAULT 'CLASSIC';

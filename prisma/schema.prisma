@@ -1517,41 +1517,100 @@ model CouponIssue {
 // sourceId=bokjuCouponId) 조합의 유니크 인덱스로 DB 차원에서 보장한다.
 // ══════════════════════════════════════════════════════════════════
 model BokjuCouponCampaign {
-  id                Int       @id @default(autoincrement())
-  title             String
-  grantAmount       Int       @map("grant_amount") // 등록 시 지급할 복주머니 수량
-  issueType         String    @default("INDIVIDUAL") @map("issue_type") // INDIVIDUAL/SHARED
-  targetAudience    String    @default("ALL") @map("target_audience") // ALL/NEW/EXISTING
-  useLimitPerMember Int       @default(1) @map("use_limit_per_member")
-  sharedTotalLimit  Int?      @map("shared_total_limit")
-  validFrom         DateTime  @map("valid_from")
-  validTo           DateTime  @map("valid_to")
-  guideText         String?   @map("guide_text")
+  id                 Int      @id @default(autoincrement())
+  title              String
+  grantAmount        Int      @map("grant_amount") // 등록 시 지급할 복주머니 수량
+  issueType          String   @default("INDIVIDUAL") @map("issue_type") // INDIVIDUAL/SHARED
+  targetAudience     String   @default("ALL") @map("target_audience") // ALL/NEW/EXISTING
+  useLimitPerMember  Int      @default(1) @map("use_limit_per_member")
+  sharedTotalLimit   Int?     @map("shared_total_limit")
+  validFrom          DateTime @map("valid_from")
+  validTo            DateTime @map("valid_to")
+  guideText          String?  @map("guide_text")
   distributionMethod String   @default("PARTNER") @map("distribution_method") // DIRECT/PARTNER/GIFT
-  status            String    @default("DRAFT") // DRAFT/ACTIVE/PAUSED/CLOSED
-  issuedCount       Int       @default(0) @map("issued_count")
-  allocatedCount    Int       @default(0) @map("allocated_count")
-  redeemedCount     Int       @default(0) @map("redeemed_count")
-  usedCount         Int       @default(0) @map("used_count") // SHARED 전용 누적 참여 수
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  createdBy         String?   @map("created_by")
+  designTemplate     String   @default("CLASSIC") @map("design_template") // [카카오톡 스타일 쿠폰 디자인 4종] CLASSIC(전통 복주머니)/PREMIUM(고급 선물)/KAKAO(카카오톡 스타일)/MINIMAL(미니멀). customTemplateId가 있으면 이 값 대신 그 템플릿의 렌더링을 사용(하위호환을 위해 필드 자체는 유지).
+  customTemplateId   Int?     @map("custom_template_id") // [AI 쿠폰 디자인 표시·숨김 기능] 설정하면 BokjuCouponDesignTemplate의 배경+표시설정으로 렌더링. null이면 기존 designTemplate(4종 내장) 그대로 사용 — 하위 호환.
+  status             String   @default("DRAFT") // DRAFT/ACTIVE/PAUSED/CLOSED
+  issuedCount        Int      @default(0) @map("issued_count")
+  allocatedCount     Int      @default(0) @map("allocated_count")
+  redeemedCount      Int      @default(0) @map("redeemed_count")
+  usedCount          Int      @default(0) @map("used_count") // SHARED 전용 누적 참여 수
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by")
 
-  coupons       BokjuCoupon[]
-  allocations   BokjuCouponAllocation[]
-  redemptions   BokjuCouponRedemption[]
-  sharedUsages  BokjuCouponSharedUsage[]
+  coupons        BokjuCoupon[]
+  allocations    BokjuCouponAllocation[]
+  redemptions    BokjuCouponRedemption[]
+  sharedUsages   BokjuCouponSharedUsage[]
+  customTemplate BokjuCouponDesignTemplate? @relation(fields: [customTemplateId], references: [id], onDelete: SetNull)
 
+  @@index([customTemplateId])
   @@map("bokju_coupon_campaigns")
 }
 
+/**
+ * [AI 쿠폰 디자인 표시·숨김 기능] 관리자가 "빨간색과 금색의 고급스러운 전통
+ * 쿠폰" 같은 텍스트 요청으로 AI에게 생성시킨 "글자 없는" 배경 이미지 1장을
+ * 저장하는 테이블. 배경 자체는 재사용 가능한 순수 자산이고(여러 템플릿이
+ * 같은 배경을 가리킬 수 있음), 실제 "이 배경 위에 어떤 정보를 어떻게
+ * 배치할지"는 BokjuCouponDesignTemplate이 별도로 담당한다(관심사 분리 —
+ * §4 "AI는 배경 이미지를 생성하고, 쿠폰명·수량·번호·QR 등은 기존 시스템이
+ * 별도로 배치" 요건).
+ */
+model BokjuCouponDesignAsset {
+  id         Int      @id @default(autoincrement())
+  prompt     String // 관리자가 입력한 원본 요청 문구(예: "빨간색과 금색의 고급스러운 전통 쿠폰")
+  imagePath  String   @map("image_path") // /uploads/bokju-coupons/design-assets/{id}.png (public 정적 서빙 경로)
+  status     String   @default("READY") // GENERATING/READY/FAILED — AI 호출은 동기 처리이므로 사실상 READY/FAILED만 쓰이지만, 향후 비동기 전환 대비
+  failReason String?  @map("fail_reason")
+  createdBy  String?  @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  templates BokjuCouponDesignTemplate[]
+
+  @@map("bokju_coupon_design_assets")
+}
+
+/**
+ * [AI 쿠폰 디자인 표시·숨김 기능 — 핵심 테이블] 관리자가 선택한 배경
+ * (designAssetId, null이면 흰 배경 기본값) + 11개 정보 항목의 표시/숨김
+ * 설정(visibility, JSON)을 함께 저장한 "재사용 가능한 쿠폰 디자인"이다.
+ * [설계 원칙 — §3 "표시 설정과 실제 쿠폰 기능 분리", §6 "이미 발행된 쿠폰은
+ * 템플릿을 수정해도 기존 이미지나 QR코드, 공유 링크가 예기치 않게 변경되지
+ * 않도록"] 이 테이블에는 배경 이미지와 표시 설정"만" 저장한다 — 쿠폰번호,
+ * QR 연결 주소(redeemToken), 지급 수량, 사용기한 같은 "실제 쿠폰 데이터"는
+ * 전혀 저장하지 않고 항상 BokjuCoupon/BokjuCouponCampaign에서 실시간으로
+ * 가져와 렌더링 시점에 합성한다. 따라서 템플릿을 나중에 수정해도, 이미
+ * 생성되어 디스크에 저장된 쿠폰 이미지 파일(bokju-coupon-image-service.ts의
+ * campaignDir()/{couponId}.png)은 전혀 건드리지 않는다 — "재생성 버튼"을
+ * 다시 눌러야만 새 디자인이 반영된다(명시적 재생성 원칙, 조용한 자동 변경 금지).
+ */
+model BokjuCouponDesignTemplate {
+  id            Int      @id @default(autoincrement())
+  name          String // 관리자가 붙인 템플릿 이름(예: "설날 이벤트용", "제휴업체 기본")
+  designAssetId Int?     @map("design_asset_id") // null이면 흰 배경(기존 MINIMAL과 유사한 기본 배경)으로 렌더링
+  visibility    String   @map("visibility") // JSON: {logo,title,amount,couponNo,qr,validFrom,validTo,guideText,ctaText,partnerName,decoration} 각 boolean
+  isDefault     Boolean  @default(false) @map("is_default") // "쿠폰 만들기" 화면의 기본 선택값(1개만 true — 서비스 레이어가 보장)
+  isArchived    Boolean  @default(false) @map("is_archived") // [템플릿 사용 중지/숨김] true면 "쿠폰 만들기" 선택 목록에서 숨겨지지만, 이미 이 템플릿을 쓰는 캠페인/발행 이미지에는 영향 없음(계속 정상 렌더링)
+  createdBy     String?  @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  designAsset BokjuCouponDesignAsset? @relation(fields: [designAssetId], references: [id], onDelete: SetNull)
+  campaigns   BokjuCouponCampaign[]
+
+  @@index([designAssetId])
+  @@map("bokju_coupon_design_templates")
+}
+
 model BokjuPartner {
-  id             Int       @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   name           String
-  managerName    String?   @map("manager_name")
-  managerContact String?   @map("manager_contact")
-  status         String    @default("ACTIVE")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  managerName    String?  @map("manager_name")
+  managerContact String?  @map("manager_contact")
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   accounts    BokjuPartnerAccount[]
   allocations BokjuCouponAllocation[]
@@ -1559,7 +1618,9 @@ model BokjuPartner {
   @@map("bokju_partners")
 }
 
-/** 업체 전용 로그인 계정 — 기존 AdminUser/User 인증 체계와 별개(제휴업체는 회원도 관리자도 아님). */
+/**
+ * 업체 전용 로그인 계정 — 기존 AdminUser/User 인증 체계와 별개(제휴업체는 회원도 관리자도 아님).
+ */
 model BokjuPartnerAccount {
   id              Int       @id @default(autoincrement())
   partnerId       Int       @map("partner_id")
@@ -1579,21 +1640,21 @@ model BokjuPartnerAccount {
 }
 
 model BokjuCoupon {
-  id               Int       @id @default(autoincrement())
-  campaignId       Int       @map("campaign_id")
-  couponNo         String    @unique @map("coupon_no")
-  redeemToken      String    @unique @map("redeem_token")
-  status           String    @default("CREATED") // CREATED/ISSUED/ALLOCATED/DELIVERED/ASSIGNED/REDEEMED/EXPIRED/REVOKED/RECALLED
-  partnerId        Int?      @map("partner_id")
-  allocationId     Int?      @map("allocation_id")
-  assignedUserId   Int?      @map("assigned_user_id")
-  issuedAt         DateTime  @default(now()) @map("issued_at")
-  expiresAt        DateTime  @map("expires_at")
-  redeemedAt       DateTime? @map("redeemed_at")
-  redeemedBy       Int?      @map("redeemed_by")
-  revokedAt        DateTime? @map("revoked_at")
-  revokedReason    String?   @map("revoked_reason")
-  rowVersion       Int       @default(0) @map("row_version")
+  id             Int       @id @default(autoincrement())
+  campaignId     Int       @map("campaign_id")
+  couponNo       String    @unique @map("coupon_no")
+  redeemToken    String    @unique @map("redeem_token")
+  status         String    @default("CREATED") // CREATED/ISSUED/ALLOCATED/DELIVERED/ASSIGNED/REDEEMED/EXPIRED/REVOKED/RECALLED
+  partnerId      Int?      @map("partner_id")
+  allocationId   Int?      @map("allocation_id")
+  assignedUserId Int?      @map("assigned_user_id")
+  issuedAt       DateTime  @default(now()) @map("issued_at")
+  expiresAt      DateTime  @map("expires_at")
+  redeemedAt     DateTime? @map("redeemed_at")
+  redeemedBy     Int?      @map("redeemed_by")
+  revokedAt      DateTime? @map("revoked_at")
+  revokedReason  String?   @map("revoked_reason")
+  rowVersion     Int       @default(0) @map("row_version")
 
   campaign BokjuCouponCampaign @relation(fields: [campaignId], references: [id])
 
@@ -1603,7 +1664,9 @@ model BokjuCoupon {
   @@map("bokju_coupons")
 }
 
-/** 공용번호(SHARED) 쿠폰의 "회원당 1회" 강제. coupon_no는 BokjuCoupon과 별개로 캠페인당 1개만 존재. */
+/**
+ * 공용번호(SHARED) 쿠폰의 "회원당 1회" 강제. coupon_no는 BokjuCoupon과 별개로 캠페인당 1개만 존재.
+ */
 model BokjuCouponSharedUsage {
   id         Int      @id @default(autoincrement())
   campaignId Int      @map("campaign_id")
@@ -1630,8 +1693,8 @@ model BokjuCouponAllocation {
   createdBy          String?   @map("created_by")
   createdAt          DateTime  @default(now()) @map("created_at")
 
-  campaign BokjuCouponCampaign @relation(fields: [campaignId], references: [id])
-  partner  BokjuPartner        @relation(fields: [partnerId], references: [id])
+  campaign BokjuCouponCampaign         @relation(fields: [campaignId], references: [id])
+  partner  BokjuPartner                @relation(fields: [partnerId], references: [id])
   reports  BokjuCouponDeliveryReport[]
 
   @@index([partnerId, status])
@@ -1639,14 +1702,16 @@ model BokjuCouponAllocation {
   @@map("bokju_coupon_allocations")
 }
 
-/** 업체가 "실제로 몇 장 나눠줬는지" 자체 보고하는 수치. 시스템이 집계한 redeemedQty와는 분리해서 관리(§실적 분리 원칙). */
+/**
+ * 업체가 "실제로 몇 장 나눠줬는지" 자체 보고하는 수치. 시스템이 집계한 redeemedQty와는 분리해서 관리(§실적 분리 원칙).
+ */
 model BokjuCouponDeliveryReport {
   id           Int      @id @default(autoincrement())
   allocationId Int      @map("allocation_id")
   partnerId    Int      @map("partner_id")
   reportedQty  Int      @map("reported_qty")
   reportedDate DateTime @map("reported_date")
-  method       String   // OFFLINE/SNS/SMS/ETC
+  method       String // OFFLINE/SNS/SMS/ETC
   note         String?
   createdBy    String?  @map("created_by")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -1660,22 +1725,22 @@ model BokjuCouponDeliveryReport {
 /**
  * 쿠폰 등록(적립) 시도 이력 — 성공/실패 모두 기록한다.
  * ★ 이중 적립 차단의 핵심: (couponId, result='SUCCESS') 조합과
- *   (sourceType='bokju_coupon', sourceId=coupon.id) 조합의 PointHistory 유니크
- *   인덱스 두 겹으로 동시 요청을 막는다(SQLite는 WHERE절 부분 유니크 인덱스를
- *   지원하지 않으므로, 애플리케이션 레벨에서 result='SUCCESS' 행 존재 여부를
- *   트랜잭션 내 먼저 확인 + requestId 유니크 제약으로 재시도 안전성을 보장한다).
+ * (sourceType='bokju_coupon', sourceId=coupon.id) 조합의 PointHistory 유니크
+ * 인덱스 두 겹으로 동시 요청을 막는다(SQLite는 WHERE절 부분 유니크 인덱스를
+ * 지원하지 않으므로, 애플리케이션 레벨에서 result='SUCCESS' 행 존재 여부를
+ * 트랜잭션 내 먼저 확인 + requestId 유니크 제약으로 재시도 안전성을 보장한다).
  */
 model BokjuCouponRedemption {
-  id            Int       @id @default(autoincrement())
-  couponId      Int?      @map("coupon_id") // INVALID(쿠폰 자체를 못 찾음) 시 NULL
-  campaignId    Int?      @map("campaign_id")
-  userId        Int?      @map("user_id")
-  result        String    // SUCCESS/DUPLICATE/EXPIRED/REVOKED/NOT_TARGET/INVALID
-  failReason    String?   @map("fail_reason")
-  requestId     String    @unique @map("request_id") // 멱등키(Idempotency-Key)
-  grantedAmount Int?      @map("granted_amount")
-  balanceAfter  Int?      @map("balance_after")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id            Int      @id @default(autoincrement())
+  couponId      Int?     @map("coupon_id") // INVALID(쿠폰 자체를 못 찾음) 시 NULL
+  campaignId    Int?     @map("campaign_id")
+  userId        Int?     @map("user_id")
+  result        String // SUCCESS/DUPLICATE/EXPIRED/REVOKED/NOT_TARGET/INVALID
+  failReason    String?  @map("fail_reason")
+  requestId     String   @unique @map("request_id") // 멱등키(Idempotency-Key)
+  grantedAmount Int?     @map("granted_amount")
+  balanceAfter  Int?     @map("balance_after")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   campaign BokjuCouponCampaign? @relation(fields: [campaignId], references: [id])
 

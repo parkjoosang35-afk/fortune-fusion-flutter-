@@ -47,12 +47,13 @@ export default async function BokjuCampaignsPage() {
               <th className="px-4 py-3">배정</th>
               <th className="px-4 py-3">등록(적립)</th>
               <th className="px-4 py-3">사용기간</th>
+              {canWrite && <th className="px-4 py-3">관리</th>}
             </tr>
           </thead>
           <tbody>
             {campaigns.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={canWrite ? 9 : 8} className="px-4 py-8 text-center text-slate-500">
                   등록된 쿠폰 캠페인이 없습니다. 위 버튼으로 새 캠페인을 만들어보세요.
                 </td>
               </tr>
@@ -72,6 +73,7 @@ export default async function BokjuCampaignsPage() {
                   validFrom: c.validFrom.toISOString(),
                   validTo: c.validTo.toISOString(),
                 }}
+                canWrite={canWrite}
               />
             ))}
           </tbody>

@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/bokju-coupons/campaigns", label: "쿠폰 만들기 / 발행 관리" },
+  { href: "/bokju-coupons/design-templates", label: "AI 쿠폰 디자인" },
   { href: "/bokju-coupons/partners", label: "제휴업체 관리" },
   { href: "/bokju-coupons/push", label: "회원 푸시 발송" },
   { href: "/bokju-coupons/usage", label: "쿠폰 사용 내역" },

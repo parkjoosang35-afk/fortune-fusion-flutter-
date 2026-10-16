@@ -53,6 +53,16 @@ const REDEEMABLE_FROM = new Set(["ISSUED", "ALLOCATED", "DELIVERED", "ASSIGNED"]
 const SOURCE_TYPE = "bokju_coupon";
 
 // ────────────────────────────────────────────────────────── 발급
+/** [카카오톡 스타일 쿠폰 디자인 템플릿 4종] bokju-coupon-image-service.ts의
+ * renderCouponImage()가 지원하는 디자인 식별자와 동일한 값 집합을 쓴다. */
+export type BokjuCouponDesignTemplate = "CLASSIC" | "PREMIUM" | "KAKAO" | "MINIMAL";
+export const BOKJU_COUPON_DESIGN_TEMPLATES: BokjuCouponDesignTemplate[] = [
+  "CLASSIC",
+  "PREMIUM",
+  "KAKAO",
+  "MINIMAL",
+];
+
 export interface CreateCampaignInput {
   title: string;
   grantAmount: number;
@@ -64,6 +74,11 @@ export interface CreateCampaignInput {
   validTo: Date;
   guideText?: string;
   distributionMethod?: "DIRECT" | "PARTNER" | "GIFT";
+  designTemplate?: BokjuCouponDesignTemplate;
+  /** [AI 쿠폰 디자인 표시·숨김 기능] 저장된 커스텀 템플릿(BokjuCouponDesignTemplate) id.
+   * 지정하면 designTemplate(4종 내장) 대신 이 템플릿의 배경+표시설정으로 렌더링한다.
+   * null/undefined면 기존 4종 내장 템플릿 그대로 사용(하위 호환). */
+  customTemplateId?: number | null;
 }
 
 export async function createCampaign(input: CreateCampaignInput, actorId: string) {
@@ -72,6 +87,21 @@ export async function createCampaign(input: CreateCampaignInput, actorId: string
   }
   if (input.issueType === "SHARED" && !input.sharedTotalLimit) {
     throw new BokjuCouponError("SHARED_LIMIT_REQUIRED", "공용번호 쿠폰은 총 사용 한도가 필요합니다.");
+  }
+  // [AI 쿠폰 디자인 표시·숨김 기능 §9] 보관(archive)된 템플릿을 새 캠페인에 연결하는
+  // 것을 막는다 — 보관 템플릿은 "더 이상 신규 발급에 쓰지 않음"이 목적이므로, 여기서
+  // 막지 않으면 보관 의미가 무력화된다. 존재하지 않는 id도 동일하게 차단한다.
+  if (input.customTemplateId != null) {
+    const tpl = await prisma.bokjuCouponDesignTemplate.findUnique({
+      where: { id: input.customTemplateId },
+      select: { id: true, isArchived: true },
+    });
+    if (!tpl) {
+      throw new BokjuCouponError("TEMPLATE_NOT_FOUND", "선택한 디자인 템플릿을 찾을 수 없습니다.");
+    }
+    if (tpl.isArchived) {
+      throw new BokjuCouponError("TEMPLATE_ARCHIVED", "보관 처리된 템플릿은 새 캠페인에 사용할 수 없습니다.");
+    }
   }
   const campaign = await prisma.bokjuCouponCampaign.create({
     data: {
@@ -85,6 +115,8 @@ export async function createCampaign(input: CreateCampaignInput, actorId: string
       validTo: input.validTo,
       guideText: input.guideText,
       distributionMethod: input.distributionMethod ?? "PARTNER",
+      designTemplate: input.designTemplate ?? "CLASSIC",
+      customTemplateId: input.customTemplateId ?? null,
       status: "DRAFT",
       createdBy: actorId,
     },
@@ -92,10 +124,73 @@ export async function createCampaign(input: CreateCampaignInput, actorId: string
   return { campaignId: campaign.id };
 }
 
+/**
+ * [쿠폰번호 간소화 — 2026-12] 기존 "난수 12자 + 체크섬 2자"(예:
+ * `ST-6K2CFNHFVP57-C8`, 총 17자)는 QR을 못 찍어 손으로 입력해야 하는
+ * 고객 입장에서 너무 길다는 지적(사용자 리포트: "번호가 너무 길어서
+ * 치다가 틀려요")에 따라 "난수 8자(4+4 그룹) + 체크섬 1자"로 줄인다
+ * (예: `ST-6K2C-FNHF-P`, 총 13자 — 4자 끊어 읽기 쉽고 입력 실수도
+ * 줄어든다). 32개 기호 알파벳(혼동 문자 제외) 기준 32^8 ≈ 1.1조
+ * 조합으로, 등록 시도 횟수 제한([redeemCoupon]의 분당 10회 제한)과
+ * 결합하면 추측 공격은 여전히 비현실적이다(§13 "쿠폰번호는 추측하기
+ * 어렵게 생성" 요건 유지). 체크섬은 보안이 아니라 오타 자체 검출용
+ * (예: "입력하신 번호에 오타가 있는 것 같아요" 같은 안내에 추후 활용
+ * 가능 — 현재는 아직 별도 검증 로직을 추가하지 않음, 서버가 DB
+ * 조회 실패로 자연히 "존재하지 않는 쿠폰"을 반환).
+ *
+ * [하위 호환] 기존에 이미 발급되어 인쇄/공유된 쿠폰(12자 바디 형식)은
+ * 전혀 건드리지 않는다 — DB에 저장된 그대로 유효하며, 조회는 항상
+ * 문자열 완전일치이므로 길이가 섞여 있어도 문제없다. 이 함수는
+ * 새로 발급하는 쿠폰에만 적용된다.
+ */
 function generateCouponNo(): string {
-  const body = Array.from(randomBytes(12)).map((b) => ALPHABET[b % ALPHABET.length]).join("");
-  const checksum = createHash("sha1").update(body).digest("hex").slice(0, 2).toUpperCase();
+  const raw = Array.from(randomBytes(8)).map((b) => ALPHABET[b % ALPHABET.length]).join("");
+  const body = `${raw.slice(0, 4)}-${raw.slice(4, 8)}`;
+  const checksum = createHash("sha1").update(raw).digest("hex").slice(0, 1).toUpperCase();
   return `${COUPON_PREFIX}-${body}-${checksum}`;
+}
+
+/**
+ * [쿠폰번호 간소화 — 구조적 버그 수정, 2026-12] 지금까지 고객용 조회
+ * (resolve/redeem) API는 오직 `redeemToken`(QR에만 인코딩되는 32자 hex)
+ * 으로만 쿠폰을 찾았고, 쿠폰 이미지에 큼직하게 인쇄되는 `couponNo`는
+ * 발급/표시(엑셀·이미지)에만 쓰일 뿐 조회에는 전혀 연결되어 있지
+ * 않았다 — 즉 [BokjuCouponEntryScreen](Flutter "코드 직접 입력" 화면)에
+ * 인쇄된 쿠폰번호를 그대로 입력하면 QR 형식(URL/hex)이 아니므로
+ * "존재하지 않는 쿠폰"으로 100% 실패하는 치명적 버그였다(§5 "QR코드
+ * 쿠폰번호 자동 입력 **또는 직접 입력**" 요건 미충족). 이 헬퍼를
+ * resolve/redeem 양쪽에서 공용으로 써서, 사용자가 QR 토큰이든 인쇄된
+ * couponNo든 어느 쪽을 입력해도 동일하게 조회되도록 한다.
+ *
+ * [정규화] couponNo는 항상 대문자로 저장되므로 비교 전 대문자 변환한다
+ * (고객이 소문자로 치거나 대소문자가 섞여도 허용). redeemToken은
+ * randomBytes().toString('hex')로 항상 소문자이므로 그대로 비교한다
+ * (대문자 변환하면 오히려 QR 스캔 결과와 불일치할 수 있어 하지 않음).
+ */
+export async function findCouponByIdentifier(tx: Tx | typeof prisma, identifier: string) {
+  const raw = identifier.trim();
+  if (!raw) return null;
+  return tx.bokjuCoupon.findFirst({
+    where: { OR: [{ redeemToken: raw }, { couponNo: raw.toUpperCase() }] },
+    include: { campaign: true },
+  });
+}
+
+/** [등록 시도 제한 — §13 "등록 시도 횟수를 제한"] 최근 60초 이내 같은 회원의
+ * 등록 시도(성공/실패 불문) 건수를 [BokjuCouponRedemption] 로그에서 센다.
+ * 별도 카운터 테이블 없이 기존에 모든 시도마다 이미 남기고 있던
+ * [logAttempt]/[logFailureOutsideTx] 기록을 그대로 재사용한다(소원방
+ * [enforceRateLimitAndLog]와 동일한 설계 — wishroom-engine.ts
+ * `checkRateLimit` 참고, 분당 10회 상한도 동일하게 맞춤). 쿠폰번호
+ * 추측(무작위 대입) 공격 시 분당 10회로 제한되어, 32^8 조합 공간을
+ * 현실적인 시간 내에 전수조사하는 것이 불가능해진다.
+ */
+async function enforceRedeemRateLimit(userId: number): Promise<void> {
+  const since = new Date(Date.now() - 60_000);
+  const recent = await prisma.bokjuCouponRedemption.count({ where: { userId, createdAt: { gte: since } } });
+  if (recent >= 10) {
+    throw new BokjuCouponError("RATE_LIMITED", "등록 시도가 너무 잦습니다. 잠시 후 다시 시도해 주세요.");
+  }
 }
 
 /**
@@ -162,6 +257,166 @@ export async function revokeCoupon(couponId: number, reason: string) {
       data: { status: "REVOKED", revokedAt: new Date(), revokedReason: reason, rowVersion: { increment: 1 } },
     });
     return { couponId, status: "REVOKED" };
+  });
+}
+
+// ────────────────────────────────────────────────────────── 쿠폰/캠페인 삭제
+// [복주머니 마케팅 쿠폰 — 쿠폰 삭제 기능]
+// revokeCoupon()은 "사용 중지"(상태만 REVOKED로 바꾸는 soft 처리)이고, 아래
+// 함수들은 실제로 DB row 자체를 지우는 hard delete다. 두 기능은 용도가 다르므로
+// 공존시킨다(이미 운영 중인 revoke 플로우를 건드리지 않음).
+//
+// [핵심 안전장치 — 반드시 지킬 것] 이미 적립(REDEEMED)된 쿠폰은 그 자체로
+// PointHistory(실제 지갑 적립 원장)와 연결된 금전적 사실 기록이다. 이걸 삭제하면
+// "회원은 복주머니를 받았는데 관리자 화면에서는 쿠폰이 아예 없었던 것처럼
+// 보이는" 회계 불일치가 발생한다. 따라서 REDEEMED 쿠폰은 단건이든 벌크든
+// 캠페인 전체든 어떤 경로로도 삭제를 허용하지 않는다(강제 삭제 옵션 없음 —
+// revoke조차 거부하는 것과 동일한 원칙을 더 엄격하게 적용).
+const UNDELETABLE_COUPON_STATUSES = new Set(["REDEEMED"]);
+
+/** 단건 쿠폰 삭제. REDEEMED는 거부. 캠페인 issuedCount(및 배정 상태였다면
+ * allocatedCount)를 함께 보정해 집계 숫자가 삭제 후에도 실제 쿠폰 수와 어긋나지
+ * 않도록 한다. */
+export async function deleteCoupon(couponId: number) {
+  return prisma.$transaction(async (tx) => {
+    const coupon = await tx.bokjuCoupon.findUnique({ where: { id: couponId } });
+    if (!coupon) throw new BokjuCouponError("COUPON_NOT_FOUND", "쿠폰을 찾을 수 없습니다.");
+    if (UNDELETABLE_COUPON_STATUSES.has(coupon.status)) {
+      throw new BokjuCouponError(
+        "COUPON_ALREADY_USED",
+        "이미 적립(등록 완료)된 쿠폰은 삭제할 수 없습니다. 적립 기록 보존을 위한 보호 조치입니다."
+      );
+    }
+
+    await tx.bokjuCoupon.delete({ where: { id: couponId } });
+
+    // 집계 보정: issuedCount는 항상 1 감소, allocatedCount는 배정된 적이 있었던
+    // 경우(ALLOCATED/DELIVERED/ASSIGNED/RECALLED)에만 1 감소시킨다(미배정
+    // ISSUED 상태였다면 allocatedCount에 애초에 포함되지 않았으므로 건드리지 않음).
+    const wasAllocated = ["ALLOCATED", "DELIVERED", "ASSIGNED", "RECALLED"].includes(coupon.status);
+    await tx.bokjuCouponCampaign.update({
+      where: { id: coupon.campaignId },
+      data: {
+        issuedCount: { decrement: 1 },
+        ...(wasAllocated ? { allocatedCount: { decrement: 1 } } : {}),
+      },
+    });
+
+    return { couponId, campaignId: coupon.campaignId, couponNo: coupon.couponNo };
+  });
+}
+
+/**
+ * 벌크 쿠폰 삭제. 부분 실패를 허용한다 — 선택한 쿠폰 중 일부가 REDEEMED라고
+ * 해서 전체 요청을 통째로 거부하면("하나라도 걸리면 전부 실패") 관리자가
+ * 매번 하나씩 재시도해야 하는 번거로움이 생기므로, 삭제 가능한 건은 삭제하고
+ * 불가능한 건은 사유와 함께 skipped 목록으로 반환한다(allocateToPartner() 등
+ * 기존 "부분 처리를 조용히 넘기지 않는다" 원칙과 동일하게, 결과를 명시적으로
+ * 알려준다 — 다만 여기서는 "조용히 넘기지 않되 막지도 않는다"는 차이가 있다).
+ */
+export async function bulkDeleteCoupons(couponIds: number[]) {
+  if (couponIds.length === 0) {
+    throw new BokjuCouponError("INVALID_INPUT", "삭제할 쿠폰을 선택해 주세요.");
+  }
+  if (couponIds.length > 5000) {
+    throw new BokjuCouponError("TOO_MANY", "한 번에 최대 5,000건까지 삭제할 수 있습니다.");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const coupons = await tx.bokjuCoupon.findMany({ where: { id: { in: couponIds } } });
+    const foundIds = new Set(coupons.map((c) => c.id));
+
+    const deletable = coupons.filter((c) => !UNDELETABLE_COUPON_STATUSES.has(c.status));
+    const skipped: { couponId: number; couponNo: string; reason: string }[] = [];
+
+    for (const id of couponIds) {
+      if (!foundIds.has(id)) {
+        skipped.push({ couponId: id, couponNo: "", reason: "NOT_FOUND" });
+      }
+    }
+    for (const c of coupons) {
+      if (UNDELETABLE_COUPON_STATUSES.has(c.status)) {
+        skipped.push({ couponId: c.id, couponNo: c.couponNo, reason: "ALREADY_USED" });
+      }
+    }
+
+    if (deletable.length === 0) {
+      return { deletedCount: 0, skipped };
+    }
+
+    // 캠페인별로 묶어 issuedCount/allocatedCount 보정 폭을 미리 계산한다.
+    const byCampaign = new Map<number, { issued: number; allocated: number }>();
+    for (const c of deletable) {
+      const entry = byCampaign.get(c.campaignId) ?? { issued: 0, allocated: 0 };
+      entry.issued += 1;
+      if (["ALLOCATED", "DELIVERED", "ASSIGNED", "RECALLED"].includes(c.status)) entry.allocated += 1;
+      byCampaign.set(c.campaignId, entry);
+    }
+
+    await tx.bokjuCoupon.deleteMany({ where: { id: { in: deletable.map((c) => c.id) } } });
+
+    for (const [campaignId, delta] of byCampaign) {
+      await tx.bokjuCouponCampaign.update({
+        where: { id: campaignId },
+        data: {
+          issuedCount: { decrement: delta.issued },
+          ...(delta.allocated > 0 ? { allocatedCount: { decrement: delta.allocated } } : {}),
+        },
+      });
+    }
+
+    return { deletedCount: deletable.length, skipped };
+  });
+}
+
+/**
+ * 캠페인 전체 삭제. 하위에 REDEEMED 쿠폰이 단 한 장이라도 있으면 전체를
+ * 거부한다(부분 삭제 불가 원칙 — "회원이 실제로 받은 복주머니 기록이 있는
+ * 캠페인"은 통째로 보존해야 감사·정산 추적이 가능하다). 통과하면 연관된
+ * 모든 하위 레코드를 트랜잭션으로 함께 정리한다:
+ *   - BokjuCouponDeliveryReport(배정 보고서) → 배정 FK가 RESTRICT라 먼저 삭제
+ *   - BokjuCouponAllocation(배정) → 쿠폰 FK가 RESTRICT라 먼저 삭제
+ *   - BokjuCouponSharedUsage(공용번호 사용 이력)
+ *   - BokjuCoupon(쿠폰 본체)
+ *   - BokjuCouponImageJob / BokjuCouponPushJob(백그라운드 작업 — FK 제약 없지만
+ *     고아 레코드 방지를 위해 함께 정리)
+ *   - BokjuCouponRedemption(등록 시도 로그)는 FK가 SET NULL이라 자동으로
+ *     campaignId만 NULL 처리되어 로그 자체는 보존된다(실패 이력까지 지우면
+ *     "왜 그 캠페인이 삭제됐는지" 감사 추적이 끊기므로 의도적으로 보존).
+ *   - BokjuCouponAuditLog도 동일하게 campaignId FK가 없어 로그가 그대로
+ *     남는다(삭제 행위 자체도 감사 로그에 남겨야 하므로 당연히 보존).
+ */
+export async function deleteCampaign(campaignId: number) {
+  return prisma.$transaction(async (tx) => {
+    const campaign = await tx.bokjuCouponCampaign.findUnique({ where: { id: campaignId } });
+    if (!campaign) throw new BokjuCouponError("CAMPAIGN_NOT_FOUND", "캠페인을 찾을 수 없습니다.");
+
+    const redeemedCount = await tx.bokjuCoupon.count({ where: { campaignId, status: "REDEEMED" } });
+    if (redeemedCount > 0) {
+      throw new BokjuCouponError(
+        "CAMPAIGN_HAS_REDEEMED_COUPONS",
+        `이미 적립 완료된 쿠폰이 ${redeemedCount}장 있어 캠페인을 삭제할 수 없습니다. ` +
+          `개별적으로 삭제 가능한 쿠폰만 정리하거나, 캠페인 상태를 CLOSED로 변경해 주세요.`
+      );
+    }
+
+    const couponCount = await tx.bokjuCoupon.count({ where: { campaignId } });
+
+    const allocations = await tx.bokjuCouponAllocation.findMany({ where: { campaignId }, select: { id: true } });
+    const allocationIds = allocations.map((a) => a.id);
+    if (allocationIds.length > 0) {
+      await tx.bokjuCouponDeliveryReport.deleteMany({ where: { allocationId: { in: allocationIds } } });
+    }
+    await tx.bokjuCouponAllocation.deleteMany({ where: { campaignId } });
+    await tx.bokjuCouponSharedUsage.deleteMany({ where: { campaignId } });
+    await tx.bokjuCoupon.deleteMany({ where: { campaignId } });
+    await tx.bokjuCouponImageJob.deleteMany({ where: { campaignId } });
+    await tx.bokjuCouponPushJob.deleteMany({ where: { campaignId } });
+    // BokjuCouponRedemption/BokjuCouponAuditLog는 의도적으로 보존(위 주석 참고).
+
+    await tx.bokjuCouponCampaign.delete({ where: { id: campaignId } });
+
+    return { campaignId, deletedCoupons: couponCount, title: campaign.title };
   });
 }
 
@@ -734,7 +989,8 @@ function failure(code: string, message: string): RedeemResult {
 export async function redeemCoupon(input: RedeemInput): Promise<RedeemResult> {
   const { userId, token, idempotencyKey } = input;
 
-  // ── 0) 멱등키 재전송이면 최초 결과를 그대로 반환
+  // ── 0) 멱등키 재전송이면 최초 결과를 그대로 반환 (재전송은 추측 공격이
+  //      아니라 네트워크 재시도 등 정상 흐름이므로 분당 제한 카운트 전에 처리)
   const replay = await prisma.bokjuCouponRedemption.findUnique({ where: { requestId: idempotencyKey } });
   if (replay) {
     if (replay.result !== "SUCCESS") return failure("ALREADY_USED", "이미 처리된 요청입니다.");
@@ -750,13 +1006,21 @@ export async function redeemCoupon(input: RedeemInput): Promise<RedeemResult> {
     };
   }
 
+  // ── 0.5) 등록 시도 횟수 제한(§13) — 실제 신규 시도에 대해서만 적용,
+  //        트랜잭션 진입 전에 걸러내어 불필요한 DB 쓰기를 막는다.
+  try {
+    await enforceRedeemRateLimit(userId);
+  } catch (err) {
+    if (err instanceof BokjuCouponError) {
+      return failure(err.code, err.message);
+    }
+    throw err;
+  }
+
   try {
     return await prisma.$transaction(async (tx) => {
       const now = new Date();
-      const coupon = await tx.bokjuCoupon.findUnique({
-        where: { redeemToken: token },
-        include: { campaign: true },
-      });
+      const coupon = await findCouponByIdentifier(tx, token);
 
       if (!coupon) {
         await logAttempt(tx, null, null, userId, "INVALID", "COUPON_NOT_FOUND", idempotencyKey);

@@ -1,8 +1,13 @@
 // [복주머니 마케팅 쿠폰] GET /api/admin/bokju-coupons/campaigns/:id/coupons
 // 캠페인 소속 쿠폰 목록(상태/업체 배정 여부 포함) — "발행 쿠폰 관리"/"쿠폰 사용 내역" 화면용.
 // 쿼리: ?status=ISSUED (선택), ?page=1&pageSize=50 (기본 50건 페이지네이션)
+//
+// [카카오톡 링크 공유 쿠폰 기능 — 우선순위 1] 관리자가 "링크 복사"/"카카오톡
+// 공유"를 하려면 쿠폰별 redeemToken이 필요하므로 shareUrl을 응답에 포함한다.
+// redeemToken 자체는 이 관리자 전용(인증 필수) 엔드포인트에서만 노출되고,
+// 공개(public) API에는 절대 노출하지 않는다(추측 방지 — 항목2 보안 요구사항).
 import { prisma } from "@/lib/db";
-import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor } from "@/lib/page-config-helpers";
+import { jsonError, jsonOk, requireAdminOrResponse, isAdminActor, resolvePublicOrigin } from "@/lib/page-config-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +40,8 @@ export async function GET(
       }),
     ]);
 
+    const baseUrl = resolvePublicOrigin(request);
+
     return jsonOk({
       total,
       page,
@@ -52,6 +59,9 @@ export async function GET(
         redeemedBy: c.redeemedBy,
         revokedAt: c.revokedAt ? c.revokedAt.toISOString() : null,
         revokedReason: c.revokedReason,
+        // [카카오톡 링크 공유] 관리자가 "링크 복사"/"카카오톡 공유"에 바로 쓸 수 있는
+        // 쿠폰별 등록 링크. redeemToken 원문은 노출하지 않는다(링크 형태로만 제공).
+        shareUrl: `${baseUrl}/coupon/${c.redeemToken}`,
       })),
     });
   } catch (e) {

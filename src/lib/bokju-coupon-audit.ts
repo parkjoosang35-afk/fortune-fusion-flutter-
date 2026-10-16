@@ -8,7 +8,7 @@ export async function writeCouponAuditLog(params: {
   actorId: string | null;
   actorType?: "ADMIN" | "PARTNER" | "SYSTEM";
   campaignId?: number | null;
-  targetType: "CAMPAIGN" | "COUPON" | "ALLOCATION" | "PARTNER";
+  targetType: "CAMPAIGN" | "COUPON" | "ALLOCATION" | "PARTNER" | "DESIGN_TEMPLATE" | "DESIGN_ASSET";
   targetId?: number | null;
   actionType: string;
   summary: string;

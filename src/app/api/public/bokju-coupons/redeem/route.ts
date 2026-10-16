@@ -63,7 +63,9 @@ export async function POST(request: NextRequest) {
         ? 409
         : result.code === "NOT_TARGET" || result.code === "LIMIT_EXCEEDED"
           ? 403
-          : 400;
+          : result.code === "RATE_LIMITED"
+            ? 429
+            : 400;
       return NextResponse.json(
         { success: false, code: result.code, error: result.message },
         { status, headers: CORS_HEADERS }
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (e) {
     if (e instanceof BokjuCouponError) {
-      const status = e.code === "WALLET_DAILY_CAP_REACHED" ? 429 : 400;
+      const status = e.code === "WALLET_DAILY_CAP_REACHED" || e.code === "RATE_LIMITED" ? 429 : 400;
       return NextResponse.json(
         { success: false, code: e.code, error: e.message },
         { status, headers: CORS_HEADERS }

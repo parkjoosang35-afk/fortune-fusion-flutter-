@@ -38,6 +38,35 @@ export function isAdminActor(v: AdminActor | NextResponse): v is AdminActor {
   return !(v instanceof NextResponse);
 }
 
+/**
+ * [복주머니 쿠폰 QR/공유링크 버그 수정 — 실제 공개 접속 주소 계산]
+ *
+ * [문제] 샌드박스/리버스프록시(예: novita.ai 샌드박스, 또는 운영 서버 앞의
+ * nginx) 뒤에서 `new URL(request.url).origin`은 항상 내부 바인딩 주소
+ * (`http://localhost:4300`류)를 반환한다 — 외부에서 실제로 접속한 공개
+ * 호스트명이 아니다. 이 내부 주소를 QR 코드나 공유 링크에 그대로 박으면
+ * 그 QR/링크는 외부 기기에서 영원히 열리지 않는다(2026 QR 미작동 사고의
+ * 근본 원인 — pyzbar로 실제 생성된 QR을 디코딩해 확인함).
+ *
+ * [해결] 표준 리버스프록시 헤더(`x-forwarded-host` / `x-forwarded-proto`)를
+ * 우선 사용하고, 그 헤더가 없으면(프록시를 거치지 않는 직접 접속) 요청
+ * origin 그대로를 쓴다. 운영 배포 시에는 `NEXT_PUBLIC_APP_BASE_URL`
+ * 환경변수가 최우선이므로, 이 함수는 그 환경변수가 없을 때만 쓰이는
+ * 폴백 경로다.
+ */
+export function resolvePublicOrigin(request: Request): string {
+  if (process.env.NEXT_PUBLIC_APP_BASE_URL) return process.env.NEXT_PUBLIC_APP_BASE_URL;
+
+  const headers = request.headers;
+  const forwardedHost = headers.get("x-forwarded-host");
+  const forwardedProto = headers.get("x-forwarded-proto");
+  if (forwardedHost) {
+    const proto = forwardedProto?.split(",")[0]?.trim() || "https";
+    return `${proto}://${forwardedHost.split(",")[0]?.trim()}`;
+  }
+  return new URL(request.url).origin;
+}
+
 export async function getOrCreatePageConfig(pageKey: string) {
   const existing = await prisma.pageConfig.findUnique({ where: { pageKey } });
   if (existing) return existing;

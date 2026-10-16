@@ -14,6 +14,7 @@ interface Campaign {
   useLimitPerMember: number;
   sharedTotalLimit: number | null;
   distributionMethod: string;
+  designTemplate: string;
   status: string;
   validFrom: string;
   validTo: string;
@@ -51,6 +52,16 @@ interface Allocation {
   redeemedQty: number;
   redemptionRate: number;
 }
+
+// [카카오톡 스타일 쿠폰 디자인 템플릿 4종] BokjuCampaignCreateForm.tsx의
+// DESIGN_TEMPLATES와 동일한 라벨 — 생성 폼과 상세 화면 양쪽에서 같은 한글
+// 이름으로 표시되도록 맞춘다.
+const DESIGN_TEMPLATE_LABEL: Record<string, string> = {
+  CLASSIC: "전통 복주머니",
+  PREMIUM: "고급 선물",
+  KAKAO: "카카오톡 스타일",
+  MINIMAL: "미니멀",
+};
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: "초안",
@@ -246,6 +257,27 @@ export default function BokjuCampaignDetailClient({
     }
   }
 
+  async function handleDeleteCampaign() {
+    if (
+      !window.confirm(
+        `캠페인 "${campaign.title}"을(를) 삭제하시겠습니까?\n\n발행된 쿠폰, 배정 내역이 모두 함께 삭제되며 되돌릴 수 없습니다.\n(이미 적립 완료된 쿠폰이 하나라도 있으면 삭제가 거부됩니다.)`
+      )
+    )
+      return;
+    setPending("delete-campaign");
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/bokju-coupons/campaigns/${campaign.id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      router.push("/bokju-coupons/campaigns");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "캠페인 삭제 실패");
+      setPending(null);
+    }
+  }
+
   async function handleReassign() {
     if (!reassignPartnerId) return setError("재배정할 업체를 선택하세요.");
     setPending("reassign");
@@ -311,19 +343,35 @@ export default function BokjuCampaignDetailClient({
               {campaign.validFrom.slice(0, 10)} ~ {campaign.validTo.slice(0, 10)}
             </p>
           </div>
+          <div>
+            <p className="text-xs text-slate-500">쿠폰 디자인</p>
+            <p className="font-semibold text-slate-900">
+              {DESIGN_TEMPLATE_LABEL[campaign.designTemplate] ?? campaign.designTemplate}
+            </p>
+          </div>
         </div>
         {canWrite && (
-          <div className="mt-4 flex gap-2">
-            {(ALLOWED_NEXT[campaign.status] ?? []).map((next) => (
-              <button
-                key={next}
-                onClick={() => handleStatusChange(next)}
-                disabled={pending === "status"}
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 disabled:opacity-50"
-              >
-                → {STATUS_LABEL[next] ?? next}
-              </button>
-            ))}
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <div className="flex gap-2">
+              {(ALLOWED_NEXT[campaign.status] ?? []).map((next) => (
+                <button
+                  key={next}
+                  onClick={() => handleStatusChange(next)}
+                  disabled={pending === "status"}
+                  className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 disabled:opacity-50"
+                >
+                  → {STATUS_LABEL[next] ?? next}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleDeleteCampaign}
+              disabled={pending === "delete-campaign"}
+              title={campaign.redeemedCount > 0 ? "적립 완료된 쿠폰이 있으면 서버에서 삭제가 거부됩니다." : undefined}
+              className="rounded border border-rose-300 px-3 py-1.5 text-sm text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+            >
+              {pending === "delete-campaign" ? "삭제 중..." : "캠페인 삭제"}
+            </button>
           </div>
         )}
       </div>
