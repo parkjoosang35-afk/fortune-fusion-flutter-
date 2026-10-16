@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_app/core/auth/auth_token_store.dart';
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
@@ -30,8 +31,19 @@ import 'package:flutter_app/features/saju_renewal/widgets/saju_base_widgets.dart
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  // [사용자 요청 — 22개 선행 실패 조사/수정] 엔진 통합 STEP 2에서
+  // AuthTokenStore.fallbackUserId가 제거된 뒤 로그인 상태를 세팅하지 않는
+  // 이 테스트들은 getCurrentUserId()가 null을 반환해 SajuRenewalApi가
+  // HTTP 호출 없이 즉시 UNAUTHORIZED로 실패했다(STEP 2 보안 변경에 따른
+  // 회귀, pre-existing 결함 아님). setUp에서 로그인 상태를 명시적으로
+  // 만들어 해소한다(AuthTokenStore 구조는 변경하지 않음).
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    await AuthTokenStore.save(token: 'test-token-c04', userId: 1);
+  });
+
+  tearDown(() async {
+    await AuthTokenStore.clear();
   });
 
   const topicTitle = '테스트 이야기 제목';

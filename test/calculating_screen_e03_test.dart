@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter_app/core/auth/auth_token_store.dart';
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
@@ -37,8 +38,16 @@ import 'package:flutter_app/features/saju_renewal/widgets/saju_base_widgets.dart
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  // [사용자 요청 — 22개 선행 실패 조사/수정] STEP 2 보안 변경 이후 로그인
+  // 미세팅된 이 테스트는 SajuRenewalApi가 HTTP 호출 없이 UNAUTHORIZED로
+  // 즉시 실패해 깨졌다. setUp에서 로그인 상태를 명시적으로 만들어 해소한다.
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    await AuthTokenStore.save(token: 'test-token-e03', userId: 1);
+  });
+
+  tearDown(() async {
+    await AuthTokenStore.clear();
   });
 
   Widget wrap() {

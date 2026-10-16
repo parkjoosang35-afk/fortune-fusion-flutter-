@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_app/core/auth/auth_token_store.dart';
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
@@ -35,8 +36,17 @@ void main() {
   // 않거나 예외가 삼켜져 selectTopics() 자체가 전혀 호출되지 않는다
   // (그 결과 Provider가 계속 calculating 또는 idle에 머묾 — 이번
   // 디버깅으로 실측 확인됨). 반드시 각 테스트 전에 초기화한다.
-  setUp(() {
+  // [사용자 요청 — 22개 선행 실패 조사/수정 추가] 위 setUp은 SharedPreferences만
+  // 초기화했을 뿐, AuthTokenStore에 로그인 상태를 세팅하지 않았다.
+  // STEP 2 보안 변경 이후 getCurrentUserId()가 null을 반환해
+  // SajuRenewalApi가 HTTP 호출 없이 UNAUTHORIZED로 즉시 실패해 깨졌다.
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    await AuthTokenStore.save(token: 'test-token-c03fg', userId: 1);
+  });
+
+  tearDown(() async {
+    await AuthTokenStore.clear();
   });
 
   http.Response _topicsSelectResponse() {

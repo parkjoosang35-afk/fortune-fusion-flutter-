@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter_app/core/auth/auth_token_store.dart';
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
@@ -35,8 +36,24 @@ import 'package:flutter_app/features/saju_renewal/state/saju_renewal_provider.da
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  // [사용자 요청 — 22개 선행 실패 조사/수정] 엔진 통합 STEP 2에서
+  // AuthTokenStore.fallbackUserId가 제거된 뒤, 이 테스트는 로그인 상태를
+  // 전혀 세팅하지 않아 getCurrentUserId()가 null을 반환했고,
+  // SajuRenewalApi.selectTopics()/interpret()가 HTTP 호출 자체를 하지
+  // 않고 즉시 UNAUTHORIZED로 실패해 3개 테스트가 전부 깨졌다(워크트리로
+  // 6e0ac23^ 체크아웃 후 재실행하여 STEP 2 이전에는 전부 통과했음을
+  // 실측 확인). pre-existing 결함이 아니라 STEP 2의 의도된 보안 변경
+  // (비로그인 시 명시적 실패) 때문에 테스트가 로그인 전제를 더 이상
+  // 충족하지 못하게 된 것 — setUp에서 정상 로그인 상태를 명시적으로
+  // 만들어 회귀를 해소한다(fallback 부활이 아님, AuthTokenStore 구조는
+  // 변경하지 않음).
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    await AuthTokenStore.save(token: 'test-token-e04', userId: 1);
+  });
+
+  tearDown(() async {
+    await AuthTokenStore.clear();
   });
 
   Widget wrap() {

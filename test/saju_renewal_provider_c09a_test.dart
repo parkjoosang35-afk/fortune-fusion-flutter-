@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_app/core/auth/auth_token_store.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
 import 'package:flutter_app/features/saju_renewal/state/saju_renewal_provider.dart';
 
@@ -19,8 +20,17 @@ import 'package:flutter_app/features/saju_renewal/state/saju_renewal_provider.da
 /// "새 주제를 선택"하는 순간에만 증가하고 05↔07 전환으로는 바뀌지 않는다.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(() {
+  // [사용자 요청 — 22개 선행 실패 조사/수정] STEP 2의 AuthTokenStore 보안
+  // 변경 이후 로그인 미세팅된 이 테스트는 SajuRenewalApi가 HTTP 호출
+  // 없이 UNAUTHORIZED로 즉시 실패해 깨졌다. setUp에서 로그인 상태를
+  // 명시적으로 만들어 해소한다.
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    await AuthTokenStore.save(token: 'test-token-c09a', userId: 1);
+  });
+
+  tearDown(() async {
+    await AuthTokenStore.clear();
   });
 
   Map<String, dynamic> topicJson(String id) => {

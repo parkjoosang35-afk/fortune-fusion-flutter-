@@ -251,10 +251,22 @@ void main() {
   });
 
   testWidgets('게스트 참여(join) 화면이 예외 없이 렌더된다', (tester) async {
+    // [22개 선행 실패 조사/수정 — 별도 원인] 이 화면은 initState에서
+    // addPostFrameCallback으로 fetchHostProfile()(실 네트워크 GET,
+    // .timeout(15s))을 호출한다(AuthTokenStore와는 무관 — 비로그인
+    // 전용 API). 단일 pump()만으로는 이 비동기 호출(및 그 내부
+    // timeout Timer)이 완료되기 전에 테스트가 끝나버려 "A Timer is
+    // still pending even after the widget tree was disposed"로
+    // 실패했다(디버그 실행으로 확인: AuthTokenStore 관련 로그 없이 이
+    // Timer 단언만 발생). 실패하는 응답(테스트 바인딩이 자동 반환하는
+    // HTTP 400)이 실제로 도착해 Future/Timer가 정리될 시간을 주기 위해
+    // 추가로 pump한다(화면은 실패를 조용히 무시하도록 설계되어 있어
+    // 폴백 문구로 정상 렌더된다).
     await tester.pumpWidget(
       _wrap(const GuinjiMapGuestJoinScreen(token: 'test-token')),
     );
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     expect(tester.takeException(), isNull);
   });
 }
