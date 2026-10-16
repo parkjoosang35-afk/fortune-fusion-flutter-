@@ -224,11 +224,22 @@ void main() {
           (body.captureKey.currentContext!.findRenderObject()
                   as RenderRepaintBoundary)
               .size;
+      // [사용자 요청 — 외부 검수 지시 ④ hang 수정] captureOriginalResult
+      // 내부의 `Future<void>.delayed(120ms)`가 tester.runAsync() 밖(=
+      // TestWidgetsFlutterBinding의 FakeAsync 테스트 zone)에서 생성되면,
+      // 가상 시계가 그 시간만큼 전진하기 전까지 영원히 완료되지 않는다.
+      // 디버그 추적(test/debug_c07_v2_test.dart)으로 HTTP 흐름(select→
+      // summary→detail)까지는 전부 정상 완료되고, 그 직후인 이 지점에서
+      // 멈추는 것을 확인했다 — pre-existing 결함이 아니라 테스트의 pump
+      // 전략 누락이 원인이므로, 명시적 pump(duration)로 가상 시계를
+      // 120ms 이상 전진시켜 해소한다(story_preview_screen_c05_test.dart와
+      // 동일한 명시적 pump(duration) 패턴).
       final png = captureOriginalResult(
         body.captureKey,
         leadingKeys: [header.captureKey],
       );
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.runAsync(() async {
         final codec = await ui.instantiateImageCodec(await png);
         final image = (await codec.getNextFrame()).image;
