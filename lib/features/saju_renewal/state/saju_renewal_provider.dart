@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../../core/api/api_result.dart';
 import '../../../core/utils/load_state.dart';
+import '../../auth/domain/user_model.dart';
 import '../data/saju_renewal_api.dart';
 import '../data/models/topic_card.dart';
 import '../data/models/interpret_result.dart';
+import '../data/saju_visual_adapter.dart';
 import '../domain/saju_exhaustion_notification_service.dart';
 
 /// [신통방통 정통사주 리뉴얼 — STEP 6.5] 화면 전환만으로 데이터를 임시
@@ -266,6 +268,103 @@ class SajuRenewalProvider extends ChangeNotifier {
   void _setStatus(SajuRenewalFlowStatus next) {
     _status = next;
     notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // [Task 10 항목3 — 동일 사주 반복 계산 제거]
+  //
+  // [배경] 화면③(계산중)→④(분석완료)→⑤(미리보기)→⑦(상세) 각각이 자기
+  // 자신의 `initState()`에서 독립적으로 `SajuVisualAdapter.build()`
+  // (→ ManseryeokCoreEngine → Phase2/3/4 엔진 전체)를 호출해, 같은
+  // 세션·같은 생년월일시인데도 PHASE1~4 계산이 화면 이동마다 최대 4회
+  // 반복 실행되고 있었다(교차검증 조사에서 확인).
+  //
+  // [절대 원칙 — 계산 로직 변경 금지] 아래 [_computeVisualProfile]은
+  // 기존 4개 화면의 `_buildProfile(UserModel?)` 메서드와 완전히 동일한
+  // 파싱/호출 순서를 그대로 옮겨온 것이며, `SajuVisualAdapter.build()`도
+  // `ManseryeokCoreEngine`/`Phase2~4AnalysisEngine`도 단 한 줄도 수정하지
+  // 않는다. 바뀌는 것은 오직 "몇 번 호출하는가"뿐이다 — 이 Provider가
+  // 입력값(생년월일/시간/음양력/윤달/시간모름/성별)이 바뀌지 않는 한
+  // 최초 1회 계산 결과를 메모리에 캐싱해 재사용한다.
+  //
+  // [계정 격리] 캐시는 [clearOnLogout]/[startNewAnalysis]에서 반드시
+  // 무효화된다 — 사용자A의 계산 결과가 사용자B에게 노출되는 일은 없다
+  // (기존 Provider 전체의 "계정 격리 원칙"과 동일한 안전장치).
+  SajuVisualProfile? _cachedVisualProfile;
+  String? _cachedVisualProfileKey;
+
+  /// 02~07 화면이 공통으로 쓰는 진입점. 동일한 [user] 출생정보로 이미
+  /// 계산된 적이 있으면 그 결과를 그대로 반환하고(캐시 히트, 재계산
+  /// 없음), 처음이거나 입력값이 달라졌으면 그때만 실제 계산을 수행한다.
+  SajuVisualProfile? visualProfileFor(UserModel? user) {
+    if (user == null || user.birthDate == null) return null;
+    final key = _visualProfileCacheKey(user);
+    if (key == null) return null;
+    if (key == _cachedVisualProfileKey && _cachedVisualProfile != null) {
+      return _cachedVisualProfile;
+    }
+    final computed = _computeVisualProfile(user);
+    _cachedVisualProfile = computed;
+    _cachedVisualProfileKey = key;
+    return computed;
+  }
+
+  /// 계산 결과에 실제로 영향을 주는 입력 필드만으로 캐시 키를 구성한다
+  /// (참고: [referenceDate]는 캐시 키에 포함하지 않는다 — 세션 내내
+  /// "최초 계산 시점"의 대운 윈도를 그대로 유지하는 편이 화면마다 다른
+  /// "지금 대운" 위치가 흔들리지 않아 일관적이다. 이는 03→04→05→07
+  /// 동일 세션 내 수초~수분 범위에서는 결과에 실질적 차이가 없다).
+  String? _visualProfileCacheKey(UserModel user) {
+    final birthDate = user.birthDate;
+    if (birthDate == null) return null;
+    final parts = birthDate.split('-');
+    if (parts.length != 3) return null;
+    return <Object>[
+      birthDate,
+      user.birthTime ?? '',
+      user.isLunar,
+      user.isLeapMonth,
+      user.birthTimeUnknown,
+      user.gender ?? '',
+    ].join('|');
+  }
+
+  /// [절대 원칙 — 계산 로직 재구현 금지] 아래 파싱 순서는 기존
+  /// `calculating_screen.dart`/`analysis_complete_screen.dart`/
+  /// `story_preview_screen.dart`/`story_detail_screen.dart`의
+  /// `_buildProfile(UserModel?)`를 글자 그대로 옮긴 것이다. 실제 사주
+  /// 계산은 전적으로 [SajuVisualAdapter.build]에 위임하며(그 안에서
+  /// `ManseryeokCoreEngine`→Phase2~4 엔진을 그대로 호출), 여기서는
+  /// 호출 전 입력값 변환만 수행한다.
+  SajuVisualProfile? _computeVisualProfile(UserModel user) {
+    final birthDate = user.birthDate;
+    if (birthDate == null) return null;
+    final parts = birthDate.split('-');
+    if (parts.length != 3) return null;
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) return null;
+    final timeUnknown = user.birthTimeUnknown || user.birthTime == null;
+    int hour = 0;
+    if (!timeUnknown && user.birthTime != null) {
+      final t = user.birthTime!.split(':');
+      hour = int.tryParse(t.isNotEmpty ? t[0] : '') ?? 0;
+    }
+    return SajuVisualAdapter.build(
+      kst: DateTime(y, m, d, hour, 0),
+      gender: user.gender ?? 'female',
+      isLunar: user.isLunar,
+      timeUnknown: timeUnknown,
+      referenceDate: DateTime.now(),
+      isLeapMonth: user.isLeapMonth,
+    );
+  }
+
+  /// [계정 격리] 로그아웃/새 분석 시작 시 캐시를 무효화한다.
+  void _clearVisualProfileCache() {
+    _cachedVisualProfile = null;
+    _cachedVisualProfileKey = null;
   }
 
   /// 화면② "입력완료" 버튼을 누른 뒤(=AuthProvider.updateProfile()로
@@ -745,6 +844,7 @@ class SajuRenewalProvider extends ChangeNotifier {
     _shownCandidateIds.clear();
     _candidateBatch = 0;
     _topicOrder.clear();
+    _clearVisualProfileCache();
     _isPreviewLoading = false;
     _isDetailLoading = false;
     _isTopicsLoading = false;
@@ -773,6 +873,11 @@ class SajuRenewalProvider extends ChangeNotifier {
     _shownCandidateIds.clear();
     _candidateBatch = 0;
     _topicOrder.clear();
+    // [Task 10 항목3] 새 분석을 시작하면(= 출생정보를 다시 입력할 수
+    // 있으므로) 이전 출생정보의 캐시를 반드시 비운다 — 그렇지 않으면
+    // 사용자가 출생정보를 바꿔 새로 분석해도 옛 계산 결과가 재사용될
+    // 위험이 있다.
+    _clearVisualProfileCache();
     _candidatesRefreshFailed = false;
     _candidatesExhausted = false;
     notifyListeners();

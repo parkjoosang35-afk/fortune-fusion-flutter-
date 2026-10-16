@@ -11,7 +11,6 @@ import '../data/saju_term_dictionary.dart';
 import '../data/saju_visual_adapter.dart';
 import '../widgets/saju_daeun_timeline_table.dart';
 import '../../auth/application/auth_provider.dart';
-import '../../auth/domain/user_model.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
@@ -103,7 +102,10 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   void initState() {
     super.initState();
     final user = context.read<AuthProvider>().currentUser;
-    _profile = _buildProfile(user);
+    // [Task 10 항목3 — 반복 계산 제거] 기존 `_buildProfile()` 로컬
+    // 재계산을 제거하고, Provider에 캐싱된 결과를 재사용한다(계산 로직
+    // 자체는 `SajuVisualAdapter`에 그대로 남아 전혀 바뀌지 않는다).
+    _profile = context.read<SajuRenewalProvider>().visualProfileFor(user);
     _persistRecentStory();
     _persistFortuneRecord();
   }
@@ -155,30 +157,6 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         evidenceFactKeys: topic.evidenceFactKeys,
         viewedAt: DateTime.now(),
       ),
-    );
-  }
-
-  SajuVisualProfile? _buildProfile(UserModel? user) {
-    if (user == null || user.birthDate == null) return null;
-    final parts = user.birthDate!.split('-');
-    if (parts.length != 3) return null;
-    final y = int.tryParse(parts[0]);
-    final m = int.tryParse(parts[1]);
-    final d = int.tryParse(parts[2]);
-    if (y == null || m == null || d == null) return null;
-    final timeUnknown = user.birthTimeUnknown || user.birthTime == null;
-    int hour = 0;
-    if (!timeUnknown && user.birthTime != null) {
-      final t = user.birthTime!.split(':');
-      hour = int.tryParse(t.isNotEmpty ? t[0] : '') ?? 0;
-    }
-    return SajuVisualAdapter.build(
-      kst: DateTime(y, m, d, hour, 0),
-      gender: user.gender ?? 'female',
-      isLunar: user.isLunar,
-      timeUnknown: timeUnknown,
-      referenceDate: DateTime.now(),
-      isLeapMonth: user.isLeapMonth,
     );
   }
 

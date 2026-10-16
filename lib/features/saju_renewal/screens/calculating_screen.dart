@@ -99,30 +99,12 @@ class _CalculatingScreenState extends State<CalculatingScreen>
     WidgetsBinding.instance.addObserver(this);
     final user = context.read<AuthProvider>().currentUser;
     _user = user;
-    if (user != null && user.birthDate != null) {
-      final parts = user.birthDate!.split('-');
-      if (parts.length == 3) {
-        final y = int.tryParse(parts[0]);
-        final m = int.tryParse(parts[1]);
-        final d = int.tryParse(parts[2]);
-        final timeUnknown = user.birthTimeUnknown || user.birthTime == null;
-        int hour = 0;
-        if (!timeUnknown && user.birthTime != null) {
-          final t = user.birthTime!.split(':');
-          hour = int.tryParse(t.isNotEmpty ? t[0] : '') ?? 0;
-        }
-        if (y != null && m != null && d != null) {
-          _profile = SajuVisualAdapter.build(
-            kst: DateTime(y, m, d, hour, 0),
-            gender: user.gender ?? 'female',
-            isLunar: user.isLunar,
-            timeUnknown: timeUnknown,
-            referenceDate: DateTime.now(),
-            isLeapMonth: user.isLeapMonth,
-          );
-        }
-      }
-    }
+    // [Task 10 항목3 — 반복 계산 제거] 기존에는 이 화면이 직접
+    // `SajuVisualAdapter.build()`(PHASE1~4 전체 재계산)를 호출했다.
+    // 이제는 `SajuRenewalProvider`의 캐시 진입점을 거친다 — 계산 로직
+    // 자체(`SajuVisualAdapter`/`ManseryeokCoreEngine`/Phase2~4)는 전혀
+    // 바뀌지 않으며, 동일 출생정보면 이미 계산된 값을 그대로 재사용한다.
+    _profile = context.read<SajuRenewalProvider>().visualProfileFor(user);
     _runCeremony();
   }
 
