@@ -244,6 +244,57 @@ git status --short                                                  → 변경�
 
 ## 7. 다음 단계 제안 (사용자 지시 대기)
 
-1. 22개 선행 실패 테스트를 이번 세션 범위로 포함해 조사·수정할지 여부.
+1. ~~22개 선행 실패 테스트를 이번 세션 범위로 포함해 조사·수정할지 여부.~~ → **Task 8에서 처리 완료(8장 참고)**.
 2. Task 6의 "앱(APK)" 쪽을 release APK 빌드 + 정적 설정 점검 수준으로 대체 진행할지, 아니면 별도 에뮬레이터 환경을 마련해 실기기 조작 검증까지 진행할지.
-3. `tarot_ui_verification_test.dart`의 픽셀 비교 잔여 이슈를 허용오차 기반 비교로 전환할지.
+3. `tarot_ui_verification_test.dart`의 픽셀 비교 잔여 이슈를 허용오차 기반 비교로 전환할지 — **Task 8에서 시도했으나 실측 maxDiff=12로 단순 노이즈가 아님을 확인, 기각(8-3절 참고)**.
+
+---
+
+## 8. Task 8 — "22개 선행 실패 조사 후 수정 완료" (사용자 지시, 본 장에서 처리)
+
+### 8-0. 6장·4-4절의 정정 — "이번 작업과 무관한 선행 결함"이라는 서술은 부정확했음
+
+4-4절은 "22개 실패가 이번 엔진 통합 작업과 무관한 선행 결함"이라고 기록했다. 이는 **"6e0ac23 이후 해당 테스트 파일 자체를 수정한 적이 없다"는 사실**과 **"그 실패의 근본 원인이 6e0ac23(STEP 2)이 아니다"는 주장**을 혼동한 것으로, 아래 실측 결과 후자는 틀렸다. **정정**: 22개 중 21개는 STEP 2(`6e0ac23`)가 `AuthTokenStore.getCurrentUserId()`의 `fallbackUserId=1` 묵시적 폴백을 제거하고 비로그인 시 `null`을 명시적으로 반환하도록 바꾼 **의도된 보안 수정이 직접 유발한 회귀**였다 — 즉 "이번 엔진 통합 작업과 무관"이 아니라 "이번 엔진 통합 작업(STEP 2)이 유발했지만 그 결과로 깨진 테스트 파일 자체는 건드리지 않아서 방치되어 있던" 것이었다. 테스트 파일을 고치지 않았다는 `git log` 사실관계 자체는 맞지만, 거기서 도출한 "무관한 선행 결함"이라는 결론은 틀렸다.
+
+### 8-1. 근본 원인 — 실측으로 확정
+
+1. `calculating_screen_e04_test.dart`를 현재 HEAD에서 실행 → 3개 테스트 전부 `selectCallCount: Actual <0>`로 실패(= `SajuRenewalApi.selectTopics()`가 HTTP 호출 자체를 하지 않음).
+2. `lib/features/saju_renewal/data/saju_renewal_api.dart`를 직접 읽어 원인 확인: `selectTopics()`/`_interpret()` 모두 `AuthTokenStore.getCurrentUserId()`가 `null`이면 `http.post()`를 호출하기 전에 즉시 `ApiResult.fail(..., code: 'UNAUTHORIZED')`를 반환하는 단락 회로가 있음.
+3. **결정적 검증**: `git worktree add /tmp/wt_before 6e0ac23^`로 STEP 2 직전 커밋(`4a2dbd4`)을 별도 디렉터리에 체크아웃한 뒤 동일 테스트를 그 안에서 실행 → **3/3 전부 통과**(`profile_id: 1`로 실제 HTTP 호출이 발생함을 로그로 확인). 검증 후 워크트리는 즉시 제거(`git worktree remove`)했다.
+4. 나머지 10개 saju_renewal 영역 파일을 grep(`AuthTokenStore.save|auth_user_id`)한 결과 전부 0건 — 로그인 세팅이 전혀 없는 동일 패턴임을 확인. `story_detail_screen_c07_test.dart`(이전 세션에서 이미 동일 원인으로 수정된 파일)의 `setUp()`에 이미 이 원인과 수정 패턴이 주석으로 기록되어 있어, 11개 전부에 동일 패턴을 적용했다.
+
+### 8-2. 수정 내용 (11개 saju_renewal 파일 + 1개 별도 원인 파일)
+
+`AuthTokenStore` 자체의 구조는 변경하지 않았다(표준 규칙 준수). 각 테스트 파일의 `setUp()`에 `await AuthTokenStore.save(token: '...', userId: 1)`을 추가하고 `tearDown()`에서 `AuthTokenStore.clear()`로 정리하는, 기존에 이미 검증된 `story_detail_screen_c07_test.dart` 패턴을 그대로 재사용했다:
+
+- `calculating_screen_e04_test.dart`(3), `analysis_complete_screen_c04_test.dart`(3), `saju_renewal_provider_c08b_test.dart`(3), `story_preview_screen_c05_test.dart`(2), `saju_renewal_provider_c09a_test.dart`(2), `calculating_screen_c03f_g_test.dart`(2), `story_preview_screen_e06_test.dart`(1), `story_detail_screen_e07_test.dart`(1), `more_stories_screen_c08b_test.dart`(1), `calculating_screen_e_announce_test.dart`(1), `calculating_screen_e03_test.dart`(1) — 전부 수정 후 개별 재실행으로 100% 통과 확인.
+
+**`guinji_map_screens_smoke_test.dart`(1) — 별도 원인**: AuthTokenStore와 무관. `GuinjiMapGuestJoinScreen`이 `initState`에서 `fetchHostProfile()`(실 네트워크 GET + 15초 timeout)을 `addPostFrameCallback`으로 호출하는데, 단일 `pump()`만으로는 그 Future/Timer가 정리되지 않아 "A Timer is still pending even after the widget tree was disposed" 단언 실패가 발생했다. `pump(const Duration(seconds: 1))`을 추가해 실제(테스트 바인딩이 자동 반환하는 HTTP 400) 응답이 처리될 시간을 주어 해소했다. 수정 후 15/15 통과.
+
+### 8-3. 정직하게 미해결로 남긴 1건 — `tarot_ui_verification_test.dart`
+
+OzBackground의 `OzStarField`가 `SingleTickerProviderStateMixin`으로 무한 반짝임 Ticker를 돌리고 있어, `captureOriginalResult()` 내부 캡처 시점과 테스트가 직접 재호출하는 비교용 `toImage()` 시점 사이에 배경 프레임이 달라진다는 가설(4-3절에 이미 기록)에 따라, RGBA 채널당 ±2 허용오차 비교로 전환을 시도했다. 그러나 **실측 결과 maxDiff=12**로, 단순 1-unit twinkle 보간 차이가 아니라 더 큰 폭의 불일치였다. 허용오차를 임의로 늘려 통과시키는 것은 사용자의 표준 규칙("충돌을 매치로 위장하지 말 것")을 위반하므로, 이 변경은 **되돌렸고**(`git checkout --`) 알려진 잔여 이슈로 유지한다. 근본 원인(단순 twinkle 노이즈가 아니라면 레이아웃/색상 자체가 달라지는 것인지)은 차기 세션에서 추가 조사가 필요하다.
+
+### 8-4. 재검수 결과 (이번 수정 완료 후 전체 스위트 재실행, 실측)
+
+```
+flutter test test/calculating_screen_e04_test.dart              → 3/3 passed
+flutter test test/analysis_complete_screen_c04_test.dart        → 3/3 passed
+flutter test test/saju_renewal_provider_c08b_test.dart          → 3/3 passed
+flutter test test/story_preview_screen_c05_test.dart            → (그룹 내) passed
+flutter test test/saju_renewal_provider_c09a_test.dart          → (그룹 내) passed
+flutter test test/calculating_screen_c03f_g_test.dart           → (그룹 내) passed
+flutter test test/story_preview_screen_e06_test.dart            → 1/1 passed
+flutter test test/story_detail_screen_e07_test.dart             → 1/1 passed
+flutter test test/more_stories_screen_c08b_test.dart            → 3/3 passed (해당 파일 전체)
+flutter test test/guinji_map_screens_smoke_test.dart            → 15/15 passed
+flutter test test/calculating_screen_e_announce_test.dart       → 1/1 passed
+flutter test test/calculating_screen_e03_test.dart              → 2/2 passed
+flutter test (전체 스위트, 필터 없음)                              → 353 passed / 1 failed (행잉 없이 완주)
+```
+
+전체 스위트 기준 **332 passed/22 failed → 353 passed/1 failed**로, 22개 중 **21개 수정 완료**, 남은 1개(`tarot_ui_verification_test.dart` 픽셀 비교)는 8-3절 사유로 정직하게 미해결 유지.
+
+### 8-5. 커밋
+
+`4b1ad13` — "fix: 22개 선행 실패 중 21개 수정 — STEP 2 AuthTokenStore 회귀 해소 (Task 8)" (12개 테스트 파일 수정, 근본 원인·검증 방법·수정 내용·미해결 1건 사유를 커밋 메시지에 상세 기록).
