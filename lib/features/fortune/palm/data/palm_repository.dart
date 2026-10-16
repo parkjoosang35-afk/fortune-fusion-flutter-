@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/api/api_result.dart';
+import '../../../../core/api/http_auth_guard.dart';
 import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
 import '../domain/palm_model.dart';
@@ -58,6 +59,10 @@ class PalmRepository {
           )
           .timeout(const Duration(seconds: 50));
 
+      // [엔진 통합 STEP 2 — 공통 401 처리]
+      if (HttpAuthGuard.isUnauthorized(response.statusCode)) {
+        return HttpAuthGuard.unauthorizedResult(tag: 'PalmRepository.analyze');
+      }
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '손금 분석에 실패했습니다.';

@@ -10,17 +10,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 리프레시 토큰은 두지 않는다(03§9.2 과설계 방지 원칙) — 서버 토큰 만료(30일) 시
 /// 재로그인을 유도한다.
 ///
-/// 12개 기존 Repository의 `_userId = 1` 하드코딩을 실 로그인 사용자 ID로 교체할 때
-/// [currentUserId]를 사용한다(비로그인 시 폴백값 1 유지 — 게스트/데모 열람 허용).
+/// [신통방통 엔진 통합 — STEP 2 "실 사용자 인증 전환"] 과거에는
+/// `getCurrentUserId()`가 비로그인 시에도 조용히 `fallbackUserId`(=1, 서버
+/// 시딩 테스트 계정)로 폴백해, 실서버(`sintong.kr`)에서 "로그인 안 한
+/// 사용자가 테스트 계정 1번의 데이터/결과를 그대로 호출"하는 문제가 있었다
+/// (실제로 WalletRepository/PouchBoxRepository에서 "비회원인데 테스트 계정
+/// 잔액이 보임" 버그가 이미 한 차례 보고된 바 있다 — 아래 각 파일 참고).
+/// 이제 [getCurrentUserId]는 비로그인 상태에서 **명시적으로 null을
+/// 반환**한다 — "실패를 Mock/폴백으로 채우지 않는다"는 원칙을 인증
+/// 계층까지 일관되게 적용한 것이다. 호출부는 null을 받으면 반드시
+/// "로그인이 필요합니다" 류의 정직한 실패로 처리해야 한다(가짜 성공 금지).
 class AuthTokenStore {
   AuthTokenStore._();
 
   static const _kTokenKey = 'auth_token';
   static const _kUserIdKey = 'auth_user_id';
-
-  /// 폴백 사용자 ID — 비로그인 상태에서도 각 Repository가 API를 호출할 수 있도록
-  /// 유지하는 값이다(기존 12개 Repository의 `_userId = 1`과 동일한 테스트 계정).
-  static const int fallbackUserId = 1;
 
   static String? _cachedToken;
   static int? _cachedUserId;
@@ -51,20 +55,21 @@ class AuthTokenStore {
     return _cachedToken;
   }
 
-  /// 현재 로그인된 사용자 ID. 비로그인 시 [fallbackUserId]를 반환한다.
-  static Future<int> getCurrentUserId() async {
-    if (_cachedUserId != null) return _cachedUserId!;
+  /// 현재 로그인된 사용자 ID. **비로그인 시 null을 반환한다**(STEP 2 —
+  /// 더 이상 테스트 계정으로 조용히 폴백하지 않음). 호출부는 null을
+  /// "로그인이 필요합니다" 같은 명시적 실패로 처리해야 한다.
+  static Future<int?> getCurrentUserId() async {
+    if (_cachedUserId != null) return _cachedUserId;
     final prefs = await SharedPreferences.getInstance();
     _cachedUserId = prefs.getInt(_kUserIdKey);
-    return _cachedUserId ?? fallbackUserId;
+    return _cachedUserId;
   }
 
-  /// [버그 수정 — 게스트에게 테스트 계정 실 잔액 노출] 실제로 저장된
-  /// 로그인 토큰이 있는지 여부. [getCurrentUserId]는 비로그인 시에도
-  /// 항상 [fallbackUserId](테스트 계정)를 반환하기 때문에, 그 값을 그대로
-  /// API 호출에 써버리면 "로그인 안 한 사용자에게 테스트 계정의 실제
-  /// 데이터(복주머니 잔액 등)가 그대로 보이는" 문제가 생긴다. 화면/Repository
-  /// 쪽에서 "실제로 로그인된 상태인지"를 먼저 확인해야 할 때 이 값을 쓴다.
+  /// 실제로 저장된 로그인 토큰이 있는지 여부. [getCurrentUserId]가 이제
+  /// 비로그인 시 null을 반환하므로 원래 이 메서드가 막으려던 "비로그인인데
+  /// 테스트 계정 데이터가 보이는" 문제는 구조적으로 재발할 수 없지만,
+  /// 기존 23개 호출부가 이 메서드로 "로그인 여부"를 먼저 확인하는 패턴을
+  /// 그대로 쓰고 있어 호환을 위해 유지한다.
   static Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;

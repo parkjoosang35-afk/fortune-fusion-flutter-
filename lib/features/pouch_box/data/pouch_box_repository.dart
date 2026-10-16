@@ -26,10 +26,17 @@ class PouchBoxRepository {
   /// 실제 로그인 여부를 먼저 확인해 비로그인이면 네트워크 호출 없이 안전한
   /// "미로그인" 상태를 즉시 반환한다(정상 회원 흐름/서버 API는 변경 없음).
   Future<ApiResult<PouchBoxState>> getState() async {
+    // [엔진 통합 STEP 2] isLoggedIn() 체크가 이미 비로그인을 걸러내고 있어
+    // 아래에서는 이론상 항상 일반날짜 로그인 사용자여야 하지만, getCurrentUserId()가
+    // null을 반환하는 경우(토큰은 있지만 userId 캐시 유실 등 경계 케이스)도
+    // 명시적으로 처리해 "null" 문자열이 서버로 가지 않도록 방어한다.
     if (!await AuthTokenStore.isLoggedIn()) {
       return ApiResult.ok(PouchBoxState.notLoggedIn);
     }
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.ok(PouchBoxState.notLoggedIn);
+    }
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/pouch-box/state',
     ).replace(queryParameters: {'userId': '$userId'});
@@ -59,6 +66,9 @@ class PouchBoxRepository {
   /// 시청 시작 — 서버가 자격(하루 5회 한도)을 재확인하고 PENDING 세션을 발급한다.
   Future<ApiResult<PouchBoxSession>> start() async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/pouch-box/start');
     debugPrint('[PouchBoxRepository] [start] 요청 -> userId=$userId');
 
@@ -93,6 +103,9 @@ class PouchBoxRepository {
     int? watchSeconds,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/pouch-box/complete',
     );

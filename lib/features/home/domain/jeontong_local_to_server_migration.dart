@@ -15,16 +15,13 @@ import 'jeontong_input.dart';
 /// - 로그인 사용자만 대상.
 /// - 서버 UserProfile에 운세 정보(birthDate)가 비어 있을 때만 이전한다.
 /// - 이미 서버 데이터가 있으면 절대 덮어쓰지 않는다.
-/// - 비로그인 fallbackUserId=1 데이터는 특정 회원의 데이터로 간주하지
-///   않으므로 자동으로 이전하지 않는다 — 이를 위해
-///   [AuthTokenStore.getCurrentUserId]가 fallbackUserId를 반환하면(=진짜
-///   로그인 사용자 ID를 알 수 없는 상태) 즉시 중단한다. 다른 화면들이 쓰는
-///   `cachedUserIdOrNull ?? fallbackUserId` 널 병합 패턴을 여기서는 쓰지
-///   않는 이유도 이것이다 — 널 병합으로 fallback이 섞여 들어가면 "누구의
-///   데이터인지 모르는 값"을 실제 로그인 사용자의 것처럼 다루게 될 위험이
-///   있다. [AuthTokenStore.getCurrentUserId]는 SharedPreferences에 영속된
-///   실제 로그인 시 저장된 userId까지 확인하므로, 콜드부트(세션 복원) 직후
-///   에도 안전하게 "진짜 로그인 사용자인지"를 판별할 수 있다.
+/// - [엔진 통합 STEP 2] 과거에는 비로그인 fallbackUserId(=1, 테스트 계정)
+///   데이터를 특정 회원의 것으로 간주하지 않도록 그 값과 비교해 중단하는
+///   방어 로직이 있었다. 이제 [AuthTokenStore.getCurrentUserId]가 비로그인
+///   시 fallback 대신 **null**을 직접 반환하므로, 그 방어는 "null이면
+///   중단"으로 더 단순하고 안전하게 대체된다(비교 대상 상수가 사라져
+///   "누구의 데이터인지 모르는 값"이 실제 로그인 사용자의 것으로 섞여
+///   들어갈 가능성 자체가 타입 수준에서 차단된다).
 /// - 이전 성공/스킵/실패 여부를 [JeontongProfileMigrationOutcome]으로 명확히
 ///   구분해 반환한다(성공 여부 확인 가능 요건).
 /// - 로컬 데이터는 이 함수가 절대 삭제하지 않는다([JeontongProfileStore.clear]
@@ -97,15 +94,14 @@ Future<JeontongProfileMigrationResult> migrateLocalJeontongProfileToServer(
     );
   }
 
-  // [비로그인 fallbackUserId=1 데이터 자동 이전 방지] SharedPreferences에
-  // 영속된 실제 로그인 userId까지 확인한다. 이 값이 fallbackUserId와 같다면
-  // "이 세션에서 진짜 로그인 사용자의 userId를 확인할 수 없다"는 뜻이므로,
-  // 절대 fallback 로컬 데이터를 이 회원의 것으로 간주하지 않고 중단한다.
+  // [엔진 통합 STEP 2] SharedPreferences에 영속된 실제 로그인 userId를
+  // 확인한다. null이면(=비로그인이거나 진짜 로그인 사용자 ID를 확인할 수
+  // 없는 상태) 로컬 데이터를 이 회원의 것으로 간주하지 않고 즉시 중단한다.
   final resolvedUserId = await AuthTokenStore.getCurrentUserId();
-  if (resolvedUserId == AuthTokenStore.fallbackUserId) {
+  if (resolvedUserId == null) {
     return const JeontongProfileMigrationResult(
       JeontongProfileMigrationOutcome.skippedNotLoggedIn,
-      detail: '실제 로그인 userId를 확인할 수 없어(fallbackUserId) 이전하지 않음',
+      detail: '실제 로그인 userId를 확인할 수 없어(비로그인) 이전하지 않음',
     );
   }
 

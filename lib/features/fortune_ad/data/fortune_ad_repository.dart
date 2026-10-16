@@ -16,7 +16,13 @@ class FortuneAdRepository {
   /// [Stage2 결함수정 — 결함-A04-01] 서버가 `requireUser()`로 JWT 필수인증을
   /// 강제하도록 변경되었으므로 Authorization 헤더를 반드시 포함한다.
   Future<ApiResult<List<FortuneAdModel>>> getAds() async {
+    // [엔진 통합 STEP 2] getCurrentUserId()가 비로그인 시 null을 반환하도록
+    // 바뀌었다. 과거 폴백(userId=1)처럼 조용히 넘어가지 않고, 비로그인을
+    // 정직한 실패로 반환한다(가짜 성공 금지).
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/ads/fortune',
     ).replace(queryParameters: {'userId': '$userId'});
@@ -49,6 +55,9 @@ class FortuneAdRepository {
   /// 광고 1건의 오늘 시청 현황 재조회(다이얼로그 열기 전 사전 확인용).
   Future<ApiResult<FortuneAdModel>> getTodayStatus(FortuneAdModel ad) async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/ads/${ad.id}/today-status',
     ).replace(queryParameters: {'userId': '$userId'});
@@ -85,6 +94,9 @@ class FortuneAdRepository {
   /// 시청 시작 — 서버가 자격을 재확인하고 PENDING 세션을 발급한다.
   Future<ApiResult<FortuneAdWatchSession>> start(int adId) async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/ads/$adId/start');
     debugPrint(
       '[FortuneAdRepository] [start] 요청 -> adId=$adId, userId=$userId',
@@ -122,6 +134,9 @@ class FortuneAdRepository {
     int? watchSeconds,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/ads/$adId/complete',
     );

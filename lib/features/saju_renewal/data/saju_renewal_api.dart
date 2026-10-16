@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/api/http_auth_guard.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import 'models/topic_card.dart';
@@ -59,7 +60,13 @@ class SajuRenewalApi {
     List<String>? excludeTopicIds,
     int? limit,
   }) async {
+    // [엔진 통합 STEP 2] 사주는 로그인 필수 기능이다(정책표 참고). userId가
+    // null이면(비로그인) 서버에 'null' 문자열을 profile_id로 보내지 않고 즉시
+    // 정직한 실패로 반환한다.
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse('$_baseUrl/api/public/saju-renewal/topics/select');
     final body = <String, dynamic>{
       'profile_id': userId.toString(),
@@ -89,10 +96,13 @@ class SajuRenewalApi {
         debugPrint(
           '[SajuRenewalApi] [selectTopics] 실패(${response.statusCode}) -> $message reason=$reason',
         );
-        return ApiResult.fail(
-          message,
-          code: response.statusCode == 401 ? 'UNAUTHORIZED' : reason,
-        );
+        if (HttpAuthGuard.isUnauthorized(response.statusCode)) {
+          return HttpAuthGuard.unauthorizedResult(
+            tag: 'SajuRenewalApi.selectTopics',
+            message: message,
+          );
+        }
+        return ApiResult.fail(message, code: reason);
       }
       return ApiResult.ok(
         TopicsSelectResult.fromJson(decoded['data'] as Map<String, dynamic>),
@@ -181,6 +191,9 @@ class SajuRenewalApi {
     String? transactionId,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse('$_baseUrl/api/public/saju-renewal/interpret');
     final body = <String, dynamic>{
       'profile_id': userId.toString(),
@@ -215,10 +228,13 @@ class SajuRenewalApi {
         debugPrint(
           '[SajuRenewalApi] [interpret] 실패(${response.statusCode}) -> $message reason=$reason',
         );
-        return ApiResult.fail(
-          message,
-          code: response.statusCode == 401 ? 'UNAUTHORIZED' : reason,
-        );
+        if (HttpAuthGuard.isUnauthorized(response.statusCode)) {
+          return HttpAuthGuard.unauthorizedResult(
+            tag: 'SajuRenewalApi._interpret',
+            message: message,
+          );
+        }
+        return ApiResult.fail(message, code: reason);
       }
       final data = decoded['data'] as Map<String, dynamic>;
       final cached = decoded['cached'] as bool? ?? false;

@@ -15,13 +15,16 @@ import '../domain/point_history_model.dart';
 /// `Authorization: Bearer <token>` 헤더를 반드시 포함한다. body/query의 userId는
 /// 서버가 더 이상 신뢰하지 않지만(JWT로만 판정), 하위 호환을 위해 값은 유지한다.
 class WalletRepository {
-  /// [버그 수정 — 2026-11 헤더 복주머니 숫자 노출 사고] 지금까지
-  /// [AuthTokenStore.getCurrentUserId]가 비로그인 시에도 폴백값
-  /// (테스트 계정 userId=1)을 반환하는 바람에, 로그인하지 않은 게스트의
-  /// 홈 화면 상단에도 그 테스트 계정의 "실제 잔액"이 그대로 표시되고
-  /// 있었다(사용자 항의: "로그인이 안돼어 있을때 복주머니가 표시돼잖어
-  /// 버그잖어"). 잔액/내역은 반드시 실제 로그인 여부를 먼저 확인해,
-  /// 비로그인 상태면 서버를 호출하지 않고 0/빈 목록으로 응답한다.
+  /// [버그 수정 — 2026-11 헤더 복주머니 숫자 노출 사고, 이후 엔진 통합
+  /// STEP 2에서 근본 해결] 과거에는 [AuthTokenStore.getCurrentUserId]가
+  /// 비로그인 시에도 폴백값(테스트 계정 userId=1)을 반환하는 바람에,
+  /// 로그인하지 않은 게스트의 홈 화면 상단에도 그 테스트 계정의 "실제
+  /// 잔액"이 그대로 표시되고 있었다(사용자 항의: "로그인이 안돼어
+  /// 있을때 복주머니가 표시돼잖어 버그잖어"). 이제 getCurrentUserId()가
+  /// 비로그인 시 null을 반환하도록 바뀌어 근본 원인 자체가 사라졌지만,
+  /// 이 메서드는 네트워크 호출 자체를 막는 추가 방어선으로 계속 유지한다.
+  /// 잔액/내역은 반드시 실제 로그인 여부를 먼저 확인해, 비로그인 상태면
+  /// 서버를 호출하지 않고 0/빈 목록으로 응답한다.
   Future<ApiResult<int>> getBalance() async {
     if (!await AuthTokenStore.isLoggedIn()) {
       return ApiResult.ok(0);
