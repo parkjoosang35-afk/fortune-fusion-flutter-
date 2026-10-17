@@ -11,9 +11,31 @@
 // [매핑 — 02e §4-3 "전환 시 정보 매핑(실측 기반)", 02h §0-M-6 재확인]
 //   logo→logo  title→title  amount→amount  couponNo→couponNo  qr→qr   (1:1, 5개)
 //   validFrom+validTo→period   guideText→guide                        (별칭)
-//   decoration→box/line/badgeCircle                                   (장식군 — classic 템플릿엔 해당 장식 요소가
-//                                                                       없으므로 classic 기준 변환에서는 사실상 no-op)
+//   decoration→box/line/badgeCircle                                   (장식군 — "빼는" 매핑이 아니라 "넣는" 매핑.
+//                                                                       classic 템플릿엔 장식 요소가 원래 0개이므로,
+//                                                                       decoration===true일 때 레거시
+//                                                                       buildCustomDesignSvg()의 장식(테두리 프레임 +
+//                                                                       모서리 원 2개, bokju-coupon-image-service.ts
+//                                                                       323-330줄)을 신규 요소로 새로 "추가"한다.
+//                                                                       decoration===false면 기존 그대로 아무것도
+//                                                                       추가하지 않는다 — 이쪽만 진짜 no-op.)
 //   ctaText→(없음)   partnerName→(없음)                                 (02c §①·② 기존 결정 — 매핑하지 않는다)
+//
+// [02i §필수1 수정 — decoration 추가 로직]
+//   레거시 장식 3요소를 신규 'box' kind로 재현한다(별도 kind 불필요 —
+//   templates.ts의 badge 템플릿/PARTS의 'badgeCircle' 부품도 kind:'box'에
+//   radius:999를 줘서 원을 표현한다. 'badgeCircle'은 ELEMENT_KINDS의 kind가
+//   아니라 box의 한 변형일 뿐이다):
+//     1) decoFrame      — 캔버스 전체에 가까운 테두리 box(fill 없음·stroke만,
+//                          레거시 rect stroke="#d4a94a" 재현 → '@accent' 토큰)
+//     2) decoCircleA/B  — 모서리 저채도 원 2개(box, radius:999, 낮은 opacity,
+//                          레거시 circle opacity=0.06 재현)
+//   세 요소 모두 z=0으로 두되 기존 요소들보다 배열 앞쪽에 넣어(동일 z에서는
+//   배열 순서가 그대로 그리기 순서가 되므로 — svg.ts buildSvg의 안정 정렬)
+//   텍스트/QR "뒤"에 깔리게 한다. 모서리 원은 안전여백(safeArea)을 넘어가
+//   SAFE_AREA 경고가 날 수 있으나(의도된 "모서리 장식"이므로 경고는 정상),
+//   같은 z(0)인 QR을 "덮지"는 않으므로(QR_COVERED 판정은 other.z > qr.z 일
+//   때만 발동) error는 발생하지 않는다 — 검사 통과는 유지된다(금지 목록 ⑦).
 //
 //   amount가 켜지면 "단위"(복주머니) 텍스트도 함께 유지한다 — unit은
 //   CouponVisibilityConfig에 없는 신규 전용 보조 요소이며, 레거시에서도
@@ -30,7 +52,7 @@
 //   ⑦ 발행 전 검사 12종 완화·우회 금지 — 변환 결과는 validateLayout()을
 //      그대로 통과해야 하며, 이 파일이 검사를 느슨하게 만들지 않는다.
 // ─────────────────────────────────────────────────────────────────────
-import type { DesignLayout } from './layout';
+import type { DesignLayout, LayoutElement } from './layout';
 import { CANVAS_PRESETS } from './layout';
 import { buildTemplate } from './templates';
 import { resolveTheme } from './theme';
@@ -38,6 +60,59 @@ import {
   type CouponVisibilityConfig,
   normalizeVisibility,
 } from '@/lib/bokju-coupon-visibility';
+
+/**
+ * [02i §필수1] decoration===true일 때 "추가"할 장식 요소 3개를 만든다.
+ * 레거시 buildCustomDesignSvg()(bokju-coupon-image-service.ts 323-330줄)가
+ * 그리던 값을 좌표·색·투명도까지 그대로 재현한다:
+ *
+ *   <rect x=14 y=14 width=W-28 height=H-28 rx=20 fill="none"
+ *         stroke="#d4a94a" stroke-width=3 opacity=0.7/>      → decoFrame
+ *   <circle cx=50 cy=60 r=90 fill="#d4a94a" opacity=0.06/>   → decoCircleA
+ *   <circle cx=W-40 cy=H-90 r=130 fill="#d4a94a" opacity=0.06/> → decoCircleB
+ *
+ * 신규 레이아웃 스키마(layout.ts)에는 "fill 없음(테두리만)" 박스가 없으므로
+ * (ELEMENT_KINDS의 'box'는 항상 fill을 그린다 — svg.ts elementSvg 'box' 분기),
+ * decoFrame은 fillToken을 캔버스 배경과 같은 '@surface'로 둬서 시각적으로
+ * "채움 없음"과 동일하게 만든다(이 변환 경로는 배경 이미지를 매핑하지
+ * 않으므로 — 02e §4-1 매핑표에 배경 항목 자체가 없다 — 캔버스는 항상 단색
+ * 배경이라 안전하다). 레거시의 금색(#d4a94a)은 테마 토큰 '@accent'로
+ * 대체한다(고정 헥스 대신 토큰을 쓰면 팔레트를 바꿔도 장식이 따라온다 —
+ * 이 파일의 다른 요소들과 동일한 원칙). 'badgeCircle'이라는 별도 kind는
+ * 없다(ELEMENT_KINDS=['text','image','qr','box','line']) — templates.ts의
+ * badge 템플릿/PARTS가 원을 표현할 때도 kind:'box'에 radius:999를 주는
+ * 방식을 그대로 따른다.
+ *
+ * 세 요소 모두 z=0으로 두고 반환 배열의 맨 앞에 배치한다 — 같은 z(0)인
+ * 다른 요소(예: qr z=5, logo z=0)와 섞여도 동일 z 안에서는 배열 순서가
+ * 곧 그리기 순서이므로(svg.ts buildSvg의 stable sort), 맨 앞에 두면 항상
+ * 다른 모든 요소보다 먼저(=아래에) 그려진다. QR_COVERED 검사는
+ * `other.z <= qr.z`면 건너뛰므로(layout.ts 303줄) z=0인 이 장식 요소들은
+ * QR(z=5)을 가린다고 판정되지 않는다 — 검사 통과가 유지된다.
+ */
+function buildDecorationElements(canvas: { width: number; height: number }): LayoutElement[] {
+  const { width: W, height: H } = canvas;
+  return [
+    {
+      id: 'decoFrame', kind: 'box', name: '장식 테두리', bind: 'static',
+      x: W / 2, y: H / 2, width: W - 28, height: H - 28, radius: 20,
+      fillToken: '@surface', strokeToken: '@accent', strokeWidth: 3, opacity: 0.7,
+      z: 0, visible: true,
+    },
+    {
+      id: 'decoCircleA', kind: 'box', name: '장식 원(좌상단)', bind: 'static',
+      x: 50, y: 60, width: 180, height: 180, radius: 999,
+      fillToken: '@accent', opacity: 0.06,
+      z: 0, visible: true,
+    },
+    {
+      id: 'decoCircleB', kind: 'box', name: '장식 원(우하단)', bind: 'static',
+      x: W - 40, y: H - 90, width: 260, height: 260, radius: 999,
+      fillToken: '@accent', opacity: 0.06,
+      z: 0, visible: true,
+    },
+  ];
+}
 
 /**
  * CouponVisibilityConfig(11토글) → DesignLayout 변환.
@@ -87,11 +162,17 @@ export function convertVisibilityToLayout(
   // 늘어나므로 보수적으로 유지하는 것이 맞다).
   // ctaText/partnerName: classic 템플릿 자체에 해당 요소가 없으므로
   // "매핑 없음" 결정(02c §①·②)이 이미 구조적으로 반영되어 있다.
-  // decoration: classic 템플릿엔 box/line/badgeCircle 요소가 없으므로
-  // 이 변환에서는 켜거나 꺼도 영향이 없다(no-op) — 다른 템플릿을 쓰면
-  // 장식군이 생기지만, §4-1 "가장 무난한" classic을 기본으로 택했다.
 
-  const elements = base.elements.filter((el) => !dropIds.has(el.id));
+  const kept = base.elements.filter((el) => !dropIds.has(el.id));
+
+  // [02i §필수1 — decoration은 "넣는" 매핑] classic 템플릿엔 장식 요소가
+  // 원래 0개이므로, decoration===true일 때만 buildDecorationElements()로
+  // 3개 요소를 새로 만들어 맨 앞(= z=0 중 가장 먼저 그려짐, 즉 가장 아래
+  // 레이어)에 추가한다. decoration===false면 아무것도 추가하지 않는다
+  // (이 경우에만 기존 주석이 말하던 "no-op"이 실제로 성립한다).
+  const elements = visibility.decoration
+    ? [...buildDecorationElements(canvas), ...kept]
+    : kept;
 
   return {
     ...base,

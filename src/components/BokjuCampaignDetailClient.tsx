@@ -203,6 +203,42 @@ export default function BokjuCampaignDetailClient({
     }
   }
 
+  // [02i §필수2 — "(A) 전환 취소 경로"] "신규 디자인으로 전환"의 역방향.
+  // currentDesignRevisionId 포인터를 다시 null로 되돌려 레거시(11토글)
+  // 화면으로 복귀한다. 레거시 설정 데이터 자체는 전환 시 삭제되지 않고
+  // 보존돼 있었으므로(studio-api.ts revertToLegacyDesign() 주석 참고),
+  // 되돌리면 전환 전과 동일한 11토글 설정이 그대로 다시 보인다.
+  // [안전성] 이미 발행된 쿠폰은 coupon.designRevisionId가 발행 시점에
+  // 각인돼 있어(소급 변경 없음) 포인터를 되돌려도 영향받지 않는다 —
+  // 아래 confirm 문구에 그대로 안내한다.
+  async function handleRevertToLegacy() {
+    if (
+      !window.confirm(
+        "신규 디자인 전환을 취소하고 레거시(11토글 설정) 화면으로 되돌립니다.\n\n" +
+          "· 기존 11토글 설정은 삭제되지 않고 보존돼 있었으므로 전환 전과 동일하게 돌아갑니다.\n" +
+          "· 이미 발행된 쿠폰은 발행 당시 디자인을 그대로 유지합니다(바뀌지 않습니다).\n" +
+          "· 앞으로 새로 발행되는 쿠폰부터 레거시 11토글 설정을 받습니다.\n\n" +
+          "계속하시겠습니까?"
+      )
+    ) {
+      return;
+    }
+    setPending("revert-design");
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/bokju-coupons/campaigns/${campaign.id}/design/revert-to-legacy`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "되돌리기 실패");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "레거시로 되돌리기 실패");
+    } finally {
+      setPending(null);
+    }
+  }
+
   async function handleGenerateImages() {
     setPending("images");
     setError(null);
@@ -372,15 +408,39 @@ export default function BokjuCampaignDetailClient({
       )}
 
       {/* [작업순서4] 이미 신규 디자인으로 전환된(또는 신규 캠페인인) 경우
-          스튜디오 바로가기 링크를 노출한다. */}
+          스튜디오 바로가기 링크를 노출한다.
+          [02i §필수2 — "(A) 전환 취소 경로"] 신규 캠페인(처음부터 신규
+          에디터를 쓰는 캠페인)은 "되돌릴 레거시 설정" 자체가 없으므로,
+          "레거시로 되돌리기" 버튼은 캠페인이 실제로 convert-legacy를 거쳐
+          전환된 경우에만 의미가 있다 — 다만 이 컴포넌트는 "전환으로
+          생성됐는지"와 "신규 캠페인으로 시작했는지"를 구분할 별도 플래그를
+          받지 않으므로(두 경우 모두 currentDesignRevisionId != null), 신규
+          캠페인에서 되돌리기를 눌러도 revertToLegacyDesign()은 단순히
+          포인터를 null로 바꿀 뿐 데이터를 지우지 않아 안전하다 — 다만
+          신규 캠페인엔 애초에 11토글 레거시 설정 화면 자체가 없을 수
+          있으므로(생성 폼에서 customTemplateId 미지정 시 DEFAULT_VISIBILITY로
+          간주), 되돌리면 "모든 항목이 켜진 기본 11토글 화면"으로 복귀한다 —
+          이는 convertLegacyDesign()의 DEFAULT_VISIBILITY 폴백과 대칭이다. */}
       {campaign.currentDesignRevisionId != null && (
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <a
-            href={`/bokju-coupons/campaigns/${campaign.id}/design`}
-            className="text-sm font-medium text-indigo-600 hover:underline"
-          >
-            쿠폰 디자인 스튜디오 열기 →
-          </a>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <a
+              href={`/bokju-coupons/campaigns/${campaign.id}/design`}
+              className="text-sm font-medium text-indigo-600 hover:underline"
+            >
+              쿠폰 디자인 스튜디오 열기 →
+            </a>
+            {canWrite && (
+              <button
+                onClick={handleRevertToLegacy}
+                disabled={pending === "revert-design"}
+                className="shrink-0 rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                title="신규 디자인 전환을 취소하고 레거시(11토글 설정) 화면으로 되돌립니다. 이미 발행된 쿠폰은 영향받지 않습니다."
+              >
+                {pending === "revert-design" ? "되돌리는 중..." : "레거시로 되돌리기"}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

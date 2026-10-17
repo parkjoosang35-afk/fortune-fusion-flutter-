@@ -10,10 +10,19 @@
 //      가드(이미 전환된 캠페인 재전환 거부)가 동작하는지 확인한다.
 //   3) [02h §0-M-6 "전환 직전/직후 해시 변화"] 전환 전(레거시 상태)과
 //      전환 직후(rev1) 레이아웃이 다름을 canonicalHash로 확인한다.
-//   4) [02h §0-M-6 "전환 전 레이아웃도 리비전으로 보존"] 전환 직후 즉시
-//      rollbackCampaignDesign이 동작 가능한 상태(리비전이 남아있음)인지 확인한다
-//      — rev1 자체가 "전환 결과"이며 이후 신규 에디터에서 rev2를 저장해도
-//      rev1은 영구 보존되어 되돌릴 수 있다(revision.ts 불변 원칙 재확인).
+//   4) [02i §필수1 수정 — decoration은 "넣는" 매핑] decoration===true일 때
+//      decoFrame/decoCircleA/decoCircleB 3개 요소가 실제로 "추가"되는지,
+//      decoration===false일 때는 추가되지 않는지 확인한다(기존 "no-op"
+//      주장은 틀렸었다 — classic 템플릿 실측상 장식 요소가 원래 0개이므로
+//      decoration=true는 "추가"해야 하는 매핑이었다).
+//   5) [02i §필수2 — "(A) 전환 취소 경로"] revertToLegacyDesign()으로
+//      currentDesignRevisionId 포인터가 다시 null로 돌아가는지, 그리고
+//      그 이후 getCampaignDesign()이 레거시 폴백(defaultLayout)으로
+//      돌아가는지 확인한다. [테스트#15 정정 — 02i 지적 반영] 기존 문구
+//      "전환 전 상태가 rev1으로 영구 보존됨을 증명"은 틀렸다: rev1은
+//      전환 "후" 레이아웃이지 전환 "전"(레거시) 상태가 아니다. 진짜
+//      증명해야 할 것은 "전환 전 레거시 렌더와, 전환 후 되돌린 결과가
+//      동일한가"이며, 아래 15번 테스트를 이 기준으로 재작성했다.
 //
 // describe / it / expect / beforeAll / afterAll 는 하네스가 주입한다.
 
@@ -23,16 +32,19 @@ import { convertVisibilityToLayout } from '../src/lib/bokju-coupon-design/legacy
 import { canonicalHash } from '../src/lib/bokju-coupon-design/revision';
 import {
   convertLegacyDesign, getCampaignDesign, listCampaignRevisions,
-  rollbackCampaignDesign, StudioApiError,
+  revertToLegacyDesign, rollbackCampaignDesign, StudioApiError,
 } from '../src/lib/bokju-coupon-design/studio-api';
 import { DEFAULT_VISIBILITY } from '../src/lib/bokju-coupon-visibility';
 
 // ════════════════════════════════════════════════ 1) 순수 변환 함수
 describe('legacy-convert — convertVisibilityToLayout (순수 매핑)', () => {
-  it('1) 전부 true(DEFAULT_VISIBILITY)면 9개 요소(logo/title/amount/unit/guide/qr/couponNo/period/domain)가 모두 남는다', () => {
+  it('1) 전부 true(DEFAULT_VISIBILITY, decoration 포함)면 기존 9개 요소 + 장식 3개(decoFrame/decoCircleA/decoCircleB) = 12개가 남는다', () => {
     const layout = convertVisibilityToLayout(DEFAULT_VISIBILITY);
     const ids = layout.elements.map((e) => e.id).sort();
-    expect(ids).toEqual(['amount', 'couponNo', 'domain', 'guide', 'logo', 'period', 'qr', 'title', 'unit']);
+    expect(ids).toEqual([
+      'amount', 'couponNo', 'decoCircleA', 'decoCircleB', 'decoFrame',
+      'domain', 'guide', 'logo', 'period', 'qr', 'title', 'unit',
+    ]);
   });
 
   it('2) [1:1 매핑] logo=false면 logo 요소만 제거되고 나머지는 남는다', () => {
@@ -71,8 +83,8 @@ describe('legacy-convert — convertVisibilityToLayout (순수 매핑)', () => {
     expect(layout.elements.some((e) => e.id === 'guide')).toBe(false);
   });
 
-  it('7) [매핑 없음 — 02c §①·② 기존 결정] ctaText/decoration을 끄거나 켜도 classic 템플릿엔 해당 요소가 원래 없으므로 결과가 동일하다(no-op)', () => {
-    const on = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, ctaText: true, decoration: true });
+  it('7) [매핑 없음 — 02c §①·② 기존 결정] ctaText를 끄거나 켜도 classic 템플릿엔 해당 요소가 원래 없으므로 결과가 동일하다(no-op) — decoration은 ctaText와 달리 "추가" 매핑이므로 양쪽 모두 decoration은 false로 고정해 비교한다', () => {
+    const on = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, ctaText: true, decoration: false });
     const off = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, ctaText: false, decoration: false });
     const idsOn = on.elements.map((e) => e.id).sort();
     const idsOff = off.elements.map((e) => e.id).sort();
@@ -80,6 +92,50 @@ describe('legacy-convert — convertVisibilityToLayout (순수 매핑)', () => {
     // ctaText/partnerName에 대응하는 신규 요소 자체가 애초에 존재하지 않는다.
     expect(idsOn.includes('ctaText')).toBe(false);
     expect(idsOn.includes('partnerName')).toBe(false);
+  });
+
+  it('7-2) [02i §필수1 수정 — decoration은 "넣는" 매핑] decoration===true이면 decoFrame/decoCircleA/decoCircleB 3개 요소가 새로 추가되고, decoration===false이면 추가되지 않는다(이전 보고의 "no-op" 주장은 틀렸다 — classic 템플릿 실측상 장식 요소 원래 0개)', () => {
+    const on = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, decoration: true });
+    const off = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, decoration: false });
+    const decoIdsOn = on.elements.filter((e) => e.id.startsWith('deco')).map((e) => e.id).sort();
+    const decoIdsOff = off.elements.filter((e) => e.id.startsWith('deco')).map((e) => e.id).sort();
+    expect(decoIdsOn).toEqual(['decoCircleA', 'decoCircleB', 'decoFrame']);
+    expect(decoIdsOff).toEqual([]);
+    // decoration을 뺀 나머지 9개 요소는 양쪽이 동일해야 한다(장식만 추가될 뿐 기존 매핑에 영향 없음).
+    const nonDecoOn = on.elements.filter((e) => !e.id.startsWith('deco')).map((e) => e.id).sort();
+    const nonDecoOff = off.elements.filter((e) => !e.id.startsWith('deco')).map((e) => e.id).sort();
+    expect(nonDecoOn).toEqual(nonDecoOff);
+  });
+
+  it('7-3) [decoration 요소 상세] decoFrame은 테두리만(stroke)·배경과 같은 fillToken, decoCircleA/B는 radius:999(원)에 저채도(opacity 0.06)이며 둘 다 kind는 box다(badgeCircle이라는 별도 kind는 없다 — templates.ts badge 템플릿과 동일 원리)', () => {
+    const layout = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, decoration: true });
+    const frame = layout.elements.find((e) => e.id === 'decoFrame')!;
+    const circleA = layout.elements.find((e) => e.id === 'decoCircleA')!;
+    const circleB = layout.elements.find((e) => e.id === 'decoCircleB')!;
+
+    expect(frame.kind).toBe('box');
+    expect(frame.fillToken).toBe('@surface'); // 배경과 같은 색 = 시각적으로 "채움 없음"
+    expect(frame.strokeToken).toBe('@accent');
+
+    expect(circleA.kind).toBe('box');
+    expect(circleA.radius).toBe(999); // 999 = 사실상 원(ELEMENT_KINDS에 별도 원 kind는 없다)
+    expect(circleA.opacity).toBe(0.06);
+    expect(circleB.kind).toBe('box');
+    expect(circleB.radius).toBe(999);
+    expect(circleB.opacity).toBe(0.06);
+
+    // 세 요소 모두 z=0 — 다른 콘텐츠(로고 z=0, QR z=5 등)보다 먼저 그려져 "뒤에 깔리는" 장식이 되어야 한다.
+    expect(frame.z).toBe(0);
+    expect(circleA.z).toBe(0);
+    expect(circleB.z).toBe(0);
+  });
+
+  it('7-4) [검사 통과 유지 — 금지 목록 ⑦] decoration=true로 장식 3개가 추가되어도 QR을 가리지 않으므로(z=0 ≤ qr.z) validateLayout 오류는 0건이다', () => {
+    const layout = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, decoration: true });
+    const result = validateLayout(layout);
+    const errors = result.issues.filter((i) => i.level === 'error');
+    expect(errors.length).toBe(0);
+    expect(result.issues.some((i) => i.code === 'QR_COVERED')).toBe(false);
   });
 
   it('8) 전부 true(DEFAULT_VISIBILITY) 변환 결과는 validateLayout 오류 0건이다(§4-1 검증 기준)', () => {
@@ -142,8 +198,8 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
     const after = await getCampaignDesign(campaignId);
     expect(after.currentRevisionId).toBe(result.revisionId);
     expect(after.currentRevisionNo).toBe(1);
-    // DEFAULT_VISIBILITY 변환 결과이므로 9개 요소 전부 있어야 한다.
-    expect(after.layout.elements.length).toBe(9);
+    // DEFAULT_VISIBILITY는 decoration:true도 포함하므로 기존 9개 + 장식 3개 = 12개가 있어야 한다.
+    expect(after.layout.elements.length).toBe(12);
   });
 
   it('13) [버튼 1회 가드] 이미 전환된 캠페인을 다시 전환하면 ALREADY_CONVERTED(409)로 거부된다', async () => {
@@ -169,7 +225,7 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
     expect(canonicalHash(after.layout)).not.toBe(canonicalHash(emptyLayout));
   });
 
-  it('15) [02h §0-M-6 "전환 전 레이아웃도 리비전으로 보존"] 전환 직후 즉시 되돌리기(rollback)가 가능한 상태다 — rev1 자체가 리비전 테이블에 영구 보존되어 있다', async () => {
+  it('15) [02h §0-M-6 "rev1 동결" — rollbackCampaignDesign 재사용 확인] rev1은 리비전 테이블에 영구 보존되어 있고, rev1으로의 rollbackCampaignDesign 호출 자체는 정상 동작한다', async () => {
     const revs = await listCampaignRevisions(campaignId);
     expect(revs.length).toBe(1);
     expect(revs[0].revNo).toBe(1);
@@ -179,10 +235,88 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
     // (전환 전용 별도 되돌리기 함수를 새로 만들지 않음 — §5 "엔드포인트
     // 기존 재사용 우선"). rev1으로 "되돌리는" 호출도 정상 동작해야 한다
     // (이미 rev1이 current여도 setCurrentRevision이 멱등하게 동작).
+    //
+    // [02i 테스트#15 정정 — 중요] 이 테스트가 증명하는 것은 "rev1이
+    // 보존되어 rollbackCampaignDesign이 동작한다"는 사실뿐이다. 이전 버전의
+    // 문구("전환 전 상태가 rev1으로 영구 보존됨을 증명")는 틀렸다 — rev1은
+    // 전환 "후" 레이아웃이지 전환 "전"(레거시 11토글) 상태가 아니다. rev1으로
+    // rollback해도 레거시 11토글 화면으로는 돌아가지 않는다(무변화) — "전환
+    // 전 상태로 돌아가는 증명"은 아래 15-2/15-3이 담당한다(revertToLegacyDesign).
     const result = await rollbackCampaignDesign(campaignId, revs[0].id);
     expect(result.revisionNo).toBe(1);
     expect(result.notice.existingCouponsUnaffected.length).toBeGreaterThan(0);
     expect(result.notice.futureCouponsUseThisRevision.length).toBeGreaterThan(0);
+  });
+
+  it('15-2) [02i §필수2 — "(A) 전환 취소 경로"] revertToLegacyDesign()은 currentDesignRevisionId 포인터를 다시 null로 되돌리고, 그 결과 getCampaignDesign()이 레거시 폴백(defaultLayout)으로 돌아간다 — 이것이 "전환 전 상태로 돌아간다"는 실제 증명이다(rev1이 아니다)', async () => {
+    // 전환 전(= 레거시) 화면이 실제로 보여줬을 모습은 convertVisibilityToLayout()을
+    // 직접 호출해 재현한다(캠페인은 customTemplateId가 없으므로 DEFAULT_VISIBILITY).
+    const legacyRenderBefore = convertVisibilityToLayout(DEFAULT_VISIBILITY);
+
+    const before = await getCampaignDesign(campaignId);
+    expect(before.currentRevisionId).not.toBe(null); // 전환된 상태(테스트 12에서 전환됨)
+
+    const reverted = await revertToLegacyDesign(campaignId);
+    expect(reverted.ok).toBe(true);
+    expect(reverted.notice.existingCouponsUnaffected.length).toBeGreaterThan(0);
+    expect(reverted.notice.futureCouponsUseLegacy.length).toBeGreaterThan(0);
+
+    const after = await getCampaignDesign(campaignId);
+    // [핵심] 포인터가 null로 돌아갔다 — "레거시 11토글 화면"으로 복귀했다는 뜻이다.
+    expect(after.currentRevisionId).toBe(null);
+    expect(after.currentRevisionNo).toBe(null);
+
+    // [테스트#15 정정의 실제 증명] "전환 전 화면(레거시 렌더)"과 "되돌린 뒤
+    // 레거시 설정을 다시 변환했을 때의 결과"가 동일해야 한다 — 레거시 설정
+    // 데이터 자체(DEFAULT_VISIBILITY)가 전환 과정에서 전혀 변경되지 않았기
+    // 때문이다(studio-api.ts convertLegacyDesign은 읽기만 하고 아무것도
+    // 지우지 않는다).
+    const legacyRenderAfterRevert = convertVisibilityToLayout(DEFAULT_VISIBILITY);
+    expect(canonicalHash(legacyRenderAfterRevert)).toBe(canonicalHash(legacyRenderBefore));
+
+    // 리비전 행 자체는 여전히 테이블에 남아있다(불변 원칙 — 삭제되지 않음).
+    const revs = await listCampaignRevisions(campaignId);
+    expect(revs.length).toBe(1);
+    expect(revs.every((r) => !r.isCurrent)).toBe(true); // 더 이상 current를 가리키는 리비전이 없다
+  });
+
+  it('15-3) [재전환 가능 확인] 레거시로 되돌린 뒤에는 ALREADY_CONVERTED 가드가 풀려 다시 convertLegacyDesign()을 호출할 수 있다(currentDesignRevisionId가 null이므로) — freezeRevision의 contentHash 유니크 제약으로 같은 내용이면 rev1을 재사용(reused=true)한다', async () => {
+    const result = await convertLegacyDesign(campaignId, { createdBy: 'test' });
+    expect(result.ok).toBe(true);
+    // 레거시 설정(DEFAULT_VISIBILITY)이 바뀌지 않았으므로 같은 contentHash →
+    // 새 리비전을 만들지 않고 기존 rev1을 재사용한다.
+    expect(result.revisionNo).toBe(1);
+
+    const revs = await listCampaignRevisions(campaignId);
+    expect(revs.length).toBe(1); // 리비전이 중복 생성되지 않았다(freezeRevision의 재사용 보장)
+
+    const after = await getCampaignDesign(campaignId);
+    expect(after.currentRevisionId).toBe(revs[0].id);
+  });
+
+  it('15-4) [가드] 아직 전환된 적 없는(currentDesignRevisionId가 null인) 캠페인에 revertToLegacyDesign()을 호출하면 NOT_CONVERTED(409)로 거부된다', async () => {
+    const freshCampaign = await prisma.bokjuCouponCampaign.create({
+      data: {
+        title: '[TEST] 15-4 되돌리기 가드용 캠페인',
+        grantAmount: 100,
+        validFrom: new Date('2026-01-01T00:00:00Z'),
+        validTo: new Date('2026-12-31T23:59:59Z'),
+      },
+    });
+    try {
+      let threw = false;
+      try {
+        await revertToLegacyDesign(freshCampaign.id);
+      } catch (e) {
+        threw = true;
+        expect(e instanceof StudioApiError).toBe(true);
+        expect((e as StudioApiError).code).toBe('NOT_CONVERTED');
+        expect((e as StudioApiError).status).toBe(409);
+      }
+      expect(threw).toBe(true);
+    } finally {
+      await prisma.bokjuCouponCampaign.delete({ where: { id: freshCampaign.id } });
+    }
   });
 
   it('16) 존재하지 않는 캠페인은 CAMPAIGN_NOT_FOUND(404)를 던진다', async () => {

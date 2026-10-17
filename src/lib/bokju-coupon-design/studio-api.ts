@@ -388,6 +388,85 @@ export async function convertLegacyDesign(
   };
 }
 
+// ────────────────────────────────────────────── 5-3) §0-M-6/02i §필수2 레거시 되돌리기
+/**
+ * [02i §필수2 — "(A) 전환 취소 경로를 만든다" 쪽으로 결정] convertLegacyDesign()
+ * 이 만드는 rev1은 "변환 후" 레이아웃이지 "변환 전"(레거시 11토글) 상태가
+ * 아니다 — 따라서 rev1으로 rollbackCampaignDesign()을 호출해도 전환 전
+ * 화면(레거시 11토글 렌더)으로는 돌아가지 않는다(무변화). 레거시 11토글
+ * 상태 자체는 애초에 DesignLayout 스키마가 아니므로(CouponVisibilityConfig는
+ * 별도 JSON 스키마) freezeRevision()으로 리비전화할 수 없다 — 리비전
+ * 하나를 "레거시 상태"로 박아 넣는 방식은 구조적으로 성립하지 않는다.
+ *
+ * 대신 campaign.currentDesignRevisionId 포인터 자체를 다시 null로 되돌린다
+ * (revision.ts의 setCurrentRevision(campaignId, null) 재사용 — 이미
+ * revisionId: number | null 타입으로 null을 지원하도록 구현되어 있었다).
+ * getCampaignDesign()은 currentDesignRevisionId == null이면 이미
+ * defaultLayout()으로 폴백하고, BokjuCampaignDetailClient.tsx의 조건부
+ * 렌더링(`campaign.currentDesignRevisionId == null`)도 이 포인터 하나로
+ * "레거시 11토글 화면을 보여줄지, 신규 에디터를 보여줄지"를 결정하므로,
+ * 포인터만 null로 되돌리면 레거시 11토글 화면이 그대로 다시 노출된다 —
+ * 별도의 "레거시 전용 리비전 타입"을 새로 만들지 않는다(02e §4-3 설계
+ * 노트가 말하던 "기존 되돌리기 메커니즘 재사용"과 동일한 원칙을
+ * "레거시 복귀"에도 그대로 적용한 것).
+ *
+ * [소급 변경 없음 — 안전성 근거] coupon.designRevisionId는 발행(쿠폰 행
+ * 생성) 시점에 이미 각인되어 있다(revision.ts §금지목록 #4,
+ * bokju-coupon-service.ts issueCoupons()). 포인터를 null로 되돌려도 이미
+ * 발행된 쿠폰의 각인값은 전혀 건드리지 않으므로, 기발행 쿠폰 이미지는
+ * 영향받지 않는다 — rollbackCampaignDesign()과 완전히 동일한 안전성 근거.
+ *
+ * [데이터 보존 확인] 레거시 설정 데이터(BokjuCouponDesignTemplate.visibility
+ * JSON, customTemplateId 미지정이면 DEFAULT_VISIBILITY)는 전환 시 삭제되지
+ * 않고 그대로 남아 있다 — convertLegacyDesign()이 읽기만 하고 아무것도
+ * 지우지 않기 때문이다. 따라서 되돌리면 convertLegacyDesign() 호출 전과
+ * 동일한 레거시 설정이 그대로 다시 보인다.
+ *
+ * [가드] 아직 전환하지 않은 캠페인(currentDesignRevisionId가 이미 null)은
+ * 되돌릴 대상이 없으므로 거부한다 — "전환된 적 있는 캠페인만" 되돌릴 수
+ * 있다(멱등하지 않게 막아 오조작을 방지).
+ */
+export interface RevertToLegacyResult {
+  ok: true;
+  campaignId: number;
+  /**
+   * [02i 테스트#15 정정 대상 — 롤백 UI 두 문구] rollbackCampaignDesign()의
+   * ROLLBACK_NOTICE와 문구 성격은 같지만, 대상이 "리비전"이 아니라
+   * "레거시 11토글 설정"이므로 문구를 되돌리기 전용으로 분리한다.
+   */
+  notice: {
+    existingCouponsUnaffected: string;
+    futureCouponsUseLegacy: string;
+  };
+}
+
+const REVERT_TO_LEGACY_NOTICE = {
+  existingCouponsUnaffected:
+    '이미 발행된 쿠폰은 발행 당시 디자인을 그대로 유지합니다(바뀌지 않습니다).',
+  futureCouponsUseLegacy:
+    '앞으로 새로 발행되는 쿠폰부터 되돌린 리비전의 디자인을 받습니다. 기존 11토글 설정은 삭제되지 않고 보존되어 있었으므로, 전환 전과 동일한 모습으로 돌아갑니다.',
+};
+
+export async function revertToLegacyDesign(campaignId: number): Promise<RevertToLegacyResult> {
+  const campaign = await getCampaignOrThrow(campaignId);
+
+  if (campaign.currentDesignRevisionId == null) {
+    throw new StudioApiError(
+      'NOT_CONVERTED',
+      '아직 신규 디자인으로 전환되지 않은 캠페인입니다. 되돌릴 대상이 없습니다.',
+      409,
+    );
+  }
+
+  await setCurrentRevision(campaignId, null);
+
+  return {
+    ok: true,
+    campaignId,
+    notice: REVERT_TO_LEGACY_NOTICE,
+  };
+}
+
 // ────────────────────────────────────────────── 6) 카탈로그(§0-G 필수3)
 /**
  * [§0-G 필수 3] 팔레트·템플릿·부품 값은 전부 theme.ts/templates.ts 가
