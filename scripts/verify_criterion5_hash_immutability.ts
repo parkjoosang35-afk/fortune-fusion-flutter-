@@ -4,13 +4,34 @@
 // 방금 배선한 그 경로)로 재현해 end-to-end 로 증명하는 1회성 검증 스크립트.
 // 이 스크립트가 만든 캠페인/쿠폰/리비전/이미지 파일은 전부 스스로 정리한다
 // (기존 212행/3행에는 전혀 손대지 않는다).
+// [위험2 보강 — 02e §0-D] "기준5의 '2차 배치 발행'이 실제 재렌더였는지 —
+// 이미지 파일이 이미 있으면 잡이 재렌더를 건너뛸 수 있다"(사용자 지적).
+// 아래 두 가지를 추가해 "건너뛰기가 아니라 실제 재렌더"임을 직접 증명한다:
+//   1) 2차 발행 직전에 1차 이미지 파일을 명시적으로 unlink() 한다 —
+//      파일이 물리적으로 사라진 상태에서 2차 발행을 실행하므로, 만약
+//      runImageJob()이 "파일 존재 여부"로 스킵하는 로직이 있었다면 이
+//      시점에 반드시 드러난다(파일이 없는데 해시가 나오려면 반드시
+//      다시 그려야만 한다).
+//   2) 파일을 지운 "시점" 자체를 기록하고, 2차 발행 후 파일의 mtime이
+//      그 시점보다 **이후**인지 확인한다 — "파일이 다시 쓰였다"는 것의
+//      물리적 타임스탬프 증거(해시 비교만으로는 "안 그려도 우연히 같은
+//      바이트가 거기 있었다"는 반론을 완전히 차단하지 못하지만, mtime은
+//      "그 시각 이후에 실제로 write 가 일어났다"는 것을 증명한다).
 import { prisma } from "../src/lib/db";
 import { defaultLayout, addElement } from "../src/lib/bokju-coupon-design/layout";
 import { freezeRevision, setCurrentRevision } from "../src/lib/bokju-coupon-design/revision";
 import { startImageGenerationJob, getImageJob, readCouponImage } from "../src/lib/bokju-coupon-image-service";
 import { createHash } from "node:crypto";
-import { rm } from "node:fs/promises";
+import { rm, unlink, stat } from "node:fs/promises";
 import path from "node:path";
+
+function couponImageFilePath(campaignId: number, couponId: number): string {
+  // bokju-coupon-image-service.ts campaignDir()/couponImageRelPath() 와
+  // 동일한 경로 규칙(해당 함수들은 export 되지 않으므로 여기서는 검증
+  // 스크립트 전용으로 동일 규칙을 재구성한다 — 쓰기는 하지 않고 "읽기
+  // 전용 경로 계산"만 하므로 절대불가침 위반이 아니다).
+  return path.join(process.cwd(), "public", "uploads", "bokju-coupons", `campaign_${campaignId}`, "images", `${couponId}.png`);
+}
 
 async function waitForJob(jobId: number, timeoutMs = 20000) {
   const deadline = Date.now() + timeoutMs;
@@ -85,10 +106,25 @@ async function main() {
   console.log(`    캠페인 현재 포인터 = ${campaignAfter?.currentDesignRevisionId} (rev2=${r2.id})`);
   console.log(`    기존 쿠폰의 designRevisionId = ${coupon.designRevisionId} (여전히 rev1=${r1.id}, 변경되지 않음)`);
 
+  // [위험2 보강] 2차 발행 직전에 1차 이미지 파일을 물리적으로 삭제한다 —
+  // "파일이 이미 있어서 재렌더를 건너뛰었다"는 가능성 자체를 원천 차단한다.
+  const imgPath = couponImageFilePath(campaign.id, coupon.id);
+  const existedBefore = await stat(imgPath).then(() => true).catch(() => false);
+  console.log(`[5b] 1차 이미지 파일 삭제 전 존재 여부=${existedBefore} path=${imgPath}`);
+  if (!existedBefore) throw new Error("예상과 다름 — 1차 이미지 파일이 애초에 존재하지 않습니다. 경로 계산이 틀렸을 수 있습니다.");
+  const deletedAt = Date.now();
+  await unlink(imgPath);
+  const existsAfterDelete = await stat(imgPath).then(() => true).catch(() => false);
+  console.log(`[5c] 삭제 직후 존재 여부=${existsAfterDelete} (false 여야 정상)`);
+  if (existsAfterDelete) throw new Error("파일 삭제 실패 — 2차 발행이 '건너뛰기 없음'을 증명할 수 없습니다.");
+
   // 6) 같은 배치 발행 경로(startImageGenerationJob)를 다시 실행 — 기존 쿠폰이
   //    디자인 수정 후에도 여전히 rev1(발행 시점 각인값)로 렌더되는지 확인한다.
   //    (campaign.currentDesignRevisionId가 rev2로 바뀌었어도 coupon.designRevisionId는
   //     rev1 그대로이므로, dispatchCouponRender → resolveLayoutForCoupon이 rev1을 읽는다.)
+  //    [위험2 보강] 파일이 물리적으로 없는 상태에서 실행하므로, 이 2차
+  //    실행이 "파일 존재 체크로 스킵"했을 가능성은 이제 논리적으로 없다 —
+  //    완성된 PNG가 나온다는 것 자체가 "실제로 다시 그렸다"는 증거다.
   const job2 = await startImageGenerationJob(campaign.id, "verify-script", {
     registerBaseUrl: "https://sintong.kr",
   });
@@ -100,14 +136,19 @@ async function main() {
   if (!buf2) throw new Error("2차 발행(재생성) 이미지가 생성되지 않았습니다.");
   const hash2 = createHash("sha256").update(buf2).digest("hex");
   const meta2 = await sharp1(buf2).metadata();
-  console.log(`[6] 디자인 수정 후 2차 배치 발행(재실행) 완료 jobId=${job2.jobId} 이미지치수=${meta2.width}x${meta2.height} sha256=${hash2}`);
+  const statAfter = await stat(imgPath);
+  console.log(`[6] 디자인 수정 후 2차 배치 발행(재실행, 삭제된 파일에서 재생성) 완료 jobId=${job2.jobId} 이미지치수=${meta2.width}x${meta2.height} sha256=${hash2}`);
+  console.log(`[6b] 재생성된 파일의 mtime=${statAfter.mtimeMs} / 삭제 시각=${deletedAt} → mtime이 삭제시각보다 이후인가: ${statAfter.mtimeMs >= deletedAt ? "✅ 예(실제로 새로 쓰였음)" : "❌ 아니오(의심스러움)"}`);
+  if (statAfter.mtimeMs < deletedAt) {
+    throw new Error("파일 mtime이 삭제 시각보다 이릅니다 — 재렌더가 실제로 일어나지 않았을 가능성이 있습니다.");
+  }
 
   // 7) 판정
   console.log("\n── 판정 ──");
   const same = hash1 === hash2;
   console.log(`1차 해시: ${hash1}`);
   console.log(`2차 해시: ${hash2}`);
-  console.log(`해시 동일 여부: ${same ? "✅ 동일(불변 — 완료기준5 통과)" : "❌ 다름(불변성 깨짐 — 버그)"}`);
+  console.log(`해시 동일 여부: ${same ? "✅ 동일(불변 — 완료기준5 통과, 파일 삭제 후 재렌더로도 같은 바이트가 나옴)" : "❌ 다름(불변성 깨짐 — 버그)"}`);
 
   // 대조군: rev2로 "새로" 발행된 쿠폰은 당연히 다른 이미지가 나와야 한다(그래야
   // "복사-붙여넣기로 통과시킨 가짜 불변"이 아님을 증명할 수 있다).

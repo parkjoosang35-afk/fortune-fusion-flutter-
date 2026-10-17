@@ -409,4 +409,91 @@ describe('리비전 고정 — [4단계 완료] handled 플래그를 호출부(�
     const dir = path.join(process.cwd(), 'public', 'uploads', 'bokju-coupons', `campaign_${campaignId}`);
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   });
+
+  // [위험3 보강 — 02e §0-D] "테스트13이 치수로만 렌더러를 구분하는데, 운영
+  // 기본 캔버스는 720×1280(02c §5)이라 실제 운영에서는 신규·레거시 치수가
+  // 같다. 그러면 치수로는 구분이 안 된다"(사용자 지적). 이 테스트는
+  // defaultLayout()의 **기본값**(인자 없이 호출 — 운영 기본 캔버스와 동일한
+  // 720×1280)으로 신규 리비전을 만들어, 치수가 레거시와 완전히 같은
+  // 상태에서도 "어느 렌더러가 호출됐는지"를 픽셀 색상으로 직접 식별한다.
+  //
+  // [왜 픽셀 색상인가] 신규 렌더러(buildSvg, 2단계 산출물)의 기본 배경은
+  // defaultLayout()의 canvas.background = '#fffdfb'(크림색) 고정이다
+  // (layout.ts 359번 줄). 레거시 4종 내장 템플릿은 전부 이와 다른 배경을
+  // 쓴다 — 기본값인 CLASSIC은 진한 적갈색 그라디언트
+  // (#7a1f1f→#4a1212→#2a0a0a, bokju-coupon-image-service.ts 95-98번 줄)로
+  // 시작한다. 좌표 (5,5)는 두 렌더러 모두에서 아직 어떤 요소(로고·QR·카드
+  // 등)도 그려지지 않는 "순수 배경" 영역이므로, 이 좌표의 RGB 값만으로
+  // "신규 buildSvg()가 그린 배경이냐, 레거시 buildClassicSvg()가 그린
+  // 배경이냐"를 치수에 의존하지 않고 직접 구분할 수 있다.
+  it('15) [위험3 보강 — 치수 비의존 식별] 운영 기본 치수(720×1280, 신규·레거시 동일)에서도 픽셀 배경색으로 신규 렌더러 호출을 직접 식별한다', async () => {
+    const { startImageGenerationJob, getImageJob, readCouponImage } = await import('../src/lib/bokju-coupon-image-service');
+    const sharp = (await import('sharp')).default;
+    const { rm } = await import('node:fs/promises');
+    const path = await import('node:path');
+
+    // [핵심] 인자 없이 defaultLayout() 호출 — 운영 기본 캔버스(720×1280)와
+    // "같은 네임스페이스가 아니라 같은 값"을 쓴다(02e §4-3 "값은 같지만
+    // 별개 네임스페이스"). 즉 이 리비전의 치수는 레거시 쿠폰과 100% 동일.
+    const squareLayout720 = defaultLayout(); // PORTRAIT_720 기본값 = {width:720, height:1280}
+    expect(squareLayout720.canvas.width).toBe(720);
+    expect(squareLayout720.canvas.height).toBe(1280);
+
+    const revSameDims = await freezeRevision(campaignId, squareLayout720, {
+      note: '[위험3 보강] 운영 기본 치수(720x1280) 신규 리비전 — 레거시와 치수 동일',
+    });
+    await setCurrentRevision(campaignId, revSameDims.id);
+
+    const coupon720 = await prisma.bokjuCoupon.create({
+      data: {
+        campaignId,
+        couponNo: 'TEST-SAMEDIM-' + Date.now(),
+        redeemToken: createHash('sha256').update('samedim-' + Date.now()).digest('hex').slice(0, 32),
+        expiresAt: new Date('2026-12-31T23:59:59Z'),
+        designRevisionId: revSameDims.id,
+      },
+    });
+
+    const { jobId } = await startImageGenerationJob(campaignId, 'test-harness', {
+      registerBaseUrl: 'https://sintong.kr',
+    });
+
+    let job = await getImageJob(jobId);
+    const deadline = Date.now() + 15000;
+    while (job && job.status !== 'COMPLETED' && job.status !== 'FAILED' && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 200));
+      job = await getImageJob(jobId);
+    }
+    expect(job?.status).toBe('COMPLETED');
+
+    const buf = await readCouponImage(campaignId, coupon720.id);
+    expect(buf).toBeTruthy;
+    const meta = await sharp(buf!).metadata();
+
+    // 1) 치수는 레거시와 "완전히 같다" — 이것이 위험3이 지적한 바로 그
+    //    상황이다(치수만으로는 구분 불가능한 상태를 일부러 재현했다).
+    expect(meta.width).toBe(720);
+    expect(meta.height).toBe(1280);
+
+    // 2) [직접 식별 단언] 좌표(5,5) 배경 픽셀이 신규 렌더러의 기본 배경색
+    //    (#fffdfb ≈ RGB 255,253,251)과 일치하는지 확인한다. 레거시
+    //    CLASSIC 템플릿이 호출됐다면 이 좌표는 진한 적갈색(RGB 121,31,31
+    //    부근)이어야 하므로, 두 값은 육안으로도 코드로도 절대 혼동될 수
+    //    없다 — 치수가 같아도 "어느 렌더러가 실행됐는지"를 속일 수 없는
+    //    두 번째 독립 증거다(첫 번째는 테스트13의 치수 비교).
+    const pixel = await sharp(buf!).extract({ left: 5, top: 5, width: 1, height: 1 }).raw().toBuffer();
+    const [r, g, b] = [pixel[0], pixel[1], pixel[2]];
+    const isNewRendererBackground = r > 240 && g > 240 && b > 240; // 신규: 크림색(밝음)
+    const isLegacyClassicBackground = r < 150 && g < 60 && b < 60; // 레거시 CLASSIC: 진한 적갈색(어두움)
+
+    expect(isNewRendererBackground).toBe(true);
+    expect(isLegacyClassicBackground).toBe(false);
+
+    // 정리
+    await prisma.bokjuCoupon.delete({ where: { id: coupon720.id } });
+    await prisma.bokjuCouponImageJob.delete({ where: { id: jobId } });
+    const dir = path.join(process.cwd(), 'public', 'uploads', 'bokju-coupons', `campaign_${campaignId}`);
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+    await setCurrentRevision(campaignId, rev2Id);
+  });
 });

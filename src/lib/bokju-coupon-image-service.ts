@@ -507,6 +507,32 @@ async function renderCouponImage(params: {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+// [4단계 — 02e_4단계-에디터.md §0-D 위험1 대응] registerBaseUrl 의 실제
+// 출처 한 줄: 이 값은 배치 경로 내부에서 스스로 계산되지 않는다. 유일한
+// 두 호출부(아래)가 **요청 시점에** page-config-helpers.ts 의
+// resolvePublicOrigin(request) 로 계산한 뒤 그대로 넘겨준 값이다 —
+// runImageJob() 은 이 값을 "전달만" 할 뿐, env 폴백을 스스로 읽지 않는다.
+//   1) POST .../campaigns/:id/generate-images/route.ts 28번 줄
+//        const registerBaseUrl = resolvePublicOrigin(request);
+//        startImageGenerationJob(campaignId, actor.adminId, { registerBaseUrl })
+//   2) POST .../image-jobs/:id/retry/route.ts 19번 줄
+//        const registerBaseUrl = resolvePublicOrigin(request);
+//        retryFailedImages(jobId, { registerBaseUrl })
+// 즉 "API 경로"와 "배치 경로"는 **같은 함수(resolvePublicOrigin)가 계산한
+// 같은 값**을 쓴다 — 서로 다른 계산식이 아니다. env 폴백
+// (FALLBACK_BASE_URL = COUPON_BASE_URL ?? 'https://sintong.kr',
+// bokju-coupon-design/renderer.ts 103번 줄)은 dispatch.ts 가 항상
+// registerBaseUrl 을 명시적으로 채워 넘기므로 이 경로에서는 트리거되지
+// 않는다 — scripts/verify_batch_origin_matches_api.ts 가 이를 실측한다.
+// 참고 구현(1차 패키지 sintong-coupon/src/coupon/jobs/image.worker.ts)은
+// 메시지큐 워커(요청 객체가 영구히 없는 별도 프로세스)라 env 상수
+// BASE_URL 을 모듈 로드 시 고정해 썼다 — admin_web 은 그 구조를 쓰지
+// 않는다(큐 워커가 없다. HTTP 라우트가 "시작"시키고 같은 Node 프로세스
+// 안에서 void runImageJob(...) 으로 백그라운드 실행된다. 즉 요청 객체가
+// 여전히 "존재했던 시점"에 계산된 값을 받으므로, 별도 폴백 경로가 필요
+// 없다). 이 구조적 차이가 위험1의 원인(env 폴백 사용)이 admin_web 에는
+// 적용되지 않는 이유다 — 다만 이 사실을 "문서"가 아니라 "테스트"로
+// 확정하기 위해 아래 스크립트를 추가했다.
 export interface StartImageJobOptions {
   registerBaseUrl: string;
 }
