@@ -27,11 +27,21 @@ async function main() {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const templates = await prisma.aiPromptTemplate.findMany({ where: { fortuneTypeOrDomain: 'compatibility', isActive: true } });
   const originalFetch = globalThis.fetch;
-  let calls = 0;
+  let calls = 0; // LLM(completeText) 호출 횟수만 센다(기존 의미 그대로 유지).
   let fail = false;
   let expireDuringGeneration: string | null = null;
   let templateId: number | undefined;
-  globalThis.fetch = async () => {
+  // [궁합 사주 팩터 개선] route.ts가 이제 saju_engine(/compatibility)도 호출한다.
+  // 이 mock은 URL로 분기해, 기존 `calls`(LLM 3토픽 호출수 검증)의 의미를
+  // 그대로 보존하고, saju_engine 쪽은 항상 정상 응답(final_score)을 주어
+  // 기존 테스트가 "폴백 없는 saju-v1 정상 경로"를 타게 한다(폴백 자체의
+  // 동작은 아래 신규 U1~U5/I1~I4 테스트에서 별도로 검증한다).
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    if (url.endsWith('/compatibility')) {
+      // saju_engine 호출(saju-compat-score.ts가 `${baseUrl}/compatibility`로 호출).
+      return new Response(JSON.stringify({ final_score: 72, band: '70-79' }), { status: 200 });
+    }
     calls++;
     if (expireDuringGeneration) {
       const id = expireDuringGeneration;

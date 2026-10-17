@@ -6,6 +6,10 @@ import { completeText } from "@/lib/llm-client";
 import { checkCategoryUsage, checkDailyAbsoluteLimit, consumeCategoryUsage } from "@/lib/open-pass-service";
 import { beginResultAccess, reserveResultGeneration, failAndRefundResultAccess, recoverExpiredCompatibilityTransactions, COMPATIBILITY_PENDING_TIMEOUT_MS, ResultAccessError, type ResultAccessPaymentMethod } from "@/lib/result-access-service";
 import { requireUser, unauthorizedResponse } from "../../wishes/_shared";
+// [궁합 사주 팩터 개선 — 조건부 구현 승인 범위] saju_engine의 실제 궁합 계산
+// 모듈(/compatibility)을 재사용한다. 실패 시 아래 hashSeed 기반 폴백으로
+// 안전하게 대체되며, 어떤 경로였는지는 scoreEngineVersion으로 구분한다.
+import { getSajuCompatibilityScore } from "@/lib/compatibility/saju-compat-score";
 
 export const dynamic = "force-dynamic";
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
@@ -105,8 +109,13 @@ export async function POST(request: NextRequest) {
     const seed = hashSeed(`${birthDateA}:${birthDateB}:${type}`);
     const weights = await prisma.compatibilityFactorWeight.findMany({ where: { isActive: true, deletedAt: null } });
     const weightMap = new Map(weights.map(w => [w.factorType, w.weight]));
+    // [궁합 사주 팩터 개선] saju 팩터만 saju_engine 실제 계산으로 교체한다.
+    // mbti/interest/value/activity_pattern 4개는 실 입력 데이터가 없으므로
+    // 이번 작업에서 계산 방식을 변경하지 않고 기존 해시 로직을 그대로 둔다
+    // (승인 조건 §1 "비사주 4개 요소는 계산 방식을 임의로 변경하지 않는다").
+    const sajuCompat = await getSajuCompatibilityScore({ birthDateA, birthDateB }, type);
     const factorScores: Record<string, number> = {
-      saju: 50 + ((seed * 7) % 45), mbti: 50 + ((seed * 3) % 45), interest: 50 + ((seed * 11) % 45),
+      saju: sajuCompat.score, mbti: 50 + ((seed * 3) % 45), interest: 50 + ((seed * 11) % 45),
       value: 50 + ((seed * 5) % 45), activity_pattern: 50 + ((seed * 13) % 45),
     };
     let weightedSum = 0;
@@ -137,7 +146,10 @@ export async function POST(request: NextRequest) {
       const compatRequest = await tx.compatibilityRequest.create({ data: {
         requesterUserId: userId, type, targetInput: JSON.stringify({ nameA, nameB, birthDateA, birthDateB }),
       } });
-      await tx.compatibilityResult.create({ data: { requestId: compatRequest.id, score, detail: JSON.stringify({ factorScores, topicResults, summary }) } });
+      // scoreEngineVersion은 기존 detail 키(factorScores/topicResults/summary)에
+      // 추가되는 부가(additive) 필드다 — history/result 조회 경로는 이 필드를
+      // 읽지 않으므로 과거 레코드(필드 없음)와 호환된다(코드로 확인 완료).
+      await tx.compatibilityResult.create({ data: { requestId: compatRequest.id, score, detail: JSON.stringify({ factorScores, topicResults, summary, scoreEngineVersion: sajuCompat.engineVersion }) } });
       await tx.aiRequestLog.create({ data: { domain: "compatibility", requestRefId: compatRequest.id, aiModel: "claude-haiku-4-5", status: "success" } });
       if (useResultAccess) {
         // 별도 FK 추가 없이 기존 contentId를 사용한다. 결과 저장과 성공 확정은 같은 DB 거래다.
@@ -152,6 +164,22 @@ export async function POST(request: NextRequest) {
     });
     ownsGeneration = false;
     if (usageCheck?.userPassId != null) await consumeCategoryUsage(usageCheck.userPassId, userId, "compatibility");
+    // [궁합 사주 팩터 개선 — 승인 조건 §2-5/§2-6] 해시 폴백이 발생했다는 사실을
+    // "성공적인 사주 분석"으로 내부 집계하지 않는다: 위 aiRequestLog(LLM 텍스트
+    // 생성 성공 여부)와는 별개로, saju 엔진 폴백 자체는 append-only ErrorLog에
+    // source/errorCode/severity로 집계 가능하게 기록한다(생년월일 등 PII는
+    // 남기지 않음). 로그 적재 실패가 이미 완료된 궁합 응답을 실패시키면 안
+    // 되므로 트랜잭션 밖에서 best-effort로 수행한다.
+    if (sajuCompat.engineVersion !== "saju-v1") {
+      prisma.errorLog.create({
+        data: {
+          source: "api:compatibility:saju-engine",
+          errorCode: sajuCompat.engineVersion,
+          message: `saju 엔진 폴백(compat_${outcome.id}) — scoreEngineVersion=${sajuCompat.engineVersion}`,
+          severity: "warning",
+        },
+      }).catch((e) => console.error("[compatibility] ErrorLog 적재 실패(폴백 집계 누락 가능):", e));
+    }
     return NextResponse.json({ success: true, data: {
       id: `compat_${outcome.id}`, nameA, nameB, type, score, topicResults, summary,
       createdAt: outcome.createdAt.toISOString(), balanceAfter: null,
