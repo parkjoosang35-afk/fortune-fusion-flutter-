@@ -264,3 +264,96 @@ describe('리비전 고정 — 되돌리기(setCurrentRevision)', () => {
     await setCurrentRevision(campaignId, rev2Id);
   });
 });
+
+describe('리비전 고정 — [사용자 지적 반영] handled 플래그를 호출부가 실제로 존중하는지 (배치 루프 행동 검증)', () => {
+  // [배경] "handled=false 플래그가 있는 것과 존중되는 것은 다르다 — 호출부가
+  // 무시하면 없는 것보다 나쁘다"(사용자 지적, 02e §0-C). dispatchCouponRender()
+  // 의 반환값만 보는 테스트(7번)로는 "그 값을 누가 소비하는지"를 증명하지 못한다.
+  //
+  // [왜 "함수 spy"가 아니라 "관찰 가능한 산출물 비교"인가] 실제 배치 루프
+  // runImageJob() 은 bokju-coupon-image-service.ts 내부의 비공개(export 없음)
+  // 함수다(절대불가침 파일 — 이 파일을 수정·재노출해 spy 를 꽂을 수 없다).
+  // 이 프로젝트의 테스트 하네스(run-design-tests.ts)에는 jest.mock/vi.spyOn
+  // 같은 모듈 모킹 기능도 없다. 대신 "함수 호출 여부"를 간접 관찰 가능한
+  // 방법으로 확인한다: 신규 리비전의 캔버스를 레거시 렌더러의 고정 치수
+  // (IMG_WIDTH=720 × IMG_HEIGHT=1280, bokju-coupon-image-service.ts:37-38)와
+  // 다른 정사각형(1080×1080)으로 만든 뒤, 유일한 공개 진입점인
+  // startImageGenerationJob() 을 실제로 호출해 산출된 PNG 파일의 실제 치수를
+  // sharp 로 읽는다. 720×1280 이 나오면 레거시 renderCouponImage() 가 호출된
+  // 것이고, 1080×1080 이 나오면 신규 buildSvg()(2~3단계 산출물)가 호출된
+  // 것이다 — 이미지 치수는 "어느 코드가 실행됐는지"를 속일 수 없는 증거다.
+  it('13) [행동 검증] designRevisionId 가 각인된 쿠폰도 실제 배치 루프(startImageGenerationJob)에서는 여전히 레거시 렌더러가 호출된다(= handled 플래그가 아직 아무도에게 소비되지 않는 현재 상태의 증거)', async () => {
+    const { startImageGenerationJob, getImageJob, readCouponImage } = await import('../src/lib/bokju-coupon-image-service');
+    const sharp = (await import('sharp')).default;
+    const { rm } = await import('node:fs/promises');
+    const path = await import('node:path');
+
+    // 레거시와 치수가 다른(1080×1080) 신규 리비전을 만든다 — "어느 렌더러가
+    // 호출됐는지"를 이미지 치수만으로 명확히 구분하기 위한 장치.
+    const squareLayout = defaultLayout({ width: 1080, height: 1080 });
+    const revSquare = await freezeRevision(campaignId, squareLayout, { note: '[배선검증] 1080x1080 신규 리비전' });
+    await setCurrentRevision(campaignId, revSquare.id);
+
+    // [핵심] issueCoupons() 와 동일한 각인 패턴 — 쿠폰 생성 시점에
+    // campaign.currentDesignRevisionId(=신규 리비전)를 그대로 박는다.
+    const wiringCoupon = await prisma.bokjuCoupon.create({
+      data: {
+        campaignId,
+        couponNo: 'TEST-WIRING-' + Date.now(),
+        redeemToken: createHash('sha256').update('wiring-' + Date.now()).digest('hex').slice(0, 32),
+        expiresAt: new Date('2026-12-31T23:59:59Z'),
+        designRevisionId: revSquare.id, // 발행 시점 각인 완료 — "신규 디자인이 있다"
+      },
+    });
+
+    // dispatchCouponRender() 는 handled=true 를 반환한다 — 신규 경로가
+    // *존재한다*는 것 자체는 이미 7번 케이스가 확인한 바와 같다(여기서도
+    // 재확인해 둔다 — "경로가 없어서 당연히 레거시가 호출된 것"이라는
+    // 반론을 차단하기 위함).
+    const dispatchResult = await dispatchCouponRender({ couponId: wiringCoupon.id, registerBaseUrl: 'https://sintong.kr' });
+    expect(dispatchResult.handled).toBe(true);
+
+    // [실제 배치 루프 호출] 이것이 실서비스에서 쿠폰 이미지를 만드는 유일한
+    // 공개 진입점이다 — 02d/02e 가 "발행 라우트 교체"라 부르는 바로 그 경로.
+    const { jobId } = await startImageGenerationJob(campaignId, 'test-harness', {
+      registerBaseUrl: 'https://sintong.kr',
+    });
+
+    // runImageJob() 은 await 되지 않고 백그라운드로 돈다(image-service.ts
+    // 506-531행 — void runImageJob(...)) — 완료를 폴링한다.
+    let job = await getImageJob(jobId);
+    const deadline = Date.now() + 15000;
+    while (job && job.status !== 'COMPLETED' && job.status !== 'FAILED' && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 200));
+      job = await getImageJob(jobId);
+    }
+    expect(job?.status).toBe('COMPLETED');
+
+    // [증거] 실제로 파일시스템에 쓰인 PNG 치수를 읽는다 — 이것이 "handled
+    // 플래그를 호출부가 실제로 소비했는지"의 유일하게 거짓말할 수 없는 증거다.
+    const buf = await readCouponImage(campaignId, wiringCoupon.id);
+    expect(buf).toBeTruthy;
+    const meta = await sharp(buf!).metadata();
+
+    // [현재 상태 — 02d §9 "발행 라우트 교체"가 아직 4단계 작업이라는 뜻]
+    // 레거시 renderCouponImage() 의 고정 치수(720×1280, image-service.ts
+    // IMG_WIDTH/IMG_HEIGHT)가 나온다. designRevisionId 가 각인되어 있고
+    // dispatchCouponRender() 가 handled=true 를 반환함에도 불구하고, 실제
+    // 배치 루프는 그 값을 전혀 조회하지 않고(select 절에 없음) 무조건
+    // 레거시를 호출하기 때문이다 — "핸들된 값이 있어도 아무도 보지 않는다"
+    // 는 사실이 숫자(치수)로 증명된다.
+    //
+    // ⚠️ 이 단언이 깨지는 날(= width/height 가 1080 으로 바뀌는 날)이 바로
+    // 4단계에서 "발행 라우트 교체"가 완료된 신호다. 그때는 이 테스트를
+    // 역방향으로 뒤집어야 한다(= 신규 렌더러가 호출됐음을 확인하는 테스트로).
+    expect(meta.width).toBe(720);
+    expect(meta.height).toBe(1280);
+
+    // 정리
+    await prisma.bokjuCoupon.delete({ where: { id: wiringCoupon.id } });
+    await prisma.bokjuCouponImageJob.delete({ where: { id: jobId } });
+    const dir = path.join(process.cwd(), 'public', 'uploads', 'bokju-coupons', `campaign_${campaignId}`);
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+    await setCurrentRevision(campaignId, rev2Id);
+  });
+});
