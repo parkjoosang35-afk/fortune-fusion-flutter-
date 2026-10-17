@@ -44,7 +44,14 @@ export const BIND_SOURCES = [
   'coupon.couponNo',        // 쿠폰번호
   'coupon.qr',              // QR (payload = 등록 링크)
   'brand.domain',           // 도메인 (sintong.kr) — QR 을 못 찍는 상황의 안내
-  'coupon.registerUrl',     // 쿠폰별 등록 주소 (sintong.kr/c/토큰)
+  'coupon.registerUrl',     // 쿠폰별 등록 주소 (sintong.kr/coupon/토큰)
+  // [2단계 — 02c_2단계-결정사항.md §2] 제휴업체명. 호출부(이미지 생성 job)가
+  // coupon.partnerId → BokjuPartner.name 을 미리 조회해 RenderContext.partnerName
+  // 으로 전달한다(렌더러는 BokjuCoupon* 모델을 직접 읽지 않는다). 값이 없으면
+  // (미배정 쿠폰) 렌더러는 이 바인딩의 요소를 건너뛴다 — campaignTitle 로
+  // 대체하지 않는다(기존 bokju-coupon-image-service.ts 의 대체 동작과 다르다:
+  // 제휴업체명 자리에 캠페인 제목을 넣으면 고객에게 사실과 다른 정보가 나간다).
+  'partner.name',
 ] as const;
 
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
@@ -339,7 +346,13 @@ export function normalizeLayout(layout: DesignLayout): DesignLayout {
  * 기본 프리셋 — 기존에 쓰던 6개 표시항목과 같은 배치.
  * "무엇을 만들지 모르겠다" 는 상황의 출발점이며, 여기서 자리를 옮기면 된다.
  */
-export function defaultLayout(canvas = CANVAS_PRESETS.PORTRAIT_1080): DesignLayout {
+// [2단계 — 02c_2단계-결정사항.md §0/§5 "캔버스 720x1280이 맞다"]
+// 기존 bokju-coupon-image-service.ts 의 IMG_WIDTH/IMG_HEIGHT(37-38번 줄)와
+// 치수를 맞추기 위해 기본 캔버스를 PORTRAIT_720으로 바꾼다. CANVAS_PRESETS
+// 자체(세 가지 프리셋 값)는 변경하지 않는다 — defaultLayout() 의 기본 인자만
+// 바꾼다. computeLayout()(bokju-coupon-visibility.ts, 기존 11항목 reflow 전용)
+// 은 이 변경과 완전히 별개이며 손대지 않는다.
+export function defaultLayout(canvas: { width: number; height: number } = CANVAS_PRESETS.PORTRAIT_720): DesignLayout {
   const { width: W, height: H } = canvas;
   const cx = W / 2;
   return {

@@ -33,7 +33,11 @@ describe('레이아웃 — 자리배치', () => {
     const clamped = moveElement(layout, 'amount', -999, 99999);
     const el = clamped.elements.find((e) => e.id === 'amount')!;
     expect(el.x).toBe(0);
-    expect(el.y).toBe(CANVAS_PRESETS.PORTRAIT_1080.height);
+    // [2단계 — 02c_2단계-결정사항.md §5] defaultLayout() 기본 캔버스가
+    // PORTRAIT_1080 → PORTRAIT_720 으로 바뀌었다. 이 검증은 "clamp 가 layout
+    // 자신의 캔버스 경계를 따르는가"이지 "PORTRAIT_1080 이 기본이어야 한다"가
+    // 아니므로, layout.canvas.height(현재 기본값의 실제 높이)로 비교한다.
+    expect(el.y).toBe(layout.canvas.height);
   });
 
   it('빈 캔버스에서 시작해 요소를 추가·삭제할 수 있다', () => {

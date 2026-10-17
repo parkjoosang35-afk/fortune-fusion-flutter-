@@ -188,7 +188,13 @@ const registerIt = (name: string, fn: () => any): void => {
 (globalThis as any).expect = (actual: any): Expectation => new Expectation(actual);
 
 // ── 실행 ─────────────────────────────────────────────────────────────
-const DEFAULT_FILES = ['test/design.step1-theme.test.ts', 'test/design.step1-layout.test.ts'];
+// [2단계] renderer.ts 가 이제 존재하므로 step2 테스트를 기본 목록에 포함한다.
+// 1단계에서 제외했던 이유("렌더러가 없어 로드 자체가 실패한다")가 해소됐다.
+const DEFAULT_FILES = [
+  'test/design.step1-theme.test.ts',
+  'test/design.step1-layout.test.ts',
+  'test/design.step2-renderer.test.ts',
+];
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('-'));

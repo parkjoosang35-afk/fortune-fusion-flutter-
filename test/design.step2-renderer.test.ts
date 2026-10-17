@@ -19,7 +19,7 @@
 // describe / it / expect / beforeAll / afterAll 는 하네스가 주입합니다.
 
 import {
-  defaultLayout, noQrLayout, CANVAS_PRESETS,
+  defaultLayout, noQrLayout, addElement, CANVAS_PRESETS,
 } from '../src/lib/bokju-coupon-design/layout';
 import {
   renderCouponImage, renderOgImage, wrapText, qrPayload, buildSvg,
@@ -53,8 +53,12 @@ describe('렌더러 — 레이아웃이 실제 그림이 된다', () => {
   });
 
   it('QR 페이로드는 등록 링크 하나뿐이다 (개인정보 없음)', () => {
-    const p = qrPayload('b'.repeat(32));
-    expect(p).toContain('/c/' + 'b'.repeat(32));
+    // [2단계 — 02c_2단계-결정사항.md §4] registerBaseUrl 을 매개변수로
+    // 넘기고, 넘긴 값 그대로 비교한다. 원본의 '/c/' 하드코딩 경로는 실제
+    // 등록 라우트(src/app/coupon/[token]/page.tsx)와 일치하지 않아 제거했다.
+    const base = 'https://sintong.kr';
+    const p = qrPayload('b'.repeat(32), base);
+    expect(p).toBe(base + '/coupon/' + 'b'.repeat(32));
     expect(p).not.toMatch(/@|\d{6}-?\d{7}/);
   });
 
@@ -82,6 +86,31 @@ describe('렌더러 — 레이아웃이 실제 그림이 된다', () => {
     const meta = await sharp(buf).metadata();
     expect(meta.width).toBe(1200);
     expect(meta.height).toBe(630);
+  });
+
+  // [2단계 신규 — 02c_2단계-결정사항.md §2]
+  // partner.name 이 비어 있어도(미배정 쿠폰 — 현재 bokju_coupon_allocations
+  // 가 0건이라 발행된 100장은 전부 이 케이스다) 렌더가 실패하면 안 되고,
+  // campaignTitle 로 대체해서도 안 된다("제휴업체명 자리에 캠페인 제목을
+  // 인쇄하면 고객에게 사실과 다른 정보가 나간다").
+  it('partner.name 바인딩이 비어 있으면 요소를 건너뛰고 나머지는 정상 렌더된다 (campaignTitle 대체 금지)', async () => {
+    const layoutWithPartner = addElement(defaultLayout(), 'text', {
+      name: '제휴업체명', bind: 'partner.name', x: defaultLayout().canvas.width / 2, y: 60,
+    });
+    // ctx.partnerName 을 의도적으로 주지 않는다(undefined) — 미배정 쿠폰 케이스
+    const svgWithoutPartner = await buildSvg(layoutWithPartner, ctx);
+    // 건너뛴 요소의 바인딩 소스가 남긴 흔적(캠페인 제목 대체 텍스트)이 섞여
+    // 들어가지 않아야 한다. ctx.campaign.title 이 이미 SVG 다른 요소(쿠폰명)
+    // 에도 그려지므로 "값이 아예 없다"는 것은 partnerName 요소 1개가 빈
+    // 텍스트를 반환해 <text> 가 통째로 생략된다는 사실로 간접 검증한다 —
+    // buildSvg 가 예외 없이 끝까지 실행되는 것 자체가 "렌더 실패 금지" 검증이다.
+    expect(svgWithoutPartner.startsWith('<svg')).toBe(true);
+    expect(svgWithoutPartner.endsWith('</svg>')).toBe(true);
+
+    // partnerName 을 채워 주면 그 값이 그려진다 — 건너뛰기가 "항상 숨김"이
+    // 아니라 "값이 없을 때만 숨김"임을 함께 검증한다.
+    const svgWithPartner = await buildSvg(layoutWithPartner, { ...ctx, partnerName: '복주머니 제휴카페' });
+    expect(svgWithPartner).toContain('복주머니 제휴카페');
   });
 });
 
