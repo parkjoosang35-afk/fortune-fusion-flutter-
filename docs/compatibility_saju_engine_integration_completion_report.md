@@ -515,3 +515,124 @@ Prisma 마이그레이션: **없음**(`ErrorLog` 모델은 기존 스키마에 �
 - **배포 대상 커밋 확정, 백업·롤백 계획**(요구사항 ②): 완료 — `86993f9` 단독 배포 가능성을 worktree 격리 검증으로 확인, rsync 전체 동기화의 숨은 리스크(관상·손금 커밋 혼입)를 식별하고 해소책 제시(§12, §13).
 - **운영 배포 후 검증, 타임라인별 점검**(요구사항 ③④⑤): **계획만 수립**, 아직 미실행(§14) — 실제 배포가 승인·실행되어야 수행 가능.
 - **운영 DB 변경, 프로덕션 배포**: 이번 세그먼트에서도 **수행하지 않음**. 아래 "최종 운영 준비 결과" 보고를 확인하신 뒤 배포 여부를 결정해 주시기 바랍니다.
+
+---
+
+## 16. 격리 배포 최종 지시에 따른 실제 운영 배포 결과 (신규)
+
+> **"신통방통 궁합 사주 개선 — 격리 배포 최종 지시"**(조건부 승인)에 따라, 아래 순서로 **실제 운영 배포를 수행했습니다.** 모든 명령의 실행 결과는 본 세션 대화 로그에 verbatim으로 남아있습니다.
+
+### 16.1 배포 범위 확정 — git worktree + cherry-pick 격리 배포본
+
+- `git worktree add --detach /home/user/deploy_staging/admin_web_compat_deploy 42be0a2`(운영 기준 커밋)
+- `git cherry-pick --no-commit 86993f9`(승인된 궁합 개선 커밋) → **충돌 없이 깨끗하게 적용**
+- 격리 배포본을 커밋으로 확정: `bbd8467` ("deploy: 궁합 사주 개선(86993f9)만 42be0a2 위에 격리 적용")
+- `git diff --name-only 42be0a2 HEAD` 결과, **정확히 5개 파일만 변경됨을 확정**(관상·손금·귀인지도 등 미승인 변경 전혀 포함 안 됨):
+  ```
+  scripts/test_compatibility_daily_access.ts
+  scripts/test_compatibility_saju_engine_score.ts
+  scripts/test_compatibility_saju_integration.ts
+  src/app/api/public/compatibility/request/route.ts
+  src/lib/compatibility/saju-compat-score.ts
+  ```
+  (+676/-4줄, 단일 커밋)
+
+### 16.2 배포 전 확인 — prisma generate / TypeScript / 회귀테스트 재검증
+
+격리 배포본(worktree)에서 전부 재실행, 전건 PASS:
+- `npx prisma generate` → 성공(`Generated Prisma Client (7.9.0)`)
+- `npx tsc --noEmit -p tsconfig.json` → **에러 0건**
+- U1~U5(`test_compatibility_saju_engine_score.ts`) → 10/10 PASS
+- I1~I5(`test_compatibility_saju_integration.ts`) → 전부 PASS(suffix=fb8c003c)
+- 기존 `test_compatibility_daily_access.ts` 회귀 → PASS
+- `test_result_access_service.ts`/`test_result_access_ad_session.ts`/`test_full_result_share.ts` → 전부 PASS
+
+### 16.3 rsync `--delete` 위험 발견 및 해소 (신규 안전조치)
+
+배포 스크립트(`deploy_admin_web_to_prod.sh`)의 `rsync -avz --delete` 방식을 격리 배포본에 그대로 적용해 dry-run한 결과, **운영에 이미 존재하지만 격리 배포본(worktree)에는 없는 파일들이 전부 "deleting" 대상으로 표시되는 문제를 발견**했습니다:
+- `var/share-snapshots/*.png`(공유 기능 운영 데이터, **삭제되면 안 됨**)
+- `next-env.d.ts`(Next.js 자동생성 파일)
+- `scripts/prod_e2e_share_check_v2.ts`, `src/app/api/public/guinji/g/[token]/profile/`(미승인 변경사항 — "추가 배포 금지"이지 "기존 파일 삭제 승인"은 아님)
+
+**해소책**: `--delete` 옵션을 사용하지 않고, `rsync --files-from=<승인된 5개 파일 목록>` 방식으로 전환했습니다. dry-run 재검증 결과 "deleting" 항목이 **전혀 없음**을 확인한 뒤에만 실제 전송을 진행했습니다.
+
+```
+rsync -avzn --files-from=/tmp/deploy_filelist.txt ./ ubuntu@sintong.kr:/var/www/admin_web/
+→ scripts/test_compatibility_daily_access.ts, scripts/test_compatibility_saju_engine_score.ts,
+  scripts/test_compatibility_saju_integration.ts, src/app/api/public/compatibility/request/route.ts,
+  src/lib/compatibility/saju-compat-score.ts 만 전송 대상. deleting 없음.
+```
+
+### 16.4 백업 실제 생성 및 무결성 확인 (타임스탬프: `20261017_092857`)
+
+**DB 백업**:
+- `cp -p dev.db dev.db.backup_20261017_092857` 실행(운영 서버 `/var/www/admin_web/prisma/`)
+- md5 비교: 원본 `e8343992bb4fb59ef2f6280c353e2f31` = 백업 `e8343992bb4fb59ef2f6280c353e2f31` **(완전 일치)**
+- `sqlite3 dev.db.backup_20261017_092857 'PRAGMA integrity_check;'` → **`ok`**
+- 백업 시점 row count(원본과 동일): compatibility_requests 13 / compatibility_results 12 / error_logs 25
+
+**소스 전체 백업**:
+- `tar czf /home/ubuntu/admin_web_backups/admin_web_source_backup_20261017_092857.tar.gz`(node_modules/.next/dev.db*/prisma/backups 제외) → 30,969,366 bytes
+- `sha256sum` = `2e57b4fb7a713b70fc02d4f1f34955401614ee34dfa579451ad90f8a7ce04e56`
+- `tar tzf`로 무결성 검증 → **손상 없음**(1665개 파일 목록 정상 추출)
+
+**빠른 롤백용 원본 파일 별도 보관**(기존재 수정 대상 2개 파일):
+- `/home/ubuntu/admin_web_backups/pre_deploy_originals_20261017_092857/test_compatibility_daily_access.ts` (md5: `278cc260fbeb1b718bee0143105755ea`)
+- `/home/ubuntu/admin_web_backups/pre_deploy_originals_20261017_092857/route.ts.original` (md5: `8e5e3990a8bc986d47a6e1e52d65b8ed`)
+- 나머지 3개 파일(`test_compatibility_saju_engine_score.ts`, `test_compatibility_saju_integration.ts`, `saju-compat-score.ts`)은 **배포 전 운영에 존재하지 않던 신규 파일**이므로 롤백 시 단순 삭제로 원복 가능.
+
+### 16.5 실제 배포 실행 결과
+
+| 단계 | 명령 | 결과 |
+|---|---|---|
+| 파일 전송 | `rsync -avz --files-from=... (no --delete)` | 5개 파일 전송 성공, **전송 후 로컬-원격 md5 전건 일치** 확인 |
+| 영향 없음 확인 | `var/share-snapshots/*.png`, `next-env.d.ts`, `prod_e2e_share_check_v2.ts`, `guinji/` 수정시각 재확인 | 전부 **배포 이전 시각 그대로**(변경 없음) — 오직 승인된 `route.ts`만 배포 시각(18:22)으로 갱신됨 |
+| `prisma migrate status` | 사전 확인 | "Database schema is up to date!" (마이그레이션 변경 없음, 예상대로) |
+| `npm install` | 원격 실행 | "up to date, audited 717 packages"(의존성 변경 없음, package.json 미배포이므로 정상) |
+| `npx prisma migrate deploy` | 원격 실행 | "No pending migrations to apply."(운영 DB 구조 변경 없음 확인) |
+| `npx prisma generate` | 원격 실행 | 성공 |
+| `npm run build` | 원격 실행 | **빌드 성공**, 전체 라우트 정상 생성(BUILD_ID 갱신 확인) |
+| `pm2 restart admin_web` | 원격 실행 | **online**, `Ready in 287ms`, 재시작 횟수(68) — 이후 재크래시 없음 |
+
+### 16.6 배포 직후(0~5분) 스모크 검증 결과 (§14.1 체크리스트 실제 수행)
+
+실제 운영 DB·운영 saju_engine·운영 LLM을 **mock 없이 end-to-end로 호출**(임시 테스트 스크립트는 `/tmp` 및 `scripts/_tmp_smoke_test_compat.ts`에서 실행 후 **즉시 삭제**, 테스트로 생성한 유저/정책/요청/결과/거래 레코드도 **즉시 정리**하여 운영 데이터에 흔적을 남기지 않음):
+
+- [x] pm2 `status=online`, 배포 전후 재시작 횟수(68) 변동 없음 확인.
+- [x] 궁합 요청 1건 생성(FREEPASS 결제수단) → **HTTP 200**, 응답시간 **6828ms**.
+- [x] `compatibility_results.detail.scoreEngineVersion` = **`saju-v1`** 확인(실제 운영 saju_engine 정상 호출, 폴백 아님).
+- [x] 해당 1분 구간 `error_logs`(source=`api:compatibility:saju-engine`) = **0건**(saju-v1이므로 ErrorLog 미생성이 정상).
+- [x] `resultAccessTransaction.status = "success"`, `paymentMethod = "FREEPASS"` — 프리패스 1회 정상 소비 확인.
+- [x] 동일 `transactionId`로 재요청(재열람) → **HTTP 200, idempotent=true** — 결과 이력 재조회 정상.
+- [x] 테스트 데이터 전량 정리 후 핵심 테이블 row count가 배포 전 baseline(13/12/25)과 **완전히 동일**함을 재확인(스모크 테스트가 운영 데이터에 어떤 흔적도 남기지 않았음을 확인).
+- [x] 외부 HTTPS 스모크(배너 `GET /api/public/banners` → 200, `GET /api/public/result-access/quote` 비로그인 → 401, `POST /api/public/compatibility/request` 비로그인 → 401, 홈페이지 `/` → 200) — **기존 기능(배너/인증 게이트/페이지 렌더링) 전부 정상**.
+- [x] 임시 스모크 스크립트(`scripts/_tmp_smoke_test_compat.ts`) 삭제 확인 — 운영에 미승인 파일로 남지 않음.
+
+**결론**: §14.1의 배포 직후 체크리스트 전 항목 **PASS**. 폴백 미발생, ErrorLog 미생성, 기존 프리패스/결과이력/배너 기능 전부 정상.
+
+### 16.7 1시간/1일/1주 점검 — 세션 시간 제약으로 인한 상태
+
+본 세션(대화 턴) 내에서 실제로 1시간/1일/1주가 경과할 수 없으므로, §14.2~§14.4의 해당 항목은 **이번 세그먼트에서 실행 불가**합니다. 아래를 후속 조치로 남깁니다:
+
+- **1시간 이내 점검(§14.2)**: 추후 별도 세그먼트 또는 운영 담당자가 다음 쿼리로 실행 필요 — `SELECT error_code, COUNT(*) FROM error_logs WHERE source='api:compatibility:saju-engine' AND created_at >= datetime('now','-1 hour') GROUP BY error_code;`
+- **1일 후 점검(§14.3)**, **1주 후 점검(§14.4)**: 동일하게 추후 실행 필요. 본 보고서는 추후 점검 결과가 나오는 대로 §16.7을 갱신하는 형태로 이어서 작성할 것을 제안합니다.
+
+### 16.8 롤백 가능 여부
+
+- **가능**: 배포 전 DB 백업(무결성 `ok` 확인됨)과 소스 전체 백업(tar 무결성 확인됨), 그리고 수정 대상 2개 파일의 배포 전 원본이 모두 보존되어 있어 **즉시 롤백 가능한 상태**입니다.
+- **롤백 절차**(필요 시):
+  1. `pm2 stop admin_web`
+  2. 기존재 수정 파일 2개를 `pre_deploy_originals_20261017_092857/`에서 원복, 신규 파일 3개는 삭제
+  3. (DB 구조 변경이 없었으므로 DB 롤백은 불필요 — 단, 혹시 모를 이상 데이터 발생 시 `dev.db.backup_20261017_092857`로 교체)
+  4. `npx prisma generate && npm run build && pm2 restart admin_web`
+  5. §14.1과 동일한 스모크 테스트 재실행으로 롤백 성공 확인
+- **현재 시점(배포 직후)에는 롤백이 필요한 징후가 전혀 발견되지 않았습니다**(§16.6 전부 PASS).
+
+### 16.9 변경 금지 사항 준수 확인
+
+- 운영 DB 구조 변경: **없음**(`No pending migrations to apply` 확인).
+- 운영 인증 설정 변경: **없음**(환경변수 `.env` 파일 전송 대상에서 제외, 변경 안 함).
+- 미승인 파일 추가 배포: **없음**(`--files-from`으로 승인된 5개 파일만 전송, 임시 스모크 스크립트도 배포 직후 삭제).
+- 다른 서비스 계산 로직·기존 기능 변경: **없음**(`var/share-snapshots/*.png`, `next-env.d.ts`, `guinji/` 등 전부 수정시각 불변 확인, 배너/인증 게이트 등 외부 스모크 전부 정상).
+
+**최종 결론**: "신통방통 궁합 사주 개선 — 격리 배포 최종 지시"의 1~4번 조건을 모두 충족한 상태에서 실제 운영 배포를 완료했으며, 배포 직후 검증(§16.6)이 전부 통과했습니다. 1시간/1일/1주 후속 점검(§16.7)은 세션 시간 제약으로 계획만 수립된 상태이며, 이는 다음 세그먼트에서 실행이 필요합니다.
