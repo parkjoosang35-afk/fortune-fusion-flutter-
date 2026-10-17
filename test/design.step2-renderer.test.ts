@@ -114,6 +114,36 @@ describe('렌더러 — 레이아웃이 실제 그림이 된다', () => {
   });
 });
 
+// [3단계 추가 — 사용자 지적 반영한 회귀 방지선]
+// brand.domain(표시 전용)과 registerBaseUrl(QR·등록URL 생성 전용)을 분리한
+// 수정의 근거가 된 실측 시나리오를 테스트로 고정한다. 수정 전에는
+// registerBaseUrl 이 없어 brand.domain 을 추론해 썼고, 로컬/스테이징
+// (http://localhost:4300 등) 발행 시 ①scheme 이 https 로 둔갑하고 ②화면
+// 표시 문구에 "http://localhost:4300" 이 그대로 인쇄되는 버그가 있었다.
+describe('렌더러 — registerBaseUrl 과 brand.domain 역할 분리 (3단계)', () => {
+  const localCtx = {
+    campaign: {
+      title: '신통방통 복주머니 선물', grantAmount: 1000,
+      guideText: 'QR코드를 찍고 복주머니를 받으세요',
+      validFrom: new Date('2026-10-20T00:00:00Z'), validTo: new Date('2026-12-31T23:59:59Z'),
+    },
+    coupon: { couponNo: 'ST-ABCD-1234-EF', redeemToken: 'a'.repeat(32) },
+    brand: { name: '신통방통', domain: 'sintong.kr' }, // 표시 전용 — 짧은 도메인명
+    registerBaseUrl: 'http://localhost:4300', // QR·등록URL 생성 전용 — scheme+포트 보존돼야 함
+  };
+
+  it('QR 목적지(qrPayload)는 registerBaseUrl 의 scheme·포트를 그대로 보존한다', () => {
+    const payload = qrPayload(localCtx.coupon.redeemToken, localCtx.registerBaseUrl);
+    expect(payload).toBe('http://localhost:4300/coupon/' + 'a'.repeat(32));
+  });
+
+  it('쿠폰 인쇄 문구(SVG)에는 registerBaseUrl(localhost) 이 섞이지 않고, brand.domain(sintong.kr) 만 보인다', async () => {
+    const svg = await buildSvg(defaultLayout(), localCtx);
+    expect(svg).not.toMatch(/localhost/);
+    expect(svg).toContain('sintong.kr');
+  });
+});
+
 describe('렌더러 — 구성 템플릿 7종이 전부 그려진다', () => {
   it('모든 템플릿이 실제 SVG 로 렌더된다 (도메인까지 그려진다)', async () => {
     const { buildTemplate, TEMPLATE_IDS } = await import('../src/lib/bokju-coupon-design/templates');

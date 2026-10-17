@@ -190,10 +190,15 @@ const registerIt = (name: string, fn: () => any): void => {
 // ── 실행 ─────────────────────────────────────────────────────────────
 // [2단계] renderer.ts 가 이제 존재하므로 step2 테스트를 기본 목록에 포함한다.
 // 1단계에서 제외했던 이유("렌더러가 없어 로드 자체가 실패한다")가 해소됐다.
+// [3단계] revision.ts/dispatch.ts 가 이제 존재하므로 step3 테스트를 추가한다.
+// step3 는 이 하네스에서 유일하게 실제 DB(dev.db)를 쓴다 — 테스트 전용
+// 캠페인/쿠폰/리비전만 만들고 afterAll 에서 스스로 정리한다(기존 212행/
+// 3행은 건드리지 않는다).
 const DEFAULT_FILES = [
   'test/design.step1-theme.test.ts',
   'test/design.step1-layout.test.ts',
   'test/design.step2-renderer.test.ts',
+  'test/design.step3-revision.test.ts',
 ];
 
 async function main(): Promise<void> {

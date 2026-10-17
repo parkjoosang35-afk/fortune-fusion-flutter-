@@ -68,8 +68,28 @@ export interface RenderContext {
     validTo: Date;
   };
   coupon: { couponNo: string; redeemToken: string };
-  /** 브랜드 정보 — 도메인 요소(brand.domain)가 여기서 값을 가져온다 */
+  /**
+   * 브랜드 정보 — **표시 전용**(brand.domain 바인딩이 여기서 값을 가져온다.
+   * 예: "sintong.kr 에서 바로 등록하세요"). QR·등록 URL 생성에는 절대 쓰지
+   * 않는다 — 아래 registerBaseUrl 참고.
+   *
+   * [3단계 수정 — 사용자 지적 반영] 원래 이 domain 필드가 "표시"와
+   * "URL 생성"(registerBaseUrlFrom 추론) 두 역할을 겸하고 있었다. 이는
+   * 2단계 설계(참고 구현을 이식하며 그대로 가져온 구조)의 결함이었다 —
+   * domain 에 origin 전체(scheme+host[:port])를 넣으면 화면에 "https://"
+   * 나 "http://localhost:4300" 같은 문구가 그대로 인쇄된다. 역할을
+   * 분리한다: brand.domain 은 사람이 읽는 짧은 도메인명만 담고, URL 생성은
+   * 아래 registerBaseUrl 전용 필드가 전담한다.
+   */
   brand?: { name: string; domain: string };
+  /**
+   * [3단계 신규] QR·coupon.registerUrl 바인딩 생성 **전용**. scheme·포트를
+   * 그대로 보존해 호출부(dispatch.ts 등)가 넘긴 값 그대로 쓴다 — 이 값을
+   * 추론하지 않는다(추론은 scheme 손실 버그의 원인이었다). 없으면
+   * FALLBACK_BASE_URL 로 폴백한다(로컬 실행·테스트 전용 — 실제 발행
+   * 경로는 항상 이 필드를 명시적으로 채워 넘겨야 한다).
+   */
+  registerBaseUrl?: string;
   /**
    * [2단계 신규] 제휴업체명. 호출부가 coupon.partnerId → BokjuPartner.name
    * 조회 결과를 여기에 담아 전달한다. 미배정 쿠폰(partnerId=null)이면
@@ -109,8 +129,12 @@ function resolveText(el: LayoutElement, ctx: RenderContext): string {
     }
     case 'coupon.couponNo': return ctx.coupon.couponNo;
     case 'brand.domain': return ctx.brand?.domain ?? BRAND_DOMAIN;
+    // [3단계 수정] brand.domain(표시용) 대신 registerBaseUrlFrom(ctx)(QR과
+    // 동일한 전용 경로)을 쓴다 — 등록 URL 은 scheme·포트가 보존된 실제
+    // 접속 가능한 주소여야 한다. brand.domain 에 origin 전체를 넣어
+    // 겸용하던 이전 방식은 폐기한다(§ RenderContext.registerBaseUrl 주석).
     case 'coupon.registerUrl':
-      return `${(ctx.brand?.domain ?? BRAND_DOMAIN)}${QR_PATH}/${ctx.coupon.redeemToken}`;
+      return `${registerBaseUrlFrom(ctx)}${QR_PATH}/${ctx.coupon.redeemToken}`;
     case 'coupon.qr': return '';
     // [2단계 신규] 값이 없으면 빈 문자열 — elementSvg() 가 빈 문자열이면
     // 렌더를 건너뛰므로(원본과 동일한 '빈 텍스트는 스킵' 규칙), 별도 분기
@@ -201,17 +225,16 @@ function backdropFor(el: LayoutElement, layout: DesignLayout, theme: ResolvedThe
 }
 
 /**
- * [2단계 신규 헬퍼] 렌더 컨텍스트에서 QR 목적지에 쓸 registerBaseUrl 을 뽑는다.
- * RenderContext 자체엔 registerBaseUrl 필드가 없다(브랜드 도메인과 등록
- * origin 은 다른 개념일 수 있으므로 섞지 않는다) — brand.domain 이 있으면
- * `https://{domain}` 형태로 구성하고, 없으면 FALLBACK_BASE_URL 을 쓴다.
- * 실제 발행 경로는 이 폴백을 타지 않도록, 호출부가 buildSvg/renderCouponImage
- * 호출 전에 registerBaseUrl 을 ctx.brand.domain 에 반영해 와야 한다.
+ * [3단계 수정 — 추론 폐기, 직접 수신으로 전환] 원래는 ctx.brand.domain 에서
+ * scheme 유무를 추론해(`/^https?:\/\//` 체크) 없으면 https:// 를 강제로
+ * 붙였다. 이 추론이 바로 버그였다: http://localhost:4300 처럼 scheme 이
+ * http 인 주소도 무조건 https:// 로 둔갑시코다(로컬/스테이징 QR 이 영원히
+ * 안 열리는 사고 패턴). registerBaseUrl 은 이제 RenderContext 전용 필드로
+ * 받으므로 추론이 필요 없다 — 호출부(dispatch.ts 등)가 넘긴 값을 그대로
+ * 쓴다. 없을 때만 로컬 실행·테스트 폴백(FALLBACK_BASE_URL)을 쓴다.
  */
 function registerBaseUrlFrom(ctx: RenderContext): string {
-  const domain = ctx.brand?.domain;
-  if (!domain) return FALLBACK_BASE_URL;
-  return /^https?:\/\//.test(domain) ? domain : `https://${domain}`;
+  return ctx.registerBaseUrl ?? FALLBACK_BASE_URL;
 }
 
 async function elementSvg(

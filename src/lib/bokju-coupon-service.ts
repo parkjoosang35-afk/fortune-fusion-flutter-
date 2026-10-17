@@ -222,6 +222,12 @@ export async function issueCoupons(campaignId: number, count: number, actorId: s
           redeemToken: randomBytes(16).toString("hex"),
           status: "ISSUED",
           expiresAt: campaign.validTo,
+          // [3단계 — 02d_3단계-리비전고정.md §3-3 "가장 중요한 한 줄"]
+          // 쿠폰 행 생성 시점에 각인한다(렌더 시점에 조회하지 않는다).
+          // campaign.currentDesignRevisionId 가 null 이면(레거시 캠페인,
+          // 현재 3개 캠페인 전부 이 상태) 쿠폰도 null로 남아 기존
+          // bokju-coupon-image-service.ts 경로를 그대로 탄다 — 하위 호환.
+          designRevisionId: campaign.currentDesignRevisionId,
         },
       });
       created += 1;
