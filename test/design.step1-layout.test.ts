@@ -1,19 +1,19 @@
-// test/design.layout.test.ts
-// 표시항목 자리배치 · QR 대체 이미지 · 렌더러가 실제로 이미지를 만드는지 검증
+// test/design.step1-layout.test.ts
+// 쿠폰 디자인 스튜디오 — 1단계 (자리배치 로직)
+// 자리배치 · QR 대체 이미지 · 발행 차단 검증
+//
+// ── 분리 안내 ────────────────────────────────────────────────────────
+//   원본 design.layout.test.ts 는 18건이었습니다.
+//     · 이 파일                       : 순수 로직 **12건** → 1단계에서 통과
+//     · design.step2-renderer.test.ts : 실제 렌더 **6건** → 2단계에서 통과
+//   삭제·약화 없이 단계별로 나눴습니다. (12 + 6 = 18, 총 건수 보존)
+//
+// describe / it / expect 는 scripts/run-design-tests.ts 하네스가 주입합니다.
+
 import {
   defaultLayout, blankLayout, noQrLayout, validateLayout, normalizeLayout,
   addElement, removeElement, moveElement, reorder, duplicateElement, CANVAS_PRESETS,
 } from '../src/lib/bokju-coupon-design/layout';
-import { renderCouponImage, renderOgImage, wrapText, qrPayload, buildSvg } from '../src/coupon/jobs/renderer';
-
-const ctx = {
-  campaign: {
-    title: '신통방통 복주머니 선물', grantAmount: 100,
-    guideText: 'QR코드를 찍고 복주머니를 받으세요',
-    validFrom: new Date('2026-10-20T00:00:00Z'), validTo: new Date('2026-12-31T23:59:59Z'),
-  },
-  coupon: { couponNo: 'ST-ABCD-1234-EF', redeemToken: 'a'.repeat(32) },
-};
 
 describe('레이아웃 — 자리배치', () => {
   it('기본 프리셋은 표시항목 8개를 가지며 검증을 통과한다', () => {
@@ -85,7 +85,7 @@ describe('레이아웃 — QR 없이 이미지로 대체', () => {
     expect(w.ok).toBe(true);
     // QR 을 쓰지 않기로 했으니 "QR 없음" 경고는 나오면 안 된다
     expect(w.issues.some((i) => i.code === 'QR_MISSING')).toBe(false);
-    expect(w.redeemModeOf?.() ?? noQr.redeemMode).toBe('MANUAL');
+    expect(noQr.redeemMode).toBe('MANUAL');
   });
 
   it('QR 을 지웠는데 등록 방식이 QR 로 남아 있으면 경고가 나온다', () => {
@@ -118,45 +118,5 @@ describe('레이아웃 — QR 없이 이미지로 대체', () => {
     const v = validateLayout(bad);
     expect(v.ok).toBe(false);
     expect(v.issues.some((i) => i.code === 'OUT_OF_CANVAS')).toBe(true);
-  });
-});
-
-describe('렌더러', () => {
-  it('텍스트 줄바꿈이 캔버스 폭을 넘지 않는다', () => {
-    const lines = wrapText('신통방통 복주머니 선물 쿠폰입니다 정말 긴 문장입니다', 40, 400, 2);
-    expect(lines.length).toBeLessThanOrEqual(2);
-    expect(lines[lines.length - 1].endsWith('…')).toBe(true);
-  });
-
-  it('QR 페이로드는 등록 링크 하나뿐이다 (개인정보 없음)', () => {
-    const p = qrPayload('b'.repeat(32));
-    expect(p).toContain('/c/' + 'b'.repeat(32));
-    expect(p).not.toMatch(/@|\d{6}-?\d{7}/);
-  });
-
-  it('레이아웃대로 SVG 를 만들고 z 순서를 지킨다', async () => {
-    const svg = await buildSvg(defaultLayout(), ctx);
-    expect(svg.startsWith('<svg')).toBe(true);
-    expect(svg).toContain('신통방통');
-    expect(svg).toContain('ST-ABCD-1234-EF');
-    expect(svg.indexOf('ST-ABCD-1234-EF')).toBeGreaterThan(svg.indexOf('복주머니'));
-  });
-
-  it('쿠폰 이미지가 실제로 생성된다 (레이아웃 없으면 기본 프리셋)', async () => {
-    const buf = await renderCouponImage(null, ctx);
-    expect(buf.length).toBeGreaterThan(1000);
-  });
-
-  it('QR 을 이미지로 바꾼 레이아웃도 이미지가 생성된다', async () => {
-    const buf = await renderCouponImage(noQrLayout(), ctx);
-    expect(buf.length).toBeGreaterThan(1000);
-  });
-
-  it('공유용 OG 이미지는 1200x630 이다', async () => {
-    const buf = await renderOgImage(ctx);
-    const sharp = (await import('sharp')).default;
-    const meta = await sharp(buf).metadata();
-    expect(meta.width).toBe(1200);
-    expect(meta.height).toBe(630);
   });
 });

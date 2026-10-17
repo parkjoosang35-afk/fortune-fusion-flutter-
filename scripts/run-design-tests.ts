@@ -31,6 +31,7 @@ type TestCase = { name: string; fn: () => any };
 type Hook = () => any;
 
 let queue: TestCase[] = [];
+
 let stack: string[] = [];
 let beforeAlls: Hook[] = [];
 let afterAlls: Hook[] = [];
@@ -152,7 +153,7 @@ class Expectation {
 }
 
 // ── 전역 주입 (테스트 파일이 import 없이 쓰도록) ──────────────────────
-(globalThis as any).describe = (name: string, fn: () => any): void => {
+const registerDescribe = (name: string, fn: () => any): void => {
   stack.push(name);
   try {
     fn();
@@ -160,9 +161,22 @@ class Expectation {
     stack.pop();
   }
 };
-(globalThis as any).it = (globalThis as any).test = (name: string, fn: () => any): void => {
-  queue.push({ name: [...stack, name].join(' › '), fn });
+(registerDescribe as any).skip = (name: string, fn: () => any): void => {
+  stack.push(name);
+  skipDepth += 1;
+  try { fn(); } finally { skipDepth -= 1; stack.pop(); }
 };
+(globalThis as any).describe = registerDescribe;
+let skipped: string[] = [];
+let skipDepth = 0;
+const registerIt = (name: string, fn: () => any): void => {
+  const full = [...stack, name].join(' › ');
+  if (skipDepth > 0) { skipped.push(full); return; }
+  queue.push({ name: full, fn });
+};
+(registerIt as any).skip = (name: string): void => { skipped.push([...stack, name].join(' › ')); };
+(registerIt as any).todo = (name: string): void => { skipped.push([...stack, name].join(' › ')); };
+(globalThis as any).it = (globalThis as any).test = registerIt;
 (globalThis as any).beforeAll = (fn: Hook): void => {
   beforeAlls.push(fn);
 };
@@ -174,7 +188,7 @@ class Expectation {
 (globalThis as any).expect = (actual: any): Expectation => new Expectation(actual);
 
 // ── 실행 ─────────────────────────────────────────────────────────────
-const DEFAULT_FILES = ['test/design.theme.test.ts', 'test/design.layout.test.ts'];
+const DEFAULT_FILES = ['test/design.step1-theme.test.ts', 'test/design.step1-layout.test.ts'];
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('-'));
@@ -186,6 +200,7 @@ async function main(): Promise<void> {
   for (const file of files) {
     queue = [];
     stack = [];
+    skipped = [];
     beforeAlls = [];
     afterAlls = [];
 
@@ -214,6 +229,10 @@ async function main(): Promise<void> {
     if (!verbose) console.log(`  ${queue.length}건 실행`);
 
     for (const h of afterAlls) await h();
+    if (skipped.length) {
+      console.log(`  ${skipped.length}건 건너뜀 (skip/todo)`);
+      for (const sName of skipped) console.log(`   ⊘ ${sName}`);
+    }
   }
 
   console.log('\n' + '─'.repeat(60));

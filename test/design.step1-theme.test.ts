@@ -1,9 +1,23 @@
-// test/design.theme.test.ts
-// 쿠폰 디자인 스튜디오 — 색 토큰 · 구성 템플릿 · 부품 · 안전장치
+// test/design.step1-theme.test.ts
+// 쿠폰 디자인 스튜디오 — 1단계 (디자인 시스템 코어)
+// 색 토큰 · 대비 안전장치 · 구성 템플릿 · 부품 · 안전 검증 · 편집 동작
 //
 // 이 테스트가 지키는 것
 //   "한 번 만들면 다시 안 고쳐도 되는 쿠폰" — 색을 바꿔도 안 보이는 글자가
 //   나오지 않고, QR 이 가려지거나 너무 작아 스캔이 안 되는 일이 없다.
+//
+// ── 분리 안내 ────────────────────────────────────────────────────────
+//   원본 design.theme.test.ts 를 두 파일로 나눴습니다.
+//     · 이 파일            : DB·렌더러와 무관한 순수 로직 **38건** → 1단계에서 통과
+//     · design.step2-renderer.test.ts : 실제 SVG/이미지를 그리는 **7건** → 2단계에서 통과
+//   케이스를 지우거나 약화한 것이 아니라 **단계별로 나눈 것**입니다.
+//   (분리 전 39건 = 현재 38건 + step2 1건)  → 총 건수 보존
+//
+// ── 전역 주입 ────────────────────────────────────────────────────────
+//   describe / it / expect 는 scripts/run-design-tests.ts 하네스가 주입합니다.
+//   나중에 vitest 를 도입하면 아래 한 줄을 되살리세요.
+//   // import { describe, it, expect } from 'vitest';
+
 import {
   PALETTES, resolveTheme, paletteCatalog, tokenColor, contrastRatio,
   ensureContrast, mix, shade, luminance, pickReadable, TEXT_SCALES,
@@ -15,20 +29,9 @@ import {
 import {
   TEMPLATES, TEMPLATE_IDS, buildTemplate, PARTS, insertPart, PART_GROUPS,
 } from '../src/lib/bokju-coupon-design/templates';
-import { buildSvg } from '../src/coupon/jobs/renderer';
 
 const theme = resolveTheme({ paletteId: 'bok-red' });
 const canvas = CANVAS_PRESETS.PORTRAIT_1080;
-
-const ctx = {
-  campaign: {
-    title: '신통방통 복주머니 이벤트', grantAmount: 1000,
-    guideText: 'QR코드를 찍고 복주머니를 받으세요',
-    validFrom: new Date('2026-10-01'), validTo: new Date('2026-10-31'),
-  },
-  coupon: { couponNo: 'SG-2026-0001-1234', redeemToken: 'a'.repeat(32) },
-  brand: { name: '신통방통', domain: 'sintong.kr' },
-};
 
 // ───────────────────────────────────────────────── 색 토큰
 describe('테마 토큰 — 색을 한 곳에서 바꾼다', () => {
@@ -174,16 +177,6 @@ describe('구성 템플릿 — 배치를 골라서 시작한다', () => {
 
   it('모르는 템플릿 id 는 기본 템플릿으로 떨어진다', () => {
     expect(buildTemplate('nope', theme, canvas).elements.length).toBeGreaterThan(0);
-  });
-
-  it('모든 템플릿이 실제 SVG 로 렌더된다 (도메인까지 그려진다)', async () => {
-    for (const id of TEMPLATE_IDS) {
-      const svg = await buildSvg(buildTemplate(id, theme, canvas), ctx);
-      expect(svg, id).toContain('<svg');
-      expect(svg, id).toContain('</svg>');
-      expect(svg, id).toContain('sintong.kr');
-      expect(svg, id).toContain('SG-2026-0001-1234');
-    }
   });
 });
 
