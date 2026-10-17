@@ -313,3 +313,84 @@ export function getDesignCatalog(): DesignCatalog {
 // 참고용 재노출 — 카탈로그 값이 PALETTES/TEMPLATES/PARTS 와 동일 소스임을
 // 테스트가 직접 확인할 수 있게 한다(드리프트 회귀 테스트용).
 export { PALETTES, TEMPLATES, PARTS, PART_GROUPS };
+
+// ────────────────────────────────────────────── 7) 자산 업로드 검증(§0-I)
+/**
+ * [02e §0-I 보강 — 매직바이트 검증] 업로드 자산의 저장 확장자는 처음부터
+ * ALLOWED_UPLOAD_MIME_TYPES[file.type](요청이 "주장하는" MIME)에서만
+ * 파생되어 file.name(사용자 파일명)의 확장자를 쓰지 않는다 — 그래서
+ * "사용자 파일명이 .svg면 .svg로 저장된다"는 경로는 원래부터 없었다.
+ *
+ * 다만 file.type(요청의 Content-Type)은 클라이언트가 임의로 써 보낼 수
+ * 있는 "주장"일 뿐이다. SVG/스크립트 바이트에 Content-Type: image/png만
+ * 씌워 보내면 MIME 화이트리스트 검사를 그대로 통과한다(실제 공격으로
+ * 재현해 확인함 — 이 함수가 그 틈을 메운다). sniffImageMimeType()이 파일의
+ * 실제 바이트 시그니처(매직바이트)를 읽어 "정말 PNG/JPEG/WEBP가 맞는지"를
+ * 재확인하고, resolveUploadExtension()이 그 결과로만 저장 확장자를
+ * 결정한다 — "사용자 입력에서 경로/형식을 만들지 않는다"는 path traversal
+ * 방어와 같은 원리를 포맷 신뢰에도 적용한 것이다.
+ */
+export const ALLOWED_UPLOAD_MIME_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+export const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024; // 5MB(02e §0-I "명세 기준 5MB 이하")
+
+/** 파일 바이트 시그니처를 읽어 실제 이미지 MIME을 식별한다(없으면 null). */
+export function sniffImageMimeType(bytes: Uint8Array): string | null {
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+    bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+  // JPEG: FF D8 FF
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  // WEBP: 'RIFF' .... 'WEBP'
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+  return null;
+}
+
+export interface UploadValidationResult {
+  ok: boolean;
+  /** 저장에 사용할 확장자(매직바이트로 확인된 실제 포맷에서만 파생). */
+  ext?: string;
+  errorMessage?: string;
+}
+
+/**
+ * 업로드 요청을 검증한다: ① declared MIME이 화이트리스트에 있는가,
+ * ② 크기 제한 이내인가, ③ 실제 바이트가 정말 이미지 포맷이 맞는가.
+ * route.ts(I/O 래퍼)는 이 함수의 결과만으로 저장 여부와 확장자를 결정한다.
+ */
+export function validateUploadFile(
+  declaredMimeType: string,
+  size: number,
+  bytes: Uint8Array,
+): UploadValidationResult {
+  const declaredExt = ALLOWED_UPLOAD_MIME_TYPES[declaredMimeType];
+  if (!declaredExt) {
+    return { ok: false, errorMessage: '지원하지 않는 파일 형식입니다. (jpg/png/webp만 허용)' };
+  }
+  if (size > MAX_UPLOAD_FILE_SIZE) {
+    return { ok: false, errorMessage: '파일 크기는 5MB를 초과할 수 없습니다.' };
+  }
+  const sniffedType = sniffImageMimeType(bytes);
+  const ext = sniffedType ? ALLOWED_UPLOAD_MIME_TYPES[sniffedType] : undefined;
+  if (!sniffedType || !ext) {
+    return { ok: false, errorMessage: '파일 내용이 이미지 형식(PNG/JPEG/WEBP)과 일치하지 않습니다.' };
+  }
+  return { ok: true, ext };
+}

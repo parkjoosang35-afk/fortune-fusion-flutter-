@@ -28,6 +28,7 @@ import {
   getCampaignDesign, saveCampaignDesign, listCampaignRevisions, rollbackCampaignDesign,
   previewDesign, getDesignCatalog, StudioApiError,
   PARTS as PARTS_FROM_STUDIO_API,
+  validateUploadFile, sniffImageMimeType, ALLOWED_UPLOAD_MIME_TYPES, MAX_UPLOAD_FILE_SIZE,
 } from '../src/lib/bokju-coupon-design/studio-api';
 
 let campaignId: number;
@@ -319,5 +320,125 @@ describe('studio-api — getDesignCatalog (§0-G 필수3 모듈 재사용, 값 �
     expect(bokRed).toBeDefined();
     expect(bokRed!.swatch.length).toBe(5);
     expect(bokRed!.swatch[1]).toBe(PALETTES['bok-red'].primary);
+  });
+});
+
+// ════════════════════════════════════════════════ 6) 자산 업로드 검증 — §0-I 보강
+// [배경] §0-I에서 사용자가 지적한 의심 2가지를 실제 공격 페이로드로 재현해
+// 확인했다: ① ext는 애초에 file.name이 아니라 declared MIME에서 파생되고
+// 있었다(우려는 기우) ② 그러나 declared MIME(file.type) 자체가 클라이언트의
+// "주장"이라 위조 가능하다는 더 정확한 취약점을 발견했다 — SVG 스크립트
+// 바이트에 Content-Type: image/png 를 씌워 curl로 보내면 화이트리스트
+// 검사를 그대로 통과해 201로 저장됐다(매직바이트 검증 추가 전 실측). 아래
+// 테스트는 그 실제 공격 시나리오를 고정해, 회귀가 생기면 바로 잡아낸다.
+const REAL_PNG_BYTES = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG 시그니처
+  0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, // IHDR 청크(내용은 더미)
+]);
+const REAL_JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+const REAL_WEBP_BYTES = new Uint8Array([
+  0x52, 0x49, 0x46, 0x46, // 'RIFF'
+  0x00, 0x00, 0x00, 0x00, // 파일 크기(더미)
+  0x57, 0x45, 0x42, 0x50, // 'WEBP'
+]);
+// 실제 공격에 쓴 것과 동일한 형태 — SVG 스크립트 바이트(매직바이트 없음).
+const SVG_SCRIPT_BYTES = new TextEncoder().encode(
+  '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(document.cookie)</script></svg>',
+);
+
+describe('studio-api — sniffImageMimeType (§0-I 매직바이트 시그니처 식별)', () => {
+  it('20) 진짜 PNG 바이트는 image/png로 식별된다', () => {
+    expect(sniffImageMimeType(REAL_PNG_BYTES)).toBe('image/png');
+  });
+
+  it('21) 진짜 JPEG 바이트는 image/jpeg로 식별된다', () => {
+    expect(sniffImageMimeType(REAL_JPEG_BYTES)).toBe('image/jpeg');
+  });
+
+  it('22) 진짜 WEBP 바이트는 image/webp로 식별된다', () => {
+    expect(sniffImageMimeType(REAL_WEBP_BYTES)).toBe('image/webp');
+  });
+
+  it('23) SVG/스크립트 바이트는 어떤 이미지 시그니처와도 일치하지 않아 null을 돌려준다', () => {
+    expect(sniffImageMimeType(SVG_SCRIPT_BYTES)).toBe(null);
+  });
+
+  it('24) 빈 바이트열/너무 짧은 바이트열은 null을 돌려준다(배열 인덱스 예외 없이 안전하게 처리)', () => {
+    expect(sniffImageMimeType(new Uint8Array([]))).toBe(null);
+    expect(sniffImageMimeType(new Uint8Array([0x89, 0x50]))).toBe(null);
+  });
+});
+
+describe('studio-api — validateUploadFile (§0-I 보강: 화이트리스트+크기+매직바이트)', () => {
+  it('25) 정직한 PNG(declared MIME=실제 바이트 일치)는 통과하고 ext=png를 돌려준다', () => {
+    const result = validateUploadFile('image/png', REAL_PNG_BYTES.length, REAL_PNG_BYTES);
+    expect(result.ok).toBe(true);
+    expect(result.ext).toBe('png');
+  });
+
+  it('26) 정직한 JPEG는 통과하고 ext=jpg를 돌려준다', () => {
+    const result = validateUploadFile('image/jpeg', REAL_JPEG_BYTES.length, REAL_JPEG_BYTES);
+    expect(result.ok).toBe(true);
+    expect(result.ext).toBe('jpg');
+  });
+
+  it('27) 정직한 WEBP는 통과하고 ext=webp를 돌려준다', () => {
+    const result = validateUploadFile('image/webp', REAL_WEBP_BYTES.length, REAL_WEBP_BYTES);
+    expect(result.ok).toBe(true);
+    expect(result.ext).toBe('webp');
+  });
+
+  it('28) 정직한 SVG MIME(image/svg+xml)은 화이트리스트에 없어 1단계에서 즉시 거부된다', () => {
+    const result = validateUploadFile('image/svg+xml', SVG_SCRIPT_BYTES.length, SVG_SCRIPT_BYTES);
+    expect(result.ok).toBe(false);
+    expect(result.ext).toBeUndefined();
+    expect(result.errorMessage).toContain('지원하지 않는 파일 형식');
+  });
+
+  it('29) [핵심 — 실제 공격 재현] SVG 스크립트 바이트에 Content-Type: image/png 를 위장해도 매직바이트 불일치로 거부된다(발견된 MIME 스푸핑 취약점의 회귀 방지)', () => {
+    const result = validateUploadFile('image/png', SVG_SCRIPT_BYTES.length, SVG_SCRIPT_BYTES);
+    expect(result.ok).toBe(false);
+    expect(result.ext).toBeUndefined();
+    expect(result.errorMessage).toContain('이미지 형식');
+  });
+
+  it('30) HTML 바이트에 Content-Type: image/jpeg 를 위장해도 거부된다(동일한 스푸핑 패턴)', () => {
+    const htmlBytes = new TextEncoder().encode('<html><body><script>alert(1)</script></body></html>');
+    const result = validateUploadFile('image/jpeg', htmlBytes.length, htmlBytes);
+    expect(result.ok).toBe(false);
+  });
+
+  it('31) 5MB(MAX_UPLOAD_FILE_SIZE)를 초과하면 매직바이트가 정상이어도 거부된다', () => {
+    const oversized = new Uint8Array(MAX_UPLOAD_FILE_SIZE + 1);
+    oversized.set(REAL_PNG_BYTES); // 앞부분은 진짜 PNG 시그니처로 채움
+    const result = validateUploadFile('image/png', oversized.length, oversized);
+    expect(result.ok).toBe(false);
+    expect(result.errorMessage).toContain('5MB');
+  });
+
+  it('32) 정확히 5MB(경계값)는 통과한다(초과만 거부, 이하는 허용)', () => {
+    const exact = new Uint8Array(MAX_UPLOAD_FILE_SIZE);
+    exact.set(REAL_PNG_BYTES);
+    const result = validateUploadFile('image/png', exact.length, exact);
+    expect(result.ok).toBe(true);
+  });
+
+  it('33) [바이트가 최종 판정권자] declared MIME(image/jpeg)과 실제 바이트(PNG)가 서로 달라도, 실제 바이트가 "허용된 이미지 중 하나"이기만 하면 통과하고 — 저장 확장자(ext)는 declared가 아니라 실제 매직바이트(PNG)에서 파생된다. 즉 ext 스푸핑 경로(가짜로 선언한 확장자로 저장)가 원천 차단된다', () => {
+    // Content-Type: image/jpeg 라고 주장하지만 실제 바이트는 PNG 시그니처
+    const result = validateUploadFile('image/jpeg', REAL_PNG_BYTES.length, REAL_PNG_BYTES);
+    expect(result.ok).toBe(true);
+    expect(result.ext).toBe('png'); // declared(jpeg)가 아니라 실제 바이트(png)에서 파생됨
+  });
+
+  it('34) ALLOWED_UPLOAD_MIME_TYPES는 정확히 jpeg/jpg/png/webp 4개 키만 허용한다(화이트리스트 드리프트 방지)', () => {
+    expect(Object.keys(ALLOWED_UPLOAD_MIME_TYPES).sort()).toEqual(
+      ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].sort(),
+    );
+    expect(ALLOWED_UPLOAD_MIME_TYPES['image/svg+xml']).toBeUndefined();
+    expect(ALLOWED_UPLOAD_MIME_TYPES['text/html']).toBeUndefined();
+  });
+
+  it('35) MAX_UPLOAD_FILE_SIZE는 정확히 5MB(5 * 1024 * 1024)다(명세 §0-I 기준)', () => {
+    expect(MAX_UPLOAD_FILE_SIZE).toBe(5 * 1024 * 1024);
   });
 });
