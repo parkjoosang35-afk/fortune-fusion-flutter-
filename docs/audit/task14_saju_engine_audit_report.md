@@ -288,7 +288,7 @@ test/saju_engine_to_screen_pipeline_test.dart` 실행 결과:
 .analyze()`를 **2차로 재호출**한다(Phase2AnalysisEngine의 1차 호출과 별개). 즉
 RelationshipsEngine은 PHASE2 1회 실행당 **정확히 2회** 호출된다.
 
-### 4-4. 파이프라인 전체의 중복 재실행(캐시 부재)
+### 4-4. 파이프라인 전체의 중복 재실행(캐시 부재 — 경로별로 상황이 다름, 추가 확인 완료)
 §2-2에서 확인한 대로, 동일 사용자·동일 출생정보라도 ①귀인지도(3개 메서드),
 ②DoorEngineGateway(getSajuProfile/getSajuResult 각각), ③SajuVisualAdapter가
 서로 캐시를 공유하지 않고 **각자 독립적으로 `buildProfileAndSajuResultViaPhase1to4()`
@@ -296,17 +296,53 @@ RelationshipsEngine은 PHASE2 1회 실행당 **정확히 2회** 호출된다.
 .buildProfile()`은 **단 1회의 조회에서도 getSajuProfile+getSajuResult를 각각
 호출**하므로 파이프라인이 2회 풀실행된다.
 
+**[추가 조사로 확정] ③번 경로(SajuVisualAdapter)만은 화면 레벨에서 이미 메모리
+캐시가 적용되어 있다** — `saju_renewal_provider.dart`의 `SajuRenewalProvider
+.visualProfileFor(user)`가 `_cachedVisualProfile`/`_cachedVisualProfileKey`
+(생년월일/시간/음양력/윤달/시간모름/성별 6개 필드 조합 키)로 메모이제이션하여,
+02(`birth_input_screen`)~07 화면이 동일 세션 내에서 같은 출생정보를 반복 조회해도
+`SajuVisualAdapter.build()`(=PHASE1~4 풀파이프라인)는 **최초 1회만 실행**되고
+이후는 캐시를 반환한다. 코드 주석에 `"반복 실행되고 있었다(교차검증 조사에서
+확인)"`라는 기록이 남아있어, **과거 한 시점엔 이 경로도 중복 재실행 문제가
+있었으나 이미 수정되어 현재는 해결된 상태**임을 확인했다. 단, `birth_input_screen`
+의 `_livePreview`(실시간 입력 프리뷰, 사용자가 키 입력할 때마다 갱신)는 이
+캐시를 거치지 않고 `SajuVisualAdapter.build()`를 직접 호출하므로, 날짜 선택
+단계에서는 캐시와 무관하게 매 입력마다 재계산된다(이는 "아직 저장되지 않은
+입력값의 실시간 미리보기"라는 의도된 동작이다).
+
+**①귀인지도(3개 메서드)와 ②DoorEngineGateway 경로에는 이런 메모이제이션이
+없다**(`guinji_provider.dart`/`door_engine_gateway.dart`/`fortune_orchestrator.dart`
+전수 확인 결과 `_cached*` 패턴 0건 — `guinji_provider.dart`의
+`_cacheOwnerSajuSummary`는 PHASE1~4 결과 자체가 아니라 `dayMaster`/
+`dayMasterStrength` 2개 필드만 담은 "요약 데이터"를 저장하는 별개 메커니즘이라
+재계산 방지 캐시가 아니다). 따라서 **①②경로는 여전히 호출할 때마다 PHASE1~4
+전체를 처음부터 재계산하며, 이것이 §4-4의 실질적으로 유효한 결론**이다.
+`OrchestratorProvider`(`FortuneOrchestrator`를 감싸는 유일한 Provider,
+`app.dart`에서 전역 등록)는 `cross_check_result_screen.dart` 1곳에서만
+소비되므로, 이 중복 재계산은 **사용자가 "교차검증 결과" 화면에 진입할 때마다**
+(그리고 그 화면 안에서 `.load()`가 재호출될 때마다) 발생한다.
+
 ### 4-5. 예상과 다른 호출 경로(명칭상 오해 소지)
 "SajuResultAdapter"라는 이름은 클래스를 연상시키지만 실제로는
 `saju_result_adapter.dart`의 최상위 함수 `sajuResultFromProfile()`이다. 지시서나
 문서에서 "SajuResultAdapter 클래스가 ~한다"는 식으로 서술하면 실제 코드 구조와
 불일치한다.
 
-### 4-6. 확인되었으나 이번 범위에서 상세 분석하지 않은 잠재적 4번째 소비처
-`DoorEngineGateway`의 `getSajuProfile`/`getSajuResult`를 `FortuneOrchestrator`
-외에 다른 곳에서도 호출하는지는 `orchestrator_provider.dart`,
-`interpretation_narrator.dart` 등 상위 Provider/화면 레이어까지는 확인하지
-못했다(④확인 불가로 분류). 추가 조사 시 우선 확인 대상으로 남긴다.
+### 4-6. [추가 조사로 해소] DoorEngineGateway의 상위 소비처 — 4번째 독립 경로는 없음
+이전 보고서 초안에서 "④확인 불가"로 남겼던 항목을 추가 조사로 확정했다.
+`grep -rln "DoorEngineGateway\|FortuneOrchestrator\b" lib/` 결과,
+`DoorEngineGateway`/`FortuneOrchestrator`를 참조하는 파일은
+`unified_fortune_profile.dart`, `cross_check_rules.dart`,
+`cross_check_engine.dart`, `door_engine_gateway.dart`, `fortune_orchestrator.dart`,
+`orchestrator_provider.dart`, `app.dart` 7개뿐이며, 그중 실제 인스턴스를
+생성·등록하는 곳은 `app.dart`(전역 Provider 트리, `OrchestratorProvider(
+FortuneOrchestrator(gateway: DefaultDoorEngineGateway(...)))`) **단 1곳**이다.
+그리고 `OrchestratorProvider`를 구독하는 화면은 `cross_check_result_screen.dart`
+**1곳뿐**이다(`interpretation_narrator.dart`는 `cross_check_engine.dart`가
+생성한 `CrossCheckResult`를 문구로 가공하는 하위 유틸일 뿐, 별도로
+DoorEngineGateway를 호출하지 않음). 즉 **②번 경로(DoorEngineGateway)는 추가
+소비처 없이 "교차검증 결과 화면" 단일 진입점으로 귀결**되며, 사용자가 우려한
+"4번째 독립 호출 경로"는 존재하지 않는 것으로 확정한다.
 
 ---
 
@@ -348,9 +384,17 @@ RelationshipsEngine은 PHASE2 1회 실행당 **정확히 2회** 호출된다.
   로그캡처→즉시삭제, `git status --short test/` 무출력으로 원복 확인)로
   뒷받침된다.
 - 운영 데이터/사용자 과금에 영향을 주는 코드는 전혀 수정하지 않았다.
-- 미확인으로 남긴 항목(④, §4-6)은 추측으로 채우지 않고 명시적으로 "확인 불가"로
-  표기했다 — `orchestrator_provider.dart`, `interpretation_narrator.dart`,
-  `story_detail_screen.dart`/`story_preview_screen.dart`/
-  `saju_renewal_provider.dart`의 세부 내용, admin_web `saju-judgment.ts`/
-  `saju-qa-check.ts`/`saju-render.ts`(레거시 ②번 경로 전용이므로 ①번 시스템
-  분석에는 영향 없음)의 전체 내용은 이번 보고서 범위에서 상세 분석하지 않았다.
+- 최초 보고서 초안에서 "④확인 불가"로 남겼던 `orchestrator_provider.dart`,
+  `interpretation_narrator.dart`, `story_detail_screen.dart`/
+  `story_preview_screen.dart`/`saju_renewal_provider.dart`는 이어지는 추가
+  조사에서 전수 확인을 완료했다(§4-4, §4-6 갱신 내용 참고). 결론: ②번 경로
+  (DoorEngineGateway)는 `cross_check_result_screen.dart` 단일 진입점으로
+  귀결되어 추가 독립 호출 경로는 없으며, ③번 경로(SajuVisualAdapter)는
+  `SajuRenewalProvider.visualProfileFor()`에 이미 메모이제이션 캐시가 적용되어
+  동일 세션 내 재계산이 방지되고 있음을 확인했다(단, ①귀인지도·②DoorEngineGateway
+  경로에는 이런 캐시가 없어 호출할 때마다 PHASE1~4 전체가 재계산된다).
+- admin_web `saju-judgment.ts`/`saju-qa-check.ts`/`saju-render.ts`는 §0에서
+  확정한 대로 **Flutter 클라이언트가 더 이상 호출하지 않는 ②번 레거시 경로
+  (`/api/public/fortune/saju`) 전용**이므로, ①번 시스템(이 보고서의 핵심 대상)
+  분석에는 영향을 주지 않아 전체 내용까지는 상세 분석하지 않았다(필요 시 별도
+  조사 대상으로 남긴다).
