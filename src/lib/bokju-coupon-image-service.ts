@@ -30,6 +30,15 @@ import {
   CANVAS_WIDTH as CUSTOM_CANVAS_WIDTH,
   CANVAS_HEIGHT as CUSTOM_CANVAS_HEIGHT,
 } from "@/lib/bokju-coupon-visibility";
+// [4단계 — 02e_4단계-에디터.md §3-3/§6 완료기준11] 배치 발행 경로를 신규
+// 쿠폰 디자인 스튜디오(리비전 고정) 렌더러로 연결한다. 이 import 자체는
+// 절대불가침 원칙을 깨지 않는다 — bokju-coupon-design/dispatch.ts 는
+// "이 파일이 4단계에서 배선해야 할 대상"으로 02d §9/02e §3-3 가 이미
+// 명시한 신규(3단계) 산출물이며, 02d §7-5의 절대불가침은
+// bokju-coupon-image-service.ts 자체(이 파일)를 "3단계에서" 건드리지
+// 말라는 뜻이었다 — 4단계 작업 범위에서는 이 파일의 수정이 지시서에
+// 명시적으로 요구된다(02e §1/§3/§6-11).
+import { dispatchCouponRender } from "@/lib/bokju-coupon-design/dispatch";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 const UPLOADS_ROOT = path.join(PUBLIC_DIR, "uploads", "bokju-coupons");
@@ -604,7 +613,13 @@ async function runImageJob(
 
   const coupons = await prisma.bokjuCoupon.findMany({
     where: onlyCouponIds ? { id: { in: onlyCouponIds } } : { campaignId: job.campaignId },
-    select: { id: true, couponNo: true, redeemToken: true, expiresAt: true },
+    // [4단계 — 완료기준11] designRevisionId 를 select 절에 추가한다. 이
+    // 컬럼은 발행(쿠폰 생성) 시점에 이미 각인되어 있다(bokju-coupon-service.ts
+    // issueCoupons(), 3단계에서 배선 완료) — 여기서는 "읽기만" 한다(02d
+    // §7 금지 목록 #4 "렌더 시점에 조회하지 않는다"는 campaign.currentDesignRevisionId
+    // 를 다시 조회하지 말라는 뜻이며, coupon.designRevisionId 를 select 하는
+    // 것은 그 각인값을 그대로 읽는 것이므로 위반이 아니다).
+    select: { id: true, couponNo: true, redeemToken: true, expiresAt: true, designRevisionId: true },
     orderBy: { id: "asc" },
   });
 
@@ -619,18 +634,38 @@ async function runImageJob(
     await Promise.all(
       batch.map(async (c) => {
         try {
-          const buf = await renderCouponImage({
-            campaignTitle: campaign.title,
-            grantAmount: campaign.grantAmount,
-            couponNo: c.couponNo,
-            redeemToken: c.redeemToken,
-            validFrom: campaign.validFrom,
-            validTo: campaign.validTo,
-            guideText: campaign.guideText,
-            registerBaseUrl: options.registerBaseUrl,
-            designTemplate: campaign.designTemplate,
-            customTemplate,
-          });
+          // [4단계 — 02e_4단계-에디터.md §3-3/§6 완료기준11] 쿠폰에
+          // designRevisionId 가 각인되어 있으면(= 쿠폰 디자인 스튜디오에서
+          // 발행된 쿠폰) 먼저 신규 렌더러(dispatchCouponRender)를 시도한다.
+          // handled=true 면 그 결과(buffer)를 그대로 쓴다 — 레거시
+          // renderCouponImage()(4종 내장 템플릿/커스텀 템플릿)는 호출하지
+          // 않는다. handled=false(=레거시 쿠폰, designRevisionId=null)면
+          // 기존 동작을 단 한 줄도 바꾸지 않고 그대로 레거시 경로로
+          // 폴백한다(완료기준12 — 리비전 없는 쿠폰은 계속 720×1280 레거시).
+          let buf: Buffer | undefined;
+          if (c.designRevisionId != null) {
+            const dispatched = await dispatchCouponRender({
+              couponId: c.id,
+              registerBaseUrl: options.registerBaseUrl,
+            });
+            if (dispatched.handled) {
+              buf = dispatched.buffer;
+            }
+          }
+          if (!buf) {
+            buf = await renderCouponImage({
+              campaignTitle: campaign.title,
+              grantAmount: campaign.grantAmount,
+              couponNo: c.couponNo,
+              redeemToken: c.redeemToken,
+              validFrom: campaign.validFrom,
+              validTo: campaign.validTo,
+              guideText: campaign.guideText,
+              registerBaseUrl: options.registerBaseUrl,
+              designTemplate: campaign.designTemplate,
+              customTemplate,
+            });
+          }
           await writeFile(path.join(dir, "images", `${c.id}.png`), buf);
           processed += 1;
         } catch (e) {

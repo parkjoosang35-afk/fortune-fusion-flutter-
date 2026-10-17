@@ -265,24 +265,30 @@ describe('리비전 고정 — 되돌리기(setCurrentRevision)', () => {
   });
 });
 
-describe('리비전 고정 — [사용자 지적 반영] handled 플래그를 호출부가 실제로 존중하는지 (배치 루프 행동 검증)', () => {
+describe('리비전 고정 — [4단계 완료] handled 플래그를 호출부(배치 루프)가 실제로 존중한다', () => {
   // [배경] "handled=false 플래그가 있는 것과 존중되는 것은 다르다 — 호출부가
   // 무시하면 없는 것보다 나쁘다"(사용자 지적, 02e §0-C). dispatchCouponRender()
   // 의 반환값만 보는 테스트(7번)로는 "그 값을 누가 소비하는지"를 증명하지 못한다.
   //
   // [왜 "함수 spy"가 아니라 "관찰 가능한 산출물 비교"인가] 실제 배치 루프
   // runImageJob() 은 bokju-coupon-image-service.ts 내부의 비공개(export 없음)
-  // 함수다(절대불가침 파일 — 이 파일을 수정·재노출해 spy 를 꽂을 수 없다).
-  // 이 프로젝트의 테스트 하네스(run-design-tests.ts)에는 jest.mock/vi.spyOn
-  // 같은 모듈 모킹 기능도 없다. 대신 "함수 호출 여부"를 간접 관찰 가능한
-  // 방법으로 확인한다: 신규 리비전의 캔버스를 레거시 렌더러의 고정 치수
+  // 함수다 — 이 파일을 재노출해 spy 를 꽂지 않는다. 이 프로젝트의 테스트
+  // 하네스(run-design-tests.ts)에는 jest.mock/vi.spyOn 같은 모듈 모킹
+  // 기능도 없다. 대신 "함수 호출 여부"를 간접 관찰 가능한 방법으로
+  // 확인한다: 신규 리비전의 캔버스를 레거시 렌더러의 고정 치수
   // (IMG_WIDTH=720 × IMG_HEIGHT=1280, bokju-coupon-image-service.ts:37-38)와
   // 다른 정사각형(1080×1080)으로 만든 뒤, 유일한 공개 진입점인
   // startImageGenerationJob() 을 실제로 호출해 산출된 PNG 파일의 실제 치수를
   // sharp 로 읽는다. 720×1280 이 나오면 레거시 renderCouponImage() 가 호출된
   // 것이고, 1080×1080 이 나오면 신규 buildSvg()(2~3단계 산출물)가 호출된
   // 것이다 — 이미지 치수는 "어느 코드가 실행됐는지"를 속일 수 없는 증거다.
-  it('13) [행동 검증] designRevisionId 가 각인된 쿠폰도 실제 배치 루프(startImageGenerationJob)에서는 여전히 레거시 렌더러가 호출된다(= handled 플래그가 아직 아무도에게 소비되지 않는 현재 상태의 증거)', async () => {
+  //
+  // [4단계 완료 — 02e §6 완료기준11] runImageJob() 의 select 절에
+  // designRevisionId 를 추가하고, 쿠폰마다 dispatchCouponRender() 를 먼저
+  // 시도해 handled=true 면 그 결과를 쓰도록 배선했다(bokju-coupon-image-service.ts
+  // 607/622-646번 줄 부근). 이 테스트는 이제 "뒤집힌" 형태 — 신규 치수
+  // (1080×1080)가 실제로 파일에 쓰이는지를 확인한다.
+  it('13) [완료기준11 증거] designRevisionId 가 각인된 쿠폰은 실제 배치 루프(startImageGenerationJob)에서 신규 렌더러(dispatchCouponRender→buildSvg)가 호출되어 신규 캔버스 치수로 렌더된다', async () => {
     const { startImageGenerationJob, getImageJob, readCouponImage } = await import('../src/lib/bokju-coupon-image-service');
     const sharp = (await import('sharp')).default;
     const { rm } = await import('node:fs/promises');
@@ -335,19 +341,16 @@ describe('리비전 고정 — [사용자 지적 반영] handled 플래그를 �
     expect(buf).toBeTruthy;
     const meta = await sharp(buf!).metadata();
 
-    // [현재 상태 — 02d §9 "발행 라우트 교체"가 아직 4단계 작업이라는 뜻]
-    // 레거시 renderCouponImage() 의 고정 치수(720×1280, image-service.ts
-    // IMG_WIDTH/IMG_HEIGHT)가 나온다. designRevisionId 가 각인되어 있고
-    // dispatchCouponRender() 가 handled=true 를 반환함에도 불구하고, 실제
-    // 배치 루프는 그 값을 전혀 조회하지 않고(select 절에 없음) 무조건
-    // 레거시를 호출하기 때문이다 — "핸들된 값이 있어도 아무도 보지 않는다"
-    // 는 사실이 숫자(치수)로 증명된다.
-    //
-    // ⚠️ 이 단언이 깨지는 날(= width/height 가 1080 으로 바뀌는 날)이 바로
-    // 4단계에서 "발행 라우트 교체"가 완료된 신호다. 그때는 이 테스트를
-    // 역방향으로 뒤집어야 한다(= 신규 렌더러가 호출됐음을 확인하는 테스트로).
-    expect(meta.width).toBe(720);
-    expect(meta.height).toBe(1280);
+    // [4단계 완료 증거 — 02e §6 완료기준11] designRevisionId 가 각인되어
+    // 있고 dispatchCouponRender() 가 handled=true 를 반환하면, 실제 배치
+    // 루프(runImageJob())도 이제 그 값을 select 하고 소비한다 — 신규
+    // buildSvg() 가 호출되어 신규 캔버스 치수(1080×1080)가 파일에 그대로
+    // 쓰인다. 레거시 renderCouponImage() 의 고정 치수(720×1280)는 더 이상
+    // 나오지 않는다 — "핸들된 값을 배치 루프가 실제로 소비한다"는 사실이
+    // 숫자(치수)로 증명된다(이전 베이스라인의 720×1280 단언을 역방향으로
+    // 뒤집은 것 — 그 당시는 아직 배선 전이었다).
+    expect(meta.width).toBe(1080);
+    expect(meta.height).toBe(1080);
 
     // 정리
     await prisma.bokjuCoupon.delete({ where: { id: wiringCoupon.id } });
@@ -355,5 +358,55 @@ describe('리비전 고정 — [사용자 지적 반영] handled 플래그를 �
     const dir = path.join(process.cwd(), 'public', 'uploads', 'bokju-coupons', `campaign_${campaignId}`);
     await rm(dir, { recursive: true, force: true }).catch(() => {});
     await setCurrentRevision(campaignId, rev2Id);
+  });
+
+  // [완료기준12 — 02e §6 "리비전 없는 쿠폰은 여전히 720×1280 레거시"]
+  // 테스트13이 신규 경로를 증명했다고 해서, designRevisionId=null인 기존
+  // 쿠폰(레거시, 현재 212행 전부 이 상태)의 동작까지 바뀌면 안 된다 —
+  // 그것은 "배선 완료"가 아니라 "기존 동작 파괴"가 된다. 같은 배치 루프
+  // (startImageGenerationJob)를 레거시 쿠폰 1장으로 실제 실행해, 여전히
+  // 720×1280이 나오는지 확인한다.
+  it('14) [완료기준12 증거] designRevisionId = null 인 레거시 쿠폰은 같은 배치 발행 경로에서도 여전히 레거시 렌더러(720×1280)로 렌더된다(기존 동작 불변)', async () => {
+    const { startImageGenerationJob, getImageJob, readCouponImage } = await import('../src/lib/bokju-coupon-image-service');
+    const sharp = (await import('sharp')).default;
+    const { rm } = await import('node:fs/promises');
+    const path = await import('node:path');
+
+    const legacyCoupon = await prisma.bokjuCoupon.create({
+      data: {
+        campaignId,
+        couponNo: 'TEST-LEGACY-WIRING-' + Date.now(),
+        redeemToken: createHash('sha256').update('legacy-wiring-' + Date.now()).digest('hex').slice(0, 32),
+        expiresAt: new Date('2026-12-31T23:59:59Z'),
+        designRevisionId: null, // 레거시 — select 절에 값이 있어도 null 이면 dispatchCouponRender 를 아예 시도하지 않는다
+      },
+    });
+
+    const { jobId } = await startImageGenerationJob(campaignId, 'test-harness', {
+      registerBaseUrl: 'https://sintong.kr',
+    });
+
+    let job = await getImageJob(jobId);
+    const deadline = Date.now() + 15000;
+    while (job && job.status !== 'COMPLETED' && job.status !== 'FAILED' && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 200));
+      job = await getImageJob(jobId);
+    }
+    expect(job?.status).toBe('COMPLETED');
+
+    const buf = await readCouponImage(campaignId, legacyCoupon.id);
+    expect(buf).toBeTruthy;
+    const meta = await sharp(buf!).metadata();
+
+    // 기존 동작 완전 불변 — 레거시 쿠폰은 신규 배선이 생긴 이후에도
+    // 여전히 720×1280(레거시 renderCouponImage()의 고정 치수)으로 나온다.
+    expect(meta.width).toBe(720);
+    expect(meta.height).toBe(1280);
+
+    // 정리
+    await prisma.bokjuCoupon.delete({ where: { id: legacyCoupon.id } });
+    await prisma.bokjuCouponImageJob.delete({ where: { id: jobId } });
+    const dir = path.join(process.cwd(), 'public', 'uploads', 'bokju-coupons', `campaign_${campaignId}`);
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
   });
 });
