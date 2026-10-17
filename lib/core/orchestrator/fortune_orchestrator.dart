@@ -35,23 +35,31 @@ class FortuneOrchestrator {
   /// 구성한다. 각 조회는 서로 독립적이며, 하나가 실패/없음이어도 나머지
   /// 조회에 영향을 주지 않는다(부분 실패 허용 — 지시문 §7 테스트케이스1
   /// "일부 엔진만 유효해도 동작").
+  ///
+  /// [중복계산 개선 — 2026-엔진연결 STEP 1 §1 옵션 A] 과거에는
+  /// `getSajuProfile(user)`와 `getSajuResult(user)`를 각각 독립 호출해
+  /// 동일한 입력으로 PHASE1~4(만세력 전체 계산)가 **2회** 실행됐다. 이제는
+  /// [DoorEngineGateway.getSajuProfileAndResult](1회 호출로 두 값 모두
+  /// 반환) 하나만 호출한다 — 계산 로직/결과는 전혀 바뀌지 않고, 중복
+  /// 실행만 제거된다.
   Future<UnifiedFortuneProfile> buildProfile(UserModel? user) async {
     // [설계 메모] Future.wait는 동일 타입의 Future 리스트만 받을 수 있어,
-    // 반환 타입이 서로 다른 6개 게이트웨이 호출을 한 리스트에 담을 수
+    // 반환 타입이 서로 다른 5개 게이트웨이 호출을 한 리스트에 담을 수
     // 없다. 대신 각 Future를 먼저 발행(아직 await하지 않음)해 "동시에
     // 시작"시킨 뒤, 각각 개별로 await해 모은다 — 순차 대기처럼 보이지만
-    // 실제로는 6개 호출이 모두 이미 진행 중인 상태에서 결과만 순서대로
+    // 실제로는 5개 호출이 모두 이미 진행 중인 상태에서 결과만 순서대로
     // 받는 것이므로 병렬 실행 효과는 동일하다.
-    final sajuProfileFuture = _gateway.getSajuProfile(user);
-    final sajuResultFuture = _gateway.getSajuResult(user);
+    final sajuFuture = _gateway.getSajuProfileAndResult(user);
     final tarotFuture = _gateway.getLatestTarot();
     final faceFuture = _gateway.getLatestFace();
     final palmFuture = _gateway.getLatestPalm();
     final compatibilityFuture = _gateway.getLatestCompatibility();
 
+    final saju = await sajuFuture;
+
     return UnifiedFortuneProfile(
-      sajuProfile: await sajuProfileFuture,
-      sajuResult: await sajuResultFuture,
+      sajuProfile: saju.profile,
+      sajuResult: saju.result,
       tarotResult: await tarotFuture,
       faceResult: await faceFuture,
       palmResult: await palmFuture,

@@ -32,11 +32,35 @@ abstract class DoorEngineGateway {
   /// 로그인 사용자의 생년월일시 기반 사주 원국을 계산해 반환한다. 로그인
   /// 사용자가 없거나 생년월일 정보가 없으면(프로필 미완성) null.
   /// (로컬 PHASE1~4 엔진 호출 — 서버 API 없음, §3 설계결정).
+  ///
+  /// [중복계산 개선 — 2026-엔진연결 STEP 1 §1 옵션 A] 이 메서드는
+  /// [getSajuProfileAndResult]의 `.profile`만 꺼내 반환하는 하위호환용
+  /// 래퍼로 유지된다(혹시 모를 외부 참조 대비, 삭제하지 않음). 신규
+  /// 소비처는 [getSajuProfileAndResult]를 사용해 PHASE1~4 중복 실행을
+  /// 피해야 한다.
   Future<SajuProfile?> getSajuProfile(UserModel? user);
 
   /// [getSajuProfile]과 동일한 입력으로 계산된 레거시 [SajuResult] 형태
   /// (사주 화면 일부가 참조하는 `fiveElementsCount` 등 호환용).
+  ///
+  /// [중복계산 개선 — 2026-엔진연결 STEP 1 §1 옵션 A] 이 메서드 역시
+  /// [getSajuProfileAndResult]의 `.result`만 꺼내 반환하는 하위호환용
+  /// 래퍼로 유지된다(삭제하지 않음). 신규 소비처는
+  /// [getSajuProfileAndResult]를 사용해야 한다.
   Future<SajuResult?> getSajuResult(UserModel? user);
+
+  /// [중복계산 개선 — 2026-엔진연결 STEP 1 §1 옵션 A 핵심 신규 메서드]
+  /// [getSajuProfile]+[getSajuResult]를 각각 독립 호출하면 동일한 입력으로
+  /// `JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4()`(PHASE1~4
+  /// 전체)가 **2회** 실행되는 문제가 있었다. 이 메서드는 그 함수를 **1회만**
+  /// 호출해 반환된 튜플(`{saju, profile}`)을 그대로 노출한다 — 계산 로직은
+  /// 한 글자도 바뀌지 않았고, 단지 호출 횟수만 1회로 줄어든다.
+  ///
+  /// [FortuneOrchestrator.buildProfile]이 사주 데이터를 조회할 때는 반드시
+  /// 이 메서드를 사용해야 한다(기존 두 메서드를 각각 호출하지 않는다).
+  Future<({SajuProfile? profile, SajuResult? result})> getSajuProfileAndResult(
+    UserModel? user,
+  );
 
   /// 타로 이력 중 가장 최근 1건(없으면 null).
   Future<TarotResultModel?> getLatestTarot();
@@ -73,31 +97,22 @@ class DefaultDoorEngineGateway implements DoorEngineGateway {
 
   @override
   Future<SajuProfile?> getSajuProfile(UserModel? user) async {
-    if (user == null) return null;
-    final jeontongInput = userModelToJeontongInput(user);
-    if (jeontongInput == null) return null;
-    try {
-      final kst = jeontongInput.birthDateTimeUtc.add(const Duration(hours: 9));
-      final sajuGender = jeontongInput.gender == 'F' ? 'female' : 'male';
-      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
-        kst: kst,
-        gender: sajuGender,
-        isLunar: jeontongInput.isLunar,
-        isLeapMonth: jeontongInput.effectiveIsLeapMonth,
-        referenceDate: DateTime.now(),
-      );
-      return built.profile;
-    } catch (e) {
-      debugPrint('[DefaultDoorEngineGateway] [getSajuProfile] 예외 -> $e');
-      return null;
-    }
+    final built = await getSajuProfileAndResult(user);
+    return built.profile;
   }
 
   @override
   Future<SajuResult?> getSajuResult(UserModel? user) async {
-    if (user == null) return null;
+    final built = await getSajuProfileAndResult(user);
+    return built.result;
+  }
+
+  @override
+  Future<({SajuProfile? profile, SajuResult? result})>
+  getSajuProfileAndResult(UserModel? user) async {
+    if (user == null) return (profile: null, result: null);
     final jeontongInput = userModelToJeontongInput(user);
-    if (jeontongInput == null) return null;
+    if (jeontongInput == null) return (profile: null, result: null);
     try {
       final kst = jeontongInput.birthDateTimeUtc.add(const Duration(hours: 9));
       final sajuGender = jeontongInput.gender == 'F' ? 'female' : 'male';
@@ -108,10 +123,12 @@ class DefaultDoorEngineGateway implements DoorEngineGateway {
         isLeapMonth: jeontongInput.effectiveIsLeapMonth,
         referenceDate: DateTime.now(),
       );
-      return built.saju;
+      return (profile: built.profile, result: built.saju);
     } catch (e) {
-      debugPrint('[DefaultDoorEngineGateway] [getSajuResult] 예외 -> $e');
-      return null;
+      debugPrint(
+        '[DefaultDoorEngineGateway] [getSajuProfileAndResult] 예외 -> $e',
+      );
+      return (profile: null, result: null);
     }
   }
 
