@@ -615,6 +615,19 @@ describe('작업순서6 — createCampaign() / convertLegacyDesign() / getCampai
     expect(convertedIds.includes('amountUnit')).toBe(false);
     expect(freshIds.includes('amountUnit')).toBe(false);
     expect(unconvertedIds.includes('amountUnit')).toBe(false);
+
+    // [02p §0-U-3 요청2] canvas 도 세 경로 전부 720×1280 으로 잠근다.
+    // blankLayout·noQrLayout·buildTemplate 은 기본값이 PORTRAIT_1080 이고
+    // convertVisibilityToLayout 만 720 이므로, 누군가 그 기본값을
+    // "통일한다"며 1080으로 바꾸면 전환·에디터 경로만 조용히 1080이 되고
+    // 신규 캠페인(명시적으로 720을 넘기는 initializeNewCampaignDesign)과
+    // 캠페인마다 발행 크기가 갈린다 — 이 단언이 그 회귀를 직접 잡아낸다.
+    expect(convertedDesign.layout.canvas.width).toBe(720);
+    expect(convertedDesign.layout.canvas.height).toBe(1280);
+    expect(freshDesign.layout.canvas.width).toBe(720);
+    expect(freshDesign.layout.canvas.height).toBe(1280);
+    expect(unconvertedDesign.layout.canvas.width).toBe(720);
+    expect(unconvertedDesign.layout.canvas.height).toBe(1280);
   });
 
   it('21) 신규 경로의 초기 리비전은 validateLayout()을 통과한 상태로 저장되어 있다(조건① — 저장 자체가 saveCampaignDesign/convertLegacyDesign과 동일한 freezeRevision을 거쳤으므로 스키마 검증을 통과했다는 뜻)', async () => {

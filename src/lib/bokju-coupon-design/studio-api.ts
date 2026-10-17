@@ -95,7 +95,14 @@ async function resolveLegacyLayout(
     }
     // tpl 이 없으면(데이터 정합성 방어) DEFAULT_VISIBILITY 로 폴백.
   }
-  return convertVisibilityToLayout(rawVisibility);
+  // [02p §0-U-3] canvas 를 convertVisibilityToLayout() 의 기본값에 맡기지
+  // 않고 여기서 명시적으로 PORTRAIT_720 을 넘긴다. 이유: layout.ts 의
+  // blankLayout·noQrLayout·templates.ts 의 buildTemplate 은 전부 기본값이
+  // PORTRAIT_1080 이고, convertVisibilityToLayout 만 720 이다 — 누군가
+  // "다른 함수들과 통일한다"며 그 기본값을 1080으로 바꾸면 전환·에디터
+  // 경로만 조용히 1080이 되고(신규 캠페인은 여전히 720) 캠페인마다 발행
+  // 크기가 갈리는 사고가 난다. 의도를 코드에 고정해 그 경로를 막는다.
+  return convertVisibilityToLayout(rawVisibility, CANVAS_PRESETS.PORTRAIT_720);
 }
 
 // ────────────────────────────────────────────── 1) 디자인 조회
