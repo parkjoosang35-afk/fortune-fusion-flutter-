@@ -23,7 +23,7 @@
 | # | 시스템 | 계산 주체 | 현재 Flutter 앱에서 호출 여부 | 비고 |
 |---|---|---|---|---|
 | ① | **PHASE1~4 신규 만세력 엔진**(`lib/features/home/domain/manseryeok/`) | **Flutter/Dart 자체 계산**(순수 로컬, 서버 호출 없음) | ✅ **현재 운영 중** — 귀인지도/DoorEngineGateway/SajuVisualAdapter 3개 경로에서 실사용 | 이번 지시서 §2가 나열한 **15개 구성요소가 전부 여기 속함**. 본 보고서의 핵심 조사 대상. |
-| ② | **레거시 AI사주**(`/ai-fortune/saju/*`, `lib/features/fortune/saju/`, admin_web `POST /api/public/fortune/saju`) | admin_web 서버의 `computeChart()`(**해시 기반 가짜 명식**, 실제 역학 계산 아님) + LLM | ❌ **완전 제거됨** — `lib/features/fortune/saju/` 디렉토리 자체가 Flutter 코드베이스에 더 이상 존재하지 않는다(`find` 결과 0건, `SajuRepository` 클래스도 0건). `app_router.dart`가 해당 라우트를 전부 `/saju-renewal`로 강제 리다이렉트 중. | `feature_flags.dart`의 "4단계 점진 전환" 계획 문서는 과거 계획이며, 실제로는 이미 코드 자체가 삭제된 상태(계획보다 앞서 실행됨). **"엔진 코드 존재 ≠ 실제 실행"의 역방향 사례** — 즉 서버(route.ts)엔 코드가 남아있지만 호출하는 클라이언트가 없어 사실상 죽은 엔드포인트. |
+| ② | **레거시 AI사주**(`/ai-fortune/saju/*`, `lib/features/fortune/saju/`, admin_web `POST /api/public/fortune/saju`) | admin_web 서버의 `computeChart()`(**해시 기반 가짜 명식**, 실제 역학 계산 아님) → `buildSajuJudgment()`(판정) → LLM(해석) → `checkSajuResult()`(검증) → `renderSajuLlmResult()`(표현). 내부 5단계 상세는 §5-1 참고. | ❌ **완전 제거됨** — `lib/features/fortune/saju/` 디렉토리 자체가 Flutter 코드베이스에 더 이상 존재하지 않는다(`find` 결과 0건, `SajuRepository` 클래스도 0건). `app_router.dart`가 해당 라우트를 전부 `/saju-renewal`로 강제 리다이렉트 중. | `feature_flags.dart`의 "4단계 점진 전환" 계획 문서는 과거 계획이며, 실제로는 이미 코드 자체가 삭제된 상태(계획보다 앞서 실행됨). **"엔진 코드 존재 ≠ 실제 실행"의 역방향 사례** — 즉 서버(route.ts)엔 코드가 남아있지만 호출하는 클라이언트가 없어 사실상 죽은 엔드포인트. |
 | ③ | **신통방통 정통사주 리뉴얼(topic 기반, "69종"이 아니라 "29종")**(admin_web `src/lib/saju-renewal/*`, Flutter `lib/features/saju_renewal/`) | **별도의 Python FastAPI 서버**(`saju_engine_v3.3`, `/saju/v3/facts`)가 사주원국을 계산 → admin_web이 그 결과를 "Fact"로 받아 29종 주제 중 후보를 스코어링 선정 → LLM이 해석 텍스트만 생성 | ✅ **현재 운영 중** — `SajuRenewalApi`(Flutter)가 `/api/public/saju-renewal/topics/select`와 `/api/public/saju-renewal/interpret`만 호출 | **①과 ③은 완전히 다른 계산 엔진**(①=Dart `ManseryeokCoreEngine`, ③=별도 Python 프로세스 `saju_engine_v3.3`)이며 서로 데이터를 주고받지 않는다. |
 
 **"69종"이라는 사용자의 표현에 대한 정정(가장 중요한 정정 사항)**: 코드베이스
@@ -377,6 +377,244 @@ DoorEngineGateway를 호출하지 않음). 즉 **②번 경로(DoorEngineGateway
 
 ---
 
+## 5-1. [추가 조사] 레거시 경로(②번)의 판정·검증·표현 3단계 상세
+  (`saju-judgment.ts` / `saju-qa-check.ts` / `saju-render.ts`)
+
+사용자 지시에 따라 이 3개 파일을 **"코드가 존재한다"가 아니라 "실제 호출
+경로"** 기준으로 전수 재조사했다. 결론부터 말하면, 이 3개 파일은 **②번
+레거시 시스템(`POST /api/public/fortune/saju`) 전용 내부 모듈**이며,
+①번(PHASE1~4)·③번(29종 topic-engine) 어느 쪽과도 코드 수준에서 전혀
+연결되지 않는다.
+
+### 5-1-1. 호출 관계 — 상위 호출자와 import 그래프 (grep 전수 확인)
+
+```
+src/app/api/public/fortune/saju/route.ts
+  ├─ import buildSajuJudgment  ←── src/lib/saju-judgment.ts
+  ├─ import checkSajuResult,
+  │         type SajuLlmResult ←── src/lib/saju-qa-check.ts
+  └─ import parseSajuLlmJson,
+            renderSajuLlmResult ←── src/lib/saju-render.ts
+                                      └─ import type SajuLlmResult
+                                            (from ./saju-qa-check)  ← saju-render.ts가
+                                                                       saju-qa-check.ts의
+                                                                       "타입"만 가져옴
+```
+
+`grep -rn "import.*saju-qa-check\|import.*saju-judgment\|import.*saju-render" src/`
+전수 검색 결과, **이 3개 파일을 import하는 곳은 `route.ts`(사주 전용)와
+`saju-render.ts`→`saju-qa-check.ts`(타입 재사용) 단 2곳뿐**이다. 사용자가
+의심한 "다른 경로에서도 쓰이는지"에 대한 답은 **아니오**다.
+
+- `face-judgment.ts`/`palm-judgment.ts`/`face-palm-qa-check.ts`도 이름이
+  유사해 혼동될 수 있으나, 실제 import 구문은 **0건**이다. 대신
+  `face-palm-qa-check.ts` 2행 주석에 `"saju-qa-check.ts의 핵심 검사(금지어/
+  확정 단정 표현)만 재사용해 적용 범위를..."`라고 명시되어 있는데, 이는
+  **import를 통한 코드 공유가 아니라 "동일한 검사 패턴을 별도 파일에
+  복제·재구현"한 것**이다(관상·손금은 사주와 다른 금칙어/허용예외 목록을
+  쓰므로 독립 구현이 합리적인 선택이며, 사주 결과에 영향을 주지 않는다).
+- `interpret-qa-check.ts`(③번 시스템, `saju-renewal/` 하위)는 이름이
+  `saju-qa-check.ts`와 비슷하지만 **완전히 별개의 신규 파일**이며 import
+  관계가 없다. 오히려 그 파일 주석에 `"[기존 saju-qa-check.ts와 분리하는
+  이유] 기존 모듈은 레거시 69종 '7블록'..."`이라고 명시되어 있어, **③번을
+  설계할 때 ②번(saju-qa-check.ts)을 의도적으로 분리해 새로 작성했음**이
+  코드 주석 수준에서 확정된다.
+
+**Flutter 클라이언트 쪽 호출 여부**: `grep -rn "SajuRepository" lib/`
+10건 전부가 `feature_flags.dart`/`ai_call_counter.dart`/
+`cross_check_rules.dart`/`pass_repository.dart` 내 **주석(과거 설계
+언급) 뿐**이며, 실제 `SajuRepository` 클래스 정의나 인스턴스화 코드는
+0건이다. `lib/features/fortune/saju/` 디렉토리 자체도 `find` 결과 0건.
+→ **route.ts(결과적으로 이 3개 파일 전부)는 Flutter 앱에서 더 이상 호출할
+방법이 없는 코드**다(§0에서 이미 확정한 사실의 재확인).
+
+### 5-1-2. 입력/출력 데이터 및 역할 — "계산/판정/검증/표현" 구분
+
+| 파일 | 역할(5단계 중) | 입력 | 출력 |
+|---|---|---|---|
+| `computeChart()`(route.ts 내부, 이 3개 파일 밖) | **①계산** | `birthDate`, `hasBirthTime` | `pillars`(년/월/일/시 간지 **문자열**), `fiveElements`, `seed` — **해시 기반, 실제 역학 계산 아님**(주석 "결정론적 규칙으로 계산(범위 밖)") |
+| `saju-judgment.ts`의 `buildSajuJudgment()` | **②판정** | `birthDate/birthTime/gender/isLunar/pillars/seed`(= computeChart 출력) | `SajuJudgment`(day_master/ten_gods_count/elements_ratio/verdict 4종/flow.daewoon·sewoon) |
+| LLM 호출(`completeText()`, route.ts L408 `tryGenerateSajuSection` 내부) | **④해석** | `buildUserPrompt()`가 `judgment`를 `JSON.stringify`해 프롬프트에 "[계산값] ... 절대로 사주를 다시 계산하거나 ... 새로 만들지 마세요"로 주입 | LLM 원본 텍스트(JSON 섞인 자유 텍스트) |
+| `saju-render.ts`의 `parseSajuLlmJson()` | **표현 전처리**(파싱) | LLM 원본 텍스트 | `SajuLlmResult`(headline/sections/actions/closing/evidence_used) 또는 실패 시 `null` |
+| `saju-qa-check.ts`의 `checkSajuResult()` | **③검증** | `SajuLlmResult` | `string[]`(실패 사유 목록, 빈 배열=통과) |
+| `saju-render.ts`의 `renderSajuLlmResult()` | **⑤표현**(최종 변환) | `SajuLlmResult`(QA 통과분) | Flutter `topicResults[topic]`에 그대로 들어가는 하나의 긴 텍스트 문자열 |
+
+**`buildSajuJudgment()`가 하는 일의 정확한 성격**: pillars(이미 가짜 간지
+문자열)를 받아 `STEM_ELEMENT`/`BRANCH_ELEMENT`(오행 고정표)로 8글자를
+오행 분류하고, `classifyTenGod(dmElement, targetElement)`로 **실제
+십신(비겁/식상/재성/관성/인성) 분류 규칙**을 적용해 `ten_gods_count`를
+센 뒤, 재물(재성·비겁)/관계(관성·인성)/직업(식상·인성)/건강(오행 편중)
+4개 카테고리를 조건식(`grade: good/caution/neutral`)으로 판정한다.
+세운(`flow.sewoon`)은 `yearGanji(year)` — `(year-4)%10`/`%12`를 쓰는
+**실제 60갑자 달력 공식**(1984년=갑자년 기준)으로 계산되어 해시가 아니다.
+반면 대운(`flow.daewoon`)은 코드 주석에 **"[범위 밖 — 근사치] 실제
+대운수(절입일수÷3, 순역 규칙)를 계산할 만세력 인프라가 없어 seed로
+그럴듯한 시작 나이만 생성한다"**고 명시적으로 자인하는 근사값이다
+(`startAge = 3 + (seed % 7)`, 간지도 `seed` 기반).
+
+→ **핵심 한계**: `buildSajuJudgment()` 내부 로직(오행 분류·십신 분류·
+세운 공식) 자체는 실제 역학 규칙을 쓰지만, **그 입력값인 `pillars`가
+이미 `computeChart()`의 해시 기반 가짜 간지이므로, 아무리 그 이후
+처리가 "진짜 규칙"이어도 결과 전체가 허구인 입력 위에 세워진
+판정**이다. "판정 로직은 진짜, 계산 결과는 가짜"라는 이중구조가
+이 레거시 경로의 본질이다.
+
+### 5-1-3. PHASE1~4(①번) 및 29종 주제선정(③번)과의 연결 여부 — **연결 없음(확정)**
+
+- `pillars` 변수명이 PHASE1(`ManseryeokCoreEngine`)의 출력과 같은 이름을
+  쓰고 있어 혼동되기 쉬우나, **코드 상 아무 관계가 없다**. ②번 경로의
+  `pillars`는 `route.ts`의 `computeChart()`가 자체적으로 생성하는 로컬
+  변수이고, PHASE1 결과는 Dart(`manseryeok_core_engine.dart`)에서만
+  존재하며 서버로 전송되지 않는다. 두 "pillars"는 동명이인이다.
+- 29종 주제선정(`topic-engine.ts`)은 `SajuFactsCache`(Python
+  `saju_engine_v3.3`가 계산한 Fact)만 입력으로 받으며, `saju-judgment.ts`의
+  `SajuJudgment`나 `computeChart()`의 `pillars`를 참조하는 코드는
+  `topic-engine.ts`/`saju-engine-client.ts` 어디에도 없다(grep 0건).
+- 결론: **②번(saju-judgment/qa-check/render)은 PHASE1~4(①)와도 29종
+  topic-engine(③)과도 데이터를 공유하지 않는, 완전히 고립된 세 번째
+  파이프라인 내부 모듈**이다.
+
+### 5-1-4. route.ts 호출 순서 — 정확한 라인번호로 확정한 전체 흐름
+
+```
+route.ts POST 핸들러(L170~)
+  │
+  ├─ L344: const { pillars, fiveElements, seed } = computeChart(birthDate, !!birthTime)
+  │         ── ①계산(해시 기반, 이 3개 파일 밖)
+  │
+  ├─ L349: const judgment = buildSajuJudgment({ birthDate, birthTime, gender,
+  │                                             isLunar, pillars, seed })
+  │         ── ②판정 ( saju-judgment.ts )
+  │         "모든 topic이 동일한 judgment를 공유한다(사람은 한 명, 판정도 하나)"
+  │
+  ├─ 주제별 활성 프롬프트 템플릿 병렬 조회(Promise.all, DB)
+  │
+  ├─ L401: buildUserPrompt({ name, birthDate, isLunar, birthTime, topic, judgment })
+  │         judgment를 JSON.stringify해 "[계산값] ... 절대로 사주를 다시
+  │         계산하지 마세요"로 프롬프트에 주입
+  │
+  ├─ withTemplate.map(...) → Promise.allSettled (주제별 병렬, 최대 MAX_LLM_ATTEMPTS=2 재시도)
+  │     │
+  │     └─ L408: tryGenerateSajuSection(template.templateBody, userPrompt)
+  │           │  (L150~168 함수 본문)
+  │           ├─ L156: completeText(...)              ── ④해석(LLM 호출)
+  │           ├─ L157: parseSajuLlmJson(raw)           ── 표현 전처리(파싱), 실패시 null 반환→재시도
+  │           ├─ L162: checkSajuResult(parsed)         ── ③검증(QA), 실패시 null 반환→재시도
+  │           └─ L167: renderSajuLlmResult(parsed)     ── ⑤표현(최종 텍스트)
+  │
+  ├─ 실패(allSettled rejected) 시: FALLBACK_TEXT_BY_TOPIC으로 폴백(동일 topic)
+  │
+  └─ DB 트랜잭션(L420~): fortuneRequest/fortuneResult 기록
+        "[무료 광고형 구조 재정비] 사주 운세는 완전 무료 — 차감/환급 없음"
+        (cost = 0, pointSpent = 0으로 명시적 고정)
+```
+
+이 흐름은 **①계산 → ②판정 → ④해석(LLM) → 표현전처리(파싱) → ③검증(QA)
+→ ⑤표현(렌더링)** 순서로, 사용자가 요구한 5단계 구분(계산/판정/검증/
+해석/표현)이 **route.ts 단일 함수 안에 코드 레벨로 명확히 분리**되어
+있음을 확정한다. 단, 검증(③)이 해석(④) *이후*에 일어나는 구조이므로
+"LLM이 생성한 결과를 사후 검증"하는 방식이며 "생성 전에 미리 걸러주는"
+방식은 아니다(실패 시 최대 2회까지 전체를 다시 생성).
+
+### 5-1-5. 현재 사용 여부 최종 판정
+
+| 항목 | 판정 | 근거 |
+|---|---|---|
+| admin_web 서버 코드(route.ts, 3개 lib 파일) | **코드는 존재하고 내부적으로 서로 정상 연결됨** | import 그래프, 라인별 호출관계 확정(5-1-1, 5-1-4) |
+| 이 경로의 엔드포인트(`POST /api/public/fortune/saju`)가 외부(Flutter)에서 실제로 호출되는가 | **아니오 — 호출 코드 없음** | `lib/features/fortune/saju/` 0건, `SajuRepository` 클래스 정의 0건(§0, 5-1-1 재확인) |
+| 종합 결론 | **"②번 레거시 전체 파이프라인(계산→판정→해석→검증→표현)이 서버 안에서는 완결된 형태로 살아있으나, 그것을 트리거할 클라이언트가 없어 실질적으로 휴면 상태"** | 코드 존재와 실행 여부를 분리해서 판단해야 한다는 지시서 원칙의 교과서적 사례 |
+
+### 5-1-6. 기존 경로와의 중복·결과 상이 가능성
+
+- **코드 중복**: `face-palm-qa-check.ts`가 `saju-qa-check.ts`의 검사
+  패턴(금지어/단정표현)을 복제했지만, **import 관계가 아니라 별도
+  파일로 독립 구현**되어 있어 한쪽을 고쳐도 다른 쪽이 깨지지 않는다
+  (유지보수 시 "따로 고쳐야 함"이라는 비용은 있으나, **실행 중
+  상호 간섭이나 결과 혼선 위험은 없다**).
+- **결과 상이 가능성**: ②번(해시 기반) vs ①번(PHASE1~4 실제 만세력)
+  vs ③번(Python saju_engine_v3.3 실제 만세력)은 **같은 생년월일을
+  넣어도 서로 다른 pillars/오행 결과를 낼 수 있다**(②는 해시이므로
+  실제 명식과 무관). 다만 ②번이 현재 호출되지 않으므로, **사용자가
+  실제로 접하는 결과는 ①번 또는 ③번 중 하나로 고정**되어 있어 "한
+  사람이 두 가지 다른 사주 결과를 동시에 보게 되는" 문제는 현재
+  발생하지 않는다(단, 향후 ②번 라우트가 실수로 다시 연결되면 이
+  불일치가 현실화될 수 있으므로 코드 삭제가 아닌 "휴면 확인"만으로
+  남겨둔 것에 대한 리스크로 기록해 둔다).
+
+---
+
+## 5-2. 통합 전체 흐름도 — ①②③ 세 시스템과 Flutter↔서버 경계
+
+사용자가 요청한 "각 경로가 어떻게 연결되는지 보여주는 전체 흐름도"를
+하나로 모은 것이다. **③개의 화살표 다발은 서로 교차하지 않는다** —
+이것이 이번 전체 검수의 가장 중요한 결론이다.
+
+```
+                         [ 사용자 생년월일시 입력 ]
+                                    │
+        ┌───────────────────────────┼───────────────────────────┐
+        │                           │                           │
+        ▼                           ▼                           ▼
+┌───────────────────┐   ┌─────────────────────────┐   ┌──────────────────────┐
+│ ①번: PHASE1~4      │   │ ②번: 레거시 AI사주        │   │ ③번: 정통사주 리뉴얼    │
+│ (Flutter 로컬 계산)  │   │ (admin_web 서버, 휴면)    │   │ (topic 기반, 운영중)    │
+├───────────────────┤   ├─────────────────────────┤   ├──────────────────────┤
+│ [Flutter 내부, 서버  │   │ [admin_web 서버 내부]     │   │ [Flutter] SajuRenewalApi│
+│  호출 없음]         │   │                         │   │   │                  │
+│ ManseryeokCoreEngine│   │ computeChart()           │   │   ▼                  │
+│  (PHASE1, 만세력)   │   │  └ 해시 기반 가짜 pillars  │   │ POST .../topics/select│
+│   │                │   │                         │   │   │ (admin_web)        │
+│   ▼                │   │ buildSajuJudgment()      │   │   ▼                  │
+│ Phase2AnalysisEngine│   │  saju-judgment.ts        │   │ topic-engine.ts      │
+│ (5개 하위엔진)       │   │  └ 오행/십신 실제 규칙    │   │  selectTopics()       │
+│   │                │   │     (입력 pillars는 가짜)  │   │  (29종, LLM 미사용)   │
+│   ▼                │   │   │                      │   │   │   ↑ 입력          │
+│ Phase3AnalysisEngine│   │   ▼                      │   │   │  SajuFactsCache   │
+│ (2개 하위엔진)       │   │ buildUserPrompt()         │   │   │  (DB 캐시)        │
+│   │                │   │  judgment를 "[계산값]"으로 │   │   │   ↑              │
+│   ▼                │   │  프롬프트에 주입            │   │   │ saju-engine-client│
+│ Phase4AnalysisEngine│   │   │                      │   │   │  .ts(HTTP)        │
+│ (3개 하위엔진)       │   │   ▼                      │   │   │   ↑              │
+│   │                │   │ LLM 호출(completeText)     │   │   │  [별도 Python     │
+│   ▼                │   │   │                      │   │   │   FastAPI 서버]   │
+│ sajuResultFromProfile│  │   ▼                      │   │   │  saju_engine_v3.3 │
+│ (SajuResultAdapter) │   │ saju-render.ts            │   │   │  POST /saju/v3/   │
+│   │                │   │  parseSajuLlmJson()        │   │   │       facts       │
+│   ▼                │   │   │                      │   │   ▼                  │
+│ 3개 독립 소비 경로    │   │   ▼                      │   │ POST .../interpret    │
+│ (§2-2)             │   │ saju-qa-check.ts           │   │  interpret-service.ts │
+│ · 귀인지도(캐시없음)  │   │  checkSajuResult()         │   │  └ LLM 해석 생성      │
+│ · DoorEngineGateway │   │   │ 실패시 최대 2회 재시도    │   │  interpret-qa-check.ts│
+│   (캐시없음)         │   │   ▼                      │   │  └ QA 검증(별도 모듈,   │
+│ · SajuVisualAdapter │   │ saju-render.ts             │   │     saju-qa-check.ts와 │
+│   (메모캐시 있음)    │   │  renderSajuLlmResult()      │   │     import 관계 없음) │
+└───────────────────┘   │   │                        │   └──────────────────────┘
+                         │   ▼                        │
+                         │ topicResults[topic]         │
+                         │  = 렌더링된 텍스트            │
+                         └─────────────────────────┘
+                              │
+                              ▼
+                   [ Flutter 쪽 호출 코드 없음 — 0건 ]
+                   SajuRepository 클래스 정의 없음,
+                   lib/features/fortune/saju/ 디렉토리 없음
+                   → 서버 파이프라인은 완결돼 있으나 트리거 불가(휴면)
+```
+
+**이 그림에서 확정되는 3가지**:
+1. ①(Flutter 로컬)과 ③(서버 Python 엔진 + topic-engine)은 화살표가
+   전혀 교차하지 않는다 — 입력(생년월일시)만 같고 계산 주체·결과·API가
+   완전히 분리되어 있다.
+2. ②(레거시)는 서버 내부에서는 계산→판정→해석→검증→표현 5단계가
+   코드로 완결되어 있지만, 맨 아래 화살표가 끊겨 있다(Flutter 호출
+   코드 0건) — "코드 존재 ≠ 실행"의 핵심 증거.
+3. ③ 내부에서도 "Fact 계산"(별도 Python 프로세스) → "주제 선정"(순수
+   TS, LLM 미사용) → "LLM 해석"(실제 텍스트 생성) → "QA 검증"
+  (`interpret-qa-check.ts`, `saju-qa-check.ts`와 무관한 별도 파일)이
+   명확히 분리된 4단계로 구현되어 있다.
+
+---
+
 ## 6. 검수 방법 및 한계
 
 - 모든 발견은 실제 소스코드 Read/Bash(`grep`/`sed -n`/`find`) 조회와, 기존
@@ -393,8 +631,13 @@ DoorEngineGateway를 호출하지 않음). 즉 **②번 경로(DoorEngineGateway
   `SajuRenewalProvider.visualProfileFor()`에 이미 메모이제이션 캐시가 적용되어
   동일 세션 내 재계산이 방지되고 있음을 확인했다(단, ①귀인지도·②DoorEngineGateway
   경로에는 이런 캐시가 없어 호출할 때마다 PHASE1~4 전체가 재계산된다).
-- admin_web `saju-judgment.ts`/`saju-qa-check.ts`/`saju-render.ts`는 §0에서
-  확정한 대로 **Flutter 클라이언트가 더 이상 호출하지 않는 ②번 레거시 경로
-  (`/api/public/fortune/saju`) 전용**이므로, ①번 시스템(이 보고서의 핵심 대상)
-  분석에는 영향을 주지 않아 전체 내용까지는 상세 분석하지 않았다(필요 시 별도
-  조사 대상으로 남긴다).
+- [갱신 — 추가 조사 완료] admin_web `saju-judgment.ts`/`saju-qa-check.ts`/
+  `saju-render.ts` 3개 파일은 이번 턴에서 **전체 내용을 Read로 전수 확인**
+  했고, `route.ts`의 정확한 호출 라인번호(L344/L349/L401/L408, 함수 내부
+  L156/L157/L162/L167)까지 추적을 완료했다(§5-1 신규 섹션). 결론은 §0에서
+  이미 확정한 대로 **Flutter 클라이언트가 더 이상 호출하지 않는 ②번 레거시
+  경로(`/api/public/fortune/saju`) 전용 내부 모듈**이며, ①번 시스템(이
+  보고서의 핵심 대상)과는 변수명만 같을 뿐("pillars") 코드상 데이터를 주고
+  받지 않는다. `SajuRepository` 클래스 정의가 Flutter 코드베이스에 0건임을
+  grep으로 재확인해, "서버 코드는 완결되어 있으나 호출할 클라이언트가 없는
+  휴면 파이프라인"이라는 판정을 뒷받침했다.
