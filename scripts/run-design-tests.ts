@@ -194,11 +194,15 @@ const registerIt = (name: string, fn: () => any): void => {
 // step3 는 이 하네스에서 유일하게 실제 DB(dev.db)를 쓴다 — 테스트 전용
 // 캠페인/쿠폰/리비전만 만들고 afterAll 에서 스스로 정리한다(기존 212행/
 // 3행은 건드리지 않는다).
+// [4단계 작업순서2] studio-api.ts(엔드포인트 5종의 핵심 로직)가 이제
+// 존재하므로 step4 테스트를 추가한다. step3 와 동일하게 테스트 전용
+// 캠페인만 만들고 afterAll 에서 스스로 정리한다.
 const DEFAULT_FILES = [
   'test/design.step1-theme.test.ts',
   'test/design.step1-layout.test.ts',
   'test/design.step2-renderer.test.ts',
   'test/design.step3-revision.test.ts',
+  'test/design.step4-studio-api.test.ts',
 ];
 
 async function main(): Promise<void> {
