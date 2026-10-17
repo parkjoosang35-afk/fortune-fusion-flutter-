@@ -316,6 +316,15 @@ export interface PreviewDesignResult {
  * 이 함수는 BokjuCoupon 테이블을 전혀 읽거나 쓰지 않는다 — 샘플 토큰이
  * 실제 쿠폰과 뒤섞일 코드 경로 자체가 없다(§0-G 필수2 "코드 구조로 경계
  * 보장").
+ *
+ * [02n §0-S-2 요청5] 아래 defaultLayout() 폴백은 "클라이언트가 보낸
+ * input.layout이 DesignLayout 스키마 파싱에 실패했을 때"만 발동하는
+ * 입력 검증 방어 코드다 — 에디터가 이미 유효한 레이아웃 상태를 들고
+ * 있는 정상 흐름에서는 절대 타지 않는다. 레거시 캠페인의 "현재
+ * 디자인이 무엇인가"를 결정하는 경로(getCampaignDesign())와는 호출
+ * 관계가 전혀 없다 — 그쪽은 §0-R-6에서 resolveLegacyLayout()으로
+ * 교체했고, 이 함수는 그 결과를 가져와 미리보기만 그릴 뿐 자체적으로
+ * "레거시 기본값"을 결정하지 않는다.
  */
 export async function previewDesign(input: PreviewDesignInput): Promise<PreviewDesignResult> {
   const parsed = designLayoutSchema.safeParse(input.layout);

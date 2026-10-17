@@ -247,6 +247,19 @@ export async function buildSvg(layout: DesignLayout, ctx: RenderContext): Promis
  * 쿠폰 1장 이미지 — 레이아웃 + 테마 그대로.
  * [변경] 포맷을 PNG 로 고정했다(§0 결정 — 운영 표준이 PNG). 원본의
  * IMAGE_FORMAT 분기(기본 jpeg)는 제거했다.
+ *
+ * [02n §0-S-2 요청5 — defaultLayout() 폴백은 도달 불가능한 방어 코드]
+ * `layout ?? defaultLayout()`의 null 분기는 "레거시 캠페인의 현재
+ * 디자인이 무엇인지 결정"하는 경로가 아니다 — 이 함수의 두 호출부
+ * (dispatch.ts:112, studio-api.ts:338)는 둘 다 호출 전에 이미 layout이
+ * non-null임을 보장한 뒤에만 넘긴다(dispatch.ts는 resolveLayoutForCoupon()
+ * 이 null을 반환하면 이 함수를 아예 호출하지 않고 레거시 경로로 분기,
+ * studio-api.ts의 previewDesign()은 항상 designLayoutSchema로 파싱된
+ * DesignLayout 객체를 넘긴다). 즉 이 null 병합 연산자는 타입 시그니처상
+ * `DesignLayout | null`을 받기 때문에 남겨둔 TypeScript 레벨의 방어
+ * 코드일 뿐, 02m/02n이 지적한 "레거시 기본값이 defaultLayout()으로
+ * 새는" 문제(getCampaignDesign()의 null 분기)와는 무관하다 — 그쪽은
+ * §0-R-6에서 resolveLegacyLayout()으로 이미 교체했다.
  */
 export async function renderCouponImage(
   layout: DesignLayout | null,

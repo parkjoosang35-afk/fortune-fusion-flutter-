@@ -508,9 +508,17 @@ describe('studio-api — convertLegacyDesign (금지 목록 ⑦ 발행 전 검�
 // 같은 요소 id 집합(= 같은 출발점)을 갖는지를 테스트로 고정한다.
 // 이 테스트가 깨지면 "전환한 캠페인과 새로 만든 캠페인의 기본 디자인이
 // 다르다"는 사용자 체감 회귀가 재발했다는 뜻이다.
-describe('작업순서6 — createCampaign() 초기 리비전과 convertLegacyDesign() 결과의 요소 id 집합 동일성', () => {
+// [02n §0-S-2 요청4 — #20을 3자 비교로 확장] 기존 #20은 convertLegacyDesign()
+// ↔ createCampaign() 두 진입점만 비교했다. 세 번째 진입점인
+// getCampaignDesign()의 레거시 폴백(= resolveLegacyLayout(), private 함수라
+// 직접 import할 수 없음)을 "전환 전(customTemplateId 없음, currentDesignRevisionId
+// 아직 null) 상태에서 getCampaignDesign()을 호출"하는 방식으로 간접
+// 노출시켜 추가했다 — 이 호출이 정확히 resolveLegacyLayout()을 거친다
+// (studio-api.ts getCampaignDesign()의 null 분기 참고).
+describe('작업순서6 — createCampaign() / convertLegacyDesign() / getCampaignDesign()(전환 전) 3자 요소 id 집합 동일성', () => {
   let convertedCampaignId: number;
   let freshCampaignId: number;
+  let unconvertedCampaignId: number;
 
   beforeAll(async () => {
     // ① 전환 경로: 내장 템플릿(customTemplateId 없음) 캠페인을 만들어 전환.
@@ -539,10 +547,31 @@ describe('작업순서6 — createCampaign() 초기 리비전과 convertLegacyDe
       'test',
     );
     freshCampaignId = created.campaignId;
+
+    // ③ 에디터 진입 경로(resolveLegacyLayout() 간접 노출): 내장 템플릿
+    //    캠페인을 만들되 전환 버튼을 누르지 않는다(currentDesignRevisionId
+    //    는 null로 유지). 이 상태에서 getCampaignDesign()을 호출하면
+    //    studio-api.ts의 null 분기 -> resolveLegacyLayout(campaign) ->
+    //    convertVisibilityToLayout(DEFAULT_VISIBILITY excl. decoration)을
+    //    그대로 거친다 — ①(convertLegacyDesign)과 완전히 같은 매핑 함수를
+    //    호출하므로, 두 결과가 다르면 02n §0-S-2가 우려한 "에디터 경로의
+    //    id와 신규 캠페인 경로의 id가 갈리는" 드리프트가 실제로 존재한다는
+    //    뜻이다.
+    const unconverted = await prisma.bokjuCouponCampaign.create({
+      data: {
+        title: '[TEST] 작업순서6 비교대상 — 에디터 진입(전환 전) 경로',
+        grantAmount: 300,
+        validFrom: new Date('2026-01-01T00:00:00Z'),
+        validTo: new Date('2026-12-31T23:59:59Z'),
+        designTemplate: 'CLASSIC',
+        // customTemplateId 미지정, convertLegacyDesign() 호출하지 않음.
+      },
+    });
+    unconvertedCampaignId = unconverted.id;
   });
 
   afterAll(async () => {
-    for (const id of [convertedCampaignId, freshCampaignId]) {
+    for (const id of [convertedCampaignId, freshCampaignId, unconvertedCampaignId]) {
       await prisma.bokjuCoupon.deleteMany({ where: { campaignId: id } });
       await prisma.bokjuCouponDesignRevision.deleteMany({ where: { campaignId: id } });
       await prisma.bokjuCouponCampaign.delete({ where: { id } });
@@ -555,18 +584,37 @@ describe('작업순서6 — createCampaign() 초기 리비전과 convertLegacyDe
     expect(design.currentRevisionNo).toBe(1);
   });
 
-  it('20) [핵심 — 회귀 방지] 두 진입점의 요소 id 집합이 동일하다 — 전환 결과(장식 0개, 9개)와 신규 생성 초기값이 같은 출발점이어야 한다', async () => {
+  it('20) [핵심 — 회귀 방지, 02n §0-S-2 요청4로 3자 확장] 세 진입점의 요소 id 집합이 전부 동일하다 — ① convertLegacyDesign() 결과 ② createCampaign() 초기 리비전 ③ getCampaignDesign()의 전환 전(에디터 진입) 레거시 폴백, 이 셋이 같은 출발점(장식 0개, 9개, "unit" — "amountUnit" 아님)이어야 한다', async () => {
     const convertedDesign = await getCampaignDesign(convertedCampaignId);
     const freshDesign = await getCampaignDesign(freshCampaignId);
+    const unconvertedDesign = await getCampaignDesign(unconvertedCampaignId);
 
     const convertedIds = convertedDesign.layout.elements.map((e) => e.id).sort();
     const freshIds = freshDesign.layout.elements.map((e) => e.id).sort();
+    const unconvertedIds = unconvertedDesign.layout.elements.map((e) => e.id).sort();
+
+    // ③은 아직 전환 전이어야 한다(= getCampaignDesign()의 null 분기,
+    // resolveLegacyLayout() 경유임을 확인하는 전제 조건).
+    expect(unconvertedDesign.currentRevisionId).toBe(null);
 
     expect(freshIds).toEqual(convertedIds);
+    expect(unconvertedIds).toEqual(convertedIds);
     expect(freshIds.length).toBe(9);
-    // 장식 요소가 신규 경로에 섞여 들어가면 안 된다(§0-Q-2 (b)를 택했을 때
-    // 발생했을 불일치 — 이 단언이 그 회귀를 직접 잡아낸다).
+    expect(unconvertedIds.length).toBe(9);
+    // 장식 요소가 어느 경로에도 섞여 들어가면 안 된다(§0-Q-2 (b)를 택했을
+    // 때 발생했을 불일치 — 이 단언이 그 회귀를 직접 잡아낸다).
     expect(freshIds.some((id) => id.startsWith('deco'))).toBe(false);
+    expect(unconvertedIds.some((id) => id.startsWith('deco'))).toBe(false);
+    // [02n §0-S-2 핵심 — amountUnit 혼입 방지] 세 경로 모두 buildTemplate
+    // ('classic') 계열의 "unit"을 써야 하며, defaultLayout() 고유의
+    // "amountUnit"이 섞여 들어가면 안 된다(이게 섞이면 rev90과 같은
+    // 드리프트가 재발했다는 뜻).
+    expect(convertedIds.includes('unit')).toBe(true);
+    expect(freshIds.includes('unit')).toBe(true);
+    expect(unconvertedIds.includes('unit')).toBe(true);
+    expect(convertedIds.includes('amountUnit')).toBe(false);
+    expect(freshIds.includes('amountUnit')).toBe(false);
+    expect(unconvertedIds.includes('amountUnit')).toBe(false);
   });
 
   it('21) 신규 경로의 초기 리비전은 validateLayout()을 통과한 상태로 저장되어 있다(조건① — 저장 자체가 saveCampaignDesign/convertLegacyDesign과 동일한 freezeRevision을 거쳤으므로 스키마 검증을 통과했다는 뜻)', async () => {
