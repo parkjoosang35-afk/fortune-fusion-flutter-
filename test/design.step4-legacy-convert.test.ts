@@ -30,6 +30,7 @@ import { prisma } from '../src/lib/db';
 import { validateLayout } from '../src/lib/bokju-coupon-design/layout';
 import { convertVisibilityToLayout } from '../src/lib/bokju-coupon-design/legacy-convert';
 import { canonicalHash } from '../src/lib/bokju-coupon-design/revision';
+import { createCampaign } from '../src/lib/bokju-coupon-service';
 import {
   convertLegacyDesign, getCampaignDesign, listCampaignRevisions,
   revertToLegacyDesign, rollbackCampaignDesign, StudioApiError,
@@ -496,5 +497,90 @@ describe('studio-api — convertLegacyDesign (금지 목록 ⑦ 발행 전 검�
     expect(after.currentRevisionId).toBe(null);
     const revs = await listCampaignRevisions(campaignId);
     expect(revs.length).toBe(0);
+  });
+});
+
+// ════════════════════════════════════════════════ 4) 작업순서6 — 신규 캠페인 초기 리비전 기본값
+// [02l §0-Q-2 결정 (a) + 회귀 방지 요구] "기본값 불일치 회귀가 이번이
+// 두 번째"(decoration 수정 때 1차 발생)라는 지적에 따라, 서로 다른 두
+// 진입점(① 내장 템플릿 캠페인을 convertLegacyDesign()으로 전환한 결과,
+// ② createCampaign()으로 신규 캠페인을 만들었을 때의 초기 리비전)이
+// 같은 요소 id 집합(= 같은 출발점)을 갖는지를 테스트로 고정한다.
+// 이 테스트가 깨지면 "전환한 캠페인과 새로 만든 캠페인의 기본 디자인이
+// 다르다"는 사용자 체감 회귀가 재발했다는 뜻이다.
+describe('작업순서6 — createCampaign() 초기 리비전과 convertLegacyDesign() 결과의 요소 id 집합 동일성', () => {
+  let convertedCampaignId: number;
+  let freshCampaignId: number;
+
+  beforeAll(async () => {
+    // ① 전환 경로: 내장 템플릿(customTemplateId 없음) 캠페인을 만들어 전환.
+    //    campaign 1("신규회원 환영 쿠폰")과 동일 조건 — 15-5와 같은 패턴.
+    const converted = await prisma.bokjuCouponCampaign.create({
+      data: {
+        title: '[TEST] 작업순서6 비교대상 — 전환 경로',
+        grantAmount: 300,
+        validFrom: new Date('2026-01-01T00:00:00Z'),
+        validTo: new Date('2026-12-31T23:59:59Z'),
+        designTemplate: 'CLASSIC',
+      },
+    });
+    convertedCampaignId = converted.id;
+    await convertLegacyDesign(convertedCampaignId, { createdBy: 'test' });
+
+    // ② 신규 경로: createCampaign()을 그대로 호출(= 실제 운영 코드 경로,
+    //    route.ts가 호출하는 것과 동일한 함수). 모킹하지 않는다.
+    const created = await createCampaign(
+      {
+        title: '[TEST] 작업순서6 비교대상 — 신규 생성 경로',
+        grantAmount: 300,
+        validFrom: new Date('2026-01-01T00:00:00Z'),
+        validTo: new Date('2026-12-31T23:59:59Z'),
+      },
+      'test',
+    );
+    freshCampaignId = created.campaignId;
+  });
+
+  afterAll(async () => {
+    for (const id of [convertedCampaignId, freshCampaignId]) {
+      await prisma.bokjuCoupon.deleteMany({ where: { campaignId: id } });
+      await prisma.bokjuCouponDesignRevision.deleteMany({ where: { campaignId: id } });
+      await prisma.bokjuCouponCampaign.delete({ where: { id } });
+    }
+  });
+
+  it('19) createCampaign()은 생성 직후 currentDesignRevisionId를 채운다(더 이상 null 폴백이 아니다)', async () => {
+    const design = await getCampaignDesign(freshCampaignId);
+    expect(design.currentRevisionId).not.toBe(null);
+    expect(design.currentRevisionNo).toBe(1);
+  });
+
+  it('20) [핵심 — 회귀 방지] 두 진입점의 요소 id 집합이 동일하다 — 전환 결과(장식 0개, 9개)와 신규 생성 초기값이 같은 출발점이어야 한다', async () => {
+    const convertedDesign = await getCampaignDesign(convertedCampaignId);
+    const freshDesign = await getCampaignDesign(freshCampaignId);
+
+    const convertedIds = convertedDesign.layout.elements.map((e) => e.id).sort();
+    const freshIds = freshDesign.layout.elements.map((e) => e.id).sort();
+
+    expect(freshIds).toEqual(convertedIds);
+    expect(freshIds.length).toBe(9);
+    // 장식 요소가 신규 경로에 섞여 들어가면 안 된다(§0-Q-2 (b)를 택했을 때
+    // 발생했을 불일치 — 이 단언이 그 회귀를 직접 잡아낸다).
+    expect(freshIds.some((id) => id.startsWith('deco'))).toBe(false);
+  });
+
+  it('21) 신규 경로의 초기 리비전은 validateLayout()을 통과한 상태로 저장되어 있다(조건① — 저장 자체가 saveCampaignDesign/convertLegacyDesign과 동일한 freezeRevision을 거쳤으므로 스키마 검증을 통과했다는 뜻)', async () => {
+    const freshDesign = await getCampaignDesign(freshCampaignId);
+    const result = validateLayout(freshDesign.layout);
+    expect(result.ok).toBe(true);
+    expect(result.issues.some((i) => i.level === 'error')).toBe(false);
+  });
+
+  it('22) [조건② — 기존 캠페인 미접촉] createCampaign() 호출은 기존 캠페인(여기서는 ①에서 만든 전환 캠페인)의 currentDesignRevisionId를 건드리지 않는다', async () => {
+    const convertedDesign = await getCampaignDesign(convertedCampaignId);
+    // ①은 전환으로 생성된 리비전을 계속 가리켜야 한다 — ②의 생성이 끼어들어
+    // 바뀌었으면 안 된다.
+    expect(convertedDesign.currentRevisionNo).toBe(1);
+    expect(convertedDesign.layout.elements.some((e) => e.id.startsWith('deco'))).toBe(false);
   });
 });

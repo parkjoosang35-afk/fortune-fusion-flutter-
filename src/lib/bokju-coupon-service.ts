@@ -31,6 +31,7 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { earnLuckPouch } from "@/lib/luck-pouch-engine";
 import { createNotification } from "@/lib/notification-engine";
+import { initializeNewCampaignDesign } from "@/lib/bokju-coupon-design/studio-api";
 
 type Tx = Prisma.TransactionClient;
 
@@ -121,6 +122,16 @@ export async function createCampaign(input: CreateCampaignInput, actorId: string
       createdBy: actorId,
     },
   });
+
+  // [작업순서6 — 02l §0-Q-2 결정 (a)] 신규 캠페인의 초기 리비전을
+  // buildTemplate('classic', …) 기본값으로 즉시 동결해 currentDesignRevisionId
+  // 를 채운다. 캠페인 생성 자체는 이미 커밋되었으므로, 리비전 생성이
+  // 실패하더라도(이론상 불가능 — initializeNewCampaignDesign 내부에서
+  // null 반환으로 방어됨) 캠페인 생성 자체를 되돌리지 않는다. 기존
+  // 캠페인(1/23/24)은 이 함수가 새로 만든 campaign.id 만 인자로 받으므로
+  // 전혀 접촉하지 않는다(조건② — 자동 전환 금지 유지).
+  await initializeNewCampaignDesign(campaign.id, { createdBy: actorId });
+
   return { campaignId: campaign.id };
 }
 

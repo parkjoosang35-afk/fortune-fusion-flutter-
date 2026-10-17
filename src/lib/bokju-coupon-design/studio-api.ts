@@ -32,11 +32,11 @@
 // ─────────────────────────────────────────────────────────────────────
 import { prisma } from '@/lib/db';
 import {
-  validateLayout, designLayoutSchema, defaultLayout,
+  validateLayout, designLayoutSchema, defaultLayout, CANVAS_PRESETS,
   type DesignLayout, type LayoutIssue,
 } from './layout';
-import { PALETTES, paletteCatalog } from './theme';
-import { TEMPLATES, PARTS, PART_GROUPS } from './templates';
+import { PALETTES, paletteCatalog, resolveTheme } from './theme';
+import { TEMPLATES, PARTS, PART_GROUPS, buildTemplate } from './templates';
 import {
   freezeRevision, setCurrentRevision, listRevisions as listRevisionsRaw,
 } from './revision';
@@ -423,6 +423,61 @@ export async function convertLegacyDesign(
       ? '장식(테두리·모서리 원)의 색상은 레거시 고정 색상(#d4a94a)이 아니라 테마 색상(@accent)으로 표시됩니다. 팔레트에 따라 레거시와 미세하게 다른 색으로 보일 수 있습니다.'
       : null,
   };
+}
+
+// ────────────────────────────────────────────── 5-2b) 작업순서6 — 신규 캠페인 초기 리비전
+/**
+ * [작업순서6 — 02l §0-Q-2 결정 (a)] 신규 캠페인 생성 직후, 레이아웃
+ * 기본값(buildTemplate('classic', …))에서 바로 리비전을 동결해
+ * currentDesignRevisionId 를 처음부터 채운다.
+ *
+ * [왜 (a)인가 — convertVisibilityToLayout(DEFAULT_VISIBILITY) 가 아닌 이유]
+ * convertLegacyDesign() 이 내장 템플릿 캠페인을 전환할 때 쓰는 기본값은
+ * `{ ...DEFAULT_VISIBILITY, decoration: false }` (02k §필수 수정, 위 참고)
+ * 이고, 그 결과 요소 집합은 classic 템플릿의 9개 그대로(장식 0개)다.
+ * 신규 캠페인이 `convertVisibilityToLayout(DEFAULT_VISIBILITY)` (decoration
+ * 그대로 true)를 쓰면 장식 3개가 추가되어, 같은 classic 기반인데도
+ * "전환한 캠페인엔 장식이 없고 새로 만든 캠페인엔 있다"는 불일치가
+ * 생긴다 — 단일 진실 소스 원칙 위반(이번이 두 번째 사례). 따라서 신규
+ * 경로도 buildTemplate('classic', …)을 직접 호출해 전환 경로와 동일한
+ * 출발점(장식 0개, 요소 9개)에서 시작한다.
+ *
+ * [함수 호출 1줄 — 02l 요청] 아래가 그 1줄이다:
+ *   const layout = buildTemplate('classic', resolveTheme(undefined), CANVAS_PRESETS.PORTRAIT_720);
+ *
+ * [조건① — validateLayout 통과] buildTemplate('classic', …)은 QR·쿠폰번호가
+ * 모두 켜진 완전한 레이아웃이므로 validateLayout()을 항상 통과한다(장식이
+ * 없을 때도 NO_DYNAMIC_BINDING 등 에러 조건에 해당하지 않음). 그래도
+ * 방어적으로 재검증하고, 혹시라도 실패하면(이론상 불가능하나) 캠페인
+ * 생성 자체를 막지 않고 조용히 건너뛴다 — 레거시 폴백(currentDesignRevisionId
+ * null → defaultLayout())이 항상 존재하므로 신규 캠페인 생성 자체가
+ * 막히는 사고를 만들지 않는다.
+ *
+ * [조건② — 기존 캠페인 3개 절대 미접촉] 이 함수는 createCampaign() 이
+ * 새로 만든 campaignId 에 대해서만 호출되며, 기존 캠페인의
+ * currentDesignRevisionId 를 조회·수정하는 코드가 전혀 없다(freezeRevision/
+ * setCurrentRevision 모두 신규 campaignId 인자로만 호출).
+ */
+export async function initializeNewCampaignDesign(
+  campaignId: number,
+  opts: { createdBy?: string } = {},
+): Promise<{ revisionId: number; revisionNo: number } | null> {
+  const layout = buildTemplate('classic', resolveTheme(undefined), CANVAS_PRESETS.PORTRAIT_720);
+
+  const result = validateLayout(layout);
+  const hasError = result.issues.some((i) => i.level === 'error');
+  if (!result.ok || hasError || !result.layout) {
+    // 방어적 분기 — 이론상 도달하지 않는다(classic 템플릿은 항상 유효).
+    // 신규 캠페인 생성 자체를 막지 않고 레거시 폴백(null)으로 둔다.
+    return null;
+  }
+
+  const frozen = await freezeRevision(campaignId, result.layout, {
+    note: '작업순서6 — 신규 캠페인 초기 리비전(classic 기본값)',
+    createdBy: opts.createdBy,
+  });
+  await setCurrentRevision(campaignId, frozen.id);
+  return { revisionId: frozen.id, revisionNo: frozen.revNo };
 }
 
 // ────────────────────────────────────────────── 5-3) §0-M-6/02i §필수2 레거시 되돌리기
