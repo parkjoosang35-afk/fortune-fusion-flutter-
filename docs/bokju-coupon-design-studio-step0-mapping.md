@@ -55,3 +55,71 @@
 - 운영 프로젝트에 vitest/jest/mocha 등 표준 러너 **없음** (실측 확인, `package.json` 의존성 0건)
 - 개발팀이 제공한 `scripts/run-design-tests.ts`(외부 의존 0, describe/it/expect 전역 주입) 설치 완료
 - `package.json`에 `"test:coupon-design": "tsx scripts/run-design-tests.ts"` 추가 완료
+
+## 7. 1단계 완료 (커밋 `ec9257c`, 사용자 최종 승인 완료)
+
+| 항목 | 값 |
+|---|---|
+| 테스트 결과 | `npm run test:coupon-design` → **통과 50건 · 실패 0건 · 스킵 0건** |
+| 테스트 수 보존 | 원본 57건(39+18) = step1 50건(38+12) + step2 7건(1+6), 유실 0건 |
+| tsc 잔존 에러 | 1건(`design.step2-renderer.test.ts`의 `renderer` 모듈 미존재) — **2단계 작업 대상, 의도된 정상 상태** |
+| PARTS 자동 비교 | `node scripts/checks/compare-parts.mjs` → ui-목업 17종 vs 이식본 17종 순서까지 완전 일치 |
+| 산출물 커밋 | `ec9257c`(테스트 하네스 skip/todo 지원 + step1/step2 분리 + globals.d.ts), 선행 `301355b`(디자인 코어 이식) |
+
+### 7.1 검증 과정에서 발견한 사항 (코드 변경 없음, 기록용)
+
+- **명세서 오탈자**: `개발명세서.html` 50장 제목 "부품 16종"은 오탈자. 코드 기준(ui-목업 `data.js`의 `PARTS`, 이식본 `templates.ts`의 `PARTS`) **17종이 정확**하며 양쪽 완전 일치 확인(`compare-parts.mjs`). 명세서 파일(참고자료, admin_web 소스 아님) 자체는 수정하지 않음.
+- **테스트 영향 측정 시 발생한 2건의 측정 오류(사용자 셀프 교정, 기록 보존 목적)**:
+  1. "globals.d.ts 설치로 tsc 에러 161건→0건"(v4 패키지 주장) — admin_web에 실제 트라이얼 적용 결과 **13건 잔존**이 정답이었음(`expect(x, label)` 2인자 호출 12건 + `redeemModeOf` 존재하지 않는 메서드 호출 1건). v5에서 이 13건을 정확히 타깃 수정(`expect` 2인자 시그니처 추가, `redeemModeOf` 체이닝 제거) → tsc 재검증 결과 **1건**(2단계 대상, 정상)으로 감소, 실측 확인 완료.
+  2. 위 1번과 별개로, 외부(사용자) 환경에서 "tsc 0건"으로 측정된 것은 외부 `sintong-coupon/tsconfig.json`의 `"exclude": ["...", "test"]` 설정 때문에 테스트 파일이 애초에 타입 검사 대상에서 제외되어 있었던 것으로 확인됨. **admin_web 실제 환경(테스트 포함 검사)에서 트라이얼 적용으로 얻은 결과가 정본**이며, 이 매핑표 및 완료보고서는 그 정본 수치(13→1)를 기준으로 작성됨.
+
+### 7.2 2단계 착수 전 필요 자료 (아래 §8, §9 참고)
+
+- `BokjuCouponDesignTemplate` 현재 필드 목록 → §8
+- `CouponVisibilityConfig` 11항목 → §9
+- 매핑표 → 본 문서 §3 (위 작성됨, 갱신 불필요 — 2단계 범위에 영향받는 필드 없음)
+
+## 8. BokjuCouponDesignTemplate 현재 필드 목록 (schema.prisma 실측, 2단계 참고용)
+
+```prisma
+model BokjuCouponDesignTemplate {
+  id            Int      @id @default(autoincrement())
+  name          String                                    // 관리자가 붙인 템플릿 이름
+  designAssetId Int?     @map("design_asset_id")           // null이면 흰 배경(기존 MINIMAL과 유사) 기본 렌더링
+  visibility    String   @map("visibility")                // JSON: CouponVisibilityConfig 11항목(§9) 직렬화
+  isDefault     Boolean  @default(false) @map("is_default")
+  isArchived    Boolean  @default(false) @map("is_archived") // true면 선택 목록에서만 숨김, 기존 발행 이미지엔 영향 없음
+  createdBy     String?  @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  designAsset BokjuCouponDesignAsset? @relation(fields: [designAssetId], references: [id], onDelete: SetNull)
+  campaigns   BokjuCouponCampaign[]
+
+  @@index([designAssetId])
+  @@map("bokju_coupon_design_templates")
+}
+```
+
+> 2단계(토큰 렌더러 지원) 영향 범위 검토: 현재 `visibility` 컬럼은 좌표 자유배치가 아닌 "11항목 on/off + reflow" 방식(§9)이며, 이식 대상 레이아웃(`DesignLayout`, 자유좌표+템플릿+팔레트)과 **데이터 모델이 다름**. 2단계에서 이 두 방식을 어떻게 공존시킬지(신규 컬럼 추가 여부 등)는 매핑표(§3) 상 "표시·숨김 설정 — 삭제 금지, 유지. 좌표 배치 에디터와 공존(4단계)" 방침에 따라 **4단계(관리자 에디터 화면)에서 구체화** 예정이며, 2단계(렌더러) 자체는 `BokjuCouponDesignTemplate`을 읽거나 쓰지 않음(렌더러는 `DesignLayout` 객체만 입력받음).
+
+## 9. CouponVisibilityConfig 11항목 (src/lib/bokju-coupon-visibility.ts 실측, 2단계 참고용)
+
+```ts
+export interface CouponVisibilityConfig {
+  logo: boolean;        // 신통방통 로고
+  title: boolean;       // 쿠폰명
+  amount: boolean;      // 지급 복주머니 수량
+  couponNo: boolean;    // 쿠폰번호
+  qr: boolean;          // QR코드
+  validFrom: boolean;   // 사용 시작일
+  validTo: boolean;     // 사용 만료일
+  guideText: boolean;   // 쿠폰 안내 문구
+  ctaText: boolean;     // '쿠폰 등록하러 가기' 안내
+  partnerName: boolean; // 이벤트명 또는 제휴업체명
+  decoration: boolean;  // 장식 요소 및 테두리
+}
+```
+
+- 캔버스 상수: `CANVAS_WIDTH=720`, `CANVAS_HEIGHT=1280` (기존 `bokju-coupon-image-service.ts`와 동일, 1차 패키지의 1080×1920과 다름 — §5에 이미 기록됨, 2단계에서 토큰 렌더러의 `CANVAS_PRESETS`와 별도 네임스페이스로 유지해야 충돌 없음)
+- `computeLayout(visibility)`가 11항목 중 표시(`true`)된 블록만 세로 1열로 순서대로 재배치(reflow)하는 **기존 쿠폰 100장 렌더링 로직**이며, 이 로직은 `bokju-coupon-image-service.ts`에서만 사용됨 — 2단계 토큰 렌더러(`renderer.ts`)는 이 함수를 호출하지 않고 완전히 별도 경로로 동작해야 함(금지목록②와 동일 원칙: 기존 파이프라인 불가침).
