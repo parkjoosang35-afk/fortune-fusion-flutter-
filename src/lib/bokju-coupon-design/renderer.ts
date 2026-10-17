@@ -49,6 +49,26 @@
 //      결정 — 2단계에서 손대지 않음, 4단계로 이월). BIND_SOURCES 에도 이
 //      두 값은 없다(partner.name 만 추가됨, layout.ts 참고).
 //   6) putImage() 는 이식하지 않았다 — 이 모듈은 Buffer 만 반환한다.
+//
+// ── 4단계 변경(02e_4단계-에디터.md §0-E — 필수 구조 분리) ─────────────────
+//   "layout+theme → SVG 문자열" 순수 로직을 ./svg.ts 로 전부 옮겼다. 이유:
+//   이 파일이 모듈 최상단에서 `sharp`(네이티브 바이너리)를 import 하므로
+//   React 에디터(클라이언트)에서 그대로 import 하면 번들이 깨진다. QR 생성도
+//   `QRCode.toBuffer()`(서버 전용)에 의존했다. 그대로 두면 "서버(여기) ·
+//   목업(engine.js, 폐기 대상) · 신규 React" 로 렌더 로직이 3벌이 되어
+//   완료기준 1("화면 SVG = 서버 SVG")을 구조적으로 보장할 수 없었다.
+//
+//   이제 이 파일은 **얇은 I/O 래퍼**다:
+//     1) QR 페이로드 문자열을 만들고(qrPayload, 변경 없음)
+//     2) QRCode.toBuffer() 로 실제 QR PNG 를 만들어 data URI 로 바꾸고
+//     3) 레이아웃에 쓰인 이미지 자산(assetUrl/backgroundAssetUrl)을
+//        toDataUri() 로 전부 미리 로딩해 **동기 조회용 Map** 을 만들고
+//     4) ./svg.ts 의 순수 buildSvg(layout, ctx, { qrDataUri, resolveAsset })
+//        를 호출해 SVG 문자열을 얻고
+//     5) sharp 로 래스터화한다.
+//   기존 export(buildSvg, renderCouponImage, renderOgImage, qrPayload,
+//   wrapText)는 **시그니처를 그대로 유지**하며 re-export/래핑한다 — 기존
+//   74건 테스트가 이 변경을 몰라도 그대로 통과해야 한다.
 // ─────────────────────────────────────────────────────────────────────
 import QRCode from 'qrcode';
 import sharp from 'sharp';
@@ -57,7 +77,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { DesignLayout, LayoutElement } from './layout';
 import { defaultLayout, resolveLayoutTheme } from './layout';
-import { tokenColor, ensureContrast, type ResolvedTheme } from './theme';
+import { wrapText, buildSvg as buildSvgPure, type SvgRenderContext, type BuildSvgOptions } from './svg';
 
 export interface RenderContext {
   campaign: {
@@ -105,77 +125,34 @@ const BRAND_NAME = process.env.COUPON_BRAND ?? '신통방통';
 const BRAND_DOMAIN = process.env.COUPON_DOMAIN ?? 'sintong.kr';
 // 기존 등록 라우트(src/app/coupon/[token]/page.tsx)와 일치. 하드코딩된
 // '/c' 는 쓰지 않는다 — 02b_지시서_2단계.md §0-1, step2-renderer.test.ts 57행 수정 대상.
+// [4단계] ./svg.ts 의 'coupon.registerUrl' 바인딩도 같은 '/coupon' 을
+// 하드코딩해 쓴다 — 두 상수가 어긋나면 "표시 문구"와 "QR 목적지"가
+// 달라지므로, 바꿀 때는 반드시 두 파일을 함께 수정해야 한다.
 const QR_PATH = '/coupon';
 
 /**
  * QR 페이로드 — 개인정보가 들어가지 않는 유일한 식별자.
  * [변경] registerBaseUrl 을 필수 인자로 받는다(§4 결정). 생략 시
  * FALLBACK_BASE_URL(로컬/테스트 전용)을 쓴다.
+ * [4단계] 시그니처·동작 변경 없음 — svg.ts 는 이 함수를 import 하지 않는다
+ * (순수 모듈 원칙 — svg.ts 는 완성된 qrDataUri 만 주입받는다).
  */
 export function qrPayload(redeemToken: string, registerBaseUrl: string = FALLBACK_BASE_URL): string {
   return `${registerBaseUrl}${QR_PATH}/${redeemToken}`;
 }
 
-// ────────────────────────────────────────────── 값 바인딩
-function resolveText(el: LayoutElement, ctx: RenderContext): string {
-  switch (el.bind) {
-    case 'static': return el.text ?? '';
-    case 'campaign.title': return ctx.campaign.title;
-    case 'campaign.grantAmount': return String(ctx.campaign.grantAmount);
-    case 'campaign.guideText': return ctx.campaign.guideText ?? '';
-    case 'campaign.validPeriod': {
-      const f = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '.');
-      return `${f(ctx.campaign.validFrom)} ~ ${f(ctx.campaign.validTo)}`;
-    }
-    case 'coupon.couponNo': return ctx.coupon.couponNo;
-    case 'brand.domain': return ctx.brand?.domain ?? BRAND_DOMAIN;
-    // [3단계 수정] brand.domain(표시용) 대신 registerBaseUrlFrom(ctx)(QR과
-    // 동일한 전용 경로)을 쓴다 — 등록 URL 은 scheme·포트가 보존된 실제
-    // 접속 가능한 주소여야 한다. brand.domain 에 origin 전체를 넣어
-    // 겸용하던 이전 방식은 폐기한다(§ RenderContext.registerBaseUrl 주석).
-    case 'coupon.registerUrl':
-      return `${registerBaseUrlFrom(ctx)}${QR_PATH}/${ctx.coupon.redeemToken}`;
-    case 'coupon.qr': return '';
-    // [2단계 신규] 값이 없으면 빈 문자열 — elementSvg() 가 빈 문자열이면
-    // 렌더를 건너뛰므로(원본과 동일한 '빈 텍스트는 스킵' 규칙), 별도 분기
-    // 없이 campaignTitle 대체 없는 "건너뛰기"가 자동으로 성립한다.
-    case 'partner.name': return ctx.partnerName ?? '';
-    default: return '';
-  }
-}
+// [4단계] wrapText 는 이제 ./svg.ts 의 구현을 그대로 재사용한다(로직이
+// 100% 동일했으므로 중복 보관하지 않는다). 기존 호출부·테스트는
+// renderer.ts 에서 import 하므로 re-export 로 하위호환을 유지한다.
+export { wrapText };
 
-// ────────────────────────────────────────────── 텍스트 줄바꿈
+// ────────────────────────────────────────────── 이미지 data URI (I/O 전용)
 /**
- * SVG 는 자동 줄바꿈이 없다. 폭을 추정해 직접 나눈다.
- * 한글/한자/기호 = 1em, 그 외(라틴·숫자) = 0.55em 로 근사한다.
+ * [4단계 — svg.ts 로 이식하지 않은 이유] fetch/fs 를 쓰는 I/O 함수라
+ * 순수 모듈(svg.ts)에는 둘 수 없다. renderer.ts(서버 전용)에만 남긴다.
+ * svg.ts 의 BuildSvgOptions.resolveAsset 콜백 뒤에서 이 함수의 결과를
+ * Map 으로 미리 채워 동기 조회만 하도록 연결한다(아래 preResolveAssets).
  */
-export function wrapText(text: string, fontSize: number, maxWidth: number, maxLines = 3): string[] {
-  const widthOf = (s: string) =>
-    [...s].reduce((acc, ch) => acc + (/[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF]/.test(ch) ? fontSize : fontSize * 0.55), 0);
-
-  const lines: string[] = [];
-  let current = '';
-  for (const ch of text) {
-    if (ch === '\n') { lines.push(current); current = ''; continue; }
-    const next = current + ch;
-    if (widthOf(next) > maxWidth && current.length > 0) {
-      lines.push(current);
-      current = ch;
-    } else {
-      current = next;
-    }
-    if (lines.length >= maxLines) break;
-  }
-  if (current && lines.length < maxLines) lines.push(current);
-  if (lines.length === maxLines && widthOf(lines[maxLines - 1]) < widthOf(text)) {
-    let last = lines[maxLines - 1];
-    while (last.length > 1 && widthOf(last + '…') > maxWidth) last = last.slice(0, -1);
-    lines[maxLines - 1] = last + '…';
-  }
-  return lines;
-}
-
-// ────────────────────────────────────────────── 이미지 data URI
 async function toDataUri(src: string): Promise<string | null> {
   try {
     if (/^https?:\/\//.test(src)) {
@@ -195,148 +172,74 @@ async function toDataUri(src: string): Promise<string | null> {
   }
 }
 
-// ────────────────────────────────────────────── SVG 생성
-function esc(s: string): string {
-  return s.replace(/[<>&'"]/g, (c) =>
-    ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c] as string));
-}
-
-function textAnchor(align?: string): string {
-  return align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-}
-
 /**
- * 이 요소 뒤에 실제로 깔리는 색.
- * 아래 레이어의 박스가 이 위치를 덮고 있으면 그 색, 아니면 캔버스 배경.
- * 글자 대비를 "진짜 배경" 기준으로 재기 위해 필요하다.
+ * 레이아웃에 쓰인 모든 이미지 소스(요소 assetUrl/assetId + 캔버스 배경)를
+ * 미리 비동기로 전부 로딩해 "원본 소스 → data URI" 동기 조회용 Map 을
+ * 만든다. svg.ts 의 buildSvg() 는 동기 함수이므로(순수 모듈 — 네트워크
+ * 호출을 품을 수 없다), I/O 는 반드시 호출 **전에** 끝내야 한다.
  */
-function backdropFor(el: LayoutElement, layout: DesignLayout, theme: ResolvedTheme): string {
-  const canvasBg = tokenColor(theme, layout.canvas.backgroundToken, layout.canvas.background);
-  const boxes = layout.elements
-    .filter((e) => e.kind === 'box' && e.visible !== false && e.z < el.z)
-    .sort((a, b) => b.z - a.z);                      // 위에 깔린 것부터 본다
-  for (const b of boxes) {
-    const w = b.width ?? 0, h = b.height ?? 0;
-    if (w > 0 && h > 0 && Math.abs(el.x - b.x) <= w / 2 && Math.abs(el.y - b.y) <= h / 2) {
-      return tokenColor(theme, b.fillToken, b.fill ?? theme.tokens.surface);
+async function preResolveAssets(layout: DesignLayout): Promise<Map<string, string>> {
+  const sources = new Set<string>();
+  if (layout.canvas.backgroundAssetUrl) sources.add(layout.canvas.backgroundAssetUrl);
+  for (const el of layout.elements) {
+    if (el.kind === 'image') {
+      const src = el.assetUrl ?? el.assetId;
+      if (src) sources.add(src);
     }
   }
-  return canvasBg;
+  const map = new Map<string, string>();
+  await Promise.all(
+    [...sources].map(async (src) => {
+      const uri = await toDataUri(src);
+      if (uri) map.set(src, uri);
+    }),
+  );
+  return map;
 }
 
-/**
- * [3단계 수정 — 추론 폐기, 직접 수신으로 전환] 원래는 ctx.brand.domain 에서
- * scheme 유무를 추론해(`/^https?:\/\//` 체크) 없으면 https:// 를 강제로
- * 붙였다. 이 추론이 바로 버그였다: http://localhost:4300 처럼 scheme 이
- * http 인 주소도 무조건 https:// 로 둔갑시코다(로컬/스테이징 QR 이 영원히
- * 안 열리는 사고 패턴). registerBaseUrl 은 이제 RenderContext 전용 필드로
- * 받으므로 추론이 필요 없다 — 호출부(dispatch.ts 등)가 넘긴 값을 그대로
- * 쓴다. 없을 때만 로컬 실행·테스트 폴백(FALLBACK_BASE_URL)을 쓴다.
- */
 function registerBaseUrlFrom(ctx: RenderContext): string {
   return ctx.registerBaseUrl ?? FALLBACK_BASE_URL;
 }
 
-async function elementSvg(
-  el: LayoutElement, ctx: RenderContext, layout: DesignLayout, theme: ResolvedTheme,
-): Promise<string> {
-  if (el.visible === false) return '';
-  const { x, y } = el;
-  const rotate = el.rotation ? ` transform="rotate(${el.rotation} ${x} ${y})"` : '';
-  const opacity = el.opacity !== undefined ? ` opacity="${el.opacity}"` : '';
-  const dash = el.dash ? ` stroke-dasharray="${esc(el.dash)}"` : '';
-
-  switch (el.kind) {
-    case 'box': {
-      const w = el.width ?? 100, h = el.height ?? 100;
-      const rx = el.radius ?? 0;
-      const fill = tokenColor(theme, el.fillToken, el.fill ?? theme.tokens.surface);
-      const stroke = el.strokeToken || el.stroke
-        ? tokenColor(theme, el.strokeToken, el.stroke ?? theme.tokens.line) : null;
-      return `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${rx}"
-        fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="${el.strokeWidth ?? 2}"${dash}` : ''}${opacity}${rotate}/>`;
-    }
-    case 'line': {
-      const w = el.width ?? 100;
-      const stroke = tokenColor(theme, el.strokeToken, el.stroke ?? el.fill ?? theme.tokens.line);
-      return `<line x1="${x - w / 2}" y1="${y}" x2="${x + w / 2}" y2="${y}"
-        stroke="${stroke}" stroke-width="${el.strokeWidth ?? 2}"${dash}${opacity}${rotate}/>`;
-    }
-    case 'image': {
-      const w = el.width ?? 300, h = el.height ?? 300;
-      const src = el.assetUrl ?? el.assetId;
-      const uri = src ? await toDataUri(src) : null;
-      if (!uri) {
-        // 소스가 없으면 자리 표시 — 발행 전에 검수에서 걸러지도록 눈에 띄게 남긴다
-        return `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${el.radius ?? 0}"
-          fill="${theme.tokens.surfaceAlt}" stroke="${theme.tokens.line}" stroke-dasharray="10 8"${rotate}/>`;
-      }
-      return `<image x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}"
-        preserveAspectRatio="${el.fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'}"
-        href="${uri}"${opacity}${rotate}/>`;
-    }
-    case 'qr': {
-      const size = el.width ?? Math.round(layout.canvas.width * 0.42);
-      const qrPng = await QRCode.toBuffer(qrPayload(ctx.coupon.redeemToken, registerBaseUrlFrom(ctx)), {
-        type: 'png', margin: 1, width: size, errorCorrectionLevel: 'M',
-      });
-      const pad = Math.round(size * 0.06);
-      // ★ QR 은 항상 흰 판 위 — 다크 팔레트에서도 스캐너가 읽을 수 있어야 한다
-      return `<g${rotate}>
-        <rect x="${x - size / 2 - pad}" y="${y - size / 2 - pad}"
-              width="${size + pad * 2}" height="${size + pad * 2}" rx="24"
-              fill="#ffffff" stroke="${theme.tokens.line}"/>
-        <image x="${x - size / 2}" y="${y - size / 2}" width="${size}" height="${size}"
-               href="data:image/png;base64,${qrPng.toString('base64')}"/>
-      </g>`;
-    }
-    case 'text': {
-      const raw = resolveText(el, ctx);
-      if (!raw) return '';
-      const fs = (el.fontSize ?? layout.canvas.width * 0.04) * theme.textScale;
-      const align = el.align ?? 'center';
-      const lh = (el.lineHeight ?? 1.35) * fs;
-      const margin = Math.round(layout.canvas.width * 0.06);
-      const maxWidth = Math.min(
-        el.width ?? layout.canvas.width - margin * 2,
-        layout.canvas.width - margin,
-      );
-      const lines = wrapText(raw, fs, maxWidth, el.maxLines ?? 1);
-      const startY = y - ((lines.length - 1) * lh) / 2 + fs * 0.35;
-      const tspans = lines.map((ln, i) =>
-        `<tspan x="${x}" y="${startY + i * lh}">${esc(ln)}</tspan>`).join('');
-
-      // ★ 대비 보정 — 실제 배경을 기준으로 잰다
-      let color = tokenColor(theme, el.colorToken, el.color ?? theme.tokens.ink);
-      if (theme.autoContrast) {
-        color = ensureContrast(color, backdropFor(el, layout, theme), 4.5).color;
-      }
-
-      return `<text text-anchor="${textAnchor(align)}" font-family="${esc(theme.fontStack)}"
-        font-size="${fs}" font-weight="${el.fontWeight ?? 400}" fill="${color}"
-        letter-spacing="${el.letterSpacing ?? 0}"${opacity}${rotate}>${tspans}</text>`;
-    }
-    default: return '';
-  }
+/** RenderContext → svg.ts 가 기대하는 SvgRenderContext 로 그대로 전달(구조적으로 동일). */
+function toSvgContext(ctx: RenderContext): SvgRenderContext {
+  return ctx;
 }
 
+/**
+ * 레이아웃에 QR 요소가 하나라도 있으면 실제 QR PNG 를 생성해 data URI 로
+ * 바꾼다. 없으면 undefined — svg.ts 가 QR 을 그릴 필요 자체가 없다.
+ */
+async function buildQrDataUri(layout: DesignLayout, ctx: RenderContext): Promise<string | undefined> {
+  const qrEl: LayoutElement | undefined = layout.elements.find((e) => e.kind === 'qr' && e.visible !== false);
+  if (!qrEl) return undefined;
+  const size = qrEl.width ?? Math.round(layout.canvas.width * 0.42);
+  const qrPng = await QRCode.toBuffer(qrPayload(ctx.coupon.redeemToken, registerBaseUrlFrom(ctx)), {
+    type: 'png', margin: 1, width: size, errorCorrectionLevel: 'M',
+  });
+  return `data:image/png;base64,${qrPng.toString('base64')}`;
+}
+
+/**
+ * 공개 API — 기존 시그니처(layout, ctx) 그대로 유지(하위호환, 74건 테스트
+ * 보존). 내부적으로는 I/O(QR 생성·자산 로딩)를 먼저 끝낸 뒤 ./svg.ts 의
+ * 순수 buildSvg() 를 호출하는 얇은 래퍼다(§0-E 지시 반영).
+ *
+ * [완료기준 1] 이 함수가 만드는 SVG 문자열은 "같은 qrDataUri·같은
+ * resolveAsset 결과"를 넣고 ./svg.ts 의 buildSvg() 를 직접 호출했을 때와
+ * **100% 동일**하다 — 같은 함수를 호출하기 때문이다(비교가 아니라 동일성
+ * 자체가 설계로 보장된다).
+ */
 export async function buildSvg(layout: DesignLayout, ctx: RenderContext): Promise<string> {
-  const { width: W, height: H } = layout.canvas;
-  const theme = resolveLayoutTheme(layout);
-  const parts: string[] = [];
-
-  const bgAsset = layout.canvas.backgroundAssetUrl
-    ? await toDataUri(layout.canvas.backgroundAssetUrl) : null;
-  parts.push(
-    bgAsset
-      ? `<image x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice" href="${bgAsset}"/>`
-      : `<rect width="${W}" height="${H}" fill="${tokenColor(theme, layout.canvas.backgroundToken, layout.canvas.background)}"/>`,
-  );
-
-  const ordered = [...layout.elements].sort((a, b) => a.z - b.z);
-  for (const el of ordered) parts.push(await elementSvg(el, ctx, layout, theme));
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join('')}</svg>`;
+  const [qrDataUri, assetMap] = await Promise.all([
+    buildQrDataUri(layout, ctx),
+    preResolveAssets(layout),
+  ]);
+  const opts: BuildSvgOptions = {
+    qrDataUri,
+    resolveAsset: (src) => assetMap.get(src) ?? null,
+  };
+  return buildSvgPure(layout, toSvgContext(ctx), opts);
 }
 
 // ────────────────────────────────────────────── 공개 API
@@ -358,6 +261,9 @@ export async function renderCouponImage(
  * 공유 미리보기(OG) 이미지 1200×630.
  * 카카오톡 미리보기는 가로형 카드이므로 세로 쿠폰 이미지를 그대로 쓰면 잘린다.
  * 색은 캠페인 테마에서 가져와 쿠폰과 같은 인상을 유지한다.
+ * [4단계] OG 이미지는 쿠폰 레이아웃과 무관한 고정 템플릿(1200×630 가로
+ * 카드)이라 svg.ts 로 옮기지 않았다 — ./svg.ts 는 DesignLayout 기반
+ * "쿠폰 레이아웃" 전용이며, 이 함수는 그 범위 밖이다(변경 없음).
  */
 export async function renderOgImage(
   ctx: RenderContext,
@@ -369,6 +275,9 @@ export async function renderOgImage(
   const accent = theme.tokens.primary;
   const titleLines = wrapText(ctx.campaign.title, 58, W - 160, 2);
   const guide = (ctx.campaign.guideText ?? 'QR코드를 찍고 복주머니를 받으세요').slice(0, 40);
+
+  const esc = (s: string): string =>
+    s.replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c] as string));
 
   const titleTspans = titleLines.map((ln, i) =>
     `<tspan x="80" y="${230 + i * 74}">${esc(ln)}</tspan>`).join('');
