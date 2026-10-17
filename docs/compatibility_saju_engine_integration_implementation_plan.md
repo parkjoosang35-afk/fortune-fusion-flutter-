@@ -54,7 +54,7 @@ person_a/person_b = {
 
 | 실패 유형 | 처리 | 근거 |
 <br/>
-| 네트워크 오류/타임아웃(`fetch` 실패, `ECONNREFUSED`) | `factorScores.saju`는 **기존 해시값으로 폴백** 계산 + `scoreEngineVersion: "hash-fallback"` 저장 | 사용자 체감상 "궁합 분석 실패"로 보이지 않게 가용성을 우선하되, **내부적으로는 신뢰도 낮은 결과임을 구분 가능하게 기록** — 이것이 "잘못된 결과를 정상 결과처럼 표시하지 않는다"의 실질적 의미(완전 실패로 사용자에게 에러를 노출하는 것이 아니라, **점수의 출처를 내부적으로 항상 추적 가능하게 유지**하는 것) |
+| 네트워크 오류/타임아웃(`fetch` 실패, `ECONNREFUSED`, 5xx) | `factorScores.saju`는 **기존 해시값으로 폴백** 계산 + `scoreEngineVersion: "hash-fallback-network"` 저장(구현 시 네트워크실패/타임아웃/5xx를 하나의 값으로 통합 명명함 — 아래 완료보고서 참고) | 사용자 체감상 "궁합 분석 실패"로 보이지 않게 가용성을 우선하되, **내부적으로는 신뢰도 낮은 결과임을 구분 가능하게 기록** — 이것이 "잘못된 결과를 정상 결과처럼 표시하지 않는다"의 실질적 의미(완전 실패로 사용자에게 에러를 노출하는 것이 아니라, **점수의 출처를 내부적으로 항상 추적 가능하게 유지**하는 것) |
 | 엔진이 422(윤달 등 지원 불가 입력) 반환 | 동일하게 **해시 폴백** + `scoreEngineVersion: "hash-fallback-unsupported-input"` | 1.2.2에서 언급한 음력 리스크에 대한 안전망 |
 | 엔진이 200을 반환했지만 `final_score`가 `null`/범위 밖(0~100 벗어남) | **해시 폴백** + `scoreEngineVersion: "hash-fallback-invalid-response"`, 서버 로그에 `console.error`로 원인 기록(운영 모니터링 대상) | "엔진이 이상한 값을 준 경우를 정상값처럼 쓰지 않는다"의 핵심 안전장치 |
 | 엔진 응답이 정상(final_score가 0~100 범위의 유효한 숫자) | `factorScores.saju = final_score` + `scoreEngineVersion: "saju-v1"` | 정상 경로 |
@@ -83,7 +83,7 @@ person_a/person_b = {
 | # | 테스트 | 검증 내용 |
 |---|---|---|
 | U1 | `calculateSajuFactorScore()`(신규 추출 함수) 정상 응답 | engine이 `final_score: 72`를 반환하면 `factorScores.saju === 72`, `scoreEngineVersion === "saju-v1"` |
-| U2 | 네트워크 실패 폴백 | fetch가 reject되면 기존 `hashSeed` 로직과 동일한 값 + `scoreEngineVersion === "hash-fallback"` |
+| U2 | 네트워크 실패 폴백 | fetch가 reject/5xx/타임아웃이면 기존 `hashSeed` 로직과 동일한 값 + `scoreEngineVersion === "hash-fallback-network"` |
 | U3 | 422 응답 폴백 | engine이 422를 반환하면 `hash-fallback-unsupported-input`으로 표시 |
 | U4 | 범위 밖 응답 방어 | engine이 `final_score: 150`(비정상) 반환 시 그대로 쓰지 않고 폴백 + 에러 로그 호출 확인(mock) |
 | U5 | 기존 4개 팩터 불변 | `mbti`/`interest`/`value`/`activity_pattern` 값이 변경 전후 100% 동일(회귀 방지 핵심) |
