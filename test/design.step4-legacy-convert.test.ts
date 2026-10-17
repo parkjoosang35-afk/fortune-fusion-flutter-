@@ -33,7 +33,7 @@ import { canonicalHash } from '../src/lib/bokju-coupon-design/revision';
 import { createCampaign } from '../src/lib/bokju-coupon-service';
 import {
   convertLegacyDesign, getCampaignDesign, listCampaignRevisions,
-  revertToLegacyDesign, rollbackCampaignDesign, StudioApiError,
+  revertToLegacyDesign, rollbackCampaignDesign, saveCampaignDesign, StudioApiError,
 } from '../src/lib/bokju-coupon-design/studio-api';
 import { DEFAULT_VISIBILITY } from '../src/lib/bokju-coupon-visibility';
 
@@ -582,5 +582,122 @@ describe('작업순서6 — createCampaign() 초기 리비전과 convertLegacyDe
     // 바뀌었으면 안 된다.
     expect(convertedDesign.currentRevisionNo).toBe(1);
     expect(convertedDesign.layout.elements.some((e) => e.id.startsWith('deco'))).toBe(false);
+  });
+});
+
+// ════════════════════════════════════════════════ 5) 02m §0-R-6 — 에디터 레거시 기본값이
+// "실제 설정 매핑 결과"인지 회귀 방지
+// [배경 — 02m §0-R-2] 수정 전에는 currentDesignRevisionId==null인 레거시
+// 캠페인의 getCampaignDesign()이 defaultLayout()(아무 토글도 반영 안 된
+// 고정 기본값)을 돌려줬다. customTemplateId로 qr=false 등 실제 토글을
+// 꺼둔 캠페인에서 에디터를 열고(전환 버튼을 거치지 않고) 그대로
+// 저장하면, 꺼둔 토글이 무시되고 기본값(qr 포함 전체 표시)으로 조용히
+// 덮이는 사일런트 데이터 손실 경로였다. resolveLegacyLayout()으로
+// 교체한 뒤에는 그 경로가 막혀야 한다 — 아래 테스트가 그것을 고정한다.
+describe('studio-api — getCampaignDesign (02m §0-R-6 — customTemplateId 있는 레거시 캠페인의 "실제 설정" 반영)', () => {
+  let campaignId: number;
+  let templateId: number;
+
+  beforeAll(async () => {
+    // qr=false·partnerName=false만 끈 설정 — 나머지는 전부 켬. 아직
+    // 전환 버튼을 누르지 않은 상태(customTemplateId만 지정, currentDesignRevisionId는 null).
+    const tpl = await prisma.bokjuCouponDesignTemplate.create({
+      data: {
+        name: '[TEST] §0-R-6 에디터 기본값 회귀 테스트용 템플릿',
+        visibility: JSON.stringify({
+          logo: true, title: true, amount: true, couponNo: true, qr: false,
+          validFrom: true, validTo: true, guideText: true, ctaText: true,
+          partnerName: false, decoration: false,
+        }),
+      },
+    });
+    templateId = tpl.id;
+
+    const campaign = await prisma.bokjuCouponCampaign.create({
+      data: {
+        title: '[TEST] 02m §0-R-6 — 전환 전 에디터 진입 회귀 테스트',
+        grantAmount: 500,
+        validFrom: new Date('2026-01-01T00:00:00Z'),
+        validTo: new Date('2026-12-31T23:59:59Z'),
+        customTemplateId: templateId,
+      },
+    });
+    campaignId = campaign.id;
+    // 의도적으로 convertLegacyDesign()을 호출하지 않는다 — currentDesignRevisionId는 null로 남는다.
+  });
+
+  afterAll(async () => {
+    await prisma.bokjuCoupon.deleteMany({ where: { campaignId } });
+    await prisma.bokjuCouponDesignRevision.deleteMany({ where: { campaignId } });
+    await prisma.bokjuCouponCampaign.delete({ where: { id: campaignId } });
+    await prisma.bokjuCouponDesignTemplate.delete({ where: { id: templateId } });
+  });
+
+  it('23) [핵심 — 02m §0-R-2 구조적 구멍 수정 확인] 전환 전(currentDesignRevisionId==null) 상태에서 getCampaignDesign()을 호출하면, defaultLayout()의 고정 기본값(요소 id "amountUnit" 포함, theme=null)이 아니라 실제 템플릿 설정(qr=false)이 반영된 레이아웃을 돌려준다', async () => {
+    const design = await getCampaignDesign(campaignId);
+    expect(design.currentRevisionId).toBe(null);
+    expect(design.currentRevisionNo).toBe(null);
+
+    const ids = design.layout.elements.map((e) => e.id);
+    // 실제 토글(qr=false)이 반영되어 qr 요소가 없어야 한다 — defaultLayout()
+    // 이었다면 qr이 항상 포함되어 있었을 것이다.
+    expect(ids.includes('qr')).toBe(false);
+    expect(design.layout.redeemMode).toBe('MANUAL');
+    // defaultLayout() 고유의 요소 id("amountUnit")가 아니라 buildTemplate
+    // 계열의 "unit"이어야 한다(§0-R-2에서 rev90을 역추적할 때 쓴 것과
+    // 동일한 판별 기준 — amountUnit vs unit).
+    expect(ids.includes('amountUnit')).toBe(false);
+    expect(ids.includes('amount')).toBe(true);
+    expect(ids.includes('unit')).toBe(true);
+    // defaultLayout()은 theme 필드가 없지만(또는 null), resolveLegacyLayout()은
+    // convertVisibilityToLayout() → buildTemplate()을 거치므로 theme이 항상 채워진다.
+    expect(design.layout.theme).not.toBe(null);
+    expect(design.layout.theme).not.toBe(undefined);
+  });
+
+  it('24) [사일런트 데이터 손실 회귀 방지] 전환 버튼을 거치지 않고 getCampaignDesign() 결과를 그대로 saveCampaignDesign()으로 저장해도(= 에디터에서 "열어서 바로 저장"하는 시나리오), qr=false 설정이 사라지지 않고 그대로 저장된다', async () => {
+    const before = await getCampaignDesign(campaignId);
+    expect(before.layout.elements.some((e) => e.id === 'qr')).toBe(false);
+
+    // 에디터가 "그대로 저장" 버튼을 눌렀을 때와 동일한 호출 — 레이아웃을
+    // 전혀 수정하지 않고 그대로 saveCampaignDesign()에 넘긴다.
+    const saveResult = await saveCampaignDesign(campaignId, before.layout, { createdBy: 'test' });
+    expect(saveResult.ok).toBe(true);
+
+    const after = await getCampaignDesign(campaignId);
+    // 이제 currentDesignRevisionId가 채워졌지만(§4-3 "자동 전환 금지"가
+    // 막으려던 것은 "모르는 사이 기본값으로 바뀌는 것"이지, "실제 설정
+    // 그대로 저장되는 것" 자체가 아니다 — 02m §0-R-6 통합안 설명 참고),
+    // qr=false는 여전히 유지되어야 한다. 02m §0-R-2가 지적한 회귀(저장
+    // 즉시 qr이 부활하는 것)가 재발하지 않았음을 이 단언이 직접 확인한다.
+    expect(after.currentRevisionId).not.toBe(null);
+    expect(after.layout.elements.some((e) => e.id === 'qr')).toBe(false);
+    expect(after.layout.redeemMode).toBe('MANUAL');
+  });
+
+  it('25) [내장 템플릿 경로 회귀 방지] customTemplateId가 없는 레거시 캠페인(예: campaign 1 "신규회원 환영 쿠폰"과 동일 조건)은 §0-R-6 적용 후에도 여전히 decoration:false로 교정된 9요소(DEFAULT_VISIBILITY 간주)를 돌려준다 — customTemplateId 있는 경로를 고치면서 없는 경로가 깨지지 않았는지 확인', async () => {
+    const builtInCampaign = await prisma.bokjuCouponCampaign.create({
+      data: {
+        title: '[TEST] 02m §0-R-6 — 내장 템플릿 경로 비회귀 확인',
+        grantAmount: 150,
+        validFrom: new Date('2026-01-01T00:00:00Z'),
+        validTo: new Date('2026-12-31T23:59:59Z'),
+        designTemplate: 'CLASSIC',
+        // customTemplateId 미지정.
+      },
+    });
+    try {
+      const design = await getCampaignDesign(builtInCampaign.id);
+      expect(design.currentRevisionId).toBe(null);
+      const ids = design.layout.elements.map((e) => e.id).sort();
+      expect(ids).toEqual([
+        'amount', 'couponNo', 'domain', 'guide', 'logo', 'period', 'qr', 'title', 'unit',
+      ]);
+      expect(ids.some((id) => id.startsWith('deco'))).toBe(false);
+    } finally {
+      await prisma.bokjuCoupon.deleteMany({ where: { campaignId: builtInCampaign.id } });
+      await prisma.bokjuCouponDesignRevision.deleteMany({ where: { campaignId: builtInCampaign.id } });
+      await prisma.bokjuCouponCampaign.delete({ where: { id: builtInCampaign.id } });
+    }
   });
 });

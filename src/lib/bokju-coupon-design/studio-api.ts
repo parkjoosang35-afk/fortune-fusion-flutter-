@@ -63,6 +63,41 @@ async function getCampaignOrThrow(campaignId: number) {
   return campaign;
 }
 
+// ────────────────────────────────────────────── 공통 — 레거시 캠페인의 "실제 설정" 매핑
+/**
+ * [02m §0-R-6 통합안] 레거시(customTemplateId 유무로 구분되는 11토글)
+ * 캠페인이 "지금 실제로 보여주고 있는" 레이아웃을 convertVisibilityToLayout()
+ * 으로 계산한다. convertLegacyDesign()의 visibility 결정 로직(02e §4-1 +
+ * 02k §필수 decoration 교정)을 그대로 추출한 것 — 복제가 아니라 공용화
+ * (전환 버튼 경로와 에디터 진입 경로가 같은 함수를 호출해야 두 진입점이
+ * 드리프트하지 않는다).
+ *
+ * [내장 템플릿 — decoration 예외] customTemplateId 가 없으면(CLASSIC/
+ * PREMIUM/KAKAO/MINIMAL) 11토글 개념 자체가 없으므로 DEFAULT_VISIBILITY로
+ * 간주하되, decoration만은 false로 교정한다 — 내장 템플릿 렌더 함수
+ * (buildClassicSvg 등)는 애초에 장식을 그리지 않기 때문이다(02k §필수,
+ * convertLegacyDesign() 주석 참고).
+ *
+ * [커스텀 템플릿] customTemplateId 가 있으면 그 템플릿의 실제 visibility
+ * JSON을 읽어 그대로 반영한다 — qr=false 등으로 꺼둔 토글이 에디터
+ * 기본값에 덮여 사라지지 않도록 하는 것이 이 함수의 핵심 목적이다.
+ */
+async function resolveLegacyLayout(
+  campaign: { customTemplateId: number | null },
+): Promise<DesignLayout> {
+  let rawVisibility: unknown = { ...DEFAULT_VISIBILITY, decoration: false };
+  if (campaign.customTemplateId != null) {
+    const tpl = await prisma.bokjuCouponDesignTemplate.findUnique({
+      where: { id: campaign.customTemplateId },
+    });
+    if (tpl) {
+      rawVisibility = parseVisibilityJson(tpl.visibility);
+    }
+    // tpl 이 없으면(데이터 정합성 방어) DEFAULT_VISIBILITY 로 폴백.
+  }
+  return convertVisibilityToLayout(rawVisibility);
+}
+
 // ────────────────────────────────────────────── 1) 디자인 조회
 export interface GetCampaignDesignResult {
   layout: DesignLayout;
@@ -73,23 +108,42 @@ export interface GetCampaignDesignResult {
 /**
  * 캠페인의 "지금 발행에 쓸" 레이아웃을 돌려준다.
  * currentDesignRevisionId 가 있으면 그 리비전의 layout, 없으면(신규
- * 캠페인·아직 신규 디자인으로 전환 안 한 캠페인) defaultLayout() 을
- * 돌려준다 — 에디터가 "빈 손이 아니라 출발점이 있는" 상태로 시작한다.
+ * 캠페인·아직 신규 디자인으로 전환 안 한 캠페인) **그 캠페인의 실제
+ * 레거시 설정을 매핑한 레이아웃**(resolveLegacyLayout())을 돌려준다.
+ *
+ * [02m §0-R-6 수정 — 이전엔 defaultLayout() 이었다] 이전 버전은 여기서
+ * defaultLayout()(빈 자리에 아무 토글도 반영 안 된 고정 기본값)을
+ * 돌려줬는데, 이것이 바로 구조적 구멍이었다: 레거시 캠페인(특히
+ * customTemplateId로 qr=false 등 실제 토글을 꺼둔 캠페인)의 에디터 초기
+ * 화면이 "그 캠페인의 실제 설정"이 아니라 "아무 의미 없는 기본값"을
+ * 보여줬고, 관리자가 그 상태로 "저장"만 눌러도(= saveCampaignDesign(),
+ * 전환 버튼을 거치지 않음) currentDesignRevisionId가 채워지면서 실제
+ * 토글 설정이 통째로 무시되고 기본값으로 덮였다(campaign 1 은 운 좋게
+ * DEFAULT_VISIBILITY와 결과가 같아 피해가 없었을 뿐 — campaign 23/24처럼
+ * 실제 토글을 꺼둔 캠페인이었다면 사일런트 데이터 손실이었다).
+ *
+ * resolveLegacyLayout()으로 교체하면, 에디터가 "그 캠페인이 실제로
+ * 보여주고 있는 레거시 렌더와 동일한 구성"에서 출발하므로, 그대로
+ * 저장해도 §4-3 "자동 전환 금지"가 지키려던 불변량(= 명시적 동의 없이
+ * 디자인이 바뀌지 않는다)이 깨지지 않는다.
  */
 export async function getCampaignDesign(campaignId: number): Promise<GetCampaignDesignResult> {
   const campaign = await getCampaignOrThrow(campaignId);
 
   if (campaign.currentDesignRevisionId == null) {
-    return { layout: defaultLayout(), currentRevisionId: null, currentRevisionNo: null };
+    const layout = await resolveLegacyLayout(campaign);
+    return { layout, currentRevisionId: null, currentRevisionNo: null };
   }
 
   const rev = await prisma.bokjuCouponDesignRevision.findUnique({
     where: { id: campaign.currentDesignRevisionId },
   });
   if (!rev) {
-    // 데이터 정합성 방어(이론상 FK 없음 — 수동 삭제 시에만 발생). 레거시
-    // 폴백과 동일한 방어적 동작(resolveLayoutForCoupon 의 관행과 일치).
-    return { layout: defaultLayout(), currentRevisionId: null, currentRevisionNo: null };
+    // 데이터 정합성 방어(이론상 FK 없음 — 수동 삭제 시에만 발생). 위
+    // null 분기와 동일하게 "그 캠페인의 실제 레거시 설정"으로 폴백한다
+    // (defaultLayout()이 아니다 — 02m §0-R-6과 동일한 이유).
+    const layout = await resolveLegacyLayout(campaign);
+    return { layout, currentRevisionId: null, currentRevisionNo: null };
   }
   return {
     layout: designLayoutSchema.parse(JSON.parse(rev.layout)),
@@ -351,41 +405,16 @@ export async function convertLegacyDesign(
     );
   }
 
-  // [02e §4-1 매핑 근거] customTemplateId 가 있으면 그 템플릿의 11토글
-  // 설정을 읽는다(AI 쿠폰 디자인 기능으로 만든 커스텀 템플릿). 없으면
-  // 캠페인은 내장 4종 템플릿(CLASSIC/PREMIUM/KAKAO/MINIMAL) 중 하나를 쓰며,
-  // 이 경로엔 11토글 개념 자체가 없으므로(모든 항목이 항상 그려짐) 전체
-  // 표시를 뜻하는 DEFAULT_VISIBILITY 로 간주한다.
-  //
-  // [02k §필수 — decoration 예외] 단, decoration 만은 DEFAULT_VISIBILITY
-  // 를 그대로 따르면 안 된다. bokju-coupon-image-service.ts 의 4개 내장
-  // 템플릿 함수(buildClassicSvg/buildPremiumSvg/buildKakaoSvg/
-  // buildMinimalSvg) 는 전부 SvgBuildParams 를 받는데, 이 타입에는애초에
-  // visibility 필드 자체가 없고(→ decoration 개념이 없음), 네 함수
-  // 본문 어디에도 테두리/모서리 원을 그리는 코드가 없다(decoration 분기는
-  // 오직 커스텀 디자인 전용 buildCustomDesignSvg() 324줄에만 존재).
-  // 즉 "내장 템플릿이 실제로 그리는 것 = DEFAULT_VISIBILITY" 라는 간주
-  // 원칙을 decoration 에 그대로 적용하면, 내장 템플릿이 한 번도 그린 적
-  // 없는 장식(테두리+모서리 원 2개)이 전환 시점에 새로 생겨버린다 —
-  // 특히 customTemplateId 없이 내장 템플릿만 써온 기존 캠페인(예:
-  // "신규회원 환영 쿠폰")을 전환하면 디자인이 조용히 바뀌는 회귀가 된다.
-  // 따라서 내장 템플릿 경로에서만 decoration 을 명시적으로 false 로
-  // 교정한다(DEFAULT_VISIBILITY 상수 자체는 다른 용도 — 신규 커스텀
-  // 템플릿 생성 시 초기값 등 — 에 계속 쓰이므로 건드리지 않는다. 이
-  // 함수 지역에서 얕은 복사로 한 필드만 override 한다).
-  let rawVisibility: unknown = { ...DEFAULT_VISIBILITY, decoration: false };
-  if (campaign.customTemplateId != null) {
-    const tpl = await prisma.bokjuCouponDesignTemplate.findUnique({
-      where: { id: campaign.customTemplateId },
-    });
-    if (tpl) {
-      rawVisibility = parseVisibilityJson(tpl.visibility);
-    }
-    // tpl 이 없으면(데이터 정합성 방어 — 이론상 onDelete:SetNull 이라
-    // customTemplateId 가 null 로 바뀌므로 발생하지 않음) DEFAULT_VISIBILITY 로 폴백.
-  }
-
-  const converted = convertVisibilityToLayout(rawVisibility);
+  // [02m §0-R-6 — 공용화] "customTemplateId 유무로 실제 visibility를
+  // 결정하고 convertVisibilityToLayout()으로 매핑한다"는 로직은 더 이상
+  // 이 함수에 직접 두지 않는다. getCampaignDesign()의 레거시 폴백이
+  // 똑같은 로직을 필요로 하게 되면서(02m §0-R-2 구조적 구멍 수정)
+  // resolveLegacyLayout()으로 추출했고, 이 함수는 그것을 재사용한다 —
+  // 두 진입점(전환 버튼 / 에디터 진입)이 같은 함수를 호출해야 드리프트가
+  // 생기지 않는다(단일 진실 소스 원칙, 위 resolveLegacyLayout() 주석
+  // 참고 — 내장 템플릿 decoration 예외·커스텀 템플릿 visibility 반영
+  // 로직 설명은 전부 그쪽에 있다).
+  const converted = await resolveLegacyLayout(campaign);
 
   // [금지 목록 ⑦ — 검사 우회 금지] 변환 결과도 저장 전 검사(saveCampaignDesign
   // 과 동일한 validateLayout)를 반드시 통과해야 한다. 복사하지 않고 그대로
