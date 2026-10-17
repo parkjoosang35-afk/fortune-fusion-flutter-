@@ -321,6 +321,18 @@ export interface ConvertLegacyDesignResult {
   revisionId: number;
   revisionNo: number;
   issues: LayoutIssue[]; // warn 만 남을 수 있음(error 는 이 지점까지 못 옴)
+  /**
+   * [02k §결정 A — 장식 색 편차 고지] decoration이 true여서 장식 요소
+   * (테두리+모서리 원 2개)가 실제로 추가된 경우에만 채워지는 안내문.
+   * 레거시 렌더(bokju-coupon-image-service.ts 324-330줄)는 고정 헥스
+   * #d4a94a를 쓰지만, 신규 레이아웃은 테마 토큰 @accent로 대체한다
+   * (팔레트 전환 시 장식도 함께 따라오게 하려는 의도적 설계 — 02k 권고
+   * (A) 수용). 두 색은 휘도 차이가 커서(약 49%) 나란히 비교하면
+   * 구분되므로, "완전히 동일한 외형 재현이 아니다"를 명시적으로 고지한다.
+   * decoration이 꺼져 있던 경우(장식 자체가 없음)는 null — 색 차이를
+   * 고지할 대상이 없으므로.
+   */
+  decorationColorNotice: string | null;
 }
 
 export async function convertLegacyDesign(
@@ -344,7 +356,24 @@ export async function convertLegacyDesign(
   // 캠페인은 내장 4종 템플릿(CLASSIC/PREMIUM/KAKAO/MINIMAL) 중 하나를 쓰며,
   // 이 경로엔 11토글 개념 자체가 없으므로(모든 항목이 항상 그려짐) 전체
   // 표시를 뜻하는 DEFAULT_VISIBILITY 로 간주한다.
-  let rawVisibility: unknown = DEFAULT_VISIBILITY;
+  //
+  // [02k §필수 — decoration 예외] 단, decoration 만은 DEFAULT_VISIBILITY
+  // 를 그대로 따르면 안 된다. bokju-coupon-image-service.ts 의 4개 내장
+  // 템플릿 함수(buildClassicSvg/buildPremiumSvg/buildKakaoSvg/
+  // buildMinimalSvg) 는 전부 SvgBuildParams 를 받는데, 이 타입에는애초에
+  // visibility 필드 자체가 없고(→ decoration 개념이 없음), 네 함수
+  // 본문 어디에도 테두리/모서리 원을 그리는 코드가 없다(decoration 분기는
+  // 오직 커스텀 디자인 전용 buildCustomDesignSvg() 324줄에만 존재).
+  // 즉 "내장 템플릿이 실제로 그리는 것 = DEFAULT_VISIBILITY" 라는 간주
+  // 원칙을 decoration 에 그대로 적용하면, 내장 템플릿이 한 번도 그린 적
+  // 없는 장식(테두리+모서리 원 2개)이 전환 시점에 새로 생겨버린다 —
+  // 특히 customTemplateId 없이 내장 템플릿만 써온 기존 캠페인(예:
+  // "신규회원 환영 쿠폰")을 전환하면 디자인이 조용히 바뀌는 회귀가 된다.
+  // 따라서 내장 템플릿 경로에서만 decoration 을 명시적으로 false 로
+  // 교정한다(DEFAULT_VISIBILITY 상수 자체는 다른 용도 — 신규 커스텀
+  // 템플릿 생성 시 초기값 등 — 에 계속 쓰이므로 건드리지 않는다. 이
+  // 함수 지역에서 얕은 복사로 한 필드만 override 한다).
+  let rawVisibility: unknown = { ...DEFAULT_VISIBILITY, decoration: false };
   if (campaign.customTemplateId != null) {
     const tpl = await prisma.bokjuCouponDesignTemplate.findUnique({
       where: { id: campaign.customTemplateId },
@@ -380,11 +409,19 @@ export async function convertLegacyDesign(
   });
   await setCurrentRevision(campaignId, frozen.id);
 
+  // [02k §결정 A] rawVisibility.decoration 을 다시 읽지 않고, "실제로
+  // 변환 결과에 장식 요소가 생겼는가"로 직접 판단한다(legacy-convert.ts의
+  // 추가 매핑 로직과 드리프트 없이 항상 일치하도록 — 단일 진실 소스).
+  const hasDecoration = result.layout.elements.some((e) => e.id.startsWith('deco'));
+
   return {
     ok: true,
     revisionId: frozen.id,
     revisionNo: frozen.revNo,
     issues: result.issues,
+    decorationColorNotice: hasDecoration
+      ? '장식(테두리·모서리 원)의 색상은 레거시 고정 색상(#d4a94a)이 아니라 테마 색상(@accent)으로 표시됩니다. 팔레트에 따라 레거시와 미세하게 다른 색으로 보일 수 있습니다.'
+      : null,
   };
 }
 
@@ -437,6 +474,7 @@ export interface RevertToLegacyResult {
   notice: {
     existingCouponsUnaffected: string;
     futureCouponsUseLegacy: string;
+    colorFidelityNotice: string;
   };
 }
 
@@ -445,6 +483,15 @@ const REVERT_TO_LEGACY_NOTICE = {
     '이미 발행된 쿠폰은 발행 당시 디자인을 그대로 유지합니다(바뀌지 않습니다).',
   futureCouponsUseLegacy:
     '앞으로 새로 발행되는 쿠폰부터 되돌린 리비전의 디자인을 받습니다. 기존 11토글 설정은 삭제되지 않고 보존되어 있었으므로, 전환 전과 동일한 모습으로 돌아갑니다.',
+  // [02k §결정 A — 색상 차이 고지] "전환 전 상태로 돌아간다"가 100%
+  // 정확한 설명은 아니라는 점을 명시한다 — 장식이 있던 캠페인을
+  // 전환했다가 되돌릴 때, 그 사이 전환 상태의 장식 색은 레거시 고정
+  // 헥스(#d4a94a)가 아니라 테마 토큰(@accent)이었다. 되돌린 뒤에는
+  // 레거시 11토글 렌더 자체로 복귀하므로 이 차이는 사라지지만, 관리자가
+  // "전환 중 미리보기"와 "레거시"를 색상으로 비교하다 문의하는 것을
+  // 막기 위해 되돌리기 화면에도 동일하게 고지한다.
+  colorFidelityNotice:
+    '참고: 신규 디자인으로 전환되어 있던 동안에는 장식(테두리·모서리 원) 색상이 테마 색상(@accent)으로 표시되어, 레거시 고정 색상(#d4a94a)과 미세하게 달랐을 수 있습니다. 레거시로 되돌리면 이 차이 없이 원래 색상 그대로 보입니다.',
 };
 
 export async function revertToLegacyDesign(campaignId: number): Promise<RevertToLegacyResult> {

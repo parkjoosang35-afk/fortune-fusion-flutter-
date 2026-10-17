@@ -190,7 +190,7 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
     expect(before.currentRevisionId).toBe(null);
   });
 
-  it('12) [핵심] customTemplateId 없는 캠페인(내장 4종 템플릿) 전환 — DEFAULT_VISIBILITY로 간주해 rev1을 만든다', async () => {
+  it('12) [핵심] customTemplateId 없는 캠페인(내장 4종 템플릿) 전환 — DEFAULT_VISIBILITY로 간주하되 decoration은 false로 교정해 rev1을 만든다', async () => {
     const result = await convertLegacyDesign(campaignId, { createdBy: 'test' });
     expect(result.ok).toBe(true);
     expect(result.revisionNo).toBe(1);
@@ -198,8 +198,17 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
     const after = await getCampaignDesign(campaignId);
     expect(after.currentRevisionId).toBe(result.revisionId);
     expect(after.currentRevisionNo).toBe(1);
-    // DEFAULT_VISIBILITY는 decoration:true도 포함하므로 기존 9개 + 장식 3개 = 12개가 있어야 한다.
-    expect(after.layout.elements.length).toBe(12);
+    // [02k §필수 수정] 내장 4종 템플릿(buildClassicSvg 등)은 decoration을
+    // 그리는 코드가 전혀 없으므로(SvgBuildParams에 visibility 필드 자체가
+    // 없음 — decoration 분기는 buildCustomDesignSvg 전용), DEFAULT_VISIBILITY를
+    // 그대로 따르면 안 되고 decoration만 false로 교정해야 한다. 따라서
+    // 장식 3개가 추가되지 않고 기존 9개 그대로여야 한다(12개가 아니다 —
+    // 이전 버전은 틀린 기대값이었다. 내장 템플릿을 전환해도 실제로 한 번도
+    // 그려진 적 없는 장식이 새로 생기면 안 된다는 것이 핵심).
+    expect(after.layout.elements.length).toBe(9);
+    expect(after.layout.elements.some((e) => e.id.startsWith('deco'))).toBe(false);
+    // [02k §결정 A] 장식이 생기지 않았으므로 색상 차이를 고지할 대상도 없다.
+    expect(result.decorationColorNotice).toBe(null);
   });
 
   it('13) [버튼 1회 가드] 이미 전환된 캠페인을 다시 전환하면 ALREADY_CONVERTED(409)로 거부된다', async () => {
@@ -250,8 +259,11 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
 
   it('15-2) [02i §필수2 — "(A) 전환 취소 경로"] revertToLegacyDesign()은 currentDesignRevisionId 포인터를 다시 null로 되돌리고, 그 결과 getCampaignDesign()이 레거시 폴백(defaultLayout)으로 돌아간다 — 이것이 "전환 전 상태로 돌아간다"는 실제 증명이다(rev1이 아니다)', async () => {
     // 전환 전(= 레거시) 화면이 실제로 보여줬을 모습은 convertVisibilityToLayout()을
-    // 직접 호출해 재현한다(캠페인은 customTemplateId가 없으므로 DEFAULT_VISIBILITY).
-    const legacyRenderBefore = convertVisibilityToLayout(DEFAULT_VISIBILITY);
+    // 직접 호출해 재현한다(캠페인은 customTemplateId가 없으므로 DEFAULT_VISIBILITY,
+    // 단 [02k §필수] decoration은 convertLegacyDesign()이 실제로 쓰는 것과
+    // 똑같이 false로 교정한 값을 써야 비교가 의미 있다 — 그렇지 않으면
+    // decoration:true인 "가짜 레거시"와 비교하는 꼴이 된다).
+    const legacyRenderBefore = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, decoration: false });
 
     const before = await getCampaignDesign(campaignId);
     expect(before.currentRevisionId).not.toBe(null); // 전환된 상태(테스트 12에서 전환됨)
@@ -260,6 +272,9 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
     expect(reverted.ok).toBe(true);
     expect(reverted.notice.existingCouponsUnaffected.length).toBeGreaterThan(0);
     expect(reverted.notice.futureCouponsUseLegacy.length).toBeGreaterThan(0);
+    // [02k §결정 A] 되돌리기 안내에도 색상 차이 고지가 포함되어야 한다.
+    expect(reverted.notice.colorFidelityNotice.length).toBeGreaterThan(0);
+    expect(reverted.notice.colorFidelityNotice).toContain('@accent');
 
     const after = await getCampaignDesign(campaignId);
     // [핵심] 포인터가 null로 돌아갔다 — "레거시 11토글 화면"으로 복귀했다는 뜻이다.
@@ -271,7 +286,7 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
     // 데이터 자체(DEFAULT_VISIBILITY)가 전환 과정에서 전혀 변경되지 않았기
     // 때문이다(studio-api.ts convertLegacyDesign은 읽기만 하고 아무것도
     // 지우지 않는다).
-    const legacyRenderAfterRevert = convertVisibilityToLayout(DEFAULT_VISIBILITY);
+    const legacyRenderAfterRevert = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, decoration: false });
     expect(canonicalHash(legacyRenderAfterRevert)).toBe(canonicalHash(legacyRenderBefore));
 
     // 리비전 행 자체는 여전히 테이블에 남아있다(불변 원칙 — 삭제되지 않음).
@@ -292,6 +307,39 @@ describe('studio-api — convertLegacyDesign (§4-3 전환 버튼 핵심 로직)
 
     const after = await getCampaignDesign(campaignId);
     expect(after.currentRevisionId).toBe(revs[0].id);
+  });
+
+  it('15-5) [02k §필수 — 회귀 방지] 내장 템플릿(customTemplateId 없음) 캠페인을 새로 만들어 전환하면, DEFAULT_VISIBILITY의 decoration:true를 그대로 따르지 않고 decoration이 false로 교정되어 장식 3요소(decoFrame/decoCircleA/decoCircleB)가 전혀 생기지 않는다 — "신규회원 환영 쿠폰"처럼 실운영 중인 내장 템플릿 캠페인을 전환해도 디자인이 조용히 바뀌지 않음을 보장한다', async () => {
+    const freshCampaign = await prisma.bokjuCouponCampaign.create({
+      data: {
+        title: '[TEST] 15-5 내장 템플릿 decoration 회귀방지용 캠페인',
+        grantAmount: 300,
+        validFrom: new Date('2026-01-01T00:00:00Z'),
+        validTo: new Date('2026-12-31T23:59:59Z'),
+        designTemplate: 'CLASSIC',
+        // customTemplateId 미지정 — 캠페인 1 "신규회원 환영 쿠폰"과 동일한 경로.
+      },
+    });
+    try {
+      const result = await convertLegacyDesign(freshCampaign.id, { createdBy: 'test' });
+      expect(result.ok).toBe(true);
+
+      const after = await getCampaignDesign(freshCampaign.id);
+      // 핵심 단언: decoration 관련 요소가 단 하나도 없어야 한다.
+      const decoIds = after.layout.elements.filter((e) => e.id.startsWith('deco')).map((e) => e.id);
+      expect(decoIds).toEqual([]);
+      expect(after.layout.elements.length).toBe(9); // 장식 3개가 섞이지 않은 classic 기본 9개
+
+      // 교차검증: convertVisibilityToLayout에 decoration:true를 직접 주면
+      // (이 테스트가 "없어서 우연히 0개"가 아님을 증명하기 위해) 실제로는
+      // 3개가 생긴다는 사실도 함께 확인한다.
+      const withDecorationTrue = convertVisibilityToLayout({ ...DEFAULT_VISIBILITY, decoration: true });
+      expect(withDecorationTrue.elements.filter((e) => e.id.startsWith('deco')).length).toBe(3);
+    } finally {
+      await prisma.bokjuCoupon.deleteMany({ where: { campaignId: freshCampaign.id } });
+      await prisma.bokjuCouponDesignRevision.deleteMany({ where: { campaignId: freshCampaign.id } });
+      await prisma.bokjuCouponCampaign.delete({ where: { id: freshCampaign.id } });
+    }
   });
 
   it('15-4) [가드] 아직 전환된 적 없는(currentDesignRevisionId가 null인) 캠페인에 revertToLegacyDesign()을 호출하면 NOT_CONVERTED(409)로 거부된다', async () => {
@@ -380,6 +428,14 @@ describe('studio-api — convertLegacyDesign (customTemplateId 있는 캠페인 
     // qr=false여도 couponNo=true라서 NO_DYNAMIC_BINDING에 걸리지 않고
     // 검사를 통과해 저장까지 성공했다(결과 issues에 error가 없음).
     expect(result.issues.some((i) => i.level === 'error')).toBe(false);
+
+    // [02k §결정 A] 이 템플릿은 decoration:true로 생성됐으므로(위 beforeAll
+    // 참고), customTemplateId 경로는 DEFAULT_VISIBILITY 간주 대상이 아니라
+    // 실제 토글값을 그대로 쓴다 — decoration이 켜져 장식 3개가 실제로
+    // 생겼으니 색상 차이 고지도 채워져야 한다.
+    expect(after.layout.elements.filter((e) => e.id.startsWith('deco')).length).toBe(3);
+    expect(result.decorationColorNotice).not.toBe(null);
+    expect(result.decorationColorNotice).toContain('@accent');
   });
 });
 
