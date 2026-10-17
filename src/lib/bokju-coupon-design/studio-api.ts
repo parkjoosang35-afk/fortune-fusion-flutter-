@@ -41,6 +41,8 @@ import {
   freezeRevision, setCurrentRevision, listRevisions as listRevisionsRaw,
 } from './revision';
 import { renderCouponImage, type RenderContext } from './renderer';
+import { convertVisibilityToLayout } from './legacy-convert';
+import { parseVisibilityJson, DEFAULT_VISIBILITY } from '@/lib/bokju-coupon-visibility';
 
 // ────────────────────────────────────────────── 공통 오류
 export class StudioApiError extends Error {
@@ -281,6 +283,109 @@ export async function previewDesign(input: PreviewDesignInput): Promise<PreviewD
 
   const buffer = await renderCouponImage(layout, ctx);
   return { buffer, issues: validation.issues, isSample: true };
+}
+
+// ────────────────────────────────────────────── 5-2) §4-3 레거시 전환
+/**
+ * [작업순서4 — 02e §4-3 기본안(d) + 02h §0-M-6] "신규 디자인으로 전환" 버튼의
+ * 핵심 로직. 기존 11토글(CouponVisibilityConfig) 캠페인을 신규 DesignLayout
+ * 체계로 1회 변환한다.
+ *
+ * [자동 전환 절대 금지 — 02e §4-2/§4-3] 이 함수는 관리자가 명시적으로
+ * 호출(버튼 클릭 → API 요청)할 때만 실행된다. 이 모듈 안 어디에도 이
+ * 함수를 자동으로 트리거하는 코드가 없다(배치 루프·발행 흐름 등 다른
+ * 경로에서 import되지 않음 — route.ts 하나만 이 함수를 호출한다).
+ *
+ * [가드 — 버튼 1회] campaign.currentDesignRevisionId 가 이미 있으면
+ * (= 이미 전환됨, 또는 신규 캠페인이라 처음부터 신규 에디터를 씀) 거부한다.
+ * UI에서 버튼을 숨기는 것과 별개로, 데이터 계층에서도 재전환을 막는다
+ * (이중 방어 — UI 우회로 같은 캠페인을 두 번 변환하는 사고 방지).
+ *
+ * [전환 전 레이아웃도 리비전으로 보존 — 02h §0-M-6] freezeRevision() 이
+ * 만드는 rev1 자체가 "레거시 11토글 상태와 동등한" 변환 결과이며, 리비전
+ * 행은 절대 UPDATE/DELETE 되지 않는다(revision.ts 불변 원칙). 이후 관리자가
+ * 신규 에디터에서 내용을 더 고쳐 rev2 이상을 저장하더라도, rev1 은 영구히
+ * 남아 기존 rollbackCampaignDesign()(→ GET revisions 목록 + POST rollback)
+ * 으로 언제든 되돌릴 수 있다 — 별도의 "레거시 전용 리비전 타입"을 새로
+ * 만들지 않는다(기존 되돌리기 메커니즘을 그대로 재사용 — 02e §5 "엔드포인트
+ * 기존 재사용 우선"과 동일한 원칙).
+ *
+ * [발행 전 검사 우회 금지 — 금지 목록 ⑦] 변환 결과는 반드시
+ * validateLayout() 을 통과해야 한다. 레거시 설정이 극단적이어서(예: QR과
+ * 쿠폰번호를 모두 끔 → NO_DYNAMIC_BINDING) 통과하지 못하면, 검사를
+ * 느슨하게 만들지 않고 전환 자체를 거부한다(400, issues 포함) — 관리자가
+ * 레거시 화면에서 먼저 설정을 바로잡아야 한다.
+ */
+export interface ConvertLegacyDesignResult {
+  ok: true;
+  revisionId: number;
+  revisionNo: number;
+  issues: LayoutIssue[]; // warn 만 남을 수 있음(error 는 이 지점까지 못 옴)
+}
+
+export async function convertLegacyDesign(
+  campaignId: number,
+  opts: { createdBy?: string } = {},
+): Promise<ConvertLegacyDesignResult> {
+  const campaign = await getCampaignOrThrow(campaignId);
+
+  // [버튼 1회 가드] 이미 신규 레이아웃을 쓰고 있으면(전환 완료 또는 신규
+  // 캠페인) 재전환을 거부한다 — §4-3 "자동 전환 금지"의 데이터 계층 반영.
+  if (campaign.currentDesignRevisionId != null) {
+    throw new StudioApiError(
+      'ALREADY_CONVERTED',
+      '이미 신규 디자인으로 전환된 캠페인입니다. 다시 전환할 수 없습니다.',
+      409,
+    );
+  }
+
+  // [02e §4-1 매핑 근거] customTemplateId 가 있으면 그 템플릿의 11토글
+  // 설정을 읽는다(AI 쿠폰 디자인 기능으로 만든 커스텀 템플릿). 없으면
+  // 캠페인은 내장 4종 템플릿(CLASSIC/PREMIUM/KAKAO/MINIMAL) 중 하나를 쓰며,
+  // 이 경로엔 11토글 개념 자체가 없으므로(모든 항목이 항상 그려짐) 전체
+  // 표시를 뜻하는 DEFAULT_VISIBILITY 로 간주한다.
+  let rawVisibility: unknown = DEFAULT_VISIBILITY;
+  if (campaign.customTemplateId != null) {
+    const tpl = await prisma.bokjuCouponDesignTemplate.findUnique({
+      where: { id: campaign.customTemplateId },
+    });
+    if (tpl) {
+      rawVisibility = parseVisibilityJson(tpl.visibility);
+    }
+    // tpl 이 없으면(데이터 정합성 방어 — 이론상 onDelete:SetNull 이라
+    // customTemplateId 가 null 로 바뀌므로 발생하지 않음) DEFAULT_VISIBILITY 로 폴백.
+  }
+
+  const converted = convertVisibilityToLayout(rawVisibility);
+
+  // [금지 목록 ⑦ — 검사 우회 금지] 변환 결과도 저장 전 검사(saveCampaignDesign
+  // 과 동일한 validateLayout)를 반드시 통과해야 한다. 복사하지 않고 그대로
+  // 재사용한다(§0-G 필수1 과 동일 원칙).
+  const result = validateLayout(converted);
+  const hasError = result.issues.some((i) => i.level === 'error');
+  if (!result.ok || hasError || !result.layout) {
+    throw new StudioApiError(
+      'CONVERSION_INVALID',
+      '레거시 설정을 신규 레이아웃으로 변환했지만 발행 전 검사를 통과하지 못했습니다. '
+        + '레거시 화면에서 QR 또는 쿠폰번호 중 최소 하나는 켜져 있는지 확인한 뒤 다시 시도하세요.',
+      400,
+      result.issues,
+    );
+  }
+
+  // [02e §4-3 "freezeRevision → setCurrentRevision → rev1 동결"]
+  const frozen = await freezeRevision(campaignId, result.layout, {
+    note: '§4-3 레거시 전환 — 11토글 설정을 신규 레이아웃으로 자동 변환',
+    createdBy: opts.createdBy,
+  });
+  await setCurrentRevision(campaignId, frozen.id);
+
+  return {
+    ok: true,
+    revisionId: frozen.id,
+    revisionNo: frozen.revNo,
+    issues: result.issues,
+  };
 }
 
 // ────────────────────────────────────────────── 6) 카탈로그(§0-G 필수3)

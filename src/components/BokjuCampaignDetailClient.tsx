@@ -15,6 +15,8 @@ interface Campaign {
   sharedTotalLimit: number | null;
   distributionMethod: string;
   designTemplate: string;
+  // [작업순서4 — §4-3 전환 버튼] null이면 아직 레거시(11토글) 화면을 쓴다.
+  currentDesignRevisionId: number | null;
   status: string;
   validFrom: string;
   validTo: string;
@@ -164,6 +166,43 @@ export default function BokjuCampaignDetailClient({
     }
   }
 
+  // [작업순서4 — 02e §4-3 기본안(d)] "신규 디자인으로 전환" 버튼.
+  // 자동 전환이 아니라 이 버튼(관리자의 명시적 클릭)으로만 호출된다.
+  // 성공하면 신규 에디터(/design)로 이동 — 이후 이 캠페인은 신규
+  // 디자인 체계를 쓰며, 이 버튼은 다시 노출되지 않는다(가드는
+  // studio-api.ts convertLegacyDesign()의 currentDesignRevisionId 체크
+  // + 이 화면의 조건부 렌더링 두 겹).
+  async function handleConvertToNewDesign() {
+    if (
+      !window.confirm(
+        "신규 디자인으로 전환하면 현재 11토글 설정을 기반으로 레이아웃을 자동 생성하고, " +
+          "이 캠페인은 앞으로 새 디자인 스튜디오를 사용하게 됩니다.\n\n" +
+          "전환 전 상태는 리비전(rev1)으로 보존되어 언제든 되돌릴 수 있습니다. 계속하시겠습니까?"
+      )
+    ) {
+      return;
+    }
+    setPending("convert-design");
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/bokju-coupons/campaigns/${campaign.id}/design/convert-legacy`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!json.success) {
+        const issueMsg = Array.isArray(json.issues) && json.issues.length > 0
+          ? "\n\n" + json.issues.map((i: { message: string }) => `· ${i.message}`).join("\n")
+          : "";
+        throw new Error((json.error || "전환 실패") + issueMsg);
+      }
+      router.push(`/bokju-coupons/campaigns/${campaign.id}/design`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "신규 디자인 전환 실패");
+    } finally {
+      setPending(null);
+    }
+  }
+
   async function handleGenerateImages() {
     setPending("images");
     setError(null);
@@ -304,6 +343,45 @@ export default function BokjuCampaignDetailClient({
     <div className="space-y-6">
       {error && (
         <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>
+      )}
+
+      {/* [작업순서4 — §4-3] 레거시(11토글) 캠페인에만 노출되는 전환 버튼.
+          이미 전환됐거나(currentDesignRevisionId 있음) 신규 캠페인이면
+          이 블록 자체가 렌더링되지 않는다 — "버튼 1회" 원칙의 화면단 가드. */}
+      {canWrite && campaign.currentDesignRevisionId == null && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-indigo-900">
+                이 캠페인은 아직 기존 디자인 방식(11개 표시 항목 토글)을 사용 중입니다.
+              </p>
+              <p className="mt-1 text-xs text-indigo-700">
+                신규 디자인 스튜디오로 전환하면 현재 설정을 기반으로 자유롭게 배치를 편집할 수 있습니다.
+                전환 전 디자인은 리비전으로 보존되어 언제든 되돌릴 수 있습니다.
+              </p>
+            </div>
+            <button
+              onClick={handleConvertToNewDesign}
+              disabled={pending === "convert-design"}
+              className="shrink-0 rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {pending === "convert-design" ? "전환 중..." : "신규 디자인으로 전환"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* [작업순서4] 이미 신규 디자인으로 전환된(또는 신규 캠페인인) 경우
+          스튜디오 바로가기 링크를 노출한다. */}
+      {campaign.currentDesignRevisionId != null && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <a
+            href={`/bokju-coupons/campaigns/${campaign.id}/design`}
+            className="text-sm font-medium text-indigo-600 hover:underline"
+          >
+            쿠폰 디자인 스튜디오 열기 →
+          </a>
+        </div>
       )}
 
       {/* 캠페인 기본 정보 + 상태 전이 */}

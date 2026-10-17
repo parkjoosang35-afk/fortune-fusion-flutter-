@@ -83,6 +83,10 @@ export default async function BokjuCampaignDetailPage({
           sharedTotalLimit: campaign.sharedTotalLimit,
           distributionMethod: campaign.distributionMethod,
           designTemplate: campaign.designTemplate,
+          // [작업순서4 — §4-3] null이면 아직 레거시(11토글) 상태 → 전환
+          // 버튼을 노출해야 한다. 값이 있으면 이미 신규 디자인 스튜디오로
+          // 전환됐거나(전환 결과 rev1) 처음부터 신규 캠페인이다.
+          currentDesignRevisionId: campaign.currentDesignRevisionId,
           status: campaign.status,
           validFrom: campaign.validFrom.toISOString(),
           validTo: campaign.validTo.toISOString(),

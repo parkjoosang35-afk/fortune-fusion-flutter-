@@ -203,6 +203,7 @@ const DEFAULT_FILES = [
   'test/design.step2-renderer.test.ts',
   'test/design.step3-revision.test.ts',
   'test/design.step4-studio-api.test.ts',
+  'test/design.step4-legacy-convert.test.ts',
 ];
 
 async function main(): Promise<void> {
