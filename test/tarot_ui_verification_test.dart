@@ -224,20 +224,58 @@ void main() {
       // 완료되지 않는다(실제 재현: 수정 전 41초+ 동일 테스트명 반복
       // 출력, hang 확정). 명시적 pump(duration)로 가상 시계를 전진시켜
       // 해소한다.
-      // [알려진 잔여 이슈 — 재검수에서 발견, 완전 해결 못함] 이 화면은
-      // OzBackground의 무한 Ticker 배경 애니메이션이 있어, pump(duration)
-      // 로 가상 시계를 전진시키면 captureOriginalResult 내부 캡처 시점과
-      // 그 직후 재비교용 재캡처(toImage) 시점 사이에 배경 프레임이 미세하게
-      // 달라져 픽셀 단위 바이트 비교(expect(... orderedEquals ...))가
-      // RGBA 1-unit 차이로 실패할 수 있음을 확인함(runAsync로 완전히
-      // 감싸는 대안을 시도했으나 그 경우 hang이 재발해 더 나쁨 — hang
-      // 방지를 우선함). 근본 해결(배경 애니메이션 일시정지 또는 픽셀
-      // 허용오차 비교 도입)은 다음 세션 과제로 남긴다.
+      //
+      // [근본 원인 규명 및 해결 — RGBA 1~3-unit 바이트 불일치]
+      // 실측 진단(동일 RenderRepaintBoundary를 같은 시점에 2회 toImage() →
+      // diff=0, canvas.drawImage() 재합성 전후 비교 → diff=0)으로 배경
+      // 애니메이션의 순수 래스터화와 captureOriginalResult의 재합성/PNG
+      // 인코딩 단계는 완전히 결정론적임을 확인했다. 즉 화면과 캡처
+      // 유틸리티 모두 결함이 아니다.
+      //
+      // 진짜 원인은 "두 캡처 시점의 불일치"였다. tester.pump(duration) 한
+      // 번의 호출 안에서 (1) 가상 시계를 전진시켜 대기 중인 Timer(여기서는
+      // captureOriginalResult 내부의 Future.delayed(120ms))를 먼저
+      // 처리하고, 그 다음 (2) 전진된 시간으로 새 프레임의
+      // build/layout/paint(= OzBackground의 OzStarField가 무한 Ticker
+      // 콜백으로 새 _t 값에 따라 별빛 반짝임을 다시 그림)를 수행한다.
+      // 따라서 captureOriginalResult 내부의 toImage() 호출은 (1) 시점,
+      // 즉 그 프레임이 새로 그려지기 *직전*의 레이어를 캡처하는 반면,
+      // 기존 코드는 pump(200ms)가 완전히 끝난 *이후*에야 비교용
+      // toImage()를 별도로 호출했기 때문에 (2)에서 이미 _t가 전진해
+      // 새로 그려진 레이어를 캡처했다 — 그 사이 별빛 하나의 opacity가
+      // 미세하게 달라져 RGBA 바이트가 1~3 정도 어긋난 것이다.
+      //
+      // 해결(테스트 전용, 제품 코드/판정 규칙 변경 없음, 허용오차 도입
+      // 없음): 비교용 toImage() 호출을 captureOriginalResult와 동일한
+      // 시점에 "발급(dispatch)"한다. toImage()는 호출 시점에 이미
+      // 컴포지트돼 있는 레이어를 기준으로 캡처를 시작하고 실제 완료
+      // (resolve)는 나중에 비동기로 이뤄지므로, Future 생성 자체를
+      // 아래 pump(duration) 호출 *이전*(즉 captureOriginalResult를 막
+      // 호출한 직후, 아직 어떤 프레임도 새로 그려지기 전)으로 당기면
+      // 두 캡처가 완전히 동일한 레이어를 가리키게 된다. 완료 대기(await)
+      // 는 기존과 동일하게 tester.runAsync() 안에서 수행해 FakeAsync
+      // 테스트 zone 밖의 실제 비동기 처리를 허용한다.
+      final bodyBoundary =
+          body.captureKey.currentContext!.findRenderObject()
+              as RenderRepaintBoundary;
+      final footerBoundary =
+          footer.captureKey.currentContext!.findRenderObject()
+              as RenderRepaintBoundary;
+      final overlayBoundary =
+          overlay.currentContext!.findRenderObject() as RenderRepaintBoundary;
+
       final png = captureOriginalResult(
         body.captureKey,
         trailingKeys: [footer.captureKey],
         overlayKeys: [overlay],
       );
+      // captureOriginalResult와 동일한 레이어 상태를 캡처하기 위해, 아래
+      // pump(duration)으로 가상 시계를 전진시키기 *전에* toImage()를
+      // 호출해 Future를 미리 발급받는다(완료 대기는 뒤에서 runAsync 안에서
+      // 수행).
+      final originalBodyFuture = bodyBoundary.toImage(pixelRatio: 1.5);
+      final originalFooterFuture = footerBoundary.toImage(pixelRatio: 1.5);
+      final originalOverlayFuture = overlayBoundary.toImage(pixelRatio: 1.5);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
       await tester.runAsync(() async {
@@ -258,18 +296,9 @@ void main() {
         final output = (await image.toByteData(
           format: ui.ImageByteFormat.rawRgba,
         ))!.buffer.asUint8List();
-        final originalBody =
-            await (body.captureKey.currentContext!.findRenderObject()
-                    as RenderRepaintBoundary)
-                .toImage(pixelRatio: 1.5);
-        final originalFooter =
-            await (footer.captureKey.currentContext!.findRenderObject()
-                    as RenderRepaintBoundary)
-                .toImage(pixelRatio: 1.5);
-        final originalOverlay =
-            await (overlay.currentContext!.findRenderObject()
-                    as RenderRepaintBoundary)
-                .toImage(pixelRatio: 1.5);
+        final originalBody = await originalBodyFuture;
+        final originalFooter = await originalFooterFuture;
+        final originalOverlay = await originalOverlayFuture;
         try {
           final bodyPixels = (await originalBody.toByteData(
             format: ui.ImageByteFormat.rawRgba,
