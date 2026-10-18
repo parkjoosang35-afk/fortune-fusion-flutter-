@@ -21,7 +21,6 @@ import 'package:flutter/scheduler.dart';
 import '../character/guinji_character.dart';
 import '../theme/guinji_map_theme.dart';
 import '../theme/guinji_type_spec.dart';
-import 'guinji_animation_spec.dart';
 
 class GuinjiIntroCinematic extends StatefulWidget {
   const GuinjiIntroCinematic({super.key, required this.onStart});
@@ -117,12 +116,18 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
     setState(() => _offsetMs = (_done + 1 - _tMs).toDouble());
   }
 
+  // [사용자 버그 리포트 — 2026-10-18] "내 지도 만들기" 탭 시 약 1초간
+  // 크림색 빈 배경이 노출되는 문제. 기존에는 CTA 탭 → 6배 확대 + 화이트
+  // 아웃(1.1초, `IntroTiming.warp`) 연출을 재생한 뒤에야 onStart()를
+  // 호출했는데, 이 연출 자체가 사용자에게는 "빈 배경 버그"로 인지되어
+  // 삭제 요청을 받았다. 이제 탭 즉시 onStart()를 호출한다(워프 확대/
+  // 화이트아웃 레이어도 함께 제거 — 아래 build() 참고). 다음 화면 전환은
+  // guinjiPageRoute()의 다크 배경 슬라이드 전환이 그대로 담당하므로
+  // 흰/빈 화면 노출이 없다. `_warping`은 중복 탭 방지 용도로만 유지.
   void _go() {
     if (_warping) return;
     setState(() => _warping = true);
-    Timer(IntroTiming.warp, () {
-      if (mounted) widget.onStart();
-    });
+    widget.onStart();
   }
 
   @override
@@ -143,20 +148,13 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
           // 별 필드
           _StarsField(width: w, height: h),
 
-          // 중심 광량 + 워프 트랜스폼 레이어
+          // [워프 확대 연출 삭제 — 사용자 버그 리포트] 중심 광량 레이어.
+          // 기존에는 `_warping` 상태에서 6배 확대 Transform을 적용했으나,
+          // 이 연출이 CTA 탭 후 빈 배경처럼 보이는 원인이었다. 이제
+          // `_warping`과 무관하게 항상 항등 변환만 적용한다.
           Transform(
             alignment: Alignment.center,
-            transform: _warping
-                ? (Matrix4.identity()
-                    ..translateByDouble(cx, cy, 0, 1)
-                    ..scaleByDouble(
-                      1.0 + (tt / 1100).clamp(0.0, 1.0) * 5.0,
-                      1.0 + (tt / 1100).clamp(0.0, 1.0) * 5.0,
-                      1.0,
-                      1.0,
-                    )
-                    ..translateByDouble(-cx, -cy, 0, 1))
-                : Matrix4.identity(),
+            transform: Matrix4.identity(),
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -421,15 +419,11 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
               ),
             ),
 
-          // 워프 화이트아웃
-          if (_warping)
-            IgnorePointer(
-              child: AnimatedOpacity(
-                opacity: (tt / 1100).clamp(0.0, 1.0),
-                duration: const Duration(milliseconds: 50),
-                child: Container(color: const Color(0xFFFFF6DC)),
-              ),
-            ),
+          // [워프 화이트아웃 삭제 — 사용자 버그 리포트: "내 지도 만들기"
+          // 클릭 시 빈 배경 나오는 것 버그인 것 같아 삭제해] 기존에는
+          // `_warping`일 때 크림색(#FFF6DC) Container를 1.1초에 걸쳐
+          // 페이드인시켰다. 이제 _go()가 onStart()를 즉시 호출하므로 이
+          // 레이어는 더 이상 필요 없어 완전히 제거한다.
         ],
       ),
     );
