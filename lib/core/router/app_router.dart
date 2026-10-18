@@ -12,6 +12,7 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/fortune/shared/presentation/removed_daily_fortune_stub.dart';
 import '../../features/mypage/presentation/my_fortune_records_screen.dart';
 import '../../features/home/presentation/all_categories_screen.dart';
+import '../../features/home/presentation/sintong_home_v2/fortune_engine_intro_screen.dart';
 import '../../features/fortune/generic/presentation/generic_fortune_result_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_question_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_card_select_screen.dart';
@@ -477,6 +478,17 @@ class AppRouter {
         );
       case '/home/all-categories':
         return _pageNamed('/home/all-categories', const AllCategoriesScreen());
+
+      // [신통방통 메인 "전체보기" → "운세 엔진" 교체] 하단 시트 헤더
+      // 버튼이 이 라우트로 이동한다(sintong_v2_sheet.dart). 기존
+      // '/home/all-categories' 라우트/화면은 다른 진입점
+      // (generic_fortune_result_screen.dart 등)이 여전히 참조하므로
+      // 삭제하지 않고 그대로 둔다 — 이 라우트는 완전히 신규로 추가.
+      case '/home/fortune-engine':
+        return _pageNamed(
+          '/home/fortune-engine',
+          const FortuneEngineIntroScreen(),
+        );
 
       // ── [신규 화면 3개] 80종 전체 보기 / 개운 아이템 / 프리패스 안내 ──
       // 기존 55개 case는 순서·내용 변경 없이 그대로 두고, 이 3개만 삽입한다.

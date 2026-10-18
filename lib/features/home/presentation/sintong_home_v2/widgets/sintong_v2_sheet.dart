@@ -58,21 +58,26 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
         children: [
           Row(
             children: [
-              // "전체보기" — 탭하면 운세 전체보기 카테고리 허브로 이동
-              // (v1 [SintongModeChipRow] "전체보기" 칩과 동일한 목적지).
+              // [신통방통 메인 메뉴 수정 — "전체보기" 삭제, "운세 엔진"으로
+              // 교체] 기존 "전체보기"(→ /home/all-categories 카테고리 허브)
+              // 버튼을 제거하고, 같은 자리에 "운세 엔진" 버튼을 넣는다.
+              // 탭하면 계산 근거를 설명하는 안내 페이지(FortuneEngineIntroScreen,
+              // 상단에 뒤로가기 버튼 포함)로 이동한다. 기존 '/home/all-categories'
+              // 라우트/화면은 다른 진입점에서 계속 쓰이므로 삭제하지 않고
+              // 그대로 유지한다(이 버튼의 목적지만 교체).
               Expanded(
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
                     onTap: () =>
-                        Navigator.of(context).pushNamed('/home/all-categories'),
+                        Navigator.of(context).pushNamed('/home/fortune-engine'),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
                         vertical: 6,
                       ),
-                      child: Text('전체보기', style: SHomeV2Text.sheetTitle()),
+                      child: Text('운세 엔진', style: SHomeV2Text.sheetTitle()),
                     ),
                   ),
                 ),
