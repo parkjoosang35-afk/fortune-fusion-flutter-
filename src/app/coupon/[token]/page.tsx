@@ -37,6 +37,12 @@ async function loadCouponByToken(token: string) {
       campaignTitle: coupon.campaign.title,
       grantAmount: coupon.campaign.grantAmount,
       guideText: coupon.campaign.guideText,
+      // [5단계 — 02q §1-4 / 02s 승인] 카카오 캐시버스팅용 경로 세그먼트.
+      // 이 쿠폰이 "발행된 시점"에 각인된 디자인 리비전(3단계 designRevisionId)을
+      // 그대로 쓴다 — 캠페인의 "지금" 리비전이 아니다(02d §3-2/§3-3 원칙과
+      // 동일: 렌더 시점에 조회하지 않고 발행 시점 각인값만 본다). 레거시
+      // 디자인(null)이면 'legacy' 고정 문자열을 쓴다.
+      revCode: coupon.designRevisionId != null ? String(coupon.designRevisionId) : "legacy",
     };
   } catch (e) {
     console.error("[GET /coupon/[token]] OG 메타 조회 실패:", e);
@@ -49,7 +55,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const coupon = await loadCouponByToken(token);
   const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:4300";
   const pageUrl = `${baseUrl}/coupon/${token}`;
-  const ogImageUrl = `${baseUrl}/share-og/bokju-coupon.png`;
+  // [5단계 — 02q §1-1/§1-4, 02r/02s/02t 승인] 고정 정적 이미지
+  // (`/share-og/bokju-coupon.png`, 모든 캠페인 공용)를 캠페인별 동적 OG
+  // 라우트로 교체한다. revCode가 경로에 포함되어 디자인이 바뀌면 URL 자체가
+  // 달라지므로 카카오 스크랩 서버의 장기 캐시를 자동으로 무효화한다
+  // (§1-4 "쿼리 캐시키 vs 재생성 엔드포인트" 중 쿼리 방식을 경로 세그먼트로
+  // 구현 — 귀인지도 선례와 동일한 "경로 축" 캐시버스팅).
+  // 쿠폰을 찾지 못한 경우(state!=='ok')는 revCode가 없으므로 구버전 호환
+  // 라우트([token]/route.ts, 정적 폴백만 반환)로 떨어진다.
+  const ogImageUrl =
+    coupon.state === "ok"
+      ? `${baseUrl}/api/public/og/bokju-coupon/${token}/${coupon.revCode}`
+      : `${baseUrl}/api/public/og/bokju-coupon/${token}`;
 
   const title = coupon.state === "ok" ? `${coupon.campaignTitle} — 복주머니 쿠폰 받기` : "신통방통 · 복주머니 쿠폰";
   const description =

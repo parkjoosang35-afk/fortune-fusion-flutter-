@@ -600,18 +600,27 @@ export default function BokjuCampaignDetailClient({
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {job.zipPath && (
+                  {/* [턴E — 02w §0-AA-4] 더 이상 job.zipPath(파일 경로)를 쓰지
+                      않는다(턴D에서 그 값 자체를 DB에 저장하지 않도록 바꿈 —
+                      스트리밍 전환). 생성된 이미지가 1건이라도 있으면(진행 중
+                      작업이라도 지금까지 처리된 분량만) 그 자리에서 ZIP으로
+                      묶어 내려주는 인증 스트리밍 라우트를 직접 가리킨다. */}
+                  {job.processedCount > 0 && (
                     <a
-                      href={job.zipPath}
+                      href={`/api/admin/bokju-coupons/image-jobs/${job.id}/download`}
                       download
                       className="rounded border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-100"
                     >
                       ZIP 다운로드(이미지 전체)
                     </a>
                   )}
-                  {job.excelPath && (
+                  {/* [턴B — 02w §0-AA-2] 더 이상 job.excelPath(파일 경로)를 쓰지 않는다.
+                      엑셀은 이미지 생성 여부와 무관하게 "발행된 쿠폰"만 있으면 항상
+                      그 자리에서 스트리밍 생성 가능하므로, job 상태가 아니라 쿠폰
+                      발행 여부(campaign.issuedCount)로 노출 조건을 바꾼다. */}
+                  {campaign.issuedCount > 0 && (
                     <a
-                      href={job.excelPath}
+                      href={`/api/admin/bokju-coupons/campaigns/${campaign.id}/coupons-excel`}
                       download
                       className="rounded border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-100"
                     >

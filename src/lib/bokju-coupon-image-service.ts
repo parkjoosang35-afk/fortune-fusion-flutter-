@@ -21,7 +21,6 @@ import QRCode from "qrcode";
 import sharp from "sharp";
 import archiver from "archiver";
 import ExcelJS from "exceljs";
-import { createWriteStream } from "fs";
 import { prisma } from "@/lib/db";
 import {
   type CouponVisibilityConfig,
@@ -41,19 +40,33 @@ import {
 import { dispatchCouponRender } from "@/lib/bokju-coupon-design/dispatch";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
-const UPLOADS_ROOT = path.join(PUBLIC_DIR, "uploads", "bokju-coupons");
+// [턴C — 02w §0-AA-4] 저장 루트를 앱 디렉터리 "밖"으로 옮긴다.
+// [5단계 보안 수정 — 02t §0-X-4 ①]에서는 일단 public/ 밖(앱 디렉터리 "안"의
+// storage/bokju-coupons)으로만 옮겼으나, 그 경로는 여전히 <project>/storage
+// 였다 — 운영 배포가 rsync(ubuntu@sintong.kr:/var/www/admin_web)로 앱
+// 디렉터리 자체를 교체/동기화하는 방식이라, `rsync --delete`나 디렉터리
+// 교체 배포 시 "이미 발행된 쿠폰 이미지"가 통째로 삭제될 위험이 있었다.
+// 참고 구현(sintong-coupon renderer.ts:314)이 정확히 이 이유로 앱 밖
+// `IMAGE_OUTPUT_DIR ?? '/var/lib/sintong/coupons'`를 쓴다 — 여기서도
+// 동일한 원리로 BOKJU_IMAGE_DIR(env)가 있으면 그걸 쓰고, 없으면 앱 밖
+// 기본값 `/var/lib/sintong/bokju-coupons`로 폴백한다(더 이상
+// process.cwd() 기준 상대경로를 쓰지 않는다 — 배포 시 디렉터리가 바뀌어도
+// 이미지가 그대로 남아 있어야 하므로).
+const STORAGE_ROOT =
+  process.env.BOKJU_IMAGE_DIR ?? "/var/lib/sintong/bokju-coupons";
 
 const IMG_WIDTH = 720;
 const IMG_HEIGHT = 1280;
 const BATCH_SIZE = 20; // 배치마다 이벤트 루프에 양보
 
 function campaignDir(campaignId: number): string {
-  return path.join(UPLOADS_ROOT, `campaign_${campaignId}`);
+  return path.join(STORAGE_ROOT, `campaign_${campaignId}`);
 }
 
-function couponImageRelPath(campaignId: number, couponId: number): string {
-  return `/uploads/bokju-coupons/campaign_${campaignId}/images/${couponId}.png`;
-}
+// [5단계 보안 수정] 더 이상 public/ 아래 정적 URL을 반환하지 않는다 —
+// 호출부가 반드시 인증 서빙 라우트(/api/admin|partner/bokju-coupons/images/[couponId])
+// 를 통해서만 이미지를 받도록 강제한다. 이 함수의 반환값은 "파일시스템
+// 조회용 식별자"로만 쓰이고, 어떤 API 응답에도 그대로 노출되지 않는다.
 
 function fmtDate(d: Date): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -707,36 +720,38 @@ async function runImageJob(
     await new Promise((resolve) => setImmediate(resolve));
   }
 
-  // 엑셀 번호 목록 생성(항상 전체 쿠폰 기준으로 재생성 — 번호 목록은 가벼우므로 매번 최신화)
-  const allCoupons = await prisma.bokjuCoupon.findMany({
-    where: { campaignId: job.campaignId },
-    select: { id: true, couponNo: true, redeemToken: true, status: true, expiresAt: true },
-    orderBy: { id: "asc" },
-  });
-  const excelRelPath = await buildExcel(job.campaignId, campaign.title, allCoupons, options.registerBaseUrl);
-
-  // ZIP은 이번 작업에서 새로 생성된(혹은 기존에 이미 있는) 이미지 전체를 묶는다.
-  const zipRelPath = await buildZip(job.campaignId, allCoupons.map((c) => c.id));
-
+  // [턴D — 02w §0-AA-4/작업순서] ZIP도 더 이상 여기서 파일로 미리 만들지
+  // 않는다(엑셀은 턴B에서 이미 전환 완료). 참고구현 streamImagesZip(res, ...)
+  // 과 동일하게 "다운로드 요청이 올 때" 응답 스트림에 그 자리에서 생성한다
+  // (아래 streamCouponImagesZip 신설). zipPath 컬럼도 더 이상 채우지 않는다
+  // — 값 자체가 존재하지 않으므로 "storage에 있는데 public 경로를 반환하는
+  // 깨진 링크" 상태가 원천적으로 발생할 수 없다(턴C에서 저장 루트를 옮긴
+  // 뒤 실측으로 확인된 문제 — 기존 zipPath 문자열이 이미 죽은 링크였다).
   await prisma.bokjuCouponImageJob.update({
     where: { id: jobId },
     data: {
       status: failedIds.length > 0 ? "FAILED" : "COMPLETED",
       failedCouponIds: failedIds.length > 0 ? JSON.stringify(failedIds) : null,
-      zipPath: zipRelPath,
-      excelPath: excelRelPath,
       completedAt: new Date(),
     },
   });
 }
 
-async function buildExcel(
+/**
+ * [턴B — 02w §0-AA-2/§0-AA-3] 쿠폰번호/등록링크 엑셀을 파일로 저장하지 않고
+ * 전달된 Node.js Writable(res)에 직접 스트리밍한다. 참고구현
+ * writeNumbersXlsx(res, rows, meta)와 동일하게 반환값이 없다 — 호출부(새
+ * 다운로드 라우트)가 이 함수가 끝날 때까지(await) 기다리면 응답이 완료된다.
+ * ExcelJS.stream.xlsx.WorkbookWriter({ stream })가 workbook.commit() 호출 시
+ * 그 stream에 직접 zip(xlsx)를 써 내려간다 — 디스크 경유 없음.
+ */
+export async function streamCouponExcel(
+  destStream: import("stream").Writable,
   campaignId: number,
-  campaignTitle: string,
   coupons: { id: number; couponNo: string; redeemToken: string; status: string; expiresAt: Date }[],
   registerBaseUrl: string
-): Promise<string> {
-  const workbook = new ExcelJS.Workbook();
+): Promise<void> {
+  const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: destStream, useStyles: true });
   const sheet = workbook.addWorksheet("쿠폰번호목록");
   sheet.columns = [
     { header: "번호", key: "idx", width: 8 },
@@ -746,98 +761,105 @@ async function buildExcel(
     { header: "상태", key: "status", width: 12 },
     { header: "만료일", key: "expiresAt", width: 14 },
   ];
-  coupons.forEach((c, idx) => {
-    sheet.addRow({
-      idx: idx + 1,
-      id: c.id,
-      couponNo: c.couponNo,
-      link: `${registerBaseUrl}/coupon/${c.redeemToken}`,
-      status: c.status,
-      expiresAt: fmtDate(c.expiresAt),
-    });
-  });
   sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).commit();
 
-  const dir = campaignDir(campaignId);
-  await mkdir(dir, { recursive: true });
-  const fileName = `coupons_${campaignId}.xlsx`;
-  const absPath = path.join(dir, fileName);
-  await workbook.xlsx.writeFile(absPath);
-  void campaignTitle; // 제목은 시트 상단 메타로 추후 확장 가능 — 현재는 파일명만으로 구분
-  return `/uploads/bokju-coupons/campaign_${campaignId}/${fileName}`;
-}
-
-async function buildZip(campaignId: number, couponIds: number[]): Promise<string> {
-  const dir = campaignDir(campaignId);
-  await mkdir(dir, { recursive: true });
-  const fileName = `coupon_images_${campaignId}.zip`;
-  const absPath = path.join(dir, fileName);
-
-  await new Promise<void>((resolve, reject) => {
-    const output = createWriteStream(absPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
-    output.on("close", () => resolve());
-    archive.on("error", (err) => reject(err));
-    archive.pipe(output);
-
-    for (const id of couponIds) {
-      const imgPath = path.join(dir, "images", `${id}.png`);
-      archive.file(imgPath, { name: `${id}.png` });
-    }
-    void archive.finalize();
-  }).catch(async (e) => {
-    // 일부 이미지가 없을 수 있으므로(실패 항목) 존재하는 파일만 다시 추려서 재시도.
-    console.error(`[buildZip] 1차 시도 실패, 존재 파일만 재시도:`, e);
-    const { readdir } = await import("fs/promises");
-    const existing = new Set(await readdir(path.join(dir, "images")).catch(() => [] as string[]));
-    await new Promise<void>((resolve, reject) => {
-      const output = createWriteStream(absPath);
-      const archive = archiver("zip", { zlib: { level: 9 } });
-      output.on("close", () => resolve());
-      archive.on("error", (err) => reject(err));
-      archive.pipe(output);
-      for (const id of couponIds) {
-        const name = `${id}.png`;
-        if (existing.has(name)) archive.file(path.join(dir, "images", name), { name });
-      }
-      void archive.finalize();
-    });
+  coupons.forEach((c, idx) => {
+    sheet
+      .addRow({
+        idx: idx + 1,
+        id: c.id,
+        couponNo: c.couponNo,
+        link: `${registerBaseUrl}/coupon/${c.redeemToken}`,
+        status: c.status,
+        expiresAt: fmtDate(c.expiresAt),
+      })
+      .commit();
   });
 
-  return `/uploads/bokju-coupons/campaign_${campaignId}/${fileName}`;
+  void campaignId; // campaignDir() 조회가 필요 없어졌다(파일을 쓰지 않으므로) — 인자는 호출부 식별/로깅용으로만 유지.
+  await workbook.commit();
 }
 
 /**
- * [업체 전용 다운로드] 특정 배정(allocation)에 속한 쿠폰 이미지만 묶어 ZIP으로
- * 반환한다. 캠페인 전체 ZIP(buildZip)을 그대로 주면 다른 업체에 배정된 쿠폰까지
- * 노출되므로, 업체 화면에서는 반드시 이 함수를 통해 본인 배정분만 받는다.
- * 이미지가 아직 생성되지 않은 쿠폰은 건너뛴다(관리자가 이미지 생성을 먼저 해야 함).
+ * [턴D — 02w §0-AA-4] 쿠폰 이미지 ZIP을 파일로 미리 만들어 두지 않고,
+ * 다운로드 요청이 올 때 그 자리에서 전달된 Node.js Writable(응답 스트림)에
+ * 직접 스트리밍한다. 참고구현 streamImagesZip(res, items, meta)와 동일한
+ * 패턴 — part/partSize로 묶음을 나누고, 존재하는 이미지만 추려(존재하지
+ * 않는 항목은 조용히 건너뜀 — 실패 항목은 failedCouponIds로 별도 노출됨),
+ * 마지막에 _manifest.json을 동봉한다. archiver 에러는 destStream.destroy(err)로
+ * 전달해 응답이 반쪽 zip으로 내려가지 않고 비정상 종료되게 한다.
+ *
+ * 반환값 없음(엑셀 스트리밍 streamCouponExcel과 동일한 설계) — 호출부(다운로드
+ * 라우트)가 이 함수가 끝날 때까지 await하면 응답이 완료된다.
  */
-export async function buildAllocationZip(
+export async function streamCouponImagesZip(
+  destStream: import("stream").Writable,
+  campaignId: number,
+  couponIds: number[],
+  meta: { campaignTitle: string; part?: number; partSize?: number }
+): Promise<{ count: number; total: number }> {
+  const { existsSync } = await import("fs");
+  const dir = campaignDir(campaignId);
+
+  const usable = couponIds.filter((id) => existsSync(path.join(dir, "images", `${id}.png`)));
+  if (usable.length === 0) {
+    throw new Error("IMAGE_NOT_READY: 다운로드할 이미지가 아직 생성되지 않았습니다.");
+  }
+
+  const part = meta.part ?? 1;
+  const partSize = meta.partSize ?? usable.length;
+  const from = (part - 1) * partSize;
+  const slice = usable.slice(from, from + partSize);
+
+  const archive = archiver("zip", { zlib: { level: 6 } });
+  archive.on("error", (err) => destStream.destroy(err));
+  archive.pipe(destStream);
+
+  for (const id of slice) {
+    archive.file(path.join(dir, "images", `${id}.png`), { name: `${id}.png` });
+  }
+  archive.append(
+    Buffer.from(
+      JSON.stringify(
+        {
+          campaign: meta.campaignTitle,
+          part,
+          partSize,
+          total: usable.length,
+          count: slice.length,
+          couponIds: slice,
+          generatedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      ),
+      "utf8"
+    ),
+    { name: "_manifest.json" }
+  );
+  await archive.finalize();
+  return { count: slice.length, total: usable.length };
+}
+
+/**
+ * [업체 전용 다운로드] 특정 배정(allocation)에 속한 쿠폰 이미지만 묶어 응답
+ * 스트림에 직접 흘려보낸다. 캠페인 전체 ZIP을 그대로 주면 다른 업체에 배정된
+ * 쿠폰까지 노출되므로, 업체 화면에서는 반드시 이 함수를 통해 본인 배정분만
+ * 받는다. 이미지가 아직 생성되지 않은 쿠폰은 건너뛴다(관리자가 이미지 생성을
+ * 먼저 해야 함). [턴D] 메모리 Buffer.concat 방식을 제거하고 streamCouponImagesZip과
+ * 동일하게 스트리밍으로 전환했다 — part/partSize는 업체 다운로드 특성상
+ * 불필요(배정 규모가 보통 작음)하므로 받지 않는다(참고구현에도 선택 파라미터).
+ */
+export async function streamAllocationZip(
+  destStream: import("stream").Writable,
   campaignId: number,
   allocationId: number,
   couponIds: number[]
-): Promise<Buffer> {
-  const dir = campaignDir(campaignId);
-  const archive = archiver("zip", { zlib: { level: 9 } });
-  const chunks: Buffer[] = [];
-  const done = new Promise<Buffer>((resolve, reject) => {
-    archive.on("data", (chunk: Buffer) => chunks.push(chunk));
-    archive.on("end", () => resolve(Buffer.concat(chunks)));
-    archive.on("error", (err) => reject(err));
+): Promise<{ count: number; total: number }> {
+  return streamCouponImagesZip(destStream, campaignId, couponIds, {
+    campaignTitle: `allocation_${allocationId}`,
   });
-  for (const id of couponIds) {
-    const imgPath = path.join(dir, "images", `${id}.png`);
-    try {
-      await readFile(imgPath);
-      archive.file(imgPath, { name: `${id}.png` });
-    } catch {
-      // 해당 쿠폰 이미지가 아직 생성되지 않음 — 건너뜀
-    }
-  }
-  void archive.finalize();
-  void allocationId; // 파일명에는 쓰지 않지만 호출부 로깅/추적용으로 인자 유지
-  return done;
 }
 
 export async function getImageJob(jobId: number) {
@@ -851,8 +873,11 @@ export async function listImageJobsForCampaign(campaignId: number) {
   });
 }
 
+// [5단계 보안 수정] 더 이상 public URL 문자열을 반환하지 않는다 — 이
+// 함수는 "그 쿠폰 이미지의 파일시스템 절대경로"만 반환하며, 호출부(인증
+// 서빙 라우트)가 readFile로 읽어 Response 바디에 직접 담아야 한다.
 export function couponImagePath(campaignId: number, couponId: number): string {
-  return couponImageRelPath(campaignId, couponId);
+  return path.join(campaignDir(campaignId), "images", `${couponId}.png`);
 }
 
 export async function readCouponImage(campaignId: number, couponId: number): Promise<Buffer | null> {
