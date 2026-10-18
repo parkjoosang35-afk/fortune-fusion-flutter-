@@ -33,14 +33,25 @@ class ShrineInsideScreen extends StatelessWidget {
             child: Image.asset('${kShrineImageBase}shrine.jpg', fit: BoxFit.cover),
           ),
         ),
+        // [버그 수정 2] 이 비네트 그라디언트는 순수 시각 효과이지만,
+        // BoxDecoration.hitTest()는 shape가 rectangle이고 borderRadius가
+        // 없으면 항상 true를 반환한다(Flutter box_decoration.dart). 따라서
+        // IgnorePointer 없이 Positioned.fill로 전체 화면을 덮으면 Stack의
+        // 히트테스트(역순 순회, 첫 히트에서 중단)가 여기서 멈춰버려, 바로
+        // 아래 레이어(배경 GestureDetector)까지 탭이 전달되지 않는다 —
+        // 이것이 "화면을 눌러도 talk로 안 넘어감" 버그의 실제 원인이다.
+        // ShrineBottomFade(동일 패턴)는 자체적으로 IgnorePointer를 쓰고
+        // 있으므로 여기도 동일하게 감싼다.
         const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0, -.1),
-                radius: 1.1,
-                colors: [Color(0x00000000), Color(0x8A000000)],
-                stops: [.5, 1],
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -.1),
+                  radius: 1.1,
+                  colors: [Color(0x00000000), Color(0x8A000000)],
+                  stops: [.5, 1],
+                ),
               ),
             ),
           ),
