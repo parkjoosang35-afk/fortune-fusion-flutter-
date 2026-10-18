@@ -14,6 +14,17 @@ import 'main_bottom_nav_bar.dart';
 /// 로그인/회원가입/정책(가입 전 화면), 홈 셸 자체(/home — 이미 바 보유).
 /// 이름 없이 직접 MaterialPageRoute로 push되는 화면은 감싸지 않는다(기존
 /// 수동 하단바 유지 — 타로 결과·귀인지도 게스트 참여).
+///
+/// [신당(神堂) 통합 — 버그 수정] `/shrine`이 이 목록에서 누락되어 있어
+/// 신당 콘텐츠(ShrineScreenScaffold, 자체 어두운 전체화면 연출) 전체가
+/// 전역 하단바(MainBottomNavBar)로 다시 감싸지고 있었다. 신당은 소원방과
+/// 동일하게 "자체 전체화면 몰입형 UI"(뒤로/레일/SKIP/설정을 직접 그림)를
+/// 가지고 있어 이중 바 방지 원칙이 똑같이 적용되어야 한다. 이 누락이
+/// Scaffold의 body 영역을 하단바 높이(~contentReserve+safeArea)만큼
+/// 줄여, ShrineScreenScaffold 내부의 Positioned.fill/Align 좌표 기준이
+/// 어긋나고 — 특히 shrine_inside_screen.dart의 전체화면 GestureDetector가
+/// 실제로 그려지는 영역과 사용자가 탭하는 좌표가 서로 다른 캔버스로
+/// 분리되어 onTap이 전혀 호출되지 않는 것처럼 보이는 문제로 이어졌다.
 const Set<String> _bottomNavExcludedRoutes = {
   '/splash',
   '/intro',
@@ -24,6 +35,7 @@ const Set<String> _bottomNavExcludedRoutes = {
   '/home',
   '/wish-room',
   '/wish-wall',
+  '/shrine',
 };
 
 Widget wrapWithGlobalBottomNav(String? routeName, Widget child) {

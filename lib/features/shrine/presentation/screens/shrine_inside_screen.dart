@@ -29,11 +29,7 @@ class ShrineInsideScreen extends StatelessWidget {
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () {
-              // ignore: avoid_print
-              print('[DEBUG] ShrineInsideScreen tap fired -> navigating to talk');
-              ShrineNav.go(context, 'talk');
-            },
+            onTap: () => ShrineNav.go(context, 'talk'),
             child: Image.asset('${kShrineImageBase}shrine.jpg', fit: BoxFit.cover),
           ),
         ),
