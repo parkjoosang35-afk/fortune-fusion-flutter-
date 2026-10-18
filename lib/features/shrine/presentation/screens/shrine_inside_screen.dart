@@ -19,10 +19,21 @@ class ShrineInsideScreen extends StatelessWidget {
     return ShrineScreenScaffold(
       back: false,
       background: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => ShrineNav.go(context, 'talk'),
-          child: Positioned.fill(
+        // [버그 수정] Positioned는 Stack의 직계 RenderObjectWidget 자식이어야
+        // 한다. GestureDetector(child: Positioned.fill(...))처럼 감싸는 순서가
+        // 뒤바뀌면 ParentData 타입 불일치 예외가 매 프레임 반복되며
+        // "RangeError: Maximum call stack size exceeded"(Stack Overflow)로
+        // 이어진다(영상 재현·Playwright 콘솔 스택 트레이스로 확인). 반드시
+        // Positioned.fill(child: GestureDetector(...)) 순서를 유지한다
+        // (shrine_receive_screen.dart의 기존 올바른 패턴과 동일).
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              // ignore: avoid_print
+              print('[DEBUG] ShrineInsideScreen tap fired -> navigating to talk');
+              ShrineNav.go(context, 'talk');
+            },
             child: Image.asset('${kShrineImageBase}shrine.jpg', fit: BoxFit.cover),
           ),
         ),
