@@ -12,11 +12,16 @@
 import 'package:flutter/widgets.dart';
 import '../domain/shrine_rite_data.dart';
 import '../domain/shrine_tokens.dart';
+import 'screens/shrine_burn_screen.dart';
 import 'screens/shrine_door_screen.dart';
 import 'screens/shrine_entry_screen.dart';
 import 'screens/shrine_info_screen.dart';
 import 'screens/shrine_inside_screen.dart';
+import 'screens/shrine_paper_screen.dart';
+import 'screens/shrine_read_screen.dart';
+import 'screens/shrine_reveal_screen.dart';
 import 'screens/shrine_talk_screen.dart';
+import 'screens/shrine_write_screen.dart';
 import 'shrine_navigation.dart';
 import 'widgets/shrine_chrome.dart';
 import 'widgets/shrine_scaffold.dart';
@@ -34,6 +39,16 @@ Widget shrineScreenFor(String id) {
       return const ShrineTalkScreen();
     case 'info':
       return const ShrineInfoScreen();
+    case 'write':
+      return const ShrineWriteScreen();
+    case 'paper':
+      return const ShrinePaperScreen();
+    case 'burn':
+      return const ShrineBurnScreen();
+    case 'reveal':
+      return const ShrineRevealScreen();
+    case 'read':
+      return const ShrineReadScreen();
     default:
       // [P2/P3/P4/P5/P6 범위] 아직 구현되지 않은 화면 — 신당 스타터
       // screens_todo.dart의 TodoScreen과 동일한 자리 표시자.
