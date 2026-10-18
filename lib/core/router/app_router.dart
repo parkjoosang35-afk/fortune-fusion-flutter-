@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'app_shell.dart';
+// [신당(神堂) 통합 — P1 검증용 임시 진입점] 하단바 5번째 탭 정식 등록은
+// P6 범위이므로, 지금은 개발/웹 프리뷰 검증을 위해 '/shrine' 라우트만
+// 추가한다(사용자 승인 작업순서: P1 구현 직후 analyze·프리뷰 검증 필요).
+import '../../features/shrine/presentation/screens/shrine_entry_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/intro/presentation/onboarding_gate_screen.dart';
 import '../../features/policy/presentation/policy_notice_screen.dart';
@@ -216,6 +220,9 @@ class AppRouter {
     switch (settings.name) {
       case '/splash':
         return _pageNamed('/splash', const SplashScreen());
+      // [신당(神堂) 통합 — P1 검증용 임시 진입점. 정식 5번째 탭 연결은 P6.]
+      case '/shrine':
+        return _pageNamed('/shrine', const ShrineEntryScreen());
       // [인트로 전면 개편] 4단계 인트로(카드1/카드2/CTA) 페이저. 스플래시 이후
       // introSeen=false인 첫 실행 사용자에게만 노출된다.
       //

@@ -96,6 +96,9 @@ import 'features/saju_renewal/data/saju_recent_story_store.dart';
 import 'core/orchestrator/orchestrator_provider.dart';
 import 'core/orchestrator/fortune_orchestrator.dart';
 import 'core/orchestrator/door_engine_gateway.dart';
+// [신당(神堂) 통합 — P1] 복주머니(PouchBoxProvider)와 동일한 분리 원칙으로
+// 상태(ShrineSessionProvider)만 전역 등록한다. 화면 전이는 ShrineNav가 담당.
+import 'features/shrine/application/shrine_session_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -139,6 +142,9 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PouchBoxProvider(PouchBoxRepository()),
         ),
+        // [신당(神堂) 통합 — P1] ChangeNotifier 기반 세션 상태(기기 내
+        // SharedPreferences에만 저장, 서버 전송 없음 — 지시서 §1.2).
+        ChangeNotifierProvider(create: (_) => ShrineSessionProvider()),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
         ),
