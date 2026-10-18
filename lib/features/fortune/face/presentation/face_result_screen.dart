@@ -14,6 +14,8 @@ import '../../../share/domain/share_result_model.dart';
 import '../application/face_provider.dart';
 import '../domain/face_model.dart';
 import '../../../../core/util/original_result_capture.dart';
+import '../../shared/domain/reading_artifact_builder.dart';
+import '../../shared/presentation/seal_reading_flow.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] 관상 결과 화면.
 ///
@@ -158,6 +160,26 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
       // 보기")와는 섹션 전체 길이만큼 떨어져 있어 혼동 우려가 없다.
       midAd: const WebAdBanner(surface: WebAdSurface.face, adSlot: ''),
       ctas: [
+        // [v7 통합 — 관상·손금 결과화면 + 소원방 봉인] 주 CTA. 사진/좌표
+        // 없이 "풀이 확정"(ReadingArtifact)만 만들어 소원방으로 넘긴다.
+        // ResultCardStack 내부 구조는 건드리지 않고 기존 ctas 데이터
+        // 패턴에 항목만 추가한다(사용자 승인 #1 — 공용 컴포넌트 보호).
+        ResultCta(
+          label: '🕯 이 풀이를 내 소원에 봉인하기',
+          icon: Icons.auto_awesome_rounded,
+          onTap: () => sealReadingToWishRoom(
+            context,
+            ReadingArtifactBuilder.fromFace(result),
+          ),
+        ),
+        ResultCta(
+          label: '풀이만 보관하고 나가기',
+          icon: Icons.inventory_2_outlined,
+          onTap: () => keepReadingForLater(
+            context,
+            ReadingArtifactBuilder.fromFace(result),
+          ),
+        ),
         ResultCta(
           label: '결과페이지 그대로 저장',
           icon: Icons.download_rounded,

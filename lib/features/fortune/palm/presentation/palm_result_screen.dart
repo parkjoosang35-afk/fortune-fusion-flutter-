@@ -14,6 +14,8 @@ import '../../../share/domain/share_result_model.dart';
 import '../application/palm_provider.dart';
 import '../domain/palm_model.dart';
 import '../../../../core/util/original_result_capture.dart';
+import '../../shared/domain/reading_artifact_builder.dart';
+import '../../shared/presentation/seal_reading_flow.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] 손금 결과 화면.
 ///
@@ -156,6 +158,24 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         ),
       ],
       ctas: [
+        // [v7 통합 — 관상·손금 결과화면 + 소원방 봉인] face_result_screen.dart와
+        // 동일한 패턴. ResultCardStack 내부 구조는 건드리지 않는다.
+        ResultCta(
+          label: '🕯 이 풀이를 내 소원에 봉인하기',
+          icon: Icons.auto_awesome_rounded,
+          onTap: () => sealReadingToWishRoom(
+            context,
+            ReadingArtifactBuilder.fromPalm(result),
+          ),
+        ),
+        ResultCta(
+          label: '풀이만 보관하고 나가기',
+          icon: Icons.inventory_2_outlined,
+          onTap: () => keepReadingForLater(
+            context,
+            ReadingArtifactBuilder.fromPalm(result),
+          ),
+        ),
         ResultCta(
           label: '결과페이지 그대로 저장',
           icon: Icons.download_rounded,

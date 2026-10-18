@@ -15,9 +15,18 @@ import '../intro/wish_room_intro_screen.dart';
 import 'sealed_done_screen.dart';
 import '../../core/wr_toast.dart';
 import '../characters/character_shop_screen.dart';
+import '../../../fortune/shared/domain/reading_artifact.dart';
+import '../../../fortune/shared/data/reading_wish_link_store.dart';
 
 class ComposeScreen extends StatefulWidget {
-  const ComposeScreen({super.key});
+  // [관상·손금 결과화면 + 소원방 봉인 통합 리디자인 v7, v7.1 "예외 경로"]
+  // 활성 소원이 아예 없는 사용자가 관상/손금 총결과 화면에서 "이 풀이를 내
+  // 소원에 봉인하기"를 눌렀을 때만 이 파라미터가 채워진 채로 열린다.
+  // 소원 작성이 성공하면(_submit) 새로 만들어진 소원에 이 풀이를 함께
+  // 동봉한다 — v7.1 원칙("풀이는 동봉물, 새 소원 생성 금지")의 유일한
+  // 예외 경로가 바로 이 경우다(소원이 아예 없을 때만 새로 씀).
+  const ComposeScreen({super.key, this.pendingReading});
+  final ReadingArtifact? pendingReading;
   @override
   State<ComposeScreen> createState() => _ComposeScreenState();
 }
@@ -130,6 +139,18 @@ class _ComposeScreenState extends State<ComposeScreen> {
           try {
             await context.read<WishRoomProvider>().setOutfit(roomId, _theme);
           } catch (_) {}
+        }
+      }
+      // [v7 통합 — v7.1 예외 경로] 소원이 아예 없어 이 화면에서 "함께"
+      // 새로 소원을 쓴 경우에만, 방금 생성된 소원에 대기 중이던 풀이를
+      // 동봉한다(ReadingWishLinkStore — 서버 영속 전까지의 로컬 매핑).
+      if (widget.pendingReading != null) {
+        final newRoomId = context.read<WishRoomProvider>().room?.id;
+        if (newRoomId != null) {
+          await ReadingWishLinkStore.attach(
+            newRoomId,
+            widget.pendingReading!.id,
+          );
         }
       }
       // app2/capsule2.jsx SealedDone — 제출 성공 → 두루마리 말림/인장 연출 → "소원방 들어가기" → full 인트로.
@@ -246,6 +267,16 @@ class _ComposeScreenState extends State<ComposeScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
+                        // [v7 통합 — v7.1 예외 경로] 관상/손금 총결과 화면에서
+                        // 넘어온 풀이가 있으면, 소원 작성이 끝나는 즉시 함께
+                        // 봉인된다는 것을 미리 보여준다(ReadingArtifact.jsx
+                        // ArtifactChip 1:1 정신 — 사진 없이 인장+요약만).
+                        if (widget.pendingReading != null) ...[
+                          _PendingReadingChip(
+                            artifact: widget.pendingReading!,
+                          ),
+                          const SizedBox(height: 14),
+                        ],
                         // [A-3 §3] 한지 카드 — 소원빛깔 그라디언트 + 종이색 배경 + 8색 종이선택 통합.
                         _hanjiCard(),
                         // [버그수정] "함께할 수호자"는 한지 카드(소원 작성) 바로 아래로 위치해야 한다는
@@ -892,6 +923,80 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
   String _fmtIso(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
+/// [v7 통합] 대기 중인 풀이를 작성 화면 상단에 미리 보여주는 칩.
+/// 디자인 핸드오프 ReadingArtifact.jsx `ArtifactChip` 1:1 정신 — 사진 없이
+/// 인장 한자 + 요약(실측 N · 해석 N건)만 노출한다.
+class _PendingReadingChip extends StatelessWidget {
+  const _PendingReadingChip({required this.artifact});
+  final ReadingArtifact artifact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x26F5CF6A), Color(0x0DF5CF6A)],
+        ),
+        border: Border.all(color: const Color(0x73F5CF6A)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFFC94A3B),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Text(
+              artifact.total.key,
+              style: const TextStyle(
+                fontFamily: 'NotoSerifKR',
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                color: Color(0xFFFFF9E8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '◈ 담겨온 풀이 · ${artifact.kind.hanja}',
+                  style: WrF.body(
+                    10.5,
+                    w: FontWeight.w700,
+                    color: const Color(0xFFF5CF6A),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  artifact.total.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: WrF.body(14, w: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '해석 ${artifact.interpretedCount}건 · 사진 없이 보관돼요',
+                  style: WrF.body(11, color: WrC.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Color _hex(String h) =>

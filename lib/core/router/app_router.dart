@@ -23,6 +23,7 @@ import '../../features/fortune/face/presentation/face_capture_screen.dart';
 import '../../features/fortune/face/presentation/face_analyzing_screen.dart';
 import '../../features/fortune/face/presentation/face_result_screen.dart';
 import '../../features/fortune/face/presentation/face_history_screen.dart';
+import '../../features/fortune/shared/presentation/reading_archive_screen.dart';
 import '../../features/fortune/palm/presentation/palm_capture_screen.dart';
 import '../../features/fortune/palm/presentation/palm_analyzing_screen.dart';
 import '../../features/fortune/palm/presentation/palm_result_screen.dart';
@@ -701,6 +702,12 @@ class AppRouter {
         return _pageNamed(
           '/ai-fortune/face/history',
           const FaceHistoryScreen(),
+        );
+      // [v7 통합] "풀이만 보관하고 나가기"로 쌓인 로컬 보관함(관상/손금 공용).
+      case '/ai-fortune/reading-archive':
+        return _pageNamed(
+          '/ai-fortune/reading-archive',
+          const ReadingArchiveScreen(),
         );
 
       // ── AI 손금 ──
