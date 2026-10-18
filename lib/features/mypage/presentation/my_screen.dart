@@ -248,6 +248,15 @@ class _MyScreenState extends State<MyScreen> {
                   onTap: () =>
                       Navigator.of(context).pushNamed('/my/fortune-records'),
                 ),
+                // [v7 통합 — 관상·손금 결과화면 + 소원방 봉인] "풀이만
+                // 보관하고 나가기"로 쌓인 로컬 보관함(최대 12개) 진입점.
+                _ArchiveCard(
+                  icon: Icons.inventory_2_outlined,
+                  label: '보관한 풀이',
+                  onTap: () => Navigator.of(
+                    context,
+                  ).pushNamed('/ai-fortune/reading-archive'),
+                ),
               ],
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),

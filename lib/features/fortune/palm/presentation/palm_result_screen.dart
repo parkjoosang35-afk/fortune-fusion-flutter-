@@ -15,6 +15,7 @@ import '../application/palm_provider.dart';
 import '../domain/palm_model.dart';
 import '../../../../core/util/original_result_capture.dart';
 import '../../shared/domain/reading_artifact_builder.dart';
+import '../../shared/presentation/reading_disclosure_widgets.dart';
 import '../../shared/presentation/seal_reading_flow.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] 손금 결과 화면.
@@ -136,6 +137,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
       captureFrame: (child) => _PaperSheet(child: child),
       heroCaption: '종합 손금 해석',
       heroSummary: result.summary,
+      heroExtra: const ReadingFunDisclaimer(),
       sectionTitle: '세부 리포트',
       // [웹 일반 AdSense 전체 확장 — 손금] 히어로 카드(종합 손금 해석)와
       // 세부 리포트 섹션 사이에 배치 — CTA("다시 분석하기"/"히스토리

@@ -13,6 +13,7 @@ import '../../../../core/widgets/premium_button.dart';
 import '../../../../core/widgets/premium_card.dart';
 import '../data/reading_artifact_store.dart';
 import '../domain/reading_artifact.dart';
+import 'reading_disclosure_widgets.dart';
 import 'seal_reading_flow.dart';
 
 class ReadingArchiveScreen extends StatefulWidget {
@@ -62,24 +63,41 @@ class _ReadingArchiveScreenState extends State<ReadingArchiveScreen> {
               )
             : ListView.separated(
                 padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-                itemCount: items.length,
+                itemCount: items.length + 1,
                 separatorBuilder: (_, __) =>
                     SizedBox(height: UnifiedTokens.spaceMd),
-                itemBuilder: (context, index) =>
-                    _ArchiveTile(artifact: items[index], onRemove: _remove),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return const Padding(
+                      padding: EdgeInsets.only(bottom: 4),
+                      child: ReadingFunDisclaimer(),
+                    );
+                  }
+                  final artifact = items[index - 1];
+                  return _ArchiveTile(artifact: artifact, onRemove: _remove);
+                },
               ),
       ),
     );
   }
 }
 
-class _ArchiveTile extends StatelessWidget {
+class _ArchiveTile extends StatefulWidget {
   const _ArchiveTile({required this.artifact, required this.onRemove});
   final ReadingArtifact artifact;
   final ValueChanged<String> onRemove;
 
   @override
+  State<_ArchiveTile> createState() => _ArchiveTileState();
+}
+
+class _ArchiveTileState extends State<_ArchiveTile> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final artifact = widget.artifact;
+    final onRemove = widget.onRemove;
     return PremiumCard(
       backgroundColor: UnifiedColors.cardSection,
       borderColor: Colors.transparent,
@@ -135,7 +153,59 @@ class _ArchiveTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                Text(
+                  _expanded ? '세부 풀이 접기' : '세부 풀이 펼치기',
+                  style: UnifiedText.caption().copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Icon(
+                  _expanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
+                  size: 18,
+                  color: UnifiedColors.textCaption,
+                ),
+              ],
+            ),
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 8),
+            for (final step in artifact.steps)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${step.chip} ${step.title}',
+                            style: UnifiedText.bodyStrong(),
+                          ),
+                        ),
+                        ReadingDetectionBadge(
+                          confidence: step.detectionConfidence,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(step.body, style: UnifiedText.body()),
+                    if (step.cite != null) ReadingCiteCard(cite: step.cite!),
+                  ],
+                ),
+              ),
+            if (artifact.total.cite != null)
+              ReadingCiteCard(cite: artifact.total.cite!),
+            const SizedBox(height: 4),
+          ],
+          const SizedBox(height: 10),
           PremiumButton.black(
             label: '🕯 지금 내 소원에 봉인하기',
             icon: Icons.auto_awesome_rounded,

@@ -18,6 +18,7 @@ import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/motion/wr_motion.dart';
 import '../../core/wr_canvas.dart';
+import '../../../fortune/shared/presentation/attached_readings_panel.dart';
 import '../../core/fx/wr_fx.dart';
 import '../../core/fx/wr_level_up.dart';
 import 'room_scene.dart';
@@ -619,6 +620,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                 style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 10.5, color: s.match ? const Color(0xFF3A1A14) : inkColor)),
             )).toList()),
           ),
+          // [v7 통합] 관상·손금 결과 화면에서 "이 풀이를 내 소원에
+          // 봉인하기"로 동봉된 풀이가 있으면 여기에 칩으로 보여준다.
+          // 비어 있으면 AttachedReadingsPanel이 SizedBox.shrink()를
+          // 반환해 기존 레이아웃에 영향이 없다.
+          AttachedReadingsPanel(wishRoomId: room.id),
           const SizedBox(height: 14),
           Row(children: [
             Expanded(child: SizedBox(height: 40, child: OutlinedButton(
