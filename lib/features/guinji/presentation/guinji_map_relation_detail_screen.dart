@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../navigation/guinji_page_route.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/util/original_result_capture.dart';
@@ -241,8 +242,8 @@ class _GuinjiMapRelationDetailScreenState
   void _openDeep() {
     final ownerName = context.read<GuinjiProvider>().mapName ?? '나';
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => _justUnlocked
+      guinjiPageRoute(
+        _justUnlocked
             ? GuinjiDeepIntroScreen(
                 person: widget.person,
                 ownerName: ownerName,

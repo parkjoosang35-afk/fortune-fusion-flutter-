@@ -202,6 +202,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
     // 에서는 로딩 상태가 그려지기도 전에 메인 스레드가 봉쇄돼 아이보리 백지
     // 화면이 노출됐다. 로딩 프레임을 먼저 제출한 뒤 계산에 들어간다.
     await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
 
     final provider = context.read<GuinjiProvider>();
     final ok = await provider.createMapWithInput(
