@@ -108,9 +108,20 @@ class MidnightNavTabData {
 /// README "탭 매핑" 표 고정 순서 — 홈(0) · 소원방(1) · 복주머니(2) · 마이(3).
 /// 기존 app_shell.dart/main_bottom_nav_bar.dart의 `_navItems`와 인덱스
 /// 의미가 완전히 동일하다(운세 탭은 이미 삭제되어 있었음).
+///
+/// [신당(神堂) 통합 — A안, 공식 지시서 `01_dev_spec_v1.4.pdf` §3.1~3.2]
+/// 1번 슬롯(구 "소원방")의 라벨/아이콘만 "신당부적"으로 교체한다. 탭
+/// 개수는 4개 그대로 유지 — 소원방 기능 자체는 폐지되지 않고 하단바
+/// 라벨만 빠질 뿐, 홈 카드·마이페이지 등 기존 진입점으로 계속 접근
+/// 가능하다(app_shell.dart `_openWishRoom` 등 참고). 아이콘 색상은
+/// 지시서 고정값(활성 #c9a368 금색 / 비활성 회색)을 따르며, 신당 내부
+/// 붉은색 희소성 보호를 위해 이 탭에는 붉은색을 쓰지 않는다 — 그래서
+/// 이 탭만은 `_MidnightNavIcon`의 공용 글로우 틴트(#F5CF6A)가 아니라
+/// 아이콘 파일 자체에 #c9a368을 구워 넣어 별도 처리한다(아래
+/// `_MidnightNavIcon` 참고).
 const List<MidnightNavTabData> kMidnightNavTabs = [
   MidnightNavTabData(iconKey: 'home', label: '홈'),
-  MidnightNavTabData(iconKey: 'wishroom', label: '소원방'),
+  MidnightNavTabData(iconKey: 'shrine', label: '신당부적'),
   MidnightNavTabData(iconKey: 'pouch', label: '복주머니'),
   MidnightNavTabData(iconKey: 'my', label: '마이'),
 ];
@@ -132,12 +143,19 @@ class MidnightBottomNavBar extends StatelessWidget {
     required this.onTap,
     this.onReselected,
     this.tabs = kMidnightNavTabs,
+    this.badgedIndices = const <int>{},
   });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
   final ValueChanged<int>? onReselected;
   final List<MidnightNavTabData> tabs;
+
+  /// [신당(神堂) 통합 — A안 §3.2 "배지"] 보관 중인 소지부가 있을 때만
+  /// 신당 탭 아이콘 오른쪽 위에 금색 점(6px)을 표시한다. 호출부
+  /// (AppShell)가 `ShrineSessionProvider.state.kept`를 watch해 이 인덱스
+  /// 집합을 넘긴다. 다른 탭에도 재사용 가능하도록 일반화된 Set으로 둔다.
+  final Set<int> badgedIndices;
 
   void _handleTap(int index) {
     if (index == currentIndex) {
@@ -188,6 +206,7 @@ class MidnightBottomNavBar extends StatelessWidget {
                       data: tabs[i],
                       selected: i == currentIndex,
                       onTap: () => _handleTap(i),
+                      showBadge: badgedIndices.contains(i),
                     ),
                   ),
               ],
@@ -204,11 +223,15 @@ class _MidnightNavTab extends StatefulWidget {
     required this.data,
     required this.selected,
     required this.onTap,
+    this.showBadge = false,
   });
 
   final MidnightNavTabData data;
   final bool selected;
   final VoidCallback onTap;
+
+  /// [신당(神堂) 통합 — A안 §3.2] 아이콘 오른쪽 위 금색 점(6px) 표시 여부.
+  final bool showBadge;
 
   @override
   State<_MidnightNavTab> createState() => _MidnightNavTabState();
@@ -255,6 +278,7 @@ class _MidnightNavTabState extends State<_MidnightNavTab> {
                     _MidnightNavIcon(
                       iconKey: widget.data.iconKey,
                       selected: selected,
+                      showBadge: widget.showBadge,
                     ),
                     const SizedBox(height: MidnightNavTokens.tabGap),
                     AnimatedDefaultTextStyle(
@@ -311,14 +335,57 @@ class _MidnightNavTabState extends State<_MidnightNavTab> {
 /// 글로우) 상태에 따라 완전히 다른 파일을 그대로 보여준다(위 파일 헤더
 /// 설명 참고 — currentColor 틴트가 아니라 파일 교체 방식).
 class _MidnightNavIcon extends StatelessWidget {
-  const _MidnightNavIcon({required this.iconKey, required this.selected});
+  const _MidnightNavIcon({
+    required this.iconKey,
+    required this.selected,
+    this.showBadge = false,
+  });
 
   final String iconKey;
   final bool selected;
+  final bool showBadge;
+
+  /// [신당(神堂) 통합 — A안 §3.2] "활성 색상 #c9a368(금) / 비활성 회색,
+  /// 붉은색 사용 금지" 고정값. 다른 탭은 기존 캔들골드(#F5CF6A) 글로우를
+  /// 그대로 쓰되, 신당 탭만 지시서 지정 금색으로 글로우를 맞춘다(아이콘
+  /// 파일 자체도 이미 #c9a368/#9A9AA2로 구워져 있음 — 위 SVG 생성 참고).
+  static const Color _shrineGlow = Color(0x73C9A368);
 
   @override
   Widget build(BuildContext context) {
     const size = MidnightNavTokens.iconSize;
+    final icon = _buildIcon(size);
+    if (!showBadge) return icon;
+    // [신당(神堂) 통합 — A안 §3.2 "배지"] 보관 중인 소지부가 있을 때만
+    // 아이콘 오른쪽 위에 금색 점(6px)을 겹쳐 그린다.
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          icon,
+          Positioned(
+            top: -1,
+            right: -1,
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: MidnightNavTokens.active,
+                boxShadow: [
+                  BoxShadow(color: MidnightNavTokens.active, blurRadius: 4),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIcon(double size) {
     if (!selected) {
       return Opacity(
         opacity: 0.5,
@@ -330,6 +397,7 @@ class _MidnightNavIcon extends StatelessWidget {
       );
     }
     final asset = _iconAsset(iconKey, active: true);
+    final glow = iconKey == 'shrine' ? _shrineGlow : MidnightNavTokens.glow;
     return SizedBox(
       width: size,
       height: size,
@@ -343,10 +411,7 @@ class _MidnightNavIcon extends StatelessWidget {
               asset,
               width: size,
               height: size,
-              colorFilter: const ColorFilter.mode(
-                MidnightNavTokens.glow,
-                BlendMode.srcIn,
-              ),
+              colorFilter: ColorFilter.mode(glow, BlendMode.srcIn),
             ),
           ),
           // 선명한 원본 레이어 — 복주머니의 2색(금빛+다이아몬드) 보존.

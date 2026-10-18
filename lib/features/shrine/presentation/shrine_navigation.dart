@@ -39,6 +39,13 @@ class ShrineNav {
             FadeTransition(opacity: CurvedAnimation(parent: a, curve: Curves.ease), child: c),
       );
 
+  /// [신당(神堂) 하단바 통합 — A안] 하단바 "신당부적" 탭에서 신당 진입점을
+  /// 열 때 쓰는 공개 라우트 생성자. 기존 `_fadeRoute`와 동일한 1.1초
+  /// 크로스페이드 모션을 그대로 재사용해, 다른 신당 내부 화면 전환과
+  /// 시각적으로 어긋나지 않게 한다. 호출부(AppShell)는
+  /// `Navigator.of(context).push(ShrineNav.rootRoute(id))` 형태로 사용한다.
+  static Route<dynamic> rootRoute(String id) => _fadeRoute(id);
+
   static bool canPop(BuildContext context) => Navigator.of(context).canPop();
 
   static void pop(BuildContext context) {

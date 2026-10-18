@@ -15,7 +15,7 @@ import 'main_bottom_nav_bar.dart';
 /// 이름 없이 직접 MaterialPageRoute로 push되는 화면은 감싸지 않는다(기존
 /// 수동 하단바 유지 — 타로 결과·귀인지도 게스트 참여).
 ///
-/// [신당(神堂) 통합 — 버그 수정] `/shrine`이 이 목록에서 누락되어 있어
+/// [신당(神堂) 통합 — A안 확정 이후에도 유지] `/shrine`이 이 목록에서 누락되어 있어
 /// 신당 콘텐츠(ShrineScreenScaffold, 자체 어두운 전체화면 연출) 전체가
 /// 전역 하단바(MainBottomNavBar)로 다시 감싸지고 있었다. 신당은 소원방과
 /// 동일하게 "자체 전체화면 몰입형 UI"(뒤로/레일/SKIP/설정을 직접 그림)를

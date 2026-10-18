@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'app_shell.dart';
-// [신당(神堂) 통합 — P1 검증용 임시 진입점] 하단바 5번째 탭 정식 등록은
-// P6 범위이므로, 지금은 개발/웹 프리뷰 검증을 위해 '/shrine' 라우트만
-// 추가한다(사용자 승인 작업순서: P1 구현 직후 analyze·프리뷰 검증 필요).
+// [신당(神堂) 통합 — A안, 공식 지시서 `01_dev_spec_v1.4.pdf` §3.1~3.2,
+// 2026-11 확정] 하단바 정식 등록 완료 — AppShell의 1번 탭("신당부적")이
+// ShrineNav.rootRoute()로 신당 내부 Navigator 스택을 직접 push한다
+// (app_shell.dart `_openShrine` 참고). '/shrine' named route는 외부
+// 딥링크/직접 URL 진입(예: QA, 웹 주소창)을 위한 보조 경로로 유지한다.
 import '../../features/shrine/presentation/screens/shrine_entry_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/intro/presentation/onboarding_gate_screen.dart';
@@ -221,7 +223,10 @@ class AppRouter {
     switch (settings.name) {
       case '/splash':
         return _pageNamed('/splash', const SplashScreen());
-      // [신당(神堂) 통합 — P1 검증용 임시 진입점. 정식 5번째 탭 연결은 P6.]
+      // [신당(神堂) 통합 — A안 확정] 정식 진입점은 AppShell 1번 탭이지만,
+      // 외부 딥링크/직접 URL 접근을 위해 '/shrine' named route도 함께
+      // 유지한다(항상 entry부터 시작 — 탭 쪽의 소지부 보유 분기와 달리
+      // 이 경로는 재방문자 단축 로직을 적용하지 않는다).
       case '/shrine':
         return _pageNamed('/shrine', const ShrineEntryScreen());
       // [인트로 전면 개편] 4단계 인트로(카드1/카드2/CTA) 페이저. 스플래시 이후
