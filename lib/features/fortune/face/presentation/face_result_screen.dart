@@ -139,10 +139,19 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
       captureFrame: (child) => _PaperSheet(child: child),
       heroCaption: '종합 관상 해석',
       heroSummary: result.summary,
-      // [v7.2 원칙] 모든 관상/손금 화면에 "재미와 자기성찰을 위한 풀이"
-      // 고지문을 노출한다. ResultCardStack의 heroExtra 슬롯을 사용해
+      // [v7 통합 — TotalScreens.jsx 포팅] KeySeal+ProofStrip+출전+고지문을
+      // 한 번에 보여준다. ResultCardStack의 heroExtra 슬롯을 사용해
       // 공용 컴포넌트 내부 구조는 건드리지 않는다.
-      heroExtra: const ReadingFunDisclaimer(),
+      heroExtra: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ReadingTotalHeroExtra(
+            artifact: ReadingArtifactBuilder.fromFace(result),
+          ),
+          const SizedBox(height: 12),
+          const ReadingFunDisclaimer(),
+        ],
+      ),
       sectionTitle: '세부 리포트',
       sections: [
         ...result.features.entries.map(

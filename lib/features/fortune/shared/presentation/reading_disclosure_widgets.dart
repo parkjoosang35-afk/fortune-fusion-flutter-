@@ -127,6 +127,140 @@ class ReadingCiteCard extends StatelessWidget {
   }
 }
 
+/// [v7 통합 — TotalScreens.jsx 포팅] 총결과 화면 히어로 카드 하단에 붙이는
+/// "KeySeal(총평 인장) + ProofStrip(근거 요약) + 출전" 블록. 사진/좌표 없이
+/// 텍스트 집계값(검출 부위 수·관찰 건수·문헌 수)만 사용한다(Option B 원칙).
+/// face_result_screen.dart/palm_result_screen.dart의 heroExtra에 쓰인다.
+class ReadingTotalHeroExtra extends StatelessWidget {
+  const ReadingTotalHeroExtra({super.key, required this.artifact});
+  final ReadingArtifact artifact;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = artifact.total;
+    final citeCount = artifact.steps.where((s) => s.cite != null).length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFC94A3B),
+                borderRadius: BorderRadius.circular(9),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x40C94A3B),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Text(
+                total.key,
+                style: const TextStyle(
+                  fontFamily: 'NotoSerifKR',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                  color: Color(0xFFFFF9E8),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                total.keyKo,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Color(0xFF6B5B52),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '◈ 엔진 관찰 · 전통 문헌 요지로 풀이해요',
+          style: const TextStyle(
+            fontSize: 9.5,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF7BA896),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _ProofStrip(
+          items: [
+            ('검출 부위', '${artifact.interpretedCount}'),
+            ('관찰 항목', '${artifact.measuredCount}'),
+            ('출전', '$citeCount건'),
+          ],
+        ),
+        if (total.cite != null) ...[
+          const SizedBox(height: 10),
+          ReadingCiteCard(cite: total.cite!),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProofStrip extends StatelessWidget {
+  const _ProofStrip({required this.items});
+  final List<(String, String)> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0x1F3C2D1E)),
+      ),
+      child: Row(
+        children: [
+          for (int i = 0; i < items.length; i++)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: i == 0
+                        ? BorderSide.none
+                        : const BorderSide(color: Color(0x1F3C2D1E)),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      items[i].$2,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Color(0xFF2A1F14),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      items[i].$1,
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        color: Color(0xFF8A8880),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 부위 검출(구 "일치도") 배지 — v7.2 라벨 교정: 랜드마크 검출 신뢰도라는
 /// 가장 보수적인 의미로만 표시한다. null이면 아무것도 그리지 않는다(없는
 /// 통계를 만들어내지 않는다는 원칙).

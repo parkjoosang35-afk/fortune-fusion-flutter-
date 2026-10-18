@@ -21,11 +21,13 @@ import '../../features/fortune/tarot/presentation/tarot_category_detail_screen.d
 import '../../features/fortune/tarot/domain/tarot_category_model.dart';
 import '../../features/fortune/face/presentation/face_capture_screen.dart';
 import '../../features/fortune/face/presentation/face_analyzing_screen.dart';
+import '../../features/fortune/face/presentation/face_reading_timeline_screen.dart';
 import '../../features/fortune/face/presentation/face_result_screen.dart';
 import '../../features/fortune/face/presentation/face_history_screen.dart';
 import '../../features/fortune/shared/presentation/reading_archive_screen.dart';
 import '../../features/fortune/palm/presentation/palm_capture_screen.dart';
 import '../../features/fortune/palm/presentation/palm_analyzing_screen.dart';
+import '../../features/fortune/palm/presentation/palm_reading_timeline_screen.dart';
 import '../../features/fortune/palm/presentation/palm_result_screen.dart';
 import '../../features/fortune/palm/presentation/palm_history_screen.dart';
 import '../../features/name_fortune/presentation/name_fortune_input_screen.dart';
@@ -693,6 +695,13 @@ class AppRouter {
           '/ai-fortune/face/analyzing',
           const FaceAnalyzingScreen(),
         );
+      // [v7 통합 — Option B] 분석 성공 직후 → 결과 화면 사이에 끼우는
+      // 부위별 타이핑 리딩 화면. 히스토리 재열람 경로는 거치지 않는다.
+      case '/ai-fortune/face/reading':
+        return _pageNamed(
+          '/ai-fortune/face/reading',
+          const FaceReadingTimelineScreen(),
+        );
       case '/ai-fortune/face/result':
         return _pageNamed(
           '/ai-fortune/face/result',
@@ -720,6 +729,12 @@ class AppRouter {
         return _pageNamed(
           '/ai-fortune/palm/analyzing',
           const PalmAnalyzingScreen(),
+        );
+      // [v7 통합 — Option B] face와 동일한 패턴.
+      case '/ai-fortune/palm/reading':
+        return _pageNamed(
+          '/ai-fortune/palm/reading',
+          const PalmReadingTimelineScreen(),
         );
       case '/ai-fortune/palm/result':
         return _pageNamed(

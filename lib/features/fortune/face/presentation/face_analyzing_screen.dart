@@ -82,7 +82,7 @@ class _FaceAnalyzingScreenState extends State<FaceAnalyzingScreen>
 
   void _navigateOnResult(FaceProvider provider) {
     if (_navigated) return;
-    if (provider.state.isSuccess || provider.state.isError) {
+    if (provider.state.isError) {
       _navigated = true;
       Future.delayed(const Duration(milliseconds: 450), () {
         if (!mounted) return;
@@ -90,6 +90,20 @@ class _FaceAnalyzingScreenState extends State<FaceAnalyzingScreen>
           '/ai-fortune/face/result',
           arguments: provider.state.data?.id,
         );
+      });
+      return;
+    }
+    if (provider.state.isSuccess) {
+      _navigated = true;
+      // [v7 통합 — Option B] 분석 성공 직후에는 기존처럼 결과 화면으로
+      // 바로 보내지 않고, 부위별 타이핑 리딩 화면(ReadingTimelineScreen)을
+      // 먼저 거친다. 히스토리에서 재열람하는 경로(FaceHistoryScreen →
+      // selectFromHistory)는 이 analyzing 화면을 거치지 않으므로 영향 없다.
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        Navigator.of(
+          context,
+        ).pushReplacementNamed('/ai-fortune/face/reading');
       });
     }
   }

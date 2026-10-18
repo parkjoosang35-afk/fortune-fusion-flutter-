@@ -137,7 +137,18 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
       captureFrame: (child) => _PaperSheet(child: child),
       heroCaption: '종합 손금 해석',
       heroSummary: result.summary,
-      heroExtra: const ReadingFunDisclaimer(),
+      // [v7 통합 — TotalScreens.jsx 포팅] face_result_screen.dart와 동일
+      // 패턴. KeySeal+ProofStrip+출전+고지문을 한 번에 보여준다.
+      heroExtra: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ReadingTotalHeroExtra(
+            artifact: ReadingArtifactBuilder.fromPalm(result),
+          ),
+          const SizedBox(height: 12),
+          const ReadingFunDisclaimer(),
+        ],
+      ),
       sectionTitle: '세부 리포트',
       // [웹 일반 AdSense 전체 확장 — 손금] 히어로 카드(종합 손금 해석)와
       // 세부 리포트 섹션 사이에 배치 — CTA("다시 분석하기"/"히스토리
