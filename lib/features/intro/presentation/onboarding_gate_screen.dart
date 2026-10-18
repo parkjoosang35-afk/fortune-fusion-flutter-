@@ -47,8 +47,7 @@ class _OnboardingGateScreenState extends State<OnboardingGateScreen> {
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final seen =
-          prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
+      final seen = prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
       if (!mounted) return;
       setState(() => _videoAlreadySeen = seen);
     } catch (_) {

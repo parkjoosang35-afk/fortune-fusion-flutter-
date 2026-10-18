@@ -145,9 +145,7 @@ class _OnboardingVideoScreenState extends State<OnboardingVideoScreen> {
                 )
               else if (!_loadFailed)
                 const Center(
-                  child: CircularProgressIndicator(
-                    color: IntroPalette.primary,
-                  ),
+                  child: CircularProgressIndicator(color: IntroPalette.primary),
                 ),
 
               // [가이드 §5] 우측 상단 "건너뛰기" 버튼 — 항상 노출.

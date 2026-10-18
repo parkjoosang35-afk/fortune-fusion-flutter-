@@ -100,4 +100,19 @@ class IntroPalette {
 
   /// 바텀시트 배경 그라디언트 하단.
   static const Color sheetBottom = Color(0xFF241F45);
+
+  // ───────────────────────── [온보딩 v2 리디자인 2026-10-18 반영] ─────────────────────────
+  // `design_handoff_onboarding_redesign (2).zip`(온보딩 v2.html) Design Tokens 중 v1에
+  // 없던 값만 추가한다. 배경 그라디언트(bg-top/mid/bot)는 README가 "기존 그대로
+  // 유지"를 명시했고 값 자체도 기존 backgroundTop/Mid/Bottom과 동일해 재사용한다.
+
+  /// 緣 인장 배경(핸드오프 --seal #c94a3b, 봉은 인주색). v1의 glow 그라디언트
+  /// 인장을 v2에서 이 단색 인주 인장으로 교체.
+  static const Color sealRed = Color(0xFFC94A3B);
+
+  /// 인장 위 글자색(핸드오프 #fff9e8).
+  static const Color sealInk = Color(0xFFFFF9E8);
+
+  /// Arch 윈도우(이미지 영역) 배경(핸드오프 --arch window bg #15102a).
+  static const Color archWindowBg = Color(0xFF15102A);
 }

@@ -51,9 +51,7 @@ class _OnboardingNoticeSheet extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [IntroPalette.sheetTop, IntroPalette.sheetBottom],
           ),
-          border: Border(
-            top: BorderSide(color: IntroPalette.cardBorder),
-          ),
+          border: Border(top: BorderSide(color: IntroPalette.cardBorder)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -87,18 +85,19 @@ class _OnboardingNoticeSheet extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).maybePop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: IntroPalette.primary,
-                  foregroundColor: IntroPalette.onPrimary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ).copyWith(
-                  backgroundColor: const WidgetStatePropertyAll(
-                    IntroPalette.glowLight,
-                  ),
-                ),
+                style:
+                    ElevatedButton.styleFrom(
+                      backgroundColor: IntroPalette.primary,
+                      foregroundColor: IntroPalette.onPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ).copyWith(
+                      backgroundColor: const WidgetStatePropertyAll(
+                        IntroPalette.glowLight,
+                      ),
+                    ),
                 child: Text(
                   '알겠어요',
                   style: IntroTextStyles.btnPrimary().copyWith(fontSize: 16),

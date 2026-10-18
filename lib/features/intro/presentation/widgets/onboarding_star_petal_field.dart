@@ -4,35 +4,35 @@ import 'package:flutter/material.dart';
 
 import '../intro_palette.dart';
 
-/// [온보딩 화면 교체 2026-10-11] `Onboarding.html`의 `.stars`/`.star`(별
-/// 60개) + `.petals`/`.petal`(꽃잎 14개) 배경 레이어를 그대로 재현한다.
+/// [온보딩 v2 리디자인 2026-10-18] `온보딩 v2.html`의 `.stars`(별 46개) +
+/// `.petals`(꽃잎 9개) 배경 레이어를 그대로 재현한다.
 ///
-/// - 별: 랜덤 위치(%), 크기 1.5/2/3px(3px는 15% 확률), `twinkle`
-///   (opacity .12↔.85, scale .8↔1.2, 3~7s 랜덤 duration/delay).
-/// - 꽃잎: 위에서 아래(105% 높이)까지 낙하, x 편차 ±60~100px, 회전
-///   540°, opacity 0→.85→.6→0, 9~17s 랜덤 duration + 음수 지연(=이미
-///   낙하 중인 상태로 시작 — `animation-delay: -Ns` 재현).
-/// - 터치 이벤트 없음(`IgnorePointer`).
-/// - `reduceMotion`이면 별/꽃잎 모두 정적 최종 상태만 그린다
-///   (README "구현 규칙 — prefers-reduced-motion이면 최종 상태").
-/// - 저사양 기기 대응(README "deviceMemory ≤ 2면 꽃잎 6개로 축소")은
-///   Flutter에 deviceMemory API가 없어 [lowSpec] 플래그로 호출부가
-///   대신 판단해 전달한다(기본값 false=14개 전부).
+/// [v1→v2 변경] 개수·분포·타이밍이 모두 바뀌었다(README §1/§8):
+/// - 별: 60→**46개**, 전체 화면이 아니라 **상단 70% 영역에만** 분포,
+///   opacity 범위 0.15~0.7(v1은 0.12~0.85), duration 고정 **4s**(v1은
+///   3~7s 랜덤), delay는 `(i%7)*0.6s`로 결정적(v1은 완전 랜덤). 9개 중
+///   1개는 3px+glow(v1과 동일 규칙 유지).
+/// - 꽃잎: 14→**9개**, duration **10~14.8s**(v1은 9~17s), delay
+///   `i*1.25s`로 결정적(v1은 음수 랜덤 delay), 낙하 거리/흔들림 폭도
+///   달라졌다(원본 CSS `translate(-70px, 880px)` 고정 벡터).
+/// - 터치 이벤트 없음(`IgnorePointer`), `reduceMotion`이면 정적 최종
+///   상태만 그린다(README "접근성" 규정 유지).
 class OnboardingStarPetalField extends StatefulWidget {
   const OnboardingStarPetalField({
     super.key,
-    this.starCount = 60,
-    this.petalCount = 14,
+    this.starCount = 46,
+    this.petalCount = 9,
     this.reduceMotion = false,
     this.lowSpec = false,
-    this.seed = 7,
   });
 
   final int starCount;
   final int petalCount;
   final bool reduceMotion;
+
+  /// README "저사양 기기에서는 꽃잎을 6개로 줄여 주세요"(v1부터 유지된
+  /// 요구사항. v2 README에는 재언급이 없지만 기존 정책을 깨지 않는다).
   final bool lowSpec;
-  final int seed;
 
   @override
   State<OnboardingStarPetalField> createState() =>
@@ -49,44 +49,48 @@ class _OnboardingStarPetalFieldState extends State<OnboardingStarPetalField>
   @override
   void initState() {
     super.initState();
-    final random = math.Random(widget.seed);
 
-    _stars = List.generate(widget.starCount, (_) {
-      final sizeRoll = random.nextDouble();
-      final size = sizeRoll < 0.15
-          ? 3.0
-          : (random.nextDouble() < 0.5 ? 1.5 : 2.0);
+    // 별 — 핸드오프 JS의 의사난수(LCG 유사) 공식을 그대로 이식해 항상
+    // 같은 배치가 나오도록 한다: `(i*9301+49297) % 233280 / 233280`,
+    // `(i*4877+1231) % 1000 / 1000`.
+    _stars = List.generate(widget.starCount, (i) {
+      final r = (i * 9301 + 49297) % 233280 / 233280;
+      final r2 = (i * 4877 + 1231) % 1000 / 1000;
+      final isBig = i % 9 == 0;
       return _StarSpec(
-        left: random.nextDouble(),
-        top: random.nextDouble(),
-        size: size,
-        duration: Duration(
-          milliseconds: 3000 + random.nextInt(4000), // 3~7s
-        ),
-        // CSS `animation-delay`(0~6s, 랜덤) 재현 — 컨트롤러를 곧바로
-        // repeat()하는 대신 임의 시작 지점(0~1)에서 출발시켜 별들이
-        // 동시에 깜빡이지 않도록 한다.
-        startProgress: random.nextDouble(),
+        left: r,
+        top: r2 * 0.70, // README "화면 상단 70% 안에 흩뿌립니다".
+        size: isBig ? 3.0 : 2.0,
+        glow: isBig,
+        // `animation-delay: (i % 7) * 0.6s` — 4s 주기 컨트롤러의 시작
+        // 지점(0~1)으로 환산.
+        startProgress: ((i % 7) * 0.6) / 4.0,
       );
     });
     _starControllers = _stars
-        .map((s) => AnimationController(vsync: this, duration: s.duration))
+        .map(
+          (_) => AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 4000), // v2: 고정 4s.
+          ),
+        )
         .toList();
 
-    // README "저사양 기기에서는 꽃잎을 6개로 줄여 주세요".
+    // 꽃잎 — README "저사양 기기에서는 꽃잎을 6개로 줄여 주세요".
     final petalCount = widget.lowSpec ? 6 : widget.petalCount;
-    _petals = List.generate(petalCount, (_) {
-      final scale = 0.6 + random.nextDouble() * 0.8;
+    _petals = List.generate(petalCount, (i) {
+      // `left: (12 + (i*37) % 90) + '%'`.
+      final left = (12 + (i * 37) % 90) / 100.0;
+      // `width/height scale = .6 + (i%3)*.25` → 0.6/0.85/1.1.
+      final scale = 0.6 + (i % 3) * 0.25;
+      // `animationDuration = 10 + (i%4)*1.6` → 10~14.8s.
+      final durationMs = (10000 + (i % 4) * 1600);
       return _PetalSpec(
-        left: random.nextDouble(),
-        xDrift: (random.nextDouble() * 160 - 60), // ±60~100px 근사
+        left: left,
         scale: scale,
-        duration: Duration(
-          milliseconds: 9000 + random.nextInt(8000), // 9~17s
-        ),
-        // CSS `animation-delay: -Ns` 음수 지연 재현 — 처음부터 이미
-        // 낙하 중인 지점에서 시작하도록 컨트롤러 value를 바로 설정한다.
-        startProgress: random.nextDouble(),
+        duration: Duration(milliseconds: durationMs),
+        // `animationDelay = i * 1.25s` — 각 꽃잎 주기 대비 시작 지점으로 환산.
+        startProgress: ((i * 1.25 * 1000) % durationMs) / durationMs,
       );
     });
     _petalControllers = _petals
@@ -96,10 +100,10 @@ class _OnboardingStarPetalFieldState extends State<OnboardingStarPetalField>
     if (widget.reduceMotion) {
       // README "구현 규칙 — reduced-motion이면 최종 상태 바로 표시".
       for (final c in _starControllers) {
-        c.value = 0.5; // twinkle 중간값(가장 밝은 지점 근처)
+        c.value = 0.5; // twinkle 중간값(가장 밝은 지점 근처).
       }
       for (final c in _petalControllers) {
-        c.value = 0.5;
+        c.value = 0.0; // 낙하 전 정지 상태(투명).
       }
       return;
     }
@@ -161,19 +165,20 @@ class _StarSpec {
     required this.left,
     required this.top,
     required this.size,
-    required this.duration,
+    required this.glow,
     required this.startProgress,
   });
 
   final double left;
   final double top;
   final double size;
-  final Duration duration;
+  final bool glow;
   final double startProgress;
 }
 
-/// `@keyframes twinkle{0%,100%{opacity:.12;scale(.8)}50%{opacity:.85;scale(1.2)}}`.
-class _StarDot extends StatefulWidget {
+/// `@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.7}}`(v2 — scale
+/// 변화 없이 opacity만 애니메이션한다. v1은 opacity+scale 둘 다였다).
+class _StarDot extends StatelessWidget {
   const _StarDot({
     required this.spec,
     required this.controller,
@@ -187,35 +192,32 @@ class _StarDot extends StatefulWidget {
   final double areaHeight;
 
   @override
-  State<_StarDot> createState() => _StarDotState();
-}
-
-class _StarDotState extends State<_StarDot> {
-  @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: widget.spec.left * widget.areaWidth,
-      top: widget.spec.top * widget.areaHeight,
+      left: spec.left * areaWidth,
+      top: spec.top * areaHeight,
       child: AnimatedBuilder(
-        animation: widget.controller,
+        animation: controller,
         builder: (context, _) {
-          final t = widget.controller.value;
-          // 0→0.5→1 사이를 사인곡선으로 보간(두 극점을 ease-in-out에
-          // 근사). opacity .12↔.85, scale .8↔1.2.
+          final t = controller.value;
           final wave = (math.sin((t * 2 * math.pi) - math.pi / 2) + 1) / 2;
-          final opacity = 0.12 + wave * (0.85 - 0.12);
-          final scale = 0.8 + wave * (1.2 - 0.8);
+          final opacity = 0.15 + wave * (0.7 - 0.15);
           return Opacity(
             opacity: opacity,
-            child: Transform.scale(
-              scale: scale,
-              child: Container(
-                width: widget.spec.size,
-                height: widget.spec.size,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
+            child: Container(
+              width: spec.size,
+              height: spec.size,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: spec.glow
+                    ? [
+                        BoxShadow(
+                          color: IntroPalette.primary.withValues(alpha: 0.9),
+                          blurRadius: 6,
+                        ),
+                      ]
+                    : null,
               ),
             ),
           );
@@ -228,21 +230,21 @@ class _StarDotState extends State<_StarDot> {
 class _PetalSpec {
   const _PetalSpec({
     required this.left,
-    required this.xDrift,
     required this.scale,
     required this.duration,
     required this.startProgress,
   });
 
   final double left;
-  final double xDrift;
   final double scale;
   final Duration duration;
   final double startProgress;
 }
 
-/// `@keyframes fall{0%{opacity:0;y:0}10%{opacity:.85}85%{opacity:.6}
-/// 100%{opacity:0;translate(x,105dvh) rotate(540deg)}}`.
+/// `@keyframes petal{0%{opacity:0;translate(0,0) rotate(0)}10%{opacity:.85}
+/// 85%{opacity:.7}100%{opacity:0;translate(-70px,880px) rotate(540deg)}}`
+/// — v2는 낙하 종점이 화면 비율이 아닌 고정 px(디자인 기준 844pt 디바이스
+/// 기준 880px)라서, 실제 위젯 높이에 맞춰 비례 환산한다(880/844 ≈ 1.043).
 class _Petal extends StatelessWidget {
   const _Petal({
     required this.spec,
@@ -256,11 +258,18 @@ class _Petal extends StatelessWidget {
   final double areaWidth;
   final double areaHeight;
 
-  double get _baseWidth => 9 * spec.scale;
-  double get _baseHeight => 7 * spec.scale;
+  static const double _refDeviceHeight = 844;
+  static const double _refFallDistance = 880;
+  static const double _refXDrift = -70;
+
+  double get _baseWidth => 7 * spec.scale;
+  double get _baseHeight => 9 * spec.scale;
 
   @override
   Widget build(BuildContext context) {
+    final fallDistance = areaHeight * (_refFallDistance / _refDeviceHeight);
+    final xDrift = areaHeight * (_refXDrift / _refDeviceHeight);
+
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
@@ -269,12 +278,12 @@ class _Petal extends StatelessWidget {
         if (t < 0.10) {
           opacity = (t / 0.10) * 0.85;
         } else if (t < 0.85) {
-          opacity = 0.85 - ((t - 0.10) / (0.85 - 0.10)) * (0.85 - 0.60);
+          opacity = 0.85 - ((t - 0.10) / (0.85 - 0.10)) * (0.85 - 0.70);
         } else {
-          opacity = 0.60 * (1 - (t - 0.85) / 0.15);
+          opacity = 0.70 * (1 - (t - 0.85) / 0.15);
         }
-        final dy = t * (areaHeight * 1.05 + 20);
-        final dx = t * spec.xDrift;
+        final dy = t * fallDistance;
+        final dx = t * xDrift;
         final rotation = t * 540 * math.pi / 180;
         return Positioned(
           left: spec.left * areaWidth - 20,
@@ -296,19 +305,13 @@ class _Petal extends StatelessWidget {
                       bottomRight: Radius.circular(_baseWidth * 0.8),
                       bottomLeft: Radius.zero,
                     ),
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.4, -0.4),
-                      colors: [
-                        const Color(0xFFFDE3EC),
-                        IntroPalette.petal,
-                      ],
+                    // v2: `linear-gradient(135deg, #f6c9dc, #d98bb0)`
+                    // (v1은 radial #fde3ec→petal).
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFF6C9DC), Color(0xFFD98BB0)],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: IntroPalette.petal.withValues(alpha: 0.5),
-                        blurRadius: 3,
-                      ),
-                    ],
                   ),
                 ),
               ),
