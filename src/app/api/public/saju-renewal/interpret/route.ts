@@ -95,6 +95,11 @@ const ERROR_STATUS: Record<string, number> = {
   TRANSACTION_NOT_FOUND: 404,
   TRANSACTION_OWNER_MISMATCH: 400,
   TRANSACTION_NOT_PENDING: 409,
+  // [보안 수정 2026-10-19 — 전수검수 feat/saju-audit 762efc9 반영] 거래가 이
+  // (contentType="saju_renewal", contentId=topicId) 조합에 대해 begin된 것인지
+  // 확인하지 않으면, 임의의 pending 거래 1건으로 다른 사주 토픽의 유료 detail을
+  // 열람하는 결제 우회가 가능하다(검증 전 실제 코드 경로로 재현 확인).
+  TRANSACTION_CONTENT_MISMATCH: 400,
 };
 
 const ERROR_MESSAGE: Record<string, string> = {
@@ -121,6 +126,7 @@ const ERROR_MESSAGE: Record<string, string> = {
   TRANSACTION_NOT_FOUND: "결과보기 권한 확인이 필요합니다. 처음부터 다시 시도해주세요.",
   TRANSACTION_OWNER_MISMATCH: "잘못된 요청입니다.",
   TRANSACTION_NOT_PENDING: "이미 처리된 요청입니다. 처음부터 다시 시도해주세요.",
+  TRANSACTION_CONTENT_MISMATCH: "이 거래로는 해당 결과를 열람할 수 없습니다.",
 };
 
 interface RequestBody {
@@ -282,7 +288,34 @@ export async function POST(request: NextRequest) {
       if (mode === "detail" && transactionId) {
         const txn = await findResultAccessTransaction(transactionId);
         if (txn && txn.userId === userId && txn.status === "pending") {
-          await completeResultAccess(txn.transactionId, null);
+          // [보안 수정 2026-10-19 ①] 캐시 히트 경로에도 콘텐츠 바인딩을
+          // 검증한다 — 검증 없이는 다른 topic용으로 begin한 pending 거래를
+          // 이 topic의 확정에 재사용할 수 있다.
+          if (txn.contentType === "saju_renewal" && txn.contentId === topicId) {
+            // [보안 수정 2026-10-19 ②] 이중 차감 방지 — 같은 (userId, saju_renewal,
+            // topicId)에 이미 success 거래가 있으면 이 콘텐츠는 과거에 결제되어
+            // 캐시로 무료 재열람 가능한 상태다. 새 거래를 확정(2차 차감)하지 말고
+            // 환불로 종결한다(클라 타임아웃 후 재시도 시나리오 방어).
+            const priorSuccess = await prisma.resultAccessTransaction.findFirst({
+              where: {
+                userId,
+                contentType: "saju_renewal",
+                contentId: topicId,
+                status: "success",
+                transactionId: { not: txn.transactionId },
+              },
+            });
+            if (priorSuccess) {
+              await failAndRefundResultAccess(txn.transactionId);
+            } else {
+              await completeResultAccess(txn.transactionId, null);
+            }
+          }
+          // contentType/contentId가 일치하지 않으면 이 거래를 건드리지 않는다
+          // (다른 topic 열람용으로 남겨두고, catch 블록도 거치지 않으므로 환불도
+          // 하지 않는다 — 정상적인 별도 거래일 수 있으므로 섣불리 실패 처리하지
+          // 않는다. 사용자는 캐시 결과를 그대로 받고, 그 거래는 자신의 본래
+          // 목적지인 올바른 topicId 요청에서 정상 처리된다).
         }
       }
       return NextResponse.json(
@@ -312,6 +345,14 @@ export async function POST(request: NextRequest) {
       }
       if (txn.status !== "pending") {
         throw new InterpretError("TRANSACTION_NOT_PENDING", ERROR_MESSAGE.TRANSACTION_NOT_PENDING);
+      }
+      // [보안 수정 2026-10-19 ①] 비캐시 최초 생성 경로에도 동일 적용 — 거래가
+      // 이 topic의 detail 열람용으로 발급된 것인지 확인한다. 검증이 없으면
+      // Access Gate를 다른 topic으로 통과한 뒤 transaction_id만 바꿔 임의의
+      // topic_id로 이 API를 직접 호출해도 결제 없이 전체 상세 해석이 그대로
+      // 반환되는 결제 우회가 가능했다.
+      if (txn.contentType !== "saju_renewal" || txn.contentId !== topicId) {
+        throw new InterpretError("TRANSACTION_CONTENT_MISMATCH", ERROR_MESSAGE.TRANSACTION_CONTENT_MISMATCH);
       }
       resultAccessTxn = { transactionId: txn.transactionId };
     }
@@ -390,20 +431,30 @@ export async function POST(request: NextRequest) {
       });
       // ExposureHistory는 "이 주제를 본 적 있는지"만 의미하므로 mode(summary/detail)
       // 구분 없이 topicId당 1건만 유지한다 — 이미 기록이 있으면 추가하지 않는다.
-      const existingExposure = await tx.topicExposureHistory.findFirst({
-        where: { userId, topicId, birthKey },
+      // [보안 수정 2026-10-19 — 전수검수 feat/saju-audit 762efc9 반영 ③] 기존
+      // findFirst+create 패턴은 동시 중복 요청 시 경쟁조건으로 중복 행이 생길 수
+      // 있었다(schema.prisma @@unique([userId, topicId, birthKey])와 짝을 이루는
+      // upsert로 교체 — 동시 요청에도 1건만 유지된다).
+      await tx.topicExposureHistory.upsert({
+        where: { userId_topicId_birthKey: { userId, topicId, birthKey } },
+        create: { userId, topicId, birthKey },
+        update: {},
       });
-      if (!existingExposure) {
-        await tx.topicExposureHistory.create({ data: { userId, topicId, birthKey } });
+      // [보안 수정 2026-10-19 — 전수검수 feat/saju-audit 762efc9 반영 ④ 환불 누수
+      // 제거] 거래 확정을 결과 저장과 같은 $transaction 안으로 원자적으로 묶는다.
+      // 기존에는 저장 성공 후 $transaction 바깥에서 별도로 completeResultAccess()를
+      // 호출했는데, 그 호출이 실패하면 "결과는 캐시에 저장됐지만 재화 거래는 영원히
+      // pending으로 고착"되거나, catch 블록의 환불이 "결과는 이미 사용자에게
+      // 노출됐는데 재화는 환불"되는 데이터 누수가 발생할 수 있었다. 원자적으로
+      // 묶으면 저장 실패 시 확정도 함께 롤백되고, catch 환불은 캐시가 없는(롤백된)
+      // 상태에서만 발생한다.
+      if (resultAccessTxn) {
+        await tx.resultAccessTransaction.updateMany({
+          where: { transactionId: resultAccessTxn.transactionId, status: "pending" },
+          data: { status: "success", fortuneRequestId: null },
+        });
       }
     });
-
-    // ── [버그 수정 — §8.5 마지막 단계] detail 생성이 성공했으므로 Access Gate가
-    // 만든 거래를 "success"로 최종 확정한다. 이걸 호출하지 않으면 재화는 이미
-    // 차감됐는데 거래 레코드만 영원히 "pending"으로 남는다(실제 발견된 증상).
-    if (resultAccessTxn) {
-      await completeResultAccess(resultAccessTxn.transactionId, null);
-    }
 
     return NextResponse.json(
       { success: true, data: finalResult, cached: false },

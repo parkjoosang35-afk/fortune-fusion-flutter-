@@ -56,8 +56,25 @@ const DEFAULT_TIMEOUT_MS = 15_000; // docs/11_API_계약서.md §5 "facts | 03 �
  * 교체해야 한다 — 코드에 고정값을 두는 것은 로컬 개발 전용이며, 실서비스 반영 전
  * 인프라팀 확인이 필요한 별도 사항이다(이 파일이 임의로 운영 보안을 결정하지 않음).
  */
-const DEFAULT_FREE_PASS_TOKEN =
-  process.env.SAJU_ENGINE_FREE_PASS_TOKEN ?? "STB-internal-server-call-00000000000000";
+// [보안 수정 2026-10-19 — 전수검수 feat/saju-audit 085c297+3a89f2e 반영 ⑦] 상수
+// 초기화는 모듈 로드 시점에 평가되므로, 이전 패턴(`?? "STB-..."`)처럼 "함수로
+// 감싸지 않은" 상수 그대로 두면 production에서 토큰 미설정 시 `next build`의
+// page-data 수집(모듈 로드) 단계에서조차 예외가 발생해 빌드 자체가 깨진다(원본
+// 커밋 저자가 실제 재현 확인). 상수를 없애고, 진짜 요청 시점(아래 함수 호출 시)에만
+// 환경변수를 읽고 운영에서 미설정이면 그 때 명확히 실패시킨다(고정 데모 토큰으로
+// 무음 실행되는 사고를 원천 차단하되, 빌드 타임에는 절대 평가되지 않는다).
+function freePassToken(): string {
+  const fromEnv = process.env.SAJU_ENGINE_FREE_PASS_TOKEN;
+  if (fromEnv) return fromEnv;
+  if (process.env.NODE_ENV === "production") {
+    // 운영에서 토큰 미설정 → 첫 엔진 호출이 명확한 오류로 실패한다.
+    // (고정 데모 토큰으로 무음 무단 사용되는 것을 원천 차단)
+    throw new SajuEngineClientError(
+      "[SAJU_ENGINE] SAJU_ENGINE_FREE_PASS_TOKEN 환경변수가 설정되지 않았습니다 — 운영 배포 전 필수 설정입니다."
+    );
+  }
+  return "STB-internal-server-call-00000000000000";
+}
 
 export class SajuEngineClientError extends Error {
   constructor(
@@ -110,7 +127,7 @@ async function callSajuEngineFacts(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Free-Pass": DEFAULT_FREE_PASS_TOKEN,
+        "X-Free-Pass": freePassToken(),
       },
       body: JSON.stringify({
         year: input.year,

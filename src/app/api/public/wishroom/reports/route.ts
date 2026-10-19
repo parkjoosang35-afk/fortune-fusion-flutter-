@@ -41,14 +41,24 @@ export async function POST(request: NextRequest) {
         const comment = await tx.wishRoomComment.findUnique({ where: { id: commentDbId } });
         if (!comment || comment.deletedAt != null) throw new WishRoomError(404, "NOT_FOUND", "댓글을 찾을 수 없어요");
 
-        const newCount = comment.reportCount + 1;
-        await tx.wishRoomComment.update({
-          where: { id: commentDbId },
-          data: { reportCount: newCount, status: newCount >= HIDE_THRESHOLD ? "hidden_by_report" : comment.status },
+        // [보안 수정 2026-10-19 — 전수검수 fix/wishroom-server-audit f655c6f 반영]
+        // 동일 사용자가 같은 대상을 반복 신고해도 reportCount가 매번 +1 되므로,
+        // 계정 1개만으로 "신고 3회 자동 숨김"(HIDE_THRESHOLD)을 조작할 수 있었다
+        // (실제 코드 경로로 재현 가능). 1인 1회만 집계한다 — 이미 신고한 대상이면
+        // 추가 집계/기록 없이 조용히 통과시킨다(사용자에게는 "신고 접수"로 응답).
+        const priorCommentReport = await tx.report.findFirst({
+          where: { targetType: "wish_room_comment", targetId: commentDbId, reporterId: auth.userId },
         });
-        await tx.report.create({
-          data: { targetType: "wish_room_comment", targetId: commentDbId, reporterId: auth.userId, reason },
-        });
+        if (!priorCommentReport) {
+          const newCount = comment.reportCount + 1;
+          await tx.wishRoomComment.update({
+            where: { id: commentDbId },
+            data: { reportCount: newCount, status: newCount >= HIDE_THRESHOLD ? "hidden_by_report" : comment.status },
+          });
+          await tx.report.create({
+            data: { targetType: "wish_room_comment", targetId: commentDbId, reporterId: auth.userId, reason },
+          });
+        }
       }
 
       if (body.roomId) {
@@ -57,10 +67,17 @@ export async function POST(request: NextRequest) {
         const room = await tx.wishRoom.findUnique({ where: { id: roomDbId } });
         if (!room || room.deletedAt != null) throw new WishRoomError(404, "NOT_FOUND", "소원방을 찾을 수 없어요");
 
-        await tx.wishRoom.update({ where: { id: roomDbId }, data: { reportCount: { increment: 1 } } });
-        await tx.report.create({
-          data: { targetType: "wish_room", targetId: roomDbId, reporterId: auth.userId, reason },
+        // [보안 수정 2026-10-19 — 전수검수 fix/wishroom-server-audit f655c6f 반영]
+        // 동일 사용자 중복 신고 1인 1회 집계(댓글과 동일한 방어).
+        const priorRoomReport = await tx.report.findFirst({
+          where: { targetType: "wish_room", targetId: roomDbId, reporterId: auth.userId },
         });
+        if (!priorRoomReport) {
+          await tx.wishRoom.update({ where: { id: roomDbId }, data: { reportCount: { increment: 1 } } });
+          await tx.report.create({
+            data: { targetType: "wish_room", targetId: roomDbId, reporterId: auth.userId, reason },
+          });
+        }
       }
     });
 

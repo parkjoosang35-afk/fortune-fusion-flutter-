@@ -4869,6 +4869,10 @@ model TopicExposureHistory {
   user  User         @relation(fields: [userId], references: [id])
   topic TopicCatalog @relation(fields: [topicId], references: [topicId])
 
+  // [보안 수정 2026-10-19 — 전수검수 feat/saju-audit 762efc9 반영 ③] "1건만
+  // 유지" 불변식을 유니크 제약으로 강제한다. 기존에는 findFirst+create 패턴이라
+  // 동시 요청 시 중복 행 생성이 가능했다(경쟁조건) — 아래 upsert와 짝을 이룬다.
+  @@unique([userId, topicId, birthKey])
   @@index([userId, birthKey])
   @@map("topic_exposure_history")
 }
