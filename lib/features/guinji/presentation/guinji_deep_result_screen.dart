@@ -91,12 +91,23 @@ class GuinjiDeepResultScreen extends StatelessWidget {
         // 보내 웹에서 빈 화면("관계 분석 내용이 준비되지 않았어요")만 떴다.
         // 10장 유료 풀이(guinji_deep_text.dart) 전문은 무단 공개가 되므로
         // payload에 넣지 않고, 관계 유형 자체의 공개 소개만 전달한다.
+        // [웹 공유 personName 미반영 버그 수정 — 2027-02] 1:1 상세화면
+        // (guinji_map_relation_detail_screen.dart)과 동일하게 person
+        // 인스턴스 데이터(이름/생년/점수/오행 키/메모)를 함께 보내
+        // 서버([r]/service-result-view.tsx RelationshipView)가 "나그네님의
+        // 귀인지도" 일반 설명 대신 실제 이름·점수가 담긴 상세 카드를
+        // 렌더링하게 한다. 10장 풀이 본문 자체는 여전히 제외.
         payload: {
           'kind': 'relationship',
           'relationType': meta.key,
           'relationLabel': meta.label,
           'summary': meta.long,
           'highlights': [meta.specialInsight, ...meta.tips],
+          'personName': person.name,
+          'personBirth': person.birth,
+          'score': person.score,
+          'ohaeng': person.ohaeng,
+          'note': person.note,
         },
         subject: '신통방통 귀인지도',
         preCapturedPng: png,
