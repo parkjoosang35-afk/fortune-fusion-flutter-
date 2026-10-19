@@ -384,10 +384,40 @@ function asRelationCounts(v: unknown): Record<string, number> | null {
   return Object.keys(out).length > 0 ? out : null;
 }
 
+// [1:1 관계 상세 오행 한글 표기 — 2027-02] Flutter
+// `guinji_relation_meta.dart`의 guinjiOhaengTypes와 동일한 한자/한글
+// 매핑. 앱이 payload.ohaeng에 'mok'/'hwa'/'to'/'geum'/'su' 코드값만
+// 보내므로(guinji_map_relation_detail_screen.dart), 웹에서 사람이 읽을
+// 수 있는 표기로 변환한다.
+const OHAENG_LABEL: Record<string, { hanja: string; name: string; color: string }> = {
+  mok: { hanja: "木", name: "목", color: "#6FD3A0" },
+  hwa: { hanja: "火", name: "화", color: "#FF8E8E" },
+  to: { hanja: "土", name: "토", color: "#E7C878" },
+  geum: { hanja: "金", name: "금", color: "#C9BFAF" },
+  su: { hanja: "水", name: "수", color: "#7FB5FF" },
+};
+
 function RelationshipView({ p }: { p: AnyObj }) {
   const summary = pickStr(p, ["summary"]);
   const highlights = asList(p.highlights).filter((h): h is string => typeof h === "string");
   const relationLabel = pickStr(p, ["relationLabel"]);
+
+  // [1:1 관계 상세 개인 데이터 — 2027-02 버그수정] 귀인지도 "관계 상세"
+  // 화면(GuinjiMapRelationDetailScreen._handleShare)이 personName/
+  // personBirth/score/ohaeng/note를 payload로 이미 보내고 있었는데,
+  // 이 렌더러가 그 필드들을 전혀 읽지 않아 공유 페이지가 앱 화면
+  // (이름·생년·점수 카드)과 완전히 다른 "일반 설명문"만 보여주는
+  // 문제가 있었다(사용자 리포트: "왜 이게 뜨냐 근본적으로 잘못됐다").
+  // 전체 지도 집계 공유(guinji_result_card_screen.dart)는 personName을
+  // 보내지 않고 relationCounts만 보내므로, personName이 있을 때만 이
+  // 개인 카드를 그리고 없으면 기존 집계/폴백 분기를 그대로 탄다
+  // (하위 호환 — 기존에 생성된 공유 링크 렌더를 바꾸지 않는다).
+  const personName = pickStr(p, ["personName"]);
+  const personBirth = pickStr(p, ["personBirth"]);
+  const score = pickNum(p, ["score"]);
+  const ohaengKey = pickStr(p, ["ohaeng"]);
+  const note = pickStr(p, ["note"]);
+  const ohaeng = ohaengKey ? OHAENG_LABEL[ohaengKey] : null;
 
   // 1) V2 6종 집계(귀인지도 전체 지도 공유 — `relationCounts` 맵).
   const v2Counts = asRelationCounts(p.relationCounts);
@@ -410,6 +440,76 @@ function RelationshipView({ p }: { p: AnyObj }) {
     : [];
 
   const cards = v2Cards.length > 0 ? v2Cards : legacyCards;
+  const relationColor = ohaeng?.color ?? GOLD;
+
+  // [개인 관계 상세 카드] personName이 있는 공유만 이 경로를 탄다.
+  if (personName) {
+    const initial = personName.trim().slice(0, 1) || "?";
+    return (
+      <Shell label={relationLabel ? `귀인지도 · ${relationLabel}` : "귀인지도"}>
+        <div style={{ borderRadius: 20, background: "#FFFFFF0A", border: "1px solid #FFFFFF14", padding: "28px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              margin: "0 auto",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 26,
+              fontWeight: 800,
+              fontFamily: SERIF,
+              color: "#fff",
+              background: `linear-gradient(160deg, ${relationColor}, ${relationColor}CC)`,
+            }}
+          >
+            {initial}
+          </div>
+          {relationLabel ? (
+            <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: relationColor, border: `1px solid ${relationColor}55`, borderRadius: 999, padding: "4px 12px" }}>
+              {relationLabel}
+            </div>
+          ) : null}
+          <div style={{ marginTop: 10, fontSize: 20, fontWeight: 800, fontFamily: SERIF, color: "#F5EFE6" }}>{personName}</div>
+          {personBirth ? <div style={{ marginTop: 2, fontSize: 11, color: "#8F857A" }}>{personBirth}</div> : null}
+          {score != null ? (
+            <>
+              <div style={{ marginTop: 16, display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
+                <span style={{ fontSize: 40, fontWeight: 800, color: relationColor }}>{score}</span>
+                <span style={{ fontSize: 13, color: "#C9BFAF" }}>/ 100</span>
+              </div>
+              <div style={{ marginTop: 2, fontSize: 10.5, color: "#8F857A" }}>관계 케미 점수</div>
+            </>
+          ) : null}
+        </div>
+
+        {summary ? (
+          <Section title="관계의 결">{summary}</Section>
+        ) : null}
+
+        {ohaeng ? (
+          <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, borderRadius: 14, background: "#FFFFFF0A", border: "1px solid #FFFFFF14", padding: 16 }}>
+            <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, fontFamily: SERIF, color: ohaeng.color, border: `1px solid ${ohaeng.color}66`, background: `${ohaeng.color}22` }}>
+              {ohaeng.hanja}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#F5EFE6" }}>{ohaeng.name}({ohaeng.hanja}) 기운의 사람</div>
+              {note ? <div style={{ marginTop: 2, fontSize: 11, color: "#C9BFAF" }}>{note}</div> : null}
+            </div>
+          </div>
+        ) : null}
+
+        {highlights.length > 0 ? (
+          <Section title="주요 내용">
+            {highlights.map((h, i) => (
+              <div key={i}>· {h}</div>
+            ))}
+          </Section>
+        ) : null}
+      </Shell>
+    );
+  }
 
   return (
     <Shell label={relationLabel ? `귀인지도 · ${relationLabel}` : "귀인지도"}>

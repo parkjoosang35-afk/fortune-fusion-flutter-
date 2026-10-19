@@ -170,13 +170,31 @@ export default async function SharedResultPage({ params, webOnly = false }: Page
   const structured = isStructuredPayload(shared.payload, shared.resultType);
   const createdAt = shared.createdAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(shared.createdAt) : null;
 
+  // [귀인지도 1:1 관계 상세 제목 버그수정 — 2027-02] 기존에는 이
+  // 헤더가 항상 "공유한 사람(ownerNickname)님의 {서비스명}"으로
+  // 고정돼, 귀인지도 1:1 상대방 상세 공유("김우영님과의 관계")도
+  // 전부 "{공유자 닉네임}님의 귀인지도"(닉네임 미설정 시 "나그네님의
+  // 귀인지도")로만 떠 앱 화면 제목과 전혀 달랐다. payload에
+  // personName(상대방 이름)이 있으면 그 이름 기준 제목으로 바꾼다 —
+  // 전체 지도 집계 공유(ownerName 집계 카드)는 personName이 없으므로
+  // 기존 ownerNickname 제목을 그대로 유지한다(하위 호환).
+  const payloadObj = shared.payload && typeof shared.payload === "object" && !Array.isArray(shared.payload)
+    ? (shared.payload as Record<string, unknown>)
+    : null;
+  const personName = payloadObj && typeof payloadObj.personName === "string" ? payloadObj.personName : null;
+  const headerTitle = personName
+    ? `${personName}님과의 관계`
+    : shared.ownerNickname
+      ? `${shared.ownerNickname}님의 ${label}`
+      : label;
+
   return (
     <main style={outer}>
       <div style={card}>
         <header style={{ textAlign: "center", marginBottom: 22 }}>
           <p style={{ margin: 0, fontSize: 11, letterSpacing: 3, color: GOLD }}>SINTONG BANGTONG</p>
           <h1 style={{ fontFamily: SERIF, fontSize: 22, color: "#F5EFE6", margin: "8px 0 0" }}>
-            {shared.ownerNickname ? `${shared.ownerNickname}님의 ${label}` : label}
+            {headerTitle}
           </h1>
         </header>
         {structured ? (
