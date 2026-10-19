@@ -735,7 +735,7 @@ class FeHeroOrbit extends StatefulWidget {
 }
 
 class _FeHeroOrbitState extends State<FeHeroOrbit>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _ring = AnimationController(
     vsync: this,
     duration: FeMotion.orbitRing,

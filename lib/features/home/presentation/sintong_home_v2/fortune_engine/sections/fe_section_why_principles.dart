@@ -30,27 +30,29 @@ class FeWhySection extends StatelessWidget {
           ),
           FeReveal(
             delay: const Duration(milliseconds: 80),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: _FeVsCard.dim()),
-                const SizedBox(
-                  width: 30,
-                  child: Center(
-                    child: Text(
-                      'VS',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: FeFonts.mono,
-                        fontSize: 11,
-                        color: FeColors.muted,
-                        letterSpacing: 1,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _FeVsCard.dim()),
+                  const SizedBox(
+                    width: 30,
+                    child: Center(
+                      child: Text(
+                        'VS',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: FeFonts.mono,
+                          fontSize: 11,
+                          color: FeColors.muted,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Expanded(child: _FeVsCard.lit()),
-              ],
+                  Expanded(child: _FeVsCard.lit()),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 14),

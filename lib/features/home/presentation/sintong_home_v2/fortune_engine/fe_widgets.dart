@@ -645,6 +645,7 @@ class _FeMarqueeState extends State<FeMarquee>
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 42,
       padding: const EdgeInsets.symmetric(vertical: 11),
       decoration: BoxDecoration(
         color: FeColors.glow.withValues(alpha: 0.06),
