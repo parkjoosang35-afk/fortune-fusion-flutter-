@@ -9,6 +9,7 @@ import '../../intro/application/intro_state_provider.dart';
 import '../../intro/application/intro_config_provider.dart';
 import '../../home/domain/jeontong_local_to_server_migration.dart';
 import '../../result_access/domain/pending_result_access_return.dart';
+import '../../../core/router/web_share_entry.dart';
 import '../application/auth_provider.dart';
 
 /// [2026-10 스플래시 디자인 교체 — "신통방통" 워드마크 애니메이션]
@@ -268,6 +269,19 @@ class _SplashScreenState extends State<SplashScreen>
             'resumeResultAccess': true,
         },
       );
+      return;
+    }
+
+    // [웹 공유 "가짜 페이지" 근본 재설계 — 대표 긴급 지시, 2027-02]
+    // pendingReturn(쿠팡 이동 복귀)보다 뒤, introSeen 분기보다 먼저
+    // 확인한다 — 공유 링크로 들어온 방문자는 온보딩 여부와 무관하게
+    // 항상 그 결과 화면으로 바로 가야 하기 때문이다(admin_web이 더
+    // 이상 자체 렌더링 페이지를 갖지 않으므로, 이 분기가 없으면 공유
+    // 링크 방문자가 볼 수 있는 화면이 전혀 없어진다 —
+    // web_share_entry.dart 문서 주석 참고).
+    final webShareRoute = webShareEntryRouteFromUrl();
+    if (webShareRoute != null) {
+      Navigator.of(context).pushReplacementNamed(webShareRoute);
       return;
     }
 
