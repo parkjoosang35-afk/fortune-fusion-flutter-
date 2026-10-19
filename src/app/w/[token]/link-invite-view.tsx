@@ -35,11 +35,6 @@ type LinkInviteViewProps = {
 const SERIF = "'Noto Serif KR', serif";
 const SINTONG_SIGNUP_URL = "https://sintong.kr/app/#/signup";
 
-function tryOpenApp(token: string) {
-  // [Android App Links 검증 실패/iOS 폴백 대응] 커스텀 스킴 우선 시도.
-  window.location.href = `fortunefusion://w/${token}`;
-}
-
 // 소원 빛깔(WISH_COLORS, wishroom_data.json) — 색상 표시용 최소 발췌.
 // 전체 카탈로그를 들여오지 않고, 이 페이지가 필요로 하는 hex/한자/라벨만
 // 하드코딩한다(Flutter wr_catalog.dart의 wishColors와 동일 값).
@@ -91,7 +86,6 @@ export function LinkInviteView({
   levelName,
   daysLit,
 }: LinkInviteViewProps) {
-  const [attemptedAppOpen, setAttemptedAppOpen] = useState(false);
   const [room, setRoom] = useState<RoomFull | null>(null);
   const [comments, setComments] = useState<CommentDto[]>([]);
   const [loadError, setLoadError] = useState(false);
@@ -190,22 +184,6 @@ export function LinkInviteView({
 
   return (
     <>
-      {/* [설치 유도 배너 — 보조 수단으로 축소] 지시서: "웹에서 초대시 그대로
-          그 사람의 소원방으로 바로 들어가게" — 이 페이지 자체가 이제 실제
-          방 콘텐츠를 보여주므로, 앱 설치는 더 이상 필수 경로가 아니라
-          선택적 대안으로만 남긴다. */}
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[#2A2438] px-4 py-2.5 text-white">
-        <span className="text-[12px] leading-snug">
-          신통방통 앱에서 더 다양한 운세를 만나보세요
-        </span>
-        <a
-          href="https://play.google.com/store/apps/details?id=com.fortunefusion.fortune"
-          className="shrink-0 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#2A2438]"
-        >
-          앱 설치
-        </a>
-      </div>
-
       <section className="relative overflow-hidden">
         <div className="relative mx-auto w-full max-w-[440px] px-5 pt-6 pb-6">
           <div className="mb-5 flex items-center gap-1.5">
@@ -359,20 +337,6 @@ export function LinkInviteView({
             </div>
           )}
 
-          <button
-            onClick={() => {
-              setAttemptedAppOpen(true);
-              tryOpenApp(token);
-            }}
-            className="w-full rounded-2xl border border-[#E8DDD0] bg-white/60 py-3 text-center text-[13px] font-bold text-[#A6795E]"
-          >
-            앱으로 열기
-          </button>
-          {attemptedAppOpen && (
-            <p className="mt-2 text-center text-[11px] text-[#A08C82]">
-              앱이 설치되어 있지 않다면 위 설치 버튼을 눌러주세요.
-            </p>
-          )}
         </div>
       </section>
 
