@@ -71,6 +71,12 @@ export interface CreateCampaignInput {
   targetAudience?: "ALL" | "NEW" | "EXISTING";
   useLimitPerMember?: number;
   sharedTotalLimit?: number;
+  /** [마케팅 쿠폰 발행 관리 개선 §3-1] 총 발행 수량 상한. null/undefined = 무제한.
+   * 양의 정수를 주면 issueCoupons()가 issuedCount 누적치와 원자적으로 비교해
+   * 이 값을 넘는 발행을 막는다. API 레이어(POST campaigns route)에서 "기본값은
+   * 무제한이 아닌 한정 수량"을 강제하므로, 여기서는 null도 허용해 하위호환을
+   * 깨지 않는다(기존 테스트/스크립트가 이 필드 없이 호출해도 그대로 동작). */
+  totalIssueLimit?: number | null;
   validFrom: Date;
   validTo: Date;
   guideText?: string;
@@ -88,6 +94,9 @@ export async function createCampaign(input: CreateCampaignInput, actorId: string
   }
   if (input.issueType === "SHARED" && !input.sharedTotalLimit) {
     throw new BokjuCouponError("SHARED_LIMIT_REQUIRED", "공용번호 쿠폰은 총 사용 한도가 필요합니다.");
+  }
+  if (input.totalIssueLimit != null && (!Number.isInteger(input.totalIssueLimit) || input.totalIssueLimit < 1)) {
+    throw new BokjuCouponError("INVALID_TOTAL_ISSUE_LIMIT", "총 발행 수량은 1 이상의 정수이거나 무제한(비워둠)이어야 합니다.");
   }
   // [AI 쿠폰 디자인 표시·숨김 기능 §9] 보관(archive)된 템플릿을 새 캠페인에 연결하는
   // 것을 막는다 — 보관 템플릿은 "더 이상 신규 발급에 쓰지 않음"이 목적이므로, 여기서
@@ -112,6 +121,7 @@ export async function createCampaign(input: CreateCampaignInput, actorId: string
       targetAudience: input.targetAudience ?? "ALL",
       useLimitPerMember: input.useLimitPerMember ?? 1,
       sharedTotalLimit: input.issueType === "SHARED" ? input.sharedTotalLimit : null,
+      totalIssueLimit: input.totalIssueLimit ?? null,
       validFrom: input.validFrom,
       validTo: input.validTo,
       guideText: input.guideText,
@@ -221,6 +231,34 @@ export async function issueCoupons(campaignId: number, count: number, actorId: s
     throw new BokjuCouponError("INVALID_COUNT", "발행 수량은 1 ~ 1,000,000 사이여야 합니다.");
   }
 
+  // [마케팅 쿠폰 발행 관리 개선 §5-1,2] 총 발행 수량 선점 — 실제 쿠폰 행을
+  // 만들기 전에 issuedCount를 "조건부로" 먼저 증가시킨다. 하나의 raw UPDATE
+  // 문이라 SQLite에서 통째로 원자적으로 실행되므로, 여러 관리자가 동시에
+  // 발행 버튼을 눌러도(동시성 제어) WHERE 조건(issued_count + count <=
+  // total_issue_limit)을 만족하는 요청만 통과한다 — redeemCoupon()의 조건부
+  // UPDATE 패턴(§3-3 "가장 중요한 한 줄")과 동일한 설계를 발행 측에도
+  // 적용한 것이다. totalIssueLimit이 NULL이면 무제한이므로 조건 없이 통과.
+  const reserved = await prisma.$executeRaw`
+    UPDATE bokju_coupon_campaigns
+    SET issued_count = issued_count + ${count}
+    WHERE id = ${campaignId}
+      AND status = 'ACTIVE'
+      AND (total_issue_limit IS NULL OR issued_count + ${count} <= total_issue_limit)
+  `;
+  if (reserved === 0) {
+    // 한도초과인지, 그 사이 상태가 바뀐 것인지 재조회해 정확한 사유를 안내한다.
+    const fresh = await prisma.bokjuCouponCampaign.findUnique({ where: { id: campaignId } });
+    if (!fresh) throw new BokjuCouponError("CAMPAIGN_NOT_FOUND", "캠페인을 찾을 수 없습니다.");
+    if (fresh.status !== "ACTIVE") {
+      throw new BokjuCouponError("CAMPAIGN_NOT_ACTIVE", "ACTIVE 상태의 캠페인만 발행할 수 있습니다.");
+    }
+    const remaining = Math.max(0, (fresh.totalIssueLimit ?? 0) - fresh.issuedCount);
+    throw new BokjuCouponError(
+      "ISSUE_LIMIT_EXCEEDED",
+      `총 발행 한도(${fresh.totalIssueLimit}장)를 초과합니다. 현재 발행 ${fresh.issuedCount}장, 추가 발행 가능 ${remaining}장.`
+    );
+  }
+
   let created = 0;
   let attempt = 0;
   while (created < count && attempt < count * 3 + 10) {
@@ -248,14 +286,17 @@ export async function issueCoupons(campaignId: number, count: number, actorId: s
     }
   }
   if (created < count) {
+    // [마케팅 쿠폰 발행 관리 개선 §5-5] 실제로 만들지 못한 수량만큼 위에서
+    // 선점했던 issuedCount를 되돌려 집계가 실제 쿠폰 수와 어긋나지 않게 한다.
+    const shortfall = count - created;
+    await prisma.bokjuCouponCampaign.update({
+      where: { id: campaignId },
+      data: { issuedCount: { decrement: shortfall } },
+    });
     throw new BokjuCouponError("ISSUE_INCOMPLETE", `요청 ${count}건 중 ${created}건만 생성되었습니다.`);
   }
 
-  await prisma.bokjuCouponCampaign.update({
-    where: { id: campaignId },
-    data: { issuedCount: { increment: count } },
-  });
-
+  // issuedCount는 위 선점 단계에서 이미 전량 증가되었으므로 여기서 다시 증가시키지 않는다.
   return { issued: created };
 }
 

@@ -39,6 +39,11 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
   const [targetAudience, setTargetAudience] = useState<"ALL" | "NEW" | "EXISTING">("ALL");
   const [useLimitPerMember, setUseLimitPerMember] = useState(1);
   const [sharedTotalLimit, setSharedTotalLimit] = useState(100);
+  // [마케팅 쿠폰 발행 관리 개선 §3-1] 총 발행 수량 — 기본값은 요구사항대로
+  // 무제한이 아닌 한정 수량(1,000)으로 시작한다. isUnlimited가 true면 제출 시
+  // totalIssueLimit을 null로 보낸다.
+  const [totalIssueLimit, setTotalIssueLimit] = useState(1000);
+  const [isUnlimitedIssue, setIsUnlimitedIssue] = useState(false);
   const [validFrom, setValidFrom] = useState("");
   const [validTo, setValidTo] = useState("");
   const [guideText, setGuideText] = useState("");
@@ -147,6 +152,7 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           targetAudience,
           useLimitPerMember,
           sharedTotalLimit: issueType === "SHARED" ? sharedTotalLimit : undefined,
+          totalIssueLimit: isUnlimitedIssue ? null : totalIssueLimit,
           validFrom,
           validTo,
           guideText: guideText.trim() || undefined,
@@ -287,7 +293,33 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">9. 회원당 사용 제한</label>
+            <label className="mb-1 block text-xs text-slate-500">총 발행 수량 *</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                value={totalIssueLimit}
+                disabled={isUnlimitedIssue}
+                onChange={(e) => setTotalIssueLimit(Number(e.target.value))}
+                className="w-full rounded border border-slate-300 px-3 py-2 text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
+              />
+              <label className="flex shrink-0 items-center gap-1 text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={isUnlimitedIssue}
+                  onChange={(e) => setIsUnlimitedIssue(e.target.checked)}
+                />
+                무제한
+              </label>
+            </div>
+            <p className="mt-1 text-[11px] text-slate-400">
+              쿠폰을 총 몇 장까지 발행할 수 있는지 설정합니다(예: 100/500/1,000장). 기본값은 한정 수량이며,
+              무제한 체크 시 총량 제한 없이 계속 발행할 수 있습니다.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-slate-500">9. 1인당 발급 가능 수량</label>
             <input
               type="number"
               min={1}
@@ -295,6 +327,10 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
               onChange={(e) => setUseLimitPerMember(Number(e.target.value))}
               className="w-full rounded border border-slate-300 px-3 py-2 text-sm text-slate-900"
             />
+            <p className="mt-1 text-[11px] text-slate-400">
+              한 회원이 이 쿠폰을 몇 번까지 등록(적립)할 수 있는지입니다. 총 발행 수량과 별도로 적용되며,
+              무제한 발행이어도 이 제한은 그대로 적용됩니다.
+            </p>
           </div>
 
           <div>

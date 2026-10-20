@@ -81,6 +81,7 @@ export default async function BokjuCampaignDetailPage({
           targetAudience: campaign.targetAudience,
           useLimitPerMember: campaign.useLimitPerMember,
           sharedTotalLimit: campaign.sharedTotalLimit,
+          totalIssueLimit: campaign.totalIssueLimit,
           distributionMethod: campaign.distributionMethod,
           designTemplate: campaign.designTemplate,
           // [작업순서4 — §4-3] null이면 아직 레거시(11토글) 상태 → 전환

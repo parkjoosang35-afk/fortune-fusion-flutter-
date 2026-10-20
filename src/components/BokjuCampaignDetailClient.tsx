@@ -13,6 +13,7 @@ interface Campaign {
   targetAudience: string;
   useLimitPerMember: number;
   sharedTotalLimit: number | null;
+  totalIssueLimit: number | null;
   distributionMethod: string;
   designTemplate: string;
   // [작업순서4 — §4-3 전환 버튼] null이면 아직 레거시(11토글) 화면을 쓴다.
@@ -377,6 +378,11 @@ export default function BokjuCampaignDetailClient({
   }
 
   const unallocated = campaign.issuedCount - campaign.allocatedCount;
+  // [마케팅 쿠폰 발행 관리 개선 §4] 발급후미사용 ≠ 추가발급가능 — 명확히 구분.
+  // 발급후미사용: 이미 발행(issuedCount)되었지만 아직 등록(redeemedCount)되지 않은 수량.
+  // 추가발급가능: 총 발행 한도(totalIssueLimit)에서 이미 발행한 수량을 뺀 잔여 수량(무제한이면 표시 안 함).
+  const unusedAfterIssue = Math.max(0, campaign.issuedCount - campaign.redeemedCount);
+  const remainingIssuable = campaign.totalIssueLimit != null ? Math.max(0, campaign.totalIssueLimit - campaign.issuedCount) : null;
 
   return (
     <div className="space-y-6">
@@ -520,11 +526,34 @@ export default function BokjuCampaignDetailClient({
       {/* 발행 현황 + 발행 쿠폰 관리 */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
         <h3 className="mb-3 text-sm font-bold text-slate-900">발행 쿠폰 관리</h3>
-        <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {/* [마케팅 쿠폰 발행 관리 개선 §4] 총발행/발급완료/사용완료/발급후미사용/추가발급가능 5가지 수치 */}
+        <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
           <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">발행</p>
+            <p className="text-xs text-slate-500">총 발행 한도</p>
+            <p className="text-xl font-bold text-slate-900">
+              {campaign.totalIssueLimit != null ? campaign.totalIssueLimit.toLocaleString() : "무제한"}
+            </p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">발급 완료</p>
             <p className="text-xl font-bold text-slate-900">{campaign.issuedCount}</p>
           </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">사용 완료</p>
+            <p className="text-xl font-bold text-emerald-700">{campaign.redeemedCount}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">발급 후 미사용</p>
+            <p className="text-xl font-bold text-amber-700">{unusedAfterIssue}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">추가 발급 가능</p>
+            <p className="text-xl font-bold text-indigo-700">
+              {remainingIssuable != null ? remainingIssuable.toLocaleString() : "무제한"}
+            </p>
+          </div>
+        </div>
+        <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-lg bg-slate-50 p-3">
             <p className="text-xs text-slate-500">배정</p>
             <p className="text-xl font-bold text-slate-900">{campaign.allocatedCount}</p>
@@ -532,10 +561,6 @@ export default function BokjuCampaignDetailClient({
           <div className="rounded-lg bg-slate-50 p-3">
             <p className="text-xs text-slate-500">미배정</p>
             <p className="text-xl font-bold text-slate-900">{unallocated}</p>
-          </div>
-          <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">등록(적립)</p>
-            <p className="text-xl font-bold text-emerald-700">{campaign.redeemedCount}</p>
           </div>
         </div>
         {Object.keys(statusCounts).length > 0 && (

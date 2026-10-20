@@ -1522,8 +1522,9 @@ model BokjuCouponCampaign {
   grantAmount        Int      @map("grant_amount") // 등록 시 지급할 복주머니 수량
   issueType          String   @default("INDIVIDUAL") @map("issue_type") // INDIVIDUAL/SHARED
   targetAudience     String   @default("ALL") @map("target_audience") // ALL/NEW/EXISTING
-  useLimitPerMember  Int      @default(1) @map("use_limit_per_member")
+  useLimitPerMember  Int      @default(1) @map("use_limit_per_member") // [마케팅 쿠폰 발행 관리 개선] "1인당 발급 가능 수량"도 겸한다 — redeemCoupon()이 회원당 사용(등록) 성공 횟수를 이 값과 비교해 동시성 안전하게 차단하므로 신규 필드를 만들지 않고 그대로 재사용한다.
   sharedTotalLimit   Int?     @map("shared_total_limit")
+  totalIssueLimit    Int?     @map("total_issue_limit") // [마케팅 쿠폰 발행 관리 개선] 총 발행 수량 상한. null=무제한. issueCoupons()가 issuedCount 누적치와 원자적으로 비교해 초과 발행을 막는다. 기존 캠페인은 마이그레이션으로 전부 null(무제한=기존 동작과 동일, 하위호환)을 유지한다.
   validFrom          DateTime @map("valid_from")
   validTo            DateTime @map("valid_to")
   guideText          String?  @map("guide_text")

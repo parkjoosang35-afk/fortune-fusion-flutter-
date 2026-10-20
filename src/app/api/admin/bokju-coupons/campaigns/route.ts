@@ -38,6 +38,8 @@ export async function GET() {
         redeemedCount: c.redeemedCount,
         usedCount: c.usedCount,
         sharedTotalLimit: c.sharedTotalLimit,
+        totalIssueLimit: c.totalIssueLimit,
+        useLimitPerMember: c.useLimitPerMember,
         createdAt: c.createdAt.toISOString(),
       })),
     });
@@ -61,6 +63,20 @@ export async function POST(request: NextRequest) {
     }
     if (!body.validFrom || !body.validTo) return jsonError("validFrom/validTo는 필수입니다.");
 
+    // [마케팅 쿠폰 발행 관리 개선 §3-1] totalIssueLimit: null/undefined/빈값 =
+    // 무제한, 그 외에는 1 이상의 정수여야 한다(0 이하나 소수는 명백한 입력
+    // 오류이므로 조용히 무제한으로 바꾸지 않고 에러로 거부한다).
+    let totalIssueLimit: number | null | undefined;
+    if (body.totalIssueLimit === null || body.totalIssueLimit === undefined || body.totalIssueLimit === "") {
+      totalIssueLimit = null;
+    } else {
+      const n = Number(body.totalIssueLimit);
+      if (!Number.isInteger(n) || n < 1) {
+        return jsonError("totalIssueLimit은 1 이상의 정수이거나 무제한(비워둠)이어야 합니다.");
+      }
+      totalIssueLimit = n;
+    }
+
     const input: CreateCampaignInput = {
       title,
       grantAmount,
@@ -68,6 +84,7 @@ export async function POST(request: NextRequest) {
       targetAudience: ["ALL", "NEW", "EXISTING"].includes(body.targetAudience) ? body.targetAudience : "ALL",
       useLimitPerMember: Number.isInteger(body.useLimitPerMember) ? body.useLimitPerMember : 1,
       sharedTotalLimit: Number.isInteger(body.sharedTotalLimit) ? body.sharedTotalLimit : undefined,
+      totalIssueLimit,
       validFrom: new Date(body.validFrom),
       validTo: new Date(body.validTo),
       guideText: typeof body.guideText === "string" ? body.guideText : undefined,
