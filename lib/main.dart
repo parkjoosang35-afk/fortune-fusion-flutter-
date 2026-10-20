@@ -16,6 +16,7 @@ import 'features/home/domain/saju_fortune_rules.dart';
 import 'features/home/domain/saju_interpreter.dart';
 import 'features/evening_bell/domain/evening_bell_notification_service.dart';
 import 'features/wishroom/data/wr_catalog.dart';
+import 'features/shrine/shrine_module.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -161,5 +162,10 @@ Future<void> main() async {
   // enabled=false(기본값, AdSense 미승인 상태)이면 이 호출도 즉시
   // 반환되어 아무 스크립트도 주입하지 않는다.
   WebAdService.ensureInitialized();
+  // [신당(神堂) 통합 — P1] ShrineSessionProvider(app.dart)가 생성자에서
+  // 바로 SharedPreferences를 필요로 하므로, runApp 이전에 shrine.json 로드
+  // + BujeokLayout.init + SharedPreferences.getInstance를 1회 완료해 둔다
+  // (신당 README §5 "초기화" 지시 — main()에서 await로 1회 호출).
+  await ShrineModule.init();
   runApp(const App());
 }

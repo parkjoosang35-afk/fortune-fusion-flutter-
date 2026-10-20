@@ -10,8 +10,8 @@ import '../../features/home/presentation/sintong_home_v2/sintong_home_v2_screen.
 // 신당을 연다(아래 _openShrine 참고). WishRoomIntroScreen import와 소원방
 // push 기능 자체는 홈 카드/마이페이지 등 다른 진입점이 계속 쓰므로 삭제하지
 // 않는다 — 다만 이 파일에서는 더 이상 직접 참조하지 않는다.
-import '../../features/shrine/application/shrine_session_provider.dart';
-import '../../features/shrine/presentation/shrine_navigation.dart';
+import '../../features/shrine/state/shrine_session_provider.dart';
+import '../../features/shrine/widgets/shrine_nav.dart';
 // [행운상자 - 복주머니 탭 신규 기능] 사용자 요청("복주머니 탭 자리에
 // 첨부한 행운상자 기능을 넣어달라, 하단바 라벨은 그대로 복주머니")에 따라
 // 이 탭이 보여주는 화면 내용을 LuckyBagScreen(잔액+광고카드+출석체크)에서
@@ -112,9 +112,14 @@ class _AppShellState extends State<AppShell> {
   /// 여기서는 그 스택의 첫 화면만 push하면 된다(1.1초 크로스페이드
   /// 모션은 `ShrineNav.rootRoute`가 기존 `_fadeRoute`를 그대로 재사용).
   Future<void> _openShrine() async {
-    final kept = context.read<ShrineSessionProvider>().state.kept;
-    final startId = kept ? 'more' : 'entry';
-    await Navigator.of(context).push(ShrineNav.rootRoute(startId));
+    // [신규 신당 모듈 포팅] 구버전 ShrineState.kept(bool) 필드는 신규
+    // 모델에 없다 — "소지부 간직" 여부는 box 리스트가 비어있지 않은지로
+    // 판정한다(신당 README §9 "진행: ... kept" → 신규 state.box 목록에
+    // 흡수됨). ShrineNav도 rootRoute(Route 반환)가 아니라 openRoot(직접
+    // push 수행)로 바뀌었으므로 Navigator.push 이중 호출을 제거한다.
+    final kept = context.read<ShrineSessionProvider>().state.box.isNotEmpty;
+    final startId = kept ? 'list' : 'entry';
+    ShrineNav.openRoot(context, startId);
   }
 
   // [운세보기 섹션 삭제] FortuneHubScreen 탭 콘텐츠를 _tabs에서 제거.
@@ -133,7 +138,7 @@ class _AppShellState extends State<AppShell> {
     // 신당부적 탭에 금색 점을 표시한다. watch로 구독해 신당 내부에서
     // 소지부를 받는 즉시(ShrineReceiveScreen의 kept:true 저장) 하단바가
     // 재빌드되도록 한다.
-    final kept = context.watch<ShrineSessionProvider>().state.kept;
+    final kept = context.watch<ShrineSessionProvider>().state.box.isNotEmpty;
     return Scaffold(
       body: IndexedStack(index: _navToTab(_index), children: _tabs),
       bottomNavigationBar: MidnightBottomNavBar(

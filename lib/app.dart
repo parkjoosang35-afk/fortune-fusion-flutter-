@@ -98,7 +98,10 @@ import 'core/orchestrator/fortune_orchestrator.dart';
 import 'core/orchestrator/door_engine_gateway.dart';
 // [신당(THE SHRINE) 통합 — v4.0 재구축] 기존 A안(2026-11)은 전면 삭제되고
 // 신규 zip(go_router+riverpod 원본)을 provider+Navigator 1.0으로 기계적
-// 포팅한 신규 ShrineSessionProvider로 교체된다(진행 중 — TodoWrite #5).
+// 포팅한 신규 ShrineSessionProvider로 교체되었다. 생성자가 SharedPreferences를
+// 직접 받으므로(지시서 §7 상태 스키마), main()에서 runApp 이전에 미리
+// 준비해 둔 ShrineModule.prefs를 그대로 주입한다.
+import 'features/shrine/shrine_module.dart';
 import 'features/shrine/state/shrine_session_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
@@ -145,7 +148,9 @@ class App extends StatelessWidget {
         ),
         // [신당(神堂) 통합 — P1] ChangeNotifier 기반 세션 상태(기기 내
         // SharedPreferences에만 저장, 서버 전송 없음 — 지시서 §1.2).
-        ChangeNotifierProvider(create: (_) => ShrineSessionProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ShrineSessionProvider(ShrineModule.prefs),
+        ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
         ),

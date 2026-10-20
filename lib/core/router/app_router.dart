@@ -5,7 +5,7 @@ import 'app_shell.dart';
 // ShrineNav.rootRoute()로 신당 내부 Navigator 스택을 직접 push한다
 // (app_shell.dart `_openShrine` 참고). '/shrine' named route는 외부
 // 딥링크/직접 URL 진입(예: QA, 웹 주소창)을 위한 보조 경로로 유지한다.
-import '../../features/shrine/presentation/screens/shrine_entry_screen.dart';
+import '../../features/shrine/widgets/shrine_screen_router.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/intro/presentation/onboarding_gate_screen.dart';
 import '../../features/policy/presentation/policy_notice_screen.dart';
@@ -228,7 +228,7 @@ class AppRouter {
       // 유지한다(항상 entry부터 시작 — 탭 쪽의 소지부 보유 분기와 달리
       // 이 경로는 재방문자 단축 로직을 적용하지 않는다).
       case '/shrine':
-        return _pageNamed('/shrine', const ShrineEntryScreen());
+        return _pageNamed('/shrine', shrineScreenFor('entry', null));
       // [인트로 전면 개편] 4단계 인트로(카드1/카드2/CTA) 페이저. 스플래시 이후
       // introSeen=false인 첫 실행 사용자에게만 노출된다.
       //
