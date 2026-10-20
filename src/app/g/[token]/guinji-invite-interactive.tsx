@@ -197,7 +197,7 @@ export function GuinjiInviteInteractive({
               onChange={(e) => setName(e.target.value)}
               placeholder="이름(닉네임도 괜찮아요)"
               maxLength={20}
-              className="mb-3 w-full rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+              className="mb-3 w-full rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
             />
 
             {/* 음력/양력 토글 */}
@@ -225,7 +225,7 @@ export function GuinjiInviteInteractive({
                 placeholder="년(예: 1998)"
                 inputMode="numeric"
                 maxLength={4}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
               />
               <input
                 value={month}
@@ -233,7 +233,7 @@ export function GuinjiInviteInteractive({
                 placeholder="월"
                 inputMode="numeric"
                 maxLength={2}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
               />
               <input
                 value={day}
@@ -241,7 +241,7 @@ export function GuinjiInviteInteractive({
                 placeholder="일"
                 inputMode="numeric"
                 maxLength={2}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
               />
             </div>
 
@@ -275,7 +275,7 @@ export function GuinjiInviteInteractive({
                   placeholder="시(0~23)"
                   inputMode="numeric"
                   maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
                 />
                 <input
                   value={minute}
@@ -283,7 +283,7 @@ export function GuinjiInviteInteractive({
                   placeholder="분"
                   inputMode="numeric"
                   maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#FBEFE8]"
+                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
                 />
               </div>
             )}

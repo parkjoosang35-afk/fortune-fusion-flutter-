@@ -257,7 +257,7 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
               </div>
 
               {/* 초대 배지 */}
-              <div className="mb-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#F5D9C9] bg-[#FBEFE8] px-3 py-1.5">
+              <div className="mb-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E9C46A]/25 bg-[#E9C46A]/10 px-3 py-1.5">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#E9C46A]" />
                 <span className="whitespace-nowrap text-[11px] font-semibold text-[#E9C46A]">
                   {invite.ownerName}님이 초대했어요

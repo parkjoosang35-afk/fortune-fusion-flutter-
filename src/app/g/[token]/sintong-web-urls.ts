@@ -26,4 +26,19 @@ export const SINTONG_WEB_URLS = {
   todayFortune: `${SINTONG_WEB_BASE}/fortune/today/intro`,
   /** 신통방통 메인 홈(하단바 "홈" 탭). */
   home: `${SINTONG_WEB_BASE}/home`,
+  /**
+   * 신당부적 — 앱 하단바 2번째 탭(`lib/core/router/app_router.dart`의
+   * `case '/shrine':`에 대응하는 named route). 앱에서는 탭 자체가
+   * 콘텐츠를 담지 않고 눌렀을 때 `ShrineEntryScreen`을 push하는 방식이라,
+   * 웹에서도 동일하게 `/shrine` 경로로 직접 이동시킨다.
+   */
+  shrine: `${SINTONG_WEB_BASE}/shrine`,
+  /**
+   * 복주머니(행운상자) — 앱 하단바 3번째 탭. Flutter 쪽에 전용 named
+   * route가 없고 `/home` 라우트에 `arguments: 1`(tab index)로만 진입
+   * 가능해 해시 URL만으로는 해당 탭을 직접 지정할 수 없다. 기존 "마이"
+   * 탭도 동일한 제약으로 `home`을 가리키던 선례를 따라, 일단 홈으로
+   * 보내고 추후 전용 경로가 생기면 교체한다.
+   */
+  pouch: `${SINTONG_WEB_BASE}/home`,
 } as const;

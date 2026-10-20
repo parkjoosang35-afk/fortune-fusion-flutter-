@@ -150,16 +150,16 @@ export function LinkInviteView({
           >
             <span className="text-[10px] font-bold leading-none text-white">신</span>
           </span>
-          <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#2A2438]">
+          <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F2ECDF]">
             신통방통
           </span>
         </div>
-        <div className="relative rounded-3xl border border-[#E8DDD0] bg-white/85 p-8 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
+        <div className="relative rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-[0_4px_20px_-8px_rgba(0,0,0,0.4)]">
           <span className="mb-3 block text-[34px]">🔒</span>
-          <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#2A2438]">
+          <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#F2ECDF]">
             더 이상 열 수 없는 링크예요
           </h1>
-          <p className="mb-2 text-sm leading-relaxed text-[#6E5A54]">
+          <p className="mb-2 text-sm leading-relaxed text-[#E8DCC8]/70">
             링크가 만료되었거나
             <br />
             소원방 주인이 공개 범위를 바꿨을 수 있어요.
@@ -193,21 +193,21 @@ export function LinkInviteView({
             >
               <span className="text-[10px] font-bold leading-none text-white">신</span>
             </span>
-            <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#2A2438]">
+            <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F2ECDF]">
               신통방통
             </span>
           </div>
 
-          <div className="mb-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#F5D9C9] bg-[#FBEFE8] px-3 py-1.5">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#C99B7F]" />
-            <span className="whitespace-nowrap text-[11px] font-semibold text-[#A6795E]">
+          <div className="mb-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#F5CF6A]/25 bg-[#F5CF6A]/10 px-3 py-1.5">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#F5CF6A]" />
+            <span className="whitespace-nowrap text-[11px] font-semibold text-[#F5CF6A]">
               소원방 초대
             </span>
           </div>
 
           <h1
             style={{ fontFamily: SERIF }}
-            className="mb-3 text-[26px] font-bold leading-[1.35] tracking-tight text-[#2A2438]"
+            className="mb-3 text-[26px] font-bold leading-[1.35] tracking-tight text-[#F2ECDF]"
           >
             {displayOwner}님이
             <br />
@@ -265,7 +265,7 @@ export function LinkInviteView({
           </div>
 
           {!room && !loadError && (
-            <p className="mb-4 text-center text-[12px] text-[#A08C82]">소원방을 불러오는 중이에요...</p>
+            <p className="mb-4 text-center text-[12px] text-[#E8DCC8]/60">소원방을 불러오는 중이에요...</p>
           )}
 
           {/* [핵심 신설] 참여 액션 3종 — 실제 API는 로그인(JWT)을 요구하므로
@@ -274,21 +274,21 @@ export function LinkInviteView({
           <div className="mb-4 grid grid-cols-3 gap-2">
             <button
               onClick={() => setGatePanel("support")}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-[#E8DDD0] bg-white/85 py-3 text-[#2A2438] active:scale-[0.97]"
+              className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-[#F2ECDF] active:scale-[0.97]"
             >
               <span className="text-[20px]">❤</span>
               <span className="text-[11px] font-semibold">응원하기</span>
             </button>
             <button
               onClick={() => setGatePanel("message")}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-[#E8DDD0] bg-white/85 py-3 text-[#2A2438] active:scale-[0.97]"
+              className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-[#F2ECDF] active:scale-[0.97]"
             >
               <span className="text-[20px]">💬</span>
               <span className="text-[11px] font-semibold">응원 메시지</span>
             </button>
             <button
               onClick={() => setGatePanel("gift")}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-[#E8DDD0] bg-white/85 py-3 text-[#2A2438] active:scale-[0.97]"
+              className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-[#F2ECDF] active:scale-[0.97]"
             >
               <span className="text-[20px]">🧧</span>
               <span className="text-[11px] font-semibold">복주머니</span>
@@ -297,13 +297,13 @@ export function LinkInviteView({
 
           {/* 응원 메시지 목록 — 기존 사람들이 남긴 응원(로그인 없이도 조회 가능) */}
           {comments.length > 0 && (
-            <div className="mb-4 rounded-3xl border border-[#E8DDD0] bg-white/85 p-4">
-              <p className="mb-2 text-[12px] font-bold text-[#A6795E]">도착한 마음 {comments.length}</p>
+            <div className="mb-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="mb-2 text-[12px] font-bold text-[#F5CF6A]">도착한 마음 {comments.length}</p>
               <div className="max-h-[180px] space-y-2 overflow-y-auto">
                 {comments.map((c) => (
                   <div key={c.id} className="text-left">
-                    <p className="text-[11px] font-bold text-[#C9879B]">{c.author}</p>
-                    <p className="text-[13px] text-[#2A2438]">{c.text}</p>
+                    <p className="text-[11px] font-bold text-[#E8A0B8]">{c.author}</p>
+                    <p className="text-[13px] text-[#F2ECDF]">{c.text}</p>
                   </div>
                 ))}
               </div>
@@ -312,25 +312,25 @@ export function LinkInviteView({
 
           {/* 회원가입 안내 패널 — 참여 액션 버튼을 눌렀을 때만 노출 */}
           {gatePanel && (
-            <div className="mb-4 rounded-3xl border border-[#F5D9C9] bg-[#FBEFE8] p-5 text-center">
-              <p className="mb-2 text-[14px] font-bold text-[#2A2438]">
+            <div className="mb-4 rounded-3xl border border-[#F5CF6A]/25 bg-[#F5CF6A]/10 p-5 text-center">
+              <p className="mb-2 text-[14px] font-bold text-[#F2ECDF]">
                 {gatePanel === "support" && "응원하기는 회원가입 후 이용할 수 있어요"}
                 {gatePanel === "message" && "응원 메시지는 회원가입 후 남길 수 있어요"}
                 {gatePanel === "gift" && "복주머니 보내기는 회원가입 후 이용할 수 있어요"}
               </p>
-              <p className="mb-4 text-[12px] text-[#6E5A54]">
+              <p className="mb-4 text-[12px] text-[#E8DCC8]/70">
                 신통방통 가입은 1분이면 충분해요. 가입 후 바로 이 소원방에 참여할 수 있어요.
               </p>
               <a
                 href={SINTONG_SIGNUP_URL}
-                className="mb-2 block w-full rounded-2xl py-3 text-center text-[14px] font-bold text-white"
-                style={{ backgroundImage: "linear-gradient(90deg, #A6795E, #E8B4A5)" }}
+                className="mb-2 block w-full rounded-2xl py-3 text-center text-[14px] font-bold text-[#0E0A14]"
+                style={{ backgroundImage: "linear-gradient(90deg, #F5CF6A, #E8B45C)" }}
               >
                 신통방통 회원가입하기
               </a>
               <button
                 onClick={() => setGatePanel(null)}
-                className="text-[12px] text-[#A08C82] underline"
+                className="text-[12px] text-[#E8DCC8]/60 underline"
               >
                 닫기
               </button>
@@ -340,8 +340,8 @@ export function LinkInviteView({
         </div>
       </section>
 
-      <footer className="mx-auto w-full max-w-[440px] border-t border-[#E8DDD0] px-5 pt-5 pb-2 text-center">
-        <p className="text-[10px] text-[#A08C82]">© 2026 Sintongbangtong. All rights reserved.</p>
+      <footer className="mx-auto w-full max-w-[440px] border-t border-white/10 px-5 pt-5 pb-2 text-center">
+        <p className="text-[10px] text-[#E8DCC8]/50">© 2026 Sintongbangtong. All rights reserved.</p>
       </footer>
     </>
   );

@@ -109,7 +109,11 @@ export default async function LinkInvitePage({ params }: PageProps) {
   const room = await loadRoomByToken(token);
 
   return (
-    <div className="min-h-screen bg-[#FBF7EF] pb-[76px]">
+    // [2026-11, "웹 UI 간편 통일 지시서"] 기존 밝은 크림/아이보리 배경
+    // (`#FBF7EF`)을 앱의 다크 테마(`MidnightNavTokens.bgBottom` 계열,
+    // `#0E0A14`)로 교체. 내부 카드/텍스트 색상은 link-invite-view.tsx
+    // 에서 별도로 맞춘다.
+    <div className="min-h-screen bg-[#0E0A14] pb-[76px]">
       <LinkInviteView
         token={token}
         state={room.state}
