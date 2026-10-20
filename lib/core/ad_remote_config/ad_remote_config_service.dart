@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/env_config.dart';
 import '../web_ads/web_ad_config.dart';
+import '../web_ads/web_ad_service.dart';
 
 /// [신통방통 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
 /// admin_web의 `GET /api/public/ad-config` 공개 API를 앱 시작 시 1회 조회해,
@@ -146,6 +147,14 @@ class AdRemoteConfigService {
         '[AdRemoteConfigService] [3] 적용 완료 -> admobEnabled=$_admobEnabledOverride, '
         'adsenseEnabled=${WebAdConfig.enabled}, publisherId=${WebAdConfig.publisherId.isNotEmpty ? "(설정됨)" : "(없음)"}',
       );
+      // [버그 수정] main.dart가 이 load() 완료를 기다리지 않고 이미
+      // WebAdService.ensureInitialized()를 한 번 호출했을 수 있다(그
+      // 시점엔 컴파일타임 기본값 enabled=false라 스크립트를 건너뛰었을
+      // 것). 원격 설정이 지금 막 enabled=true로 바뀌었을 수 있으므로,
+      // 여기서 다시 호출해 "실제로 아직 주입 안 됐다면" 지금 주입한다
+      // (WebAdService._initialized가 이미 true면 멱등하게 아무 일도
+      // 안 한다).
+      WebAdService.ensureInitialized();
     } catch (e) {
       debugPrint(
         '[AdRemoteConfigService] [X] 예외 발생, 기존 컴파일타임 기본값으로 폴백 -> $e',

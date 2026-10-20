@@ -30,22 +30,33 @@ import 'web_ad_page_level.dart';
 class WebAdService {
   WebAdService._();
 
+  // [버그 수정 — 원격 설정으로 AdSense를 켜도 스크립트가 영영 주입되지
+  // 않던 결함] main.dart는 `AdRemoteConfigService.load()`를 await 없이
+  // fire-and-forget으로 호출한 직후 곧바로 `ensureInitialized()`를
+  // 호출한다. 이 시점에는 원격 설정이 아직 도착하지 않아
+  // `WebAdConfig.enabled`가 컴파일타임 기본값(false)이다. 과거 코드는
+  // "이 함수가 호출된 적 있는지"를 `_initialized`로 막아버려서, 수백ms
+  // 뒤 원격 설정이 실제로 로드 완료되어 enabled=true로 바뀌어도 다시는
+  // 스크립트를 주입할 기회가 없었다(관리자가 애드센스를 켜도 운영에
+  // 반영되지 않는 결함). 이제 `_initialized`는 "스크립트를 실제로
+  // 주입했는지"만 의미하도록 바꾸고, [AdRemoteConfigService.load]가
+  // 원격 설정 적용 직후 이 함수를 다시 호출해 재시도한다.
   static bool _initialized = false;
 
-  /// 앱 부팅 시 1회 호출 — AdSense 로더 스크립트를 `<head>`에 주입한다.
-  /// Web이 아니거나, 아직 설정이 꺼져 있거나(퍼블리셔 ID 미발급 등)이면
-  /// 아무 일도 하지 않는다(지시서 §12 "승인 전에는 실제 광고가 나오는
-  /// 것으로 가정해서 개발하면 안 된다" — 스크립트조차 섣불리 심지
-  /// 않는다).
+  /// 앱 부팅 시, 그리고 원격 설정 로드 완료 직후 각각 호출 — AdSense
+  /// 로더 스크립트를 `<head>`에 주입한다. Web이 아니거나, 아직 설정이
+  /// 꺼져 있거나(퍼블리셔 ID 미발급 등)이면 아무 일도 하지 않는다
+  /// (지시서 §12 "승인 전에는 실제 광고가 나오는 것으로 가정해서
+  /// 개발하면 안 된다" — 스크립트조차 섣불리 심지 않는다). 이미 실제로
+  /// 주입에 성공한 뒤에는 재호출해도 아무 일도 하지 않는다(멱등).
   static void ensureInitialized() {
-    if (_initialized) return;
-    _initialized = true;
-
+    if (_initialized) return; // 이미 실제로 주입 완료.
     if (!kIsWeb) return; // [AdMob과 분리] 앱(Android/iOS)에서는 완전히 no-op.
     if (!WebAdConfig.enabled) return;
     if (WebAdConfig.publisherId.isEmpty) return;
 
     injectAdSenseScriptOnce(WebAdConfig.publisherId);
+    _initialized = true;
   }
 
   /// 특정 화면(surface)의 특정 포맷(format) 광고를 지금 그려도 되는지.
