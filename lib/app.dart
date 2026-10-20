@@ -96,9 +96,10 @@ import 'features/saju_renewal/data/saju_recent_story_store.dart';
 import 'core/orchestrator/orchestrator_provider.dart';
 import 'core/orchestrator/fortune_orchestrator.dart';
 import 'core/orchestrator/door_engine_gateway.dart';
-// [신당(神堂) 통합 — P1] 복주머니(PouchBoxProvider)와 동일한 분리 원칙으로
-// 상태(ShrineSessionProvider)만 전역 등록한다. 화면 전이는 ShrineNav가 담당.
-import 'features/shrine/application/shrine_session_provider.dart';
+// [신당(THE SHRINE) 통합 — v4.0 재구축] 기존 A안(2026-11)은 전면 삭제되고
+// 신규 zip(go_router+riverpod 원본)을 provider+Navigator 1.0으로 기계적
+// 포팅한 신규 ShrineSessionProvider로 교체된다(진행 중 — TodoWrite #5).
+import 'features/shrine/state/shrine_session_provider.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
