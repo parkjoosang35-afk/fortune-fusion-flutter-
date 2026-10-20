@@ -23,6 +23,7 @@
 //    안전하게 pop 할 수 있게 한다.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../shrine_module.dart' show kShrineBase;
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
 import 'shrine_screen_router.dart';
@@ -83,6 +84,25 @@ class ShrineNav {
       _fadeRoute(target, params),
       (route) => route.settings.name == null || !route.settings.name!.startsWith('shrine:'),
     );
+  }
+
+  /// Pending.back · showTalisManual 액션 등 원본이 "전체 경로 문자열"
+  /// ('$kShrineBase/result/A', '$kShrineBase/list' 등)로 저장해 둔 값을
+  /// 그대로 받아 id+params로 분해해 이동한다. (state 계층은 kShrineBase를
+  /// 직접 import하지 않도록 하드코딩된 '/shrine' 값을 쓰므로, 여기서도
+  /// 두 값이 같은지 보정 없이 그대로 받아들인다 — shrine_module.dart와
+  /// state/shrine_session_provider.dart의 `_kShrineBaseFallback` 참고.)
+  static void goPath(BuildContext context, String path, {bool replace = false}) {
+    final rel = path.startsWith(kShrineBase) ? path.substring(kShrineBase.length) : path;
+    final parts = rel.split('/').where((e) => e.isNotEmpty).toList();
+    if (parts.isEmpty) { go(context, 'entry', replace: replace); return; }
+    final id = parts[0];
+    Map<String, String>? params;
+    if (id == 'result' && parts.length > 1) params = {'code': parts[1]};
+    if (id == 'end' && parts.length > 1) params = {'code': parts[1]};
+    if (id == 'tale' && parts.length > 1) params = {'id': parts[1]};
+    if (id == 'tale-end' && parts.length > 2) params = {'id': parts[1], 'code': parts[2]};
+    go(context, id, params: params, replace: replace);
   }
 
   static bool canPop(BuildContext context) => Navigator.of(context).canPop();

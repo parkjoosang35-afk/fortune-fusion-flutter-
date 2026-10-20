@@ -52,8 +52,8 @@ class T {
   const T(this.ts);
   TextStyle get logo => GoogleFonts.eastSeaDokdo(fontSize: 112, height: .82, color: const Color(0xFFF4EBDE), letterSpacing: -2);
   TextStyle get brushName => GoogleFonts.nanumBrushScript(fontSize: 76 * ts, height: .95, color: C.cinnabar);
-  TextStyle display(double size, {FontWeight w = FontWeight.w700, Color c = C.fg}) =>
-      GoogleFonts.notoSerifKr(fontSize: size * ts, fontWeight: w, height: 1.45, letterSpacing: -.02 * size, color: c);
+  TextStyle display(double size, {FontWeight w = FontWeight.w700, Color c = C.fg, double h = 1.45}) =>
+      GoogleFonts.notoSerifKr(fontSize: size * ts, fontWeight: w, height: h, letterSpacing: -.02 * size, color: c);
   TextStyle body(double size, {FontWeight w = FontWeight.w400, Color c = C.fg, double h = 1.7}) =>
       GoogleFonts.gowunBatang(fontSize: size * ts, fontWeight: w, height: h, color: c);
   TextStyle ui(double size, {FontWeight w = FontWeight.w500, Color c = C.fg}) =>

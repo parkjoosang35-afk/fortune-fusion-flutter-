@@ -82,7 +82,7 @@ ShrinePaymentGateway _readPaymentGateway(BuildContext context) {
   try {
     return Provider.of<ShrinePaymentGateway>(context, listen: false);
   } catch (_) {
-    return const FreePassGateway();
+    return FreePassGateway();
   }
 }
 
