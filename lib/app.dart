@@ -104,6 +104,7 @@ import 'core/orchestrator/door_engine_gateway.dart';
 import 'features/shrine/shrine_module.dart';
 import 'features/shrine/state/shrine_session_provider.dart';
 import 'features/shrine/application/shrine_payment_gateway.dart';
+import 'features/shrine/engine/shrine_engine.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -160,6 +161,21 @@ class App extends StatelessWidget {
         Provider<ShrinePaymentGateway>(
           create: (_) => const SintongShrinePaymentGateway(),
         ),
+        // [버그 수정 — 회원 연결 화면 무한 로딩] 신당 ConnectScreen("동의하고
+        // 연결하기")과 SajuScreen이 각각 context.read<MemberRepository>() /
+        // context.read<SajuRepository>()를 호출하는데, 이 두 Provider도
+        // ShrinePaymentGateway와 동일하게 app.dart에 등록되지 않아 예외가
+        // 발생했다. 단, 이 두 곳은 try/catch 폴백이 없어 예외가 그대로
+        // 전파되어 async 함수가 중간에 끊기고 `busy` 플래그가 되돌아오지
+        // 않아 "신당의 명부를 펼치는 중…" 버튼이 영원히 멈춰 다음 화면으로
+        // 전혀 넘어가지 않았다.
+        // [실제 신통방통 API 연동 전] shrine_engine.dart의 Sample*Repository는
+        // 화면에 "SAMPLE" 배지를 명시적으로 띄우는 의도된 임시 구현체다
+        // (엔진 연동 전 시연용 — shrine_engine.dart 상단 주석 참고). 실제
+        // 신통방통 회원/정통사주 API 연동 시 이 두 줄의 구현체만 교체하면
+        // 된다.
+        Provider<MemberRepository>(create: (_) => SampleMemberRepository()),
+        Provider<SajuRepository>(create: (_) => SampleSajuRepository()),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
         ),

@@ -61,58 +61,210 @@ class _Reveal extends StatelessWidget {
 }
 
 // ═══════════ 門 회원 연결 (/connect) ═══════════
-// v3.3 디자인(웹 .cn2): 상단 두 인장(神通 보라 · 神堂 붉음)을 붉은 실이 잇고, 아래 명부(名簿) 카드에 원형 한자(名·生·時) + 값 + 토글 스위치.
-// 꺼진 항목은 값에 붉은 취소선 · 연결 시 항목이 하나씩 붉게 채워지며(0.42s 간격) 실이 빨라진다. 아래 구현은 구조 기준 — 시각은 웹 레퍼런스를 따른다.
+// v3.3 디자인(웹 .cn2 — shrine-screens-d.jsx / shrine.css .cn2-*) 1:1 포팅.
+// 상단 두 인장(神通 보라그라데이션 · 神堂 붉은그라데이션, 회전+광채)을 붉은 실(SVG 경로 포팅)이 잇고,
+// 아래 명부(名簿) 패널(헤더 "名簿 · 옮겨 적을 것" + 개수) 안에 원형 한자(名·生·時) + 값 + 토글 스위치 행.
+// 꺼진 항목은 값에 붉은 취소선 · 이름/생년월일을 빼면 경고 문구 노출.
+// 연결 시 항목이 하나씩(0.42s 간격) 매듭으로 건너가며 붉게 채워지고 체크로 바뀐다.
+// [디자인 불일치 수정] 과거 구현은 이 섹션을 "구조만 맞춰두고 시각은 추후 웹 레퍼런스 따라 맞춘다"는
+// 주석과 함께 미완성 상태로 남겨두었다(×표시 임시 대체, 명부 패널·토글·경고문·◇불릿·실 장식 누락,
+// 버튼 문구 상이). 대표 확인 결과 실제 신당 화면과 다르다는 지적을 받아 웹 레퍼런스 기준으로 재구현했다.
 class ConnectScreen extends StatefulWidget { const ConnectScreen({super.key}); @override State<ConnectScreen> createState() => _ConnectState(); }
 class _ConnectState extends State<ConnectScreen> {
-  final sel = {'name': true, 'birth': true, 'time': true}; bool busy = false;
+  final sel = {'name': true, 'birth': true, 'time': true};
+  bool busy = false;
+  int moved = 0;
+  final List<Timer> _timers = [];
+
+  @override
+  void dispose() { for (final tm in _timers) { tm.cancel(); } super.dispose(); }
+
   Future<void> _link() async {
-    setState(() => busy = true);
-    final m = await context.read<MemberRepository>().link(scope: sel.entries.where((e) => e.value).map((e) => e.key).toSet());
+    if (busy) return;
+    final order = sel.entries.where((e) => e.value).map((e) => e.key).toList();
+    final st = context.read<ShrineSessionProvider>().state;
+    setState(() { busy = true; moved = 0; });
+    final stepMs = st.reduce ? 80 : 420;
+    for (var i = 0; i < order.length; i++) {
+      _timers.add(Timer(Duration(milliseconds: stepMs * (i + 1)), () { if (mounted) setState(() => moved = i + 1); }));
+    }
+    final waitMs = st.reduce ? 400 : stepMs * (order.length + 1) + 500;
+    await Future.delayed(Duration(milliseconds: waitMs));
+    if (!mounted) return;
+    final m = await context.read<MemberRepository>().link(scope: order.toSet());
     final season = m.birth == null ? null : seasonOf(int.parse(m.birth!.substring(5, 7)));
-    context.read<ShrineSessionProvider>().update((s) => s.copy(memberId: m.memberId, memberScope: sel.entries.where((e) => e.value).map((e) => e.key).toList(),
+    context.read<ShrineSessionProvider>().update((s) => s.copy(memberId: m.memberId, memberScope: order,
       name: m.name, birth: m.birth, time: m.time ?? '모름', season: season, visits: s.visits + 1));
     if (!mounted) return;
     ShrineNav.go(context, m.name == null || m.birth == null ? 'info' : 'talk');
   }
+
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts);
-    final rows = [('name', '이름', '박서연', '월화가 부르고, 부적에 적습니다'), ('birth', '생년월일', '1995.08.14 · 양력', '정통사주 해석에 씁니다'), ('time', '태어난 시간', '14:20', '없으면 시주(時柱)를 빼고 풀이합니다')];
+    final rows = [
+      ('name', '名', '이름', '박서연', '월화가 부르고, 부적에 적습니다'),
+      ('birth', '生', '생년월일', '1995.08.14 · 양력', '정통사주 해석에 씁니다'),
+      ('time', '時', '태어난 시간', '14:20', '없으면 시주(時柱)를 빼고 풀이합니다'),
+    ];
+    final selected = rows.where((r) => sel[r.$1]!).toList();
+    final selectedCount = selected.length;
+    final warn = !sel['name']! || !sel['birth']!;
     return Scaffold(body: Stack(fit: StackFit.expand, children: [
       ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3), child: ColorFiltered(colorFilter: const ColorFilter.mode(Color(0xB3000000), BlendMode.darken), child: Image.asset(_img('hall'), fit: BoxFit.cover))),
+      const DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.64), radius: 1, colors: [Color(0x38A11D19), Colors.transparent]))),
       const BottomShade(stops: [0, .4, .8], colors: [Color(0x66070404), Color(0xB3070404), C.bg]),
-      Positioned(left: 20, right: 20, bottom: 26, child: SafeArea(top: false, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        Row(children: [
-          _mark('神通', false), Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text('×', style: t.ui(14, c: C.faint))), _mark('神堂', true)]),
+      Positioned.fill(child: SafeArea(top: false, child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(20, 86, 20, 26), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // 두 인장(印章) + 붉은 실
+        SizedBox(height: 104, child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: _Seal(label: '神通', caption: 'SINTONG · 신통방통', hot: false)),
+          SizedBox(width: 112, child: _ThreadLink(busy: busy)),
+          Expanded(child: _Seal(label: '神堂', caption: 'THE SHRINE · 신당', hot: true)),
+        ])),
+        const SizedBox(height: 6),
+        Center(child: Text('門 · 신통방통 회원으로 들어가기', style: t.mono.copyWith(color: C.gold))), const SizedBox(height: 10),
+        Center(child: Text('이미 알려 주신 것은\n다시 묻지 않겠습니다.', textAlign: TextAlign.center, style: t.display(23))), const SizedBox(height: 6),
+        Center(child: Text('신통방통에 등록된 정보 중, 허락하신 것만 신당으로 가져옵니다.', textAlign: TextAlign.center, style: t.body(13, c: C.muted, h: 1.6))),
         const SizedBox(height: 16),
-        Text('門 · 신통방통 회원으로 들어가기', style: t.mono.copyWith(color: C.gold)), const SizedBox(height: 8),
-        Text('이미 알려 주신 것은\n다시 묻지 않겠습니다.', style: t.display(23)), const SizedBox(height: 4),
-        Text('신통방통에 등록된 정보 중, 허락하신 것만 신당으로 가져옵니다.', style: t.body(13, c: C.muted, h: 1.6)), const SizedBox(height: 12),
-        for (final r in rows) GestureDetector(onTap: () => setState(() => sel[r.$1] = !sel[r.$1]!), child: Container(
-          margin: const EdgeInsets.only(bottom: 7), constraints: const BoxConstraints(minHeight: 56), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(color: const Color(0xCC0E0706), borderRadius: BorderRadius.circular(12), border: Border.all(color: sel[r.$1]! ? C.goldLine : C.line)),
-          child: Row(children: [
-            Container(width: 20, height: 20, alignment: Alignment.center, decoration: BoxDecoration(color: sel[r.$1]! ? C.red : null, borderRadius: BorderRadius.circular(5), border: Border.all(color: sel[r.$1]! ? const Color(0xB3D6AA64) : C.goldDim)),
-              child: sel[r.$1]! ? Text('✓', style: t.ui(12, w: FontWeight.w700, c: C.btnText)) : null),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r.$2, style: t.ui(14, w: FontWeight.w600)), Text(r.$4, style: t.ui(11, c: C.faint))])),
-            Text(r.$3, style: t.mono.copyWith(fontSize: 12, letterSpacing: 0, color: sel[r.$1]! ? C.gold : C.faint, decoration: sel[r.$1]! ? null : TextDecoration.lineThrough)),
-          ]))),
-        const SizedBox(height: 4),
-        for (final f in ['비밀번호와 로그인 정보는 신당에 저장하지 않습니다.', '공유 링크·이미지에는 생년월일과 사주 원본이 들어가지 않습니다.', '연결은 설정에서 언제든 끊을 수 있습니다.'])
-          Padding(padding: const EdgeInsets.only(left: 4, bottom: 2), child: Text('·  $f', style: t.ui(11, c: C.faint))),
+        // 명부(名簿) 패널
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 2, 14, 4),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: C.goldLine),
+            gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xEB1A0C0A), Color(0xEB0C0605)])),
+          child: Column(children: [
+            Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Row(children: [
+              Text('名簿 · 옮겨 적을 것', style: t.mono.copyWith(color: C.gold)), const Spacer(),
+              Text('$selectedCount / 3', style: t.mono.copyWith(color: C.muted)),
+            ])),
+            const Divider(height: 1, thickness: 1, color: C.line),
+            for (final r in rows) _LedgerRow(
+              on: sel[r.$1]!,
+              moved: busy && sel[r.$1]! && moved > selected.indexOf(r),
+              glyph: r.$2, label: r.$3, value: r.$4, why: r.$5, ts: st.ts,
+              last: r == rows.last,
+              onTap: busy ? null : () => setState(() => sel[r.$1] = !sel[r.$1]!),
+            ),
+            if (warn) Padding(padding: const EdgeInsets.fromLTRB(2, 2, 2, 10), child: Text('이름과 생년월일을 빼면, 다음 화면에서 직접 적어 주셔야 합니다.', style: t.ui(11.5, c: C.redHot))),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        // 약속
+        Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: C.line)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (final f in ['비밀번호와 로그인 정보는 신당에 남기지 않습니다.', '공유 링크·이미지에 생년월일과 사주 원본은 담기지 않습니다.', '연결은 설정에서 언제든 끊을 수 있습니다.'])
+              Padding(padding: const EdgeInsets.only(bottom: 6), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('◇', style: t.ui(11.5, c: C.gold)), const SizedBox(width: 8),
+                Expanded(child: Text(f, style: t.ui(11.5, c: C.muted))),
+              ])),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        RedButton(busy ? (moved < selectedCount ? '명부에 옮겨 적는 중…' : '신당의 문을 엽니다') : '동의하고 명부 옮기기', ts: st.ts, onTap: busy ? null : _link),
         const SizedBox(height: 10),
-        RedButton(busy ? '신당의 명부를 펼치는 중…' : '동의하고 연결하기', ts: st.ts, onTap: busy ? null : _link),
-        Center(child: TextButton(onPressed: () => ShrineNav.go(context, 'info'), child: Text('회원 연결 없이 직접 적기', style: t.ui(13, c: C.muted).copyWith(decoration: TextDecoration.underline)))),
-        const SampleTag('회원 연동 전 예시 회원'),
-      ]))),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          TextButton(onPressed: busy ? null : () => ShrineNav.go(context, 'info'), child: Text('회원 연결 없이 직접 적기', style: t.ui(13, c: C.muted).copyWith(decoration: TextDecoration.underline))),
+          const SampleTag('회원 연동 전 예시 회원'),
+        ]),
+      ])))),
       _top(context, back: () => ShrineNav.go(context, 'hall')),
     ]));
   }
-  Widget _mark(String s, bool hot) => Container(width: 50, height: 50, alignment: Alignment.center, decoration: BoxDecoration(
-    color: hot ? C.red : const Color(0x14EFE4D2), borderRadius: BorderRadius.circular(10), border: Border.all(color: hot ? const Color(0x99D6AA64) : C.line), boxShadow: hot ? Glow.red(20) : null),
-    child: Text(s, textAlign: TextAlign.center, style: T(1).display(15, w: FontWeight.w900, c: hot ? C.btnText : C.muted).copyWith(height: 1.05)));
+}
+
+/// 인장(印章) — 神通(보라 그라데이션) / 神堂(붉은 그라데이션), 회전 + 광채
+class _Seal extends StatelessWidget {
+  final String label, caption; final bool hot;
+  const _Seal({required this.label, required this.caption, required this.hot});
+  @override
+  Widget build(BuildContext context) => Column(children: [
+    Transform.rotate(angle: hot ? .07 : -.07, child: Container(width: 66, height: 66, alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: hot ? const [Color(0xFFB8241F), Color(0xFF6E0F0C)] : const [Color(0xFF2A1748), Color(0xFF120A24)]),
+        border: Border.all(color: hot ? const Color(0x99D6AA64) : const Color(0x73F5CF6A)),
+        boxShadow: [BoxShadow(color: hot ? C.redGlow : const Color(0x2EF5CF6A), blurRadius: hot ? 30 : 26)],
+      ),
+      child: Text(label, textAlign: TextAlign.center, style: T(1).display(16, w: FontWeight.w900, c: hot ? C.btnText : const Color(0xFFF5CF6A)).copyWith(height: 1.05)),
+    )),
+    const SizedBox(height: 9),
+    Text(caption, style: T(1).mono.copyWith(fontSize: 8.5, letterSpacing: 2)),
+  ]);
+}
+
+/// 두 인장을 잇는 붉은 실 — 웹 SVG 경로(M4 30 C40 6,60 54,80 30 S120 6,156 30)를 CustomPainter로 포팅.
+/// [애니메이션 주의] 웹의 달리는 점선 애니메이션은 무한 반복(infinite)이라 포팅 시 pumpAndSettle 계열
+/// 위젯 테스트를 영원히 멈추게 할 위험이 있어, 매듭(knot)이 busy 상태에서만 번쩍이는 정적 버전으로 포팅했다.
+class _ThreadLink extends StatelessWidget {
+  final bool busy; const _ThreadLink({required this.busy});
+  @override
+  Widget build(BuildContext context) => SizedBox(height: 50, child: CustomPaint(painter: _ThreadPainter(busy: busy), size: Size.infinite));
+}
+class _ThreadPainter extends CustomPainter {
+  final bool busy; _ThreadPainter({required this.busy});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sx = size.width / 160, sy = size.height / 60;
+    Offset p(double x, double y) => Offset(x * sx, y * sy);
+    final path = Path()
+      ..moveTo(p(4, 30).dx, p(4, 30).dy)
+      ..cubicTo(p(40, 6).dx, p(40, 6).dy, p(60, 54).dx, p(60, 54).dy, p(80, 30).dx, p(80, 30).dy)
+      ..cubicTo(p(100, 6).dx, p(100, 6).dy, p(120, 6).dx, p(120, 6).dy, p(156, 30).dx, p(156, 30).dy);
+    canvas.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.3..strokeCap = StrokeCap.round..color = const Color(0x8CE0412F));
+    canvas.drawCircle(p(80, 30), busy ? 4.2 : 3.2, Paint()..color = const Color(0xFFE0412F)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+  }
+  @override
+  bool shouldRepaint(covariant _ThreadPainter old) => old.busy != busy;
+}
+
+/// 명부 행 — 원형 한자(名·生·時) 글자 + 라벨/부연 + 값(끄면 취소선) + 토글 스위치.
+/// 연결 애니메이션 중(moved) 원이 붉게 채워지며 ✓로 바뀐다.
+class _LedgerRow extends StatelessWidget {
+  final bool on, moved, last; final String glyph, label, value, why; final double ts; final VoidCallback? onTap;
+  const _LedgerRow({required this.on, required this.moved, required this.last, required this.glyph, required this.label, required this.value, required this.why, required this.ts, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    final t = T(ts);
+    return GestureDetector(onTap: onTap, child: Container(
+      constraints: const BoxConstraints(minHeight: 64), padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(border: last ? null : const Border(bottom: BorderSide(color: C.line))),
+      child: Row(children: [
+        AnimatedContainer(duration: const Duration(milliseconds: 400), width: 34, height: 34, alignment: Alignment.center,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: moved ? C.red : Colors.black.withValues(alpha: .25),
+            border: Border.all(color: moved || on ? const Color(0xB3D6AA64) : C.goldDim),
+            boxShadow: moved ? Glow.red(14) : null),
+          child: Text(moved ? '✓' : glyph, style: T(1).display(14, w: FontWeight.w900, c: moved ? C.btnText : C.gold)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: t.body(14.5, w: FontWeight.w700, c: on ? C.fg : C.muted)),
+          Text(on ? why : '가져오지 않습니다', style: t.ui(11, c: C.faint)),
+        ])),
+        const SizedBox(width: 8),
+        Text(value, style: t.mono.copyWith(fontSize: 12, letterSpacing: 0, color: on ? C.gold : C.faint,
+          decoration: on ? null : TextDecoration.lineThrough, decorationColor: C.redHot, decorationThickness: 1.5)),
+        const SizedBox(width: 10),
+        _LedgerSwitch(on: on),
+      ]),
+    ));
+  }
+}
+
+/// 토글 스위치 — 웹 .cn2-sw 1:1 (44x26 알약형, 20px 원형 손잡이, on일 때 붉은 그라데이션 + 글로우)
+class _LedgerSwitch extends StatelessWidget {
+  final bool on; const _LedgerSwitch({required this.on});
+  @override
+  Widget build(BuildContext context) => AnimatedContainer(duration: const Duration(milliseconds: 350),
+    width: 44, height: 26, padding: const EdgeInsets.all(2),
+    decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
+      gradient: on ? const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFB8241F), Color(0xFF7F1411)]) : null,
+      color: on ? null : const Color(0x1AEFE4D2),
+      border: Border.all(color: on ? const Color(0x99D6AA64) : C.line),
+      boxShadow: on ? Glow.red(12) : null),
+    child: AnimatedAlign(duration: const Duration(milliseconds: 350), curve: Curves.easeOut, alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(width: 20, height: 20, decoration: BoxDecoration(shape: BoxShape.circle, color: on ? const Color(0xFFF8EAD6) : const Color(0xFF6A5A52)))),
+  );
 }
 
 // ═══════════ 命 정통사주 해석 (/saju) ═══════════
