@@ -103,6 +103,7 @@ import 'core/orchestrator/door_engine_gateway.dart';
 // 준비해 둔 ShrineModule.prefs를 그대로 주입한다.
 import 'features/shrine/shrine_module.dart';
 import 'features/shrine/state/shrine_session_provider.dart';
+import 'features/shrine/application/shrine_payment_gateway.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -150,6 +151,14 @@ class App extends StatelessWidget {
         // SharedPreferences에만 저장, 서버 전송 없음 — 지시서 §1.2).
         ChangeNotifierProvider(
           create: (_) => ShrineSessionProvider(ShrineModule.prefs),
+        ),
+        // [버그 수정 — 결과보기 게이트 미표시] 신당 「제단 앞으로 다가가기」가
+        // 신통방통 공통 결과보기 3택 시트(프리패스/복주머니/광고)를 띄우도록
+        // 실제 게이트웨이를 등록한다. 이 등록이 없으면 shrine_module.dart의
+        // `_readPaymentGateway()`가 예외를 잡아 무조건 통과시키는 기본값
+        // `FreePassGateway()`로 폴백해 게이트 UI 자체가 생략된다.
+        Provider<ShrinePaymentGateway>(
+          create: (_) => const SintongShrinePaymentGateway(),
         ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
