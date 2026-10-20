@@ -50,6 +50,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   validateLayout,
   moveElement,
+  alignElement,
   removeElement,
   reorder,
   duplicateElement,
@@ -804,6 +805,72 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
                     className="mt-0.5 w-full rounded border border-slate-300 px-2 py-1"
                   />
                 </label>
+              </div>
+
+              {/* [마케팅 쿠폰 정렬 기능 개선] 정렬 기준은 브라우저 화면이 아니라
+                  layout.canvas(실제 쿠폰 디자인 영역) — alignElement()가 항상
+                  canvas.width/height 기준으로 좌표를 계산한다. */}
+              <div>
+                <span className="text-slate-500">정렬(쿠폰 디자인 영역 기준)</span>
+                <div className="mt-1 grid grid-cols-3 gap-1">
+                  <button
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setLayout((p) => (p ? alignElement(p, selected.id, "center-h") : p))}
+                    className="rounded border border-slate-300 px-1.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    가로중앙
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setLayout((p) => (p ? alignElement(p, selected.id, "center-v") : p))}
+                    className="rounded border border-slate-300 px-1.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    세로중앙
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setLayout((p) => (p ? alignElement(p, selected.id, "center-both") : p))}
+                    className="rounded border border-indigo-300 bg-indigo-50 px-1.5 py-1 font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
+                  >
+                    정중앙
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setLayout((p) => (p ? alignElement(p, selected.id, "left") : p))}
+                    className="rounded border border-slate-300 px-1.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    왼쪽여백
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setLayout((p) => (p ? alignElement(p, selected.id, "right") : p))}
+                    className="rounded border border-slate-300 px-1.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    오른쪽여백
+                  </button>
+                  <span />
+                  <button
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setLayout((p) => (p ? alignElement(p, selected.id, "top") : p))}
+                    className="rounded border border-slate-300 px-1.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    위쪽여백
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setLayout((p) => (p ? alignElement(p, selected.id, "bottom") : p))}
+                    className="rounded border border-slate-300 px-1.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    아래쪽여백
+                  </button>
+                </div>
               </div>
 
               {selected.kind === "text" && (

@@ -465,6 +465,56 @@ export function removeElement(layout: DesignLayout, id: string): DesignLayout {
   return normalizeLayout({ ...layout, elements: layout.elements.filter((e) => e.id !== id) });
 }
 
+/**
+ * [마케팅 쿠폰 정렬 기능 개선] 요소를 쿠폰 디자인 캔버스(브라우저 화면이 아닌
+ * layout.canvas 좌표계) 기준으로 정렬한다. 요소는 항상 중심점(anchor='center')
+ * 좌표를 쓰므로, "가로 중앙"은 x = W/2, "세로 중앙"은 y = H/2 로 맞추면 된다.
+ * 여백 정렬(left/right/top/bottom)은 테마의 safeArea(인쇄 안전 여백, 기본
+ * 48px)를 margin으로 사용해 요소의 바깥쪽 모서리가 그 여백에 닿도록 한다
+ * (요소에 width/height가 없으면 0으로 취급 — 점(점 텍스트 등) 요소는 중심점이
+ * 곧 가장자리이므로 자연스럽게 동작한다). moveElement와 동일하게 0..W/0..H로
+ * clamp해 캔버스 밖으로 나가지 않게 한다 — clamp 로직은 중복 구현하지 않고
+ * moveElement를 그대로 호출해 재사용한다(§0-H 원칙).
+ */
+export type AlignType = 'center-h' | 'center-v' | 'center-both' | 'left' | 'right' | 'top' | 'bottom';
+
+export function alignElement(layout: DesignLayout, id: string, align: AlignType): DesignLayout {
+  const el = layout.elements.find((e) => e.id === id);
+  if (!el) return layout;
+  const { width: W, height: H } = layout.canvas;
+  const margin = resolveTheme(layout.theme).safeArea;
+  const hw = (el.width ?? 0) / 2;
+  const hh = (el.height ?? 0) / 2;
+
+  let x = el.x;
+  let y = el.y;
+  switch (align) {
+    case 'center-h':
+      x = W / 2;
+      break;
+    case 'center-v':
+      y = H / 2;
+      break;
+    case 'center-both':
+      x = W / 2;
+      y = H / 2;
+      break;
+    case 'left':
+      x = margin + hw;
+      break;
+    case 'right':
+      x = W - margin - hw;
+      break;
+    case 'top':
+      y = margin + hh;
+      break;
+    case 'bottom':
+      y = H - margin - hh;
+      break;
+  }
+  return moveElement(layout, id, x, y);
+}
+
 export function moveElement(layout: DesignLayout, id: string, x: number, y: number): DesignLayout {
   const { width: W, height: H } = layout.canvas;
   return {
