@@ -712,7 +712,7 @@ class ResultScreen extends StatelessWidget {
               Positioned(right: 22, top: 22, child: Transform.rotate(angle: .14, child: Container(width: 42, height: 42, alignment: Alignment.center,
                 decoration: BoxDecoration(border: Border.all(color: const Color(0xD9A11D19), width: 2), borderRadius: BorderRadius.circular(4)),
                 child: Text('神堂', style: t.display(15, w: FontWeight.w900, c: const Color(0xE6A11D19)))))),
-            ])))),
+            ]))),
         _rod(),
         const SizedBox(height: 18),
         if (shared) RedButton('나도 신당에 들어가기', ts: st.ts, onTap: () { context.read<ShrineSessionProvider>().resetData(); ShrineNav.goAndClearStack(context, 'entry'); })
