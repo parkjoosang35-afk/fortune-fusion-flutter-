@@ -121,6 +121,21 @@
     @keyframes app-loading-spin {
       to { transform: rotate(360deg); }
     }
+    /* [신당(神堂) 전체 화면 입력 차단 결함수정]
+       Flutter Web에서 video_player는 실제 DOM <video> 엘리먼트
+       (PlatformView)로 렌더링된다. 이 엘리먼트는 기본적으로
+       pointer-events: auto라 화면 전체를 덮은 채, 그 위에 Flutter
+       캔버스로 그려지는 모든 버튼(예: 신당 EntryScreen "지금 신당으로
+       들어가기")의 탭을 가로채 버린다. Dart 쪽 IgnorePointer 위젯은
+       Flutter의 제스처 트리만 제어할 뿐, 브라우저가 직접 수행하는 실제
+       DOM 히트테스트에는 영향을 주지 못하므로(Flutter Web의 알려진
+       한계), CSS로 해당 <video> 엘리먼트 자체의 pointer-events를
+       직접 차단한다. src 경로로 "assets/shrine/vid/"를 특정해, 신당
+       배경 영상에만 적용하고 홈 화면 히어로 영상(sintong_hero_video)
+       등 자체 탭 인터랙션이 필요한 다른 영상에는 영향을 주지 않는다. */
+    video[src*="shrine/vid/"] {
+      pointer-events: none !important;
+    }
   </style>
 </head>
 <body>

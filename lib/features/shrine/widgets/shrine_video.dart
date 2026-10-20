@@ -78,8 +78,17 @@ class _ShrineVideoState extends State<ShrineVideo> {
     if (_failed || c == null || !c.value.isInitialized) return poster;
     return Stack(fit: StackFit.expand, children: [
       poster,
-      FittedBox(fit: widget.fit, clipBehavior: Clip.hardEdge,
-        child: SizedBox(width: c.value.size.width, height: c.value.size.height, child: VideoPlayer(c))),
+      // [신당 전체 화면 입력 차단 결함수정] Flutter Web에서 VideoPlayer는
+      // 실제 DOM <video> 엘리먼트(PlatformView)로 렌더링되는데, 기본적으로
+      // pointer-events: auto라 화면 전체를 덮은 채 그 위에 캔버스로 그려지는
+      // 모든 버튼(예: EntryScreen "지금 신당으로 들어가기")의 탭을 가로채
+      // 버린다. 이 영상은 순수 배경 장식용이므로 IgnorePointer로 감싸
+      // 입력을 완전히 투과시킨다 — 모든 ShrineVideo 사용처(entry/door/talk/
+      // write/burn/hall 등 18개 화면 전체)에 공통 적용되는 근본 수정.
+      IgnorePointer(
+        child: FittedBox(fit: widget.fit, clipBehavior: Clip.hardEdge,
+          child: SizedBox(width: c.value.size.width, height: c.value.size.height, child: VideoPlayer(c))),
+      ),
     ]);
   }
 }
