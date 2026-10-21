@@ -1,19 +1,26 @@
 // 결과 공유 링크 — 공개 웹 랜딩페이지.
-// [웹 공유 "가짜 페이지" 근본 재설계 — 대표 긴급 지시, 2027-02]
+// [2027-02 "앱·웹 공유 최종 근본 수정" — 대표 지시서 재작업]
 // URL 스킴(`/r/{shareId}`)과 App Links 역할(AndroidManifest
-// pathPrefix="/r", assetlinks.json)은 그대로 유지하지만, **내부 렌더는
-// 완전히 제거**하고 `/coupon/[token]`과 동일한 "OG 전용 SSR + 즉시 Flutter
-// 앱으로 리다이렉트" 패턴으로 바꾼다.
+// pathPrefix="/r", assetlinks.json)은 그대로 유지한다.
 //
-// [왜 바뀌었는가] 과거에는 이 페이지가 `ServiceResultView`/
-// `SharedResultView` + `SintongBottomNavBar`(자체 제작 가짜 하단바
-// "홈/운세/소원방/귀인지도/마이")로 결과를 직접 그렸다. 이는 실제 운영
-// 서비스(Flutter 웹앱, 진짜 하단바 "홈/신당부적/복주머니/마이")와 완전히
-// 다른 모습이었고, 대표가 스크린샷 비교로 직접 지적해 전면 삭제가
-// 결정되었다. 결과 렌더링(아바타·점수·오행·판정근거 등)은 이미 Flutter
-// 웹앱의 `SharedResultScreen`(`/r/{shareId}` named route)에 완전히
-// 구현되어 있으므로 admin_web에 다시 만들지 않는다 — `redirect-to-app.tsx`
-// 참고.
+// [과거 경위 — 반드시 기록]
+//   1) 원래 이 페이지는 서비스별 전용 렌더러(ServiceResultView/
+//      SharedResultView) + 진짜 하단바로 결과를 직접 그렸다.
+//   2) 2026-10-19(7d5ed92) "가짜 하단바 제거" 지시로 렌더링 자체를
+//      통째로 삭제하고 "OG 전용 SSR + 즉시 Flutter 앱(`/app/#/r/{id}`)
+//      리다이렉트"로 전환했다. 그런데 당시 "가짜"였던 이유는 하단바가
+//      구 5탭(홈/운세/소원방/귀인지도/마이)으로 실제 앱(4탭: 홈/신당부적/
+//      복주머니/마이)과 달랐기 때문이었다 — 바로 다음 날(3fb1998) 그
+//      하단바는 이미 4탭으로 교체되어 `/g/[token]`·`/w/[token]`에서
+//      지금도 쓰이고 있다. 즉 "렌더링을 지우고 리다이렉트로 바꿀" 근거
+//      자체가 애초에 하루 만에 사라졌는데, `/r`과 `/web-result`만 그
+//      상태로 계속 남아 "웹 공유가 앱으로 강제 전환된다"는 문제를
+//      일으키고 있었다(`/g`/`/w`는 2026-09에 이미 "즉시 리다이렉트
+//      전면 폐기 — 원상복구"로 동일한 실수를 바로잡은 전례가 있다).
+//   3) 2027-02 대표 지시서에 따라 `/g`/`/w`와 동일한 원칙으로 되돌린다:
+//      "카톡을 눌러 들어오면 콘텐츠가 먼저 보여야 한다 — 즉시 다른
+//      화면으로 튕기면 안 된다 / 앱 전환은 받은 사람이 스스로 원할
+//      때만 일어난다 — 자동 강제 전환 금지."
 //
 // [SSR 필수] 카톡 크롤러는 JS를 실행하지 않으므로 generateMetadata(Server
 // Component)로만 OG를 만든다. 개인 공유이므로 noindex 유지.
@@ -24,13 +31,22 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { hasOriginalImage } from '@/app/api/public/share/_shared';
-import { RedirectToApp } from "./redirect-to-app";
+import { SharedResultView } from "./shared-result-view";
+import { ServiceResultView, isStructuredPayload, BRAND_BG, GOLD, SERIF } from "./service-result-view";
+import { WebShareButton } from "./web-share-button";
+import { SintongBottomNavBar } from "../../g/[token]/sintong-bottom-nav-bar";
+import { OG_CONFIG, isValidShareContentType } from "@/lib/share-og-config";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
+
+function resultTypeLabelOf(resultType: string): string {
+  if (isValidShareContentType(resultType)) return OG_CONFIG[resultType].label;
+  return "결과";
+}
 
 async function loadSharedResult(shareId: string) {
   try {
@@ -42,14 +58,23 @@ async function loadSharedResult(shareId: string) {
       return { state: "not_found" as const };
     }
 
+    let payload: unknown = null;
+    try {
+      payload = JSON.parse(shared.payload);
+    } catch {
+      payload = null;
+    }
+
     return {
       state: "ok" as const,
       shareId: shared.shareId,
       resultType: shared.resultType,
       title: shared.title,
       description: shared.description,
+      payload,
       imageUrl: shared.imageUrl,
       ownerNickname: shared.user.nickname,
+      createdAt: shared.createdAt,
     };
   } catch (e) {
     console.error("[GET /r/[id]] 조회 실패:", e);
@@ -100,7 +125,119 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function SharedResultPage({ params }: PageProps) {
+export default async function SharedResultPage({ params, webOnly = false }: PageProps & { webOnly?: boolean }) {
   const { id } = await params;
-  return <RedirectToApp shareId={id} />;
+  const shared = await loadSharedResult(id);
+  const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
+
+  const outer: React.CSSProperties = {
+    minHeight: "100vh",
+    background: BRAND_BG,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  };
+  const card: React.CSSProperties = {
+    width: "100%",
+    maxWidth: 480,
+    margin: "0 auto",
+    padding: "28px 20px 60px",
+    boxSizing: "border-box",
+  };
+
+  if (shared.state !== "ok") {
+    const message =
+      shared.state === "not_found"
+        ? "결과를 찾을 수 없어요.\n링크가 만료되었거나 삭제되었을 수 있어요."
+        : "일시적인 오류가 발생했어요.\n잠시 후 다시 시도해주세요.";
+    return (
+      <main style={outer}>
+        <div style={card}>
+          <div style={{ textAlign: "center", padding: "70px 0" }}>
+            <div style={{ fontSize: 44 }}>🕯️</div>
+            <h1 style={{ fontFamily: SERIF, fontSize: 19, color: "#F5EFE6", marginTop: 18, whiteSpace: "pre-wrap" }}>{message}</h1>
+            <p style={{ fontSize: 13, color: "#8F857A", marginTop: 10 }}>신통방통 — 정통사주 · 귀인지도 · 타로 · 소원방 · 관상 · 손금</p>
+          </div>
+        </div>
+        <SintongBottomNavBar />
+      </main>
+    );
+  }
+
+  if (hasOriginalImage(shared.imageUrl, shared.shareId)) {
+    return (
+      <main style={outer}>
+        <div style={{ width: '100%', maxWidth: 480 }}>
+          {/* 원본 PNG는 재배치/요약/잘라내지 않는다. 공유 도구는 이미지 밖에 둔다. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shared.imageUrl!} alt={`${shared.title} · 원래 결과 전체`} style={{ display: 'block', width: '100%', height: 'auto' }} />
+          <div style={{ padding: 20 }}>
+            <a href={shared.imageUrl!} download={`sintong_${shared.shareId}.png`} style={{ color: GOLD }}>원본 결과 저장</a>
+            <WebShareButton shareUrl={`${baseUrl}/web-result/${shared.shareId}`} title={shared.title} description={shared.description} />
+          </div>
+        </div>
+        <SintongBottomNavBar />
+      </main>
+    );
+  }
+  const label = resultTypeLabelOf(shared.resultType);
+  const structured = isStructuredPayload(shared.payload, shared.resultType);
+  const createdAt = shared.createdAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(shared.createdAt) : null;
+
+  // [귀인지도 1:1 관계 상세 제목 버그수정 — 2027-02] 기존에는 이
+  // 헤더가 항상 "공유한 사람(ownerNickname)님의 {서비스명}"으로
+  // 고정돼, 귀인지도 1:1 상대방 상세 공유("김우영님과의 관계")도
+  // 전부 "{공유자 닉네임}님의 귀인지도"(닉네임 미설정 시 "나그네님의
+  // 귀인지도")로만 떠 앱 화면 제목과 전혀 달랐다. payload에
+  // personName(상대방 이름)이 있으면 그 이름 기준 제목으로 바꾼다 —
+  // 전체 지도 집계 공유(ownerName 집계 카드)는 personName이 없으므로
+  // 기존 ownerNickname 제목을 그대로 유지한다(하위 호환).
+  const payloadObj = shared.payload && typeof shared.payload === "object" && !Array.isArray(shared.payload)
+    ? (shared.payload as Record<string, unknown>)
+    : null;
+  const personName = payloadObj && typeof payloadObj.personName === "string" ? payloadObj.personName : null;
+  const headerTitle = personName
+    ? `${personName}님과의 관계`
+    : shared.ownerNickname
+      ? `${shared.ownerNickname}님의 ${label}`
+      : label;
+
+  return (
+    <main style={outer}>
+      <div style={card}>
+        <header style={{ textAlign: "center", marginBottom: 22 }}>
+          <p style={{ margin: 0, fontSize: 11, letterSpacing: 3, color: GOLD }}>SINTONG BANGTONG</p>
+          <h1 style={{ fontFamily: SERIF, fontSize: 22, color: "#F5EFE6", margin: "8px 0 0" }}>
+            {headerTitle}
+          </h1>
+        </header>
+        {structured ? (
+          <ServiceResultView resultType={shared.resultType} payload={shared.payload} createdAt={createdAt} />
+        ) : (
+          // [하위 호환] `kind` 구조화 이전(legacy)에 생성된 공유 링크 —
+          // 기존 공통 뷰를 그대로 사용한다(REQ-27 기존 링크 동작 보장).
+          <SharedResultView
+            shareId={shared.shareId}
+            state="ok"
+            title={shared.title}
+            description={shared.description}
+            resultType={shared.resultType}
+            resultTypeLabel={label}
+            payload={shared.payload}
+            ownerNickname={shared.ownerNickname}
+            webOnly={webOnly}
+          />
+        )}
+        <WebShareButton
+          shareUrl={`${baseUrl}/web-result/${shared.shareId}`}
+          title={shared.title}
+          description={shared.description}
+        />
+        {!webOnly && <p style={{ marginTop: 18, fontSize: 12, color: "#8F857A", textAlign: "center" }}>
+          앱에서 보면 더 자세한 결과를 볼 수 있어요
+        </p>}
+      </div>
+      <SintongBottomNavBar />
+    </main>
+  );
 }
