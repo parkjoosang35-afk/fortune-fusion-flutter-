@@ -580,6 +580,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     adSlot: '',
                                   ),
                                 ),
+                                // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
+                                // 기기 저장 버튼 문구를 전 화면 공통
+                                // "이미지로 저장"으로 통일.
                                 TextButton.icon(
                                   onPressed: () => saveOriginalResult(
                                     context,
@@ -588,7 +591,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     leadingKeys: [_originalHeaderKey],
                                   ),
                                   icon: const Icon(Icons.download_rounded),
-                                  label: const Text('결과페이지 그대로 저장'),
+                                  label: const Text('이미지로 저장'),
                                 ),
                                 // [엔진 통합 지시문 STEP 3 — 2탭 도달성]
                                 // 타로/관상/손금/궁합 결과화면과 동일한

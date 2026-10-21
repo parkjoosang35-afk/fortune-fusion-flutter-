@@ -681,9 +681,13 @@ class _BottomCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextButton(
+            // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기기
+            // 저장 버튼 문구/아이콘을 전 화면 공통 "이미지로 저장" +
+            // download_rounded로 통일.
+            TextButton.icon(
               onPressed: onSave,
-              child: Text('결과 그대로 저장', style: WrF.body(12.5, color: WrC.muted)),
+              icon: Icon(Icons.download_rounded, size: 16, color: WrC.muted),
+              label: Text('이미지로 저장', style: WrF.body(12.5, color: WrC.muted)),
             ),
             TextButton(
               onPressed: onShare,
@@ -880,9 +884,12 @@ class _SealedBody extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
+                    // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면 공통
+                    // "이미지로 저장" + download_rounded로 통일.
+                    TextButton.icon(
                       onPressed: onSave,
-                      child: const Text('결과 그대로 저장'),
+                      icon: const Icon(Icons.download_rounded, size: 16),
+                      label: const Text('이미지로 저장'),
                     ),
                     TextButton(
                       onPressed: onShare,

@@ -299,8 +299,11 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                   Row(
                     children: [
                       Expanded(
+                        // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면
+                        // 공통 "이미지로 저장" + download_rounded로 통일.
                         child: _GhostButton(
-                          label: _capturing ? '준비하는 중' : '이미지 저장',
+                          label: _capturing ? '준비하는 중' : '이미지로 저장',
+                          icon: _capturing ? null : Icons.download_rounded,
                           onPressed: _capturing ? () {} : _saveImage,
                         ),
                       ),
@@ -528,10 +531,14 @@ class _TheCard extends StatelessWidget {
 }
 
 class _GhostButton extends StatelessWidget {
-  const _GhostButton({required this.label, required this.onPressed});
+  const _GhostButton({required this.label, required this.onPressed, this.icon});
 
   final String label;
   final VoidCallback onPressed;
+  // [REQ-08 - 신통방통_저장기능_정상화_개발지시서_v1.0] 기기 저장 버튼은
+  // 전 화면 공통 download_rounded 아이콘을 쌄 수 있도록 선택적 파라미터로 추가
+  // (기존 공유하기로 쓰는 "공유하기" 버튼은 아이콘 없이 그대로 유지).
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -548,14 +555,23 @@ class _GhostButton extends StatelessWidget {
             border: Border.all(color: GuinjiColors.surfaceCardBorder),
           ),
           alignment: Alignment.center,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: GuinjiFonts.body,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: GuinjiColors.textPrimary,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: GuinjiColors.textPrimary),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: GuinjiFonts.body,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: GuinjiColors.textPrimary,
+                ),
+              ),
+            ],
           ),
         ),
       ),

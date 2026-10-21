@@ -252,11 +252,17 @@ class _FullResultSheetState extends State<FullResultSheet> {
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
+                  // 기기 저장 버튼 문구/아이콘을 전 화면 공통
+                  // "이미지로 저장" + download_rounded로 통일.
+                  child: OutlinedButton.icon(
                     onPressed: _saving || widget.originalPng == null
                         ? null
                         : _save,
-                    child: Text(_saving ? '저장 중' : '전체 저장'),
+                    icon: _saving
+                        ? const SizedBox.shrink()
+                        : const Icon(Icons.download_rounded, size: 18),
+                    label: Text(_saving ? '저장 중' : '이미지로 저장'),
                   ),
                 ),
                 const SizedBox(width: 10),

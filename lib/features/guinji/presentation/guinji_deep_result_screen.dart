@@ -603,7 +603,10 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
+                      // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
+                      // 기기 저장 버튼 문구/아이콘을 전 화면 공통
+                      // "이미지로 저장" + download_rounded로 통일.
+                      child: OutlinedButton.icon(
                         onPressed: () async {
                           try {
                             await _savePageToGallery(context);
@@ -623,8 +626,9 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: const StadiumBorder(),
                         ),
-                        child: const Text(
-                          '저장',
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: const Text(
+                          '이미지로 저장',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

@@ -194,8 +194,10 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
             ReadingArtifactBuilder.fromFace(result),
           ),
         ),
+        // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기기 저장
+        // 버튼 문구를 전 화면 공통 "이미지로 저장"으로 통일.
         ResultCta(
-          label: '결과페이지 그대로 저장',
+          label: '이미지로 저장',
           icon: Icons.download_rounded,
           onTap: () => saveOriginalResult(
             context,
