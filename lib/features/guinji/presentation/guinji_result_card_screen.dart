@@ -111,14 +111,19 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
         AppToast.show(context, '카드를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.');
         return;
       }
-      final ok = await saveImageBytesToGallery(
+      // [REQ-05 — 신통방통_저장기능_정상화_개발지시서_v1.0] 실패 원인을
+      // 구분해 안내한다(과거에는 모든 실패가 "권한을 확인해주세요"로
+      // 뭉뚱그려져, 저장 공간 부족 사용자가 엉뚱한 설정을 뒤지게 됨).
+      final result = await saveImageBytesToGalleryDetailed(
         bytes,
         name: 'guinji_result_${DateTime.now().millisecondsSinceEpoch}',
       );
       if (!mounted) return;
       AppToast.show(
         context,
-        ok ? (kIsWeb ? '카드 파일 다운로드를 요청했어요.' : '카드 이미지를 갤러리에 저장했어요.') : '이미지 저장에 실패했어요. 권한을 확인해주세요.',
+        result.isSuccess
+            ? (kIsWeb ? '카드 파일 다운로드를 요청했어요.' : '카드 이미지를 갤러리에 저장했어요.')
+            : (result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.'),
       );
     } catch (_) {
       if (!mounted) return;

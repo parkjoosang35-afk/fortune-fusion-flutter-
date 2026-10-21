@@ -58,14 +58,19 @@ class GuinjiDeepResultScreen extends StatelessWidget {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('전체 결과 이미지를 준비하지 못했어요. 다시 시도해주세요.')));
       return;
     }
-    final ok = await saveImageBytesToGallery(
+    // [REQ-05] 원인별 안내로 교체.
+    final result = await saveImageBytesToGalleryDetailed(
       bytes,
       name: 'sintong_guinji_deep',
     );
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? (kIsWeb ? '전체 결과 파일 다운로드를 요청했어요.' : '페이지 전체를 갤러리에 저장했어요.') : '저장에 실패했어요. 권한을 확인해주세요.'),
+        content: Text(
+          result.isSuccess
+              ? (kIsWeb ? '전체 결과 파일 다운로드를 요청했어요.' : '페이지 전체를 갤러리에 저장했어요.')
+              : (result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.'),
+        ),
       ),
     );
   }

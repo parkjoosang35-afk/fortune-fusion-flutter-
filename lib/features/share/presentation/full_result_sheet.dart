@@ -129,20 +129,28 @@ class _FullResultSheetState extends State<FullResultSheet> {
     setState(() => _saving = true);
     try {
       final png = widget.originalPng ?? await captureOriginalResult(_capture);
-      final ok = await saveImageBytesToGallery(
+      // [REQ-05] 원인별 안내 — 권한 거부/공간 부족/형식 오류/기타를 구분.
+      final result = await saveImageBytesToGalleryDetailed(
         png,
         name: 'sintong_original_${DateTime.now().millisecondsSinceEpoch}',
       );
-      if (!ok) throw StateError('원본 결과 저장 실패');
       if (mounted) {
-        AppToast.show(
-          context,
-          kIsWeb ? '원본 결과 파일 다운로드를 요청했어요.' : '원본 결과를 갤러리에 저장했어요.',
-        );
+        if (result.isSuccess) {
+          AppToast.show(
+            context,
+            kIsWeb ? '원본 결과 파일 다운로드를 요청했어요.' : '원본 결과를 갤러리에 저장했어요.',
+          );
+        } else {
+          AppToast.show(
+            context,
+            result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.',
+            isError: true,
+          );
+        }
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        AppToast.show(context, '전체 결과를 저장하지 못했어요. $e', isError: true);
+        AppToast.show(context, '결과 이미지를 만들지 못했어요. 다시 시도해주세요.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _saving = false);

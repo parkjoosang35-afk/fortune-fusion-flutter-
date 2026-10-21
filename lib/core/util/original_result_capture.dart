@@ -140,8 +140,21 @@ Future<bool> saveOriginalResult(
       trailingKeys: trailingKeys,
       overlayKeys: overlayKeys,
     );
-    final saved = await saveImageBytesToGallery(bytes, name: name);
-    if (!saved) throw StateError('저장 권한 또는 다운로드 설정을 확인해주세요.');
+    // [REQ-05 — 신통방통_저장기능_정상화_개발지시서_v1.0] 원인 구분 없이
+    // bool만 보고 "저장 권한 또는 다운로드 설정을 확인해주세요"로 일괄
+    // 안내하던 것을, GallerySaveResult의 실패 원인(권한 거부/공간 부족/
+    // 형식 오류/기타)별 문구로 교체했다.
+    final result = await saveImageBytesToGalleryDetailed(bytes, name: name);
+    if (!result.isSuccess) {
+      if (context.mounted) {
+        AppToast.show(
+          context,
+          result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.',
+          isError: true,
+        );
+      }
+      return false;
+    }
     if (context.mounted) {
       AppToast.show(
         context,
@@ -151,7 +164,7 @@ Future<bool> saveOriginalResult(
     return true;
   } catch (error) {
     if (context.mounted) {
-      AppToast.show(context, '전체 저장 실패: $error', isError: true);
+      AppToast.show(context, '결과 이미지를 만들지 못했어요. 다시 시도해주세요.', isError: true);
     }
     return false;
   }
