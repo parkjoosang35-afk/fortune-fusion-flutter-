@@ -9,56 +9,47 @@
 // 불만의 원인 중 하나). 이제 "이미지 저장"과 "공유하기"가 실제로 서로
 // 다른 동작을 하도록 분리한다.
 //
-// [REQ-04 — 신통방통_저장기능_정상화_개발지시서_v1.0] 플랫폼 분기를
-// `if (dart.library.html)` 조건부 export에서 `kIsWeb` 런타임 판정으로
-// 교체했다.
+// [REQ-04 1차 수정 — 폐기됨] 플랫폼 분기를 `if (dart.library.html)` 조건부
+// export에서 `kIsWeb` 런타임 판정(무조건부 import)으로 교체했었다.
 //
-// 기존 조건부 export 방식의 문제(P-03):
+// 1차 수정이 해결하려던 문제(P-03):
 //   export 'image_gallery_saver_io.dart'
 //       if (dart.library.html) 'image_gallery_saver_web.dart';
 // `dart.library.html` 조건은 **컴파일 타임**에 평가되며, dart2js
 // 컴파일에서만 참이 된다. Flutter Web을 `--wasm`(dart2wasm)으로 빌드하면
 // 이 조건이 거짓으로 평가되어 io 구현(gal 기반)이 선택되는데, `gal`은
 // 웹 플랫폼을 지원하지 않으므로(pub.dev platforms 목록에 web 없음) 웹
-// 저장이 전면 실패한다. 즉 "조건부 export가 컴파일 방식에 의존한다"는
-// 것 자체가 구조적 위험이었다.
+// 저장이 전면 실패한다.
 //
-// kIsWeb 런타임 판정으로 바꾸면 두 구현 파일 모두가 항상 컴파일되고
-// (export가 아닌 일반 import이므로), 실행 시점에 실제 실행 플랫폼을
-// 보고 분기하므로 dart2js·Wasm 빌드 방식과 무관하게 항상 올바른 구현이
-// 선택된다. 두 구현 파일 모두 플랫폼별 심벌(dart:js_interop 등은 웹
-// 전용 패키지인 package:web으로 이미 교체됨 — image_gallery_saver_web.dart
-// 참고)만 사용하므로 조건부 import 없이도 양쪽 플랫폼에서 안전하게
-// 컴파일된다.
-import 'dart:typed_data';
-
-import 'package:flutter/foundation.dart' show kIsWeb;
-
-import 'gallery_save_result.dart';
-import 'image_gallery_saver_io.dart' as io_impl;
-import 'image_gallery_saver_web.dart' as web_impl;
-
+// [REQ-04 재수정 — 2026-10-21, 신통방통_저장기능_정상화_개발지시서_v1.0]
+// ⚠️ 1차 수정(kIsWeb 무조건부 import)은 위 P-03을 없앴지만, 더 심각한
+// 신규 회귀를 유발했다: `image_gallery_saver_web.dart`(`package:web`,
+// dart:js_interop 기반)가 **모든 컴파일 타겟(Android/iOS VM, `flutter test`
+// 포함)에서 항상 컴파일**되게 되었다. `package:web`의 JS-interop 전용 API
+// (`.toJS`, `.jsify()` 등)는 VM(Dart Kernel) 컴파일에서 해석 불가능해,
+// `flutter build apk`·`flutter build appbundle`·`flutter test`가 전부
+// 커널 컴파일 단계에서 즉시 실패하는 상태였다(에러: "The getter 'toJS'
+// isn't defined", "StandardFileSystem only supports file:* and data:*
+// URIs" 등). `flutter analyze`는 조건부 컴파일 경로를 검증하지 않으므로
+// 이 회귀를 잡아내지 못해 그간 "0 errors"로 보고되었으나 실제로는 Android
+// 빌드 자체가 불가능한 상태였다.
+//
+// 올바른 수정: `dart.library.html` 대신 **`dart.library.io`**를 조건으로
+// 쓰는 조건부 export로 되돌린다(본 프로젝트의 `ad_script_view.dart`에서
+// 이미 검증된 동일 패턴). `dart:io`는 Android/iOS/desktop/VM
+// 테스트에서는 존재하고, dart2js·dart2wasm 웹 컴파일 양쪽에서는 모두
+// 존재하지 않는다. 따라서:
+//   - VM(Android/iOS/`flutter test`): dart.library.io 참 →
+//     image_gallery_saver_io.dart(gal 기반)만 컴파일됨. package:web이
+//     애초에 컴파일 대상에서 제외되어 VM 빌드가 깨지지 않는다.
+//   - dart2js(web, `flutter build web --release` 기본): dart.library.io
+//     거짓 → image_gallery_saver_web.dart 선택.
+//   - dart2wasm(web, `--wasm`): dart.library.io 거짓(dart:io 없음) →
+//     image_gallery_saver_web.dart 선택 — 기존 P-03
+//     (`dart.library.html`이 wasm에서 거짓이 되어 오분기)이 재발하지
+//     않는다.
+// 즉 kIsWeb 런타임 분기 없이, 컴파일 타임 조건부 export만으로 두 플랫폼
+// 모두에서 올바른 구현이 선택되며, VM 컴파일도 깨지지 않는다.
 export 'gallery_save_result.dart';
-
-Future<bool> saveImageBytesToGallery(
-  Uint8List bytes, {
-  required String name,
-}) {
-  if (kIsWeb) {
-    return web_impl.saveImageBytesToGallery(bytes, name: name);
-  }
-  return io_impl.saveImageBytesToGallery(bytes, name: name);
-}
-
-/// [REQ-05] 실패 원인별 안내가 필요한 화면에서 사용하는 상세 버전.
-/// 내부적으로 플랫폼별 구현(gal 또는 브라우저 다운로드)을 호출하는
-/// 단일 경로는 그대로 유지한다(REQ-03).
-Future<GallerySaveResult> saveImageBytesToGalleryDetailed(
-  Uint8List bytes, {
-  required String name,
-}) {
-  if (kIsWeb) {
-    return web_impl.saveImageBytesToGalleryDetailed(bytes, name: name);
-  }
-  return io_impl.saveImageBytesToGalleryDetailed(bytes, name: name);
-}
+export 'image_gallery_saver_web.dart'
+    if (dart.library.io) 'image_gallery_saver_io.dart';
