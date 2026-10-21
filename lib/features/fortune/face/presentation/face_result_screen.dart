@@ -18,6 +18,7 @@ import '../../../../core/util/save_filename.dart';
 import '../../shared/domain/reading_artifact_builder.dart';
 import '../../shared/presentation/reading_disclosure_widgets.dart';
 import '../../shared/presentation/seal_reading_flow.dart';
+import '../../../../core/sound/sintong_sound_service.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] 관상 결과 화면.
 ///
@@ -53,6 +54,15 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
         context.read<FaceProvider>().selectFromHistory(widget.resultId!);
       });
     }
+    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
+    // 1500ms) 트리거. 기획서가 "이 앱에서 가장 중요한 사운드 설계"로
+    // 꼽는 1.2~1.5초 무음 효과를 여기서 만든다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<SintongSoundService>().duckMomentary('reveal');
+      } catch (_) {}
+    });
   }
 
   @override

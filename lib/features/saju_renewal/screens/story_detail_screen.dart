@@ -18,6 +18,7 @@ import '../widgets/saju_story_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
+import '../../../core/sound/sintong_sound_service.dart';
 import 'more_stories_screen.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
@@ -109,6 +110,14 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     _profile = context.read<SajuRenewalProvider>().visualProfileFor(user);
     _persistRecentStory();
     _persistFortuneRecord();
+    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
+    // 1500ms) 트리거.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<SintongSoundService>().duckMomentary('reveal');
+      } catch (_) {}
+    });
   }
 
   /// docs/03 §01 "최근 본 이야기 카드" — 이 화면(화면⑦ 상세)에 도달했다는
@@ -589,7 +598,10 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     context,
                                     _originalResultKey,
                                     // [REQ-09] 파일명 규칙 통일.
-                                    name: buildSaveFileName('saju', detail.topicId),
+                                    name: buildSaveFileName(
+                                      'saju',
+                                      detail.topicId,
+                                    ),
                                     leadingKeys: [_originalHeaderKey],
                                   ),
                                   icon: const Icon(Icons.download_rounded),

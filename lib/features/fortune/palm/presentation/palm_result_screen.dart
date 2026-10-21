@@ -18,6 +18,7 @@ import '../../../../core/util/save_filename.dart';
 import '../../shared/domain/reading_artifact_builder.dart';
 import '../../shared/presentation/reading_disclosure_widgets.dart';
 import '../../shared/presentation/seal_reading_flow.dart';
+import '../../../../core/sound/sintong_sound_service.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] 손금 결과 화면.
 ///
@@ -54,6 +55,14 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         context.read<PalmProvider>().selectFromHistory(widget.resultId!);
       });
     }
+    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
+    // 1500ms) 트리거.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<SintongSoundService>().duckMomentary('reveal');
+      } catch (_) {}
+    });
   }
 
   @override

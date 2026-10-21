@@ -18,6 +18,7 @@ import '../application/guinji_provider.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_theme.dart';
+import '../../../core/sound/sintong_sound_service.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 
 /// 귀인지도(Guinji Map) — 10. 결과 카드(Result Card) 화면.
@@ -79,6 +80,19 @@ class GuinjiResultCardScreen extends StatefulWidget {
 class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   final _cardKey = GlobalKey();
   bool _capturing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
+    // 1500ms) 트리거.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<SintongSoundService>().duckMomentary('reveal');
+      } catch (_) {}
+    });
+  }
 
   /// [2026-11 버그수정] "이미지 저장"과 "공유하기"가 공통으로 필요로 하는
   /// 카드 캡처 로직만 분리한 헬퍼. 실패 시 null을 반환하며, 준비 중

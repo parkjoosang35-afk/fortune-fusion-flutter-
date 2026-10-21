@@ -28,6 +28,7 @@ import 'tarot_deep_dive_screen.dart';
 import 'theme/tarot_perf_config.dart';
 import 'widgets/tarot_particle_burst.dart';
 import 'widgets/tarot_share_report_card.dart';
+import '../../../../core/sound/sintong_sound_service.dart';
 
 /// [타로 오즈 리스킨 · 화면07 RESULT] 결과 화면.
 ///
@@ -63,6 +64,14 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
         context.read<TarotProvider>().selectFromHistory(widget.resultId!);
       });
     }
+    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
+    // 1500ms) 트리거.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<SintongSoundService>().duckMomentary('reveal');
+      } catch (_) {}
+    });
   }
 
   Future<void> _handleAction(
