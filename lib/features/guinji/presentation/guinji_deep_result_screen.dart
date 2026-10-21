@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 
@@ -84,11 +83,13 @@ class GuinjiDeepResultScreen extends StatelessWidget {
     final meta = guinjiRelationMetaOf(person.relation);
     final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
     try {
-      // [웹·앱 공유 캡처 경로 근본 분리 — 2026-11] 웹은 /web-result/{id}
-      // 링크만 전달하므로 캡처가 불필요하다 — `ShareService.shareResult`가
-      // kIsWeb이면 preCapturedPng를 무시하지만, 애초에 웹에서 무거운 10장
-      // 전체 페이지 캡처를 시도하지 않도록 여기서도 막는다.
-      final png = kIsWeb ? null : await _captureFullPagePng(context);
+      // [웹·앱 공유 캡처 경로 정상화 — 2026-12] `ShareService.shareResult`가
+      // 이제 플랫폼 공통으로 `WebAdService.isCapturing` 가드를 거쳐 안전하게
+      // 캡처하므로, 여기서 웹을 선제 차단할 필요가 없다 — 이 화면은 광고
+      // 위젯이 없어 과거 LateInitializationError의 원인(광고 플랫폼뷰 합성
+      // 경쟁)과도 무관하다. 10장 캡처는 무겁지만 "이미지로 저장" 버튼에서
+      // 이미 동일하게 플랫폼 분기 없이 수행 중이다.
+      final png = await _captureFullPagePng(context);
       if (!context.mounted) return;
       await ShareService.shareResult(
         context,

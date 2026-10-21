@@ -92,21 +92,21 @@ class ShareService {
     List<GlobalKey> originalOverlayKeys = const [],
     Uint8List? preCapturedPng,
   }) async {
-    // [웹·앱 공유 캡처 경로 근본 분리 — 2026-11] 웹은 이미 공개적으로 열람
-    // 가능한 /web-result/{id} 결과 페이지가 존재하므로 "결과 = 그 페이지
-    // 주소"다. 화면을 캡처해 이미지로 바꿔 보내는 것은 앱(= 받는 사람이
-    // 열람할 수 있는 공개 웹페이지가 없어 이미지가 유일한 대안)에만
-    // 필요한 대체 수단이며, 웹에서 굳이 같은 캡처 경로를 타던 것이
-    // `LateInitializationError` 토스트 재발의 근본 원인이었다(엔진/광고
-    // 위젯 합성 타이밍 경쟁 상태 — 재시도로는 근본 해결 불가, 애초에 웹은
-    // 캡처를 시도하지 않아야 함). 웹은 원본 PNG 없이 `payload`(설계상 이미
-    // 비민감 정보만 담음 — ShareApiService 주석 참고)만으로 링크를 만들고
-    // 그 주소를 그대로 전달한다 — `_sendImage`의 기존 안내
-    // ("웹에서는 결과페이지 링크로 공유해주세요")와 동일한 원칙이다.
-    Uint8List? originalPng = kIsWeb ? null : preCapturedPng;
-    if (!kIsWeb && originalPng == null && originalResultKey != null) {
-      // [앱 전용] 캡처 1회 실패 시 짧은 지연 후 1회 자동 재시도 — 두 번째
-      // 시도까지 실패할 때만 실제 오류로 간주해 안내한다.
+    // [웹·앱 공유 캡처 경로 정상화 — 2026-12] 과거(2026-11)에는 웹에서
+    // `LateInitializationError`가 재발해 캡처 자체를 생략했으나, 실제 근본
+    // 원인은 `d62af35`에서 확인된 AdSense `HtmlElementView`(플랫폼뷰)와
+    // Skia 캔버스 간 합성 타이밍 경쟁이었고, 이는 `WebAdService.isCapturing`
+    // 가드(`captureOriginalResult` 내부, 캡처 중 광고 플랫폼뷰 생성을
+    // 구조적으로 차단)로 이미 해결되었다 — "이미지로 저장" 경로(예:
+    // story_detail_screen.dart)는 플랫폼 분기 없이 웹에서도 이 가드 덕분에
+    // 안전하게 캡처 중임이 확인됐다. 공유 경로만 과거 생략 로직이 남아
+    // 비일관 상태였으므로, 동일하게 웹에서도 캡처를 시도하도록 정상화한다.
+    // 캡처가 끝내 실패하면(네트워크·위젯 초기화 지연 등) 오류를 명확히
+    // 안내하고 중단한다 — 임의 디자인으로 대체하거나 조용히 넘어가지 않는다.
+    Uint8List? originalPng = preCapturedPng;
+    if (originalPng == null && originalResultKey != null) {
+      // 캡처 1회 실패 시 짧은 지연 후 1회 자동 재시도 — 두 번째 시도까지
+      // 실패할 때만 실제 오류로 간주해 안내한다. (앱·웹 공통 동작)
       try {
         originalPng = await captureOriginalResult(
           originalResultKey,
