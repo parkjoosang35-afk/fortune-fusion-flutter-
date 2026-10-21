@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
+import '../../../core/util/original_result_capture.dart';
 import '../../../core/utils/load_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/result_card_stack.dart';
@@ -15,8 +16,25 @@ import '../../pass/application/pass_provider.dart';
 /// [ResultCardStack](오늘의 운세/사주/이름 운세 등이 공유하는 표준 결과
 /// 스켈레톤)을 그대로 재사용한다. topicResults(애정/성격/미래 등)를 섹션
 /// 목록으로 매핑한다.
-class CompatibilityResultScreen extends StatelessWidget {
+///
+/// [REQ-06 — 신통방통_저장기능_정상화_개발지시서_v1.0] 이 화면에는
+/// 저장·공유 코드가 0건이었다(P-04). 사주·타로·관상·손금·귀인지도 5개
+/// 결과 화면에는 모두 기기 저장이 있는데 궁합만 없어, 사용자 입장에서는
+/// "궁합만 저장이 안 된다"로 보였다. [ResultCardStack]이 이미 지원하는
+/// captureKey를 연결하고, 다른 결과 화면과 동일한 saveOriginalResult 공통
+/// 유틸(REQ-03 — 저장 단일 진입점)을 그대로 재사용해 저장 CTA를 추가한다.
+/// 파일명 규칙은 §6 REQ-06 지정대로 sintong_compat_{id}를 따른다.
+class CompatibilityResultScreen extends StatefulWidget {
   const CompatibilityResultScreen({super.key});
+
+  @override
+  State<CompatibilityResultScreen> createState() =>
+      _CompatibilityResultScreenState();
+}
+
+class _CompatibilityResultScreenState
+    extends State<CompatibilityResultScreen> {
+  final _originalResultKey = GlobalKey();
 
   Future<void> _retry(
     BuildContext context,
@@ -37,6 +55,18 @@ class CompatibilityResultScreen extends StatelessWidget {
       await provider.retry();
     }
     if (context.mounted) context.read<PassProvider>().load();
+  }
+
+  Future<void> _onSave(CompatibilityResultModel result) async {
+    final saved = await saveOriginalResult(
+      context,
+      _originalResultKey,
+      name: 'sintong_compat_${result.id}',
+    );
+    if (!mounted || !saved) return;
+    // [REQ-09 토스트 규칙] 성공 토스트는 saveOriginalResult 내부에서 이미
+    // 표시되므로(원래 결과 페이지를 갤러리에 저장했어요 / 파일 다운로드를
+    // 요청했어요) 여기서 중복 토스트는 띄우지 않는다.
   }
 
   @override
@@ -74,6 +104,7 @@ class CompatibilityResultScreen extends StatelessWidget {
         .label;
 
     return ResultCardStack(
+      captureKey: _originalResultKey,
       heroCaption: '${result.nameA} × ${result.nameB} · $typeLabel',
       heroSummary: result.summary,
       heroChips: [_ScoreChip(score: result.score)],
@@ -83,6 +114,13 @@ class CompatibilityResultScreen extends StatelessWidget {
           ResultSection(title: entry.key, body: entry.value),
       ],
       ctas: [
+        // [REQ-06 / REQ-08 — 버튼 명칭 통일] 다른 5개 결과 화면과 동일한
+        // "이미지로 저장" 단일 문구 + download_rounded 아이콘을 사용한다.
+        ResultCta(
+          label: '이미지로 저장',
+          icon: Icons.download_rounded,
+          onTap: () => _onSave(result),
+        ),
         ResultCta(
           label: '다른 상대와 다시 보기',
           icon: Icons.refresh_rounded,
