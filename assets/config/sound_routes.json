@@ -11,7 +11,7 @@
     "shrine": { "bgm": "08_shrine_E", "amb": null }
   },
   "crossfadeSeconds": 2.2,
-  "marker": { "file": "transition_bell", "atSeconds": 0.3, "gainDb": -24 },
+  "marker": { "file": "18_transition_bell", "atSeconds": 0.3, "gainDb": -24 },
   "duck": {
     "voice": { "bgmDb": -4.5, "ambDb": -6.0, "attackMs": 160, "releaseMs": 300 },
     "reveal": { "bgmDb": -12, "ambDb": -12, "attackMs": 80, "releaseMs": 1500 },

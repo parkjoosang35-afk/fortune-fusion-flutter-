@@ -174,12 +174,12 @@ class AppRouter {
     // 폴백한다.
     final name = settings.name ?? '';
     if (name == '/g' || name == '/g/') {
-      return _page(const GuinjiLandingScreen());
+      return _page(const GuinjiLandingScreen(), '/g');
     }
     if (name.startsWith('/g/')) {
       final token = name.substring('/g/'.length);
       if (token.isNotEmpty) {
-        return _page(GuinjiMapGuestJoinScreen(token: token));
+        return _page(GuinjiMapGuestJoinScreen(token: token), '/g');
       }
     }
 
@@ -191,7 +191,7 @@ class AppRouter {
     if (name.startsWith('/r/')) {
       final shareId = name.substring('/r/'.length);
       if (shareId.isNotEmpty) {
-        return _page(SharedResultScreen(shareId: shareId));
+        return _page(SharedResultScreen(shareId: shareId), '/r');
       }
     }
 
@@ -204,7 +204,7 @@ class AppRouter {
     if (name.startsWith('/w/')) {
       final token = name.substring('/w/'.length);
       if (token.isNotEmpty) {
-        return _page(LinkInviteScreen(token: token));
+        return _page(LinkInviteScreen(token: token), '/w');
       }
     }
 
@@ -260,7 +260,10 @@ class AppRouter {
         // 곧장 진입시키기 위해 int 인덱스를 arguments로 넘길 수 있다.
         // 기존처럼 arguments 없이 호출되면 그대로 0(홈)으로 시작한다.
         final homeArgs = settings.arguments;
-        return _page(AppShell(initialIndex: homeArgs is int ? homeArgs : 0));
+        return _page(
+          AppShell(initialIndex: homeArgs is int ? homeArgs : 0),
+          '/home',
+        );
 
       // [귀인지도 Phase G-1: 라우트 스캐폴딩] 홈 배너 캐러셀 Slide 1
       // ("귀인지도") CTA의 진입점. 신통방통_귀인지도_최종_개발계획서_v2.0.md
@@ -564,6 +567,7 @@ class AppRouter {
           return sajuDimensionEnterRoute(
             (_) => const SajuEntryGate(),
             origin: origin,
+            name: '/saju-renewal',
           );
         }
 
@@ -903,25 +907,34 @@ class AppRouter {
       default:
         // [P3 legacy 제거] 미사용 legacy HomeScreen(home_screen.dart) 대신
         // 실제 홈 탭을 포함한 AppShell(5탭 IndexedStack)로 폴백한다.
-        return _page(const AppShell());
+        return _page(const AppShell(), '/home');
     }
   }
 
   /// [귀인지도 전환 배경 플래시 수정] `/guinji-map/*`는 전부 다크(#0B0B0D)
   /// 화면이므로, 페이드 스루 전환에서 앱 전역 흰 배경이 비치지 않도록
   /// 슬라이드 불투명 전환으로 교체한다. 원인 분석은 guinji_page_route.dart.
-  static Route<dynamic> _guinjiPage(Widget child) =>
-      guinjiPageRoute<dynamic>(child);
-  static PageRoute<dynamic> _page(Widget child) {
-    return MaterialPageRoute(builder: (_) => child);
+  static Route<dynamic> _guinjiPage(Widget child, [String? name]) =>
+      guinjiPageRoute<dynamic>(child, name: name);
+  // [사운드 라우팅 버그 수정 — 2026-11] 이 헬퍼가 만드는 모든
+  // MaterialPageRoute에 settings(name)가 실려있지 않아
+  // `route.settings.name`이 항상 null이었다. `SoundNavigatorObserver`
+  // 같은 NavigatorObserver가 라우트 이름으로 BGM을 분기하려면 반드시
+  // 필요하므로, 호출부가 넘긴 [name]을 RouteSettings로 전달한다. [name]을
+  // 생략하는 기존 호출부(`/g/`,`/r/`,`/w/` 와일드카드 등)는 동작 변화 없음.
+  static PageRoute<dynamic> _page(Widget child, [String? name]) {
+    return MaterialPageRoute(
+      settings: name == null ? null : RouteSettings(name: name),
+      builder: (_) => child,
+    );
   }
 
   /// [전역 하단바 자동 부착 — 사용자 요청 2026-10-14] named route로 열리는
   /// 화면은 여기서 한 번에 전역 하단바 셸로 감싼다(제외 목록은 셸 참고).
   /// 직접 MaterialPageRoute로 push되는 화면은 기존 수동 하단바를 유지.
   static Route<dynamic> _pageNamed(String name, Widget child) =>
-      _page(wrapWithGlobalBottomNav(name, child));
+      _page(wrapWithGlobalBottomNav(name, child), name);
 
   static Route<dynamic> _guinjiNamed(String name, Widget child) =>
-      _guinjiPage(wrapWithGlobalBottomNav(name, child));
+      _guinjiPage(wrapWithGlobalBottomNav(name, child), name);
 }

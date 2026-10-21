@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../../../../auth/application/auth_provider.dart';
 import '../../../../notification/notification_provider.dart';
 import '../../../../wallet/application/wallet_provider.dart';
+import '../../../../../core/sound/sintong_sound_service.dart';
 import '../sintong_home_v2_tokens.dart';
 
 class SintongV2TopBar extends StatelessWidget {
@@ -58,6 +59,24 @@ class SintongV2TopBar extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // [사운드 전체 끄기 — 대표님 요청 "음향이 전체 끄기 을 메인에
+          // 넣어줘야 할것 갓고"] SintongSoundService.toggleMute()는 기존에
+          // 이미 구현돼 있었지만(SharedPreferences 영속화 + BGM/앰비언스
+          // pause/resume) 호출할 UI 버튼이 어디에도 없었다. 메인 상단바에
+          // 추가한다 — watch로 구독해 토글 즉시 아이콘이 바뀌도록 한다.
+          Consumer<SintongSoundService>(
+            builder: (context, sound, _) => _CircleIconBtn(
+              onTap: () => sound.toggleMute(),
+              child: Icon(
+                sound.muted
+                    ? Icons.volume_off_rounded
+                    : Icons.volume_up_rounded,
+                size: 16,
+                color: Colors.white,
               ),
             ),
           ),

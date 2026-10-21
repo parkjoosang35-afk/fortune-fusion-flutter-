@@ -51,8 +51,13 @@ Offset? sajuCardCenterOf(BuildContext context) {
 /// [SajuDimensionReturnOverlay]가 별도로 담당한다 — 01 화면
 /// (`SajuRenewalHomeScreen`)이 pop되기 직전에 그 오버레이를 띄운 뒤
 /// pop하면 된다.
-Route<T> sajuDimensionEnterRoute<T>(WidgetBuilder builder, {Offset? origin}) {
+Route<T> sajuDimensionEnterRoute<T>(
+  WidgetBuilder builder, {
+  Offset? origin,
+  String? name,
+}) {
   return PageRouteBuilder<T>(
+    settings: name == null ? null : RouteSettings(name: name),
     transitionDuration: const Duration(milliseconds: 300),
     reverseTransitionDuration: const Duration(milliseconds: 1),
     opaque: true,

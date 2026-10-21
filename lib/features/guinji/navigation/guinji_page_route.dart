@@ -16,8 +16,9 @@ import 'package:flutter/material.dart';
 /// 화면은 항상 불투명한 다크 Scaffold라 배경이 비칠 틈이 없다. 정통사주
 /// 섹션이 sajuDimensionEnterRoute(커스텀 PageRouteBuilder)로 같은 문제를
 /// 해결한 것과 동일한 선례다.
-Route<T> guinjiPageRoute<T extends Object?>(Widget child) {
+Route<T> guinjiPageRoute<T extends Object?>(Widget child, {String? name}) {
   return PageRouteBuilder<T>(
+    settings: name == null ? null : RouteSettings(name: name),
     transitionDuration: const Duration(milliseconds: 250),
     reverseTransitionDuration: const Duration(milliseconds: 200),
     opaque: true,

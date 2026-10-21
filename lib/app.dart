@@ -120,14 +120,17 @@ class App extends StatelessWidget {
       providers: [
         // ── 전역 Provider(앱 전체에서 상시 참조) ──
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        // [신통방통 사운드 배치 개발 기획서 v1.0 — 2026-10-21] 8개 메뉴
-        // BGM·앰비언스·17종 UI SFX를 담당하는 전역 단일 서비스. 화면
-        // 라우트(main/saju/guide/tarot/wish/face/palm/shrine) 진입 시
-        // playRoute() 호출로 BGM이 등파워 크로스페이드(2.2초)되고, 공통
-        // 네비게이션 이벤트는 AppRouter의 NavigatorObserver가 이 서비스를
-        // 직접 구독해 처리한다(아래 SoundNavigatorObserver 참고). init()이
+        // [신통방통 사운드 배치 개발 기획서 v1.2 — 2026-11] 8개 메뉴
+        // BGM·앰비언스·18종 UI SFX(전환 표식음 포함)를 담당하는 전역 단일
+        // 서비스. [2026-11 중앙 라우팅 전환] BGM 전환은 더 이상 화면별
+        // SoundRouteTrigger에만 의존하지 않고, 아래 navigatorObservers의
+        // SoundNavigatorObserver가 route.settings.name을 보고 8개 메뉴 중
+        // 하나로 매핑해 playRoute()를 호출한다(didPush/didPop/didReplace
+        // 전부 처리) — 화면 위젯이 바뀌거나 새 하위 화면이 추가돼도
+        // 라우트 이름만 등록돼 있으면 사운드가 자동으로 따라온다. init()이
         // 비동기이므로 즉시 생성 후 뒤에서 초기화한다 — 초기화 완료 전
-        // 호출되는 재생 요청은 _ready 가드로 조용히 무시된다.
+        // 호출되는 재생 요청은 큐잉되어 init() 완료 직후 재시도된다(콜드
+        // 스타트 경쟁 조건 수정, sintong_sound_service.dart 참고).
         ChangeNotifierProvider(
           create: (_) => SintongSoundService()..init(),
         ),

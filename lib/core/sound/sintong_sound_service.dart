@@ -34,6 +34,14 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
   bool _muted = false;
   bool _ready = false;
   String? _currentRouteKey;
+  // [콜드 스타트 경쟁 조건 수정 — 2026-11] `init()`은 비동기(에셋/설정
+  // 로드)라 끝나기 전에 첫 화면(main)의 SoundRouteTrigger가
+  // `playRoute('main')`을 호출하면 `_ready==false`라 조용히 무시되고,
+  // `_currentRouteKey`만 'main'으로 기록된 채 끝났다. 이후 init()이 끝나도
+  // "이미 current니까 재진입 금지"로 착각해 실제 BGM 재생이 영원히 한 번도
+  // 일어나지 않는 경우가 있었다(최초 진입 BGM 무음 버그 후보). 이 플래그는
+  // "_currentRouteKey가 실제로 오디오에 적용됐는지"를 별도로 추적한다.
+  bool _routeApplied = false;
 
   // ── BGM: 두 개의 플레이어를 교대로 써서 크로스페이드를 구현한다 ──
   AudioPlayer? _bgmA;
@@ -41,6 +49,18 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
   bool _usingA = true; // 현재 "전경(foreground)" 트랙이 A인지 B인지
   Timer? _crossfadeTimer;
   int _crossfadeToken = 0; // 전환 중 연타 시 기존 타이머를 무효화하기 위한 토큰
+
+  // [크로스페이드 "팝(pop)" 버그 수정 — 2026-11, 대표님 피드백 "자연스럽게
+  // 음악이 전환되어야 하는데"] 각 물리 플레이어(A/B)에 마지막으로 실제
+  // 적용한 선형 볼륨을 추적한다. 2.2초 크로스페이드가 끝나기 전에 또
+  // 다른 메뉴로 전환되면(연타/빠른 네비게이션), 기존 코드는 "outgoing"
+  // 트랙이 이미 중간 볼륨(예: 0.45)에 머물러 있는데도 새 크로스페이드가
+  // `cos(0)=1.0`(최대 볼륨)에서 다시 시작한다고 가정해 버렸다 — 그 결과
+  // 트랙 볼륨이 순간적으로 확 튀었다가(pop) 다시 줄어드는 것처럼 들렸다.
+  // 이 두 필드는 그 "진짜 현재 볼륨"을 기억해, 새 크로스페이드가 항상
+  // 실제 볼륨에서 이어서 시작하도록(연속성 보장) 한다.
+  double _volA = 0.0;
+  double _volB = 0.0;
 
   // ── 앰비언스: 단일 루프 플레이어 ──
   AudioPlayer? _ambPlayer;
@@ -133,6 +153,16 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     _ready = true;
+    // [콜드 스타트 경쟁 조건 수정] init() 완료 시점에 이미 "현재 라우트"가
+    // 기록돼 있지만 아직 오디오에 반영되지 않았다면(= init()보다
+    // playRoute()가 먼저 호출된 경우), 지금 그 라우트를 뒤늦게라도
+    // 적용한다. 재진입 금지 로직과 충돌하지 않도록 _currentRouteKey를
+    // 잠시 비웠다가 playRoute()로 다시 설정하는 방식을 쓴다.
+    if (!_routeApplied && _currentRouteKey != null && !_muted) {
+      final pending = _currentRouteKey!;
+      _currentRouteKey = null;
+      unawaited(playRoute(pending));
+    }
     notifyListeners();
   }
 
@@ -148,7 +178,17 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
       await _bgmB?.pause();
       await _ambPlayer?.pause();
     } else if (_currentRouteKey != null) {
-      await _resumeForegroundAfterUnmute();
+      if (_routeApplied) {
+        // 음소거 전에 이미 재생 중이던 트랙이 있다 — 그냥 재개.
+        await _resumeForegroundAfterUnmute();
+      } else {
+        // [콜드 스타트/음소거 경쟁 조건] 처음부터 음소거 상태로 앱을
+        // 열었거나, 아직 한 번도 실제로 재생되지 못한 라우트라면
+        // resume()할 대상 자체가 없다 — playRoute로 새로 시작해야 한다.
+        final pending = _currentRouteKey!;
+        _currentRouteKey = null;
+        await playRoute(pending);
+      }
     }
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -186,9 +226,10 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> playRoute(String routeKey) async {
     if (!_ready || _config == null || _muted) {
       _currentRouteKey = routeKey; // 설정이 없어도 "현재 화면" 자체는 추적
+      _routeApplied = false; // 아직 오디오에 반영되지 않음 — init()/언뮤트 후 재시도 대상
       return;
     }
-    if (_currentRouteKey == routeKey) return; // 재진입 — 재시작 금지
+    if (_currentRouteKey == routeKey && _routeApplied) return; // 재진입 — 재시작 금지
 
     final route = _config!.routes[routeKey];
     if (route == null) {
@@ -196,6 +237,7 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     _currentRouteKey = routeKey;
+    _routeApplied = true;
 
     // 전환 표식음(§6.2) — 터치 +0.3초 지점, 1.6초 재생 분량이지만 2.2초
     // 크로스페이드 안에 완전히 담긴다.
@@ -214,11 +256,9 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
       );
       if (_muted) return;
       await _markerPlayer?.setVolume(_dbToLinear(marker.gainDb));
-      // [납품본 안내] 기획서 §9.2는 `transition_bell`을 참조하지만, 2026-10-21
-      // 핸드오버 패키지(28종)에는 이 파일이 포함되어 있지 않다. 자산이 없으면
-      // AssetSource 로드가 실패해 아래 play() 호출이 예외를 던지는데, 이는
-      // try/catch로 조용히 무시된다 — 즉 마커 파일이 추가되기 전까지는
-      // 전환 표식음 없이 크로스페이드만 들린다(§8 완료 보고에 명시).
+      // [v1.2 핸드오버, 2026-10-21] 누락됐던 `18_transition_bell.mp3`가
+      // 추가 납품되어 이제 8개 메뉴 전환 모두 이 전환 표식음이 재생된다
+      // (터치 +0.3초, -24dB, 1.6초 — 2.2초 크로스페이드 안에 완전히 담김).
       await _markerPlayer?.play(AssetSource('$_sfxBase/${marker.file}.mp3'));
     } catch (_) {
       // 파일 부재/디코딩 실패 — 조용히 무시 (크로스페이드 자체에는 영향 없음).
@@ -231,12 +271,31 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
     final token = ++_crossfadeToken; // 새 호출이 들어오면 이전 타이머 무효화
     _crossfadeTimer?.cancel();
 
-    final outgoing = _usingA ? _bgmA : _bgmB;
-    final incoming = _usingA ? _bgmB : _bgmA;
+    // [중요] 토글 전에 현재 포그라운드가 A인지 먼저 캡처해 둔다 — 아래서
+    // outgoing/incoming 각각의 "실제 현재 볼륨"을 조회할 때 어느 쪽이
+    // 어느 트랙인지 구분하기 위해 필요하다.
+    final outgoingWasA = _usingA;
+    final outgoing = outgoingWasA ? _bgmA : _bgmB;
+    final incoming = outgoingWasA ? _bgmB : _bgmA;
     _usingA = !_usingA;
+
+    // [크로스페이드 "팝" 버그 수정] outgoing 트랙이 "지금 실제로 얼마나
+    // 크게 들리고 있는지"를 가져온다. 전환 중 연타가 없는 일반적인
+    // 경우라면 이 값은 이미 목표 게인(=effectiveBgmGain, cos(0)=1과 동일)
+    // 이므로 기존 동작과 완전히 동일하게 들린다. 하지만 이전 크로스페이드가
+    // 중간에 취소되고 재호출된 경우(예: 0.7배 음량으로 아직 페이드 중)에는
+    // 이 값이 목표보다 작은 중간값이라, 아래 식이 "그 지점에서 이어서"
+    // 자연스럽게 0으로 내려가도록 보장한다 — 더 이상 순간적으로
+    // 커졌다가(pop) 줄어드는 일이 없다.
+    final startOutVol = outgoingWasA ? _volA : _volB;
 
     try {
       await incoming?.setVolume(0.0);
+      if (outgoingWasA) {
+        _volB = 0.0;
+      } else {
+        _volA = 0.0;
+      }
       await incoming?.play(AssetSource(assetPath));
     } catch (_) {
       return; // [저사양 degrade] 재생 실패 시 크로스페이드를 시도하지 않는다.
@@ -256,12 +315,24 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
         }
         tick++;
         final t = math.min(1.0, tick / totalTicks);
-        // [등파워 크로스페이드 — §6.1 그대로] 선형(1-t) 절대 금지.
-        final outGain = math.cos(t * math.pi / 2) * _effectiveBgmGain();
-        final inGain = math.sin(t * math.pi / 2) * _effectiveBgmGain();
+        final targetGain = _effectiveBgmGain();
+        // [등파워 크로스페이드 — §6.1 유지, 단 outgoing은 연속성 보정]
+        // incoming은 항상 0에서 시작하므로 기존 sin(tπ/2) 그대로.
+        // outgoing은 "목표 게인에서부터"가 아니라 "현재 실제 볼륨에서부터"
+        // cos 곡선을 그려 t=1에 정확히 0으로 수렴시킨다(선형 페이드
+        // 금지 원칙은 유지 — 여전히 코사인 곡률로 감쇠한다).
+        final outGain = startOutVol * math.cos(t * math.pi / 2);
+        final inGain = math.sin(t * math.pi / 2) * targetGain;
         try {
           await outgoing?.setVolume(outGain.clamp(0.0, 1.0));
           await incoming?.setVolume(inGain.clamp(0.0, 1.0));
+          if (outgoingWasA) {
+            _volA = outGain.clamp(0.0, 1.0);
+            _volB = inGain.clamp(0.0, 1.0);
+          } else {
+            _volB = outGain.clamp(0.0, 1.0);
+            _volA = inGain.clamp(0.0, 1.0);
+          }
         } catch (_) {}
         if (t >= 1.0) {
           timer.cancel();
@@ -361,7 +432,17 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
       _ambDuckDb = startAmb + (targetAmbDb - startAmb) * t;
       try {
         final fg = _usingA ? _bgmA : _bgmB;
-        await fg?.setVolume(_effectiveBgmGain().clamp(0.0, 1.0));
+        final fgVol = _effectiveBgmGain().clamp(0.0, 1.0);
+        await fg?.setVolume(fgVol);
+        // [크로스페이드 연속성 유지] 덕킹도 실제 재생 볼륨을 바꾸므로,
+        // 다음 번 playRoute() 호출이 "진짜 현재 볼륨"에서 이어받을 수
+        // 있도록 _volA/_volB를 함께 갱신한다 — 안 하면 덕킹 중 화면을
+        // 전환했을 때 크로스페이드가 다시 팝(pop) 튀는 문제가 재발한다.
+        if (_usingA) {
+          _volA = fgVol;
+        } else {
+          _volB = fgVol;
+        }
         if (_currentAmbFile != null) {
           await _ambPlayer?.setVolume(_effectiveAmbGain().clamp(0.0, 1.0));
         }
@@ -526,7 +607,15 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
       final totalTicks = fadeMs ~/ tickMs;
       for (var i = 1; i <= totalTicks; i++) {
         final t = i / totalTicks;
-        await fg?.setVolume((_effectiveBgmGain() * t).clamp(0.0, 1.0));
+        final fgVol = (_effectiveBgmGain() * t).clamp(0.0, 1.0);
+        await fg?.setVolume(fgVol);
+        // [크로스페이드 연속성 유지] 백그라운드 복귀 페이드인도 실제
+        // 볼륨을 바꾸므로 _volA/_volB를 동기화한다(위 덕킹과 동일 이유).
+        if (_usingA) {
+          _volA = fgVol;
+        } else {
+          _volB = fgVol;
+        }
         if (_currentAmbFile != null) {
           await _ambPlayer?.setVolume((_effectiveAmbGain() * t).clamp(0.0, 1.0));
         }
