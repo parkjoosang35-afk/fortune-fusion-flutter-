@@ -177,7 +177,21 @@ class TarotResultView {
 /// 심화해석 / 히스토리. 각 액션의 처리 로직은 화면(State)에 두고, 이
 /// enum은 액션 바를 데이터 기반으로 렌더링하기 위한 식별자 + 표시 정보만
 /// 담는다.
-enum TarotResultAction { history, redraw, save, share, deepDive, compare }
+// [REQ-07 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기존 `save` 액션은
+// "저장하기" 라벨 하나로 기기(갤러리) 저장과 서버 기록 저장을 동시에
+// 수행했다. 토스트가 마지막에 호출된 기록 저장 쪽("마이 > 내 운세 기록에
+// 저장되었어요")으로 덮어써져, 실제로는 기기에도 저장됐다는 사실을 사용자가
+// 알기 어려웠다(P-07). `saveDevice`(기기 저장)를 별도 액션으로 추가하고,
+// 기존 `save`는 서버 기록 저장 전용으로 의미를 좁혀 라벨을 바꾼다.
+enum TarotResultAction {
+  history,
+  redraw,
+  saveDevice,
+  save,
+  share,
+  deepDive,
+  compare,
+}
 
 extension TarotResultActionX on TarotResultAction {
   String get label {
@@ -186,8 +200,12 @@ extension TarotResultActionX on TarotResultAction {
         return '히스토리';
       case TarotResultAction.redraw:
         return '다시 뽑기';
+      // [REQ-08] 기기 저장 버튼 문구를 전 화면 공통 "이미지로 저장"으로 통일.
+      case TarotResultAction.saveDevice:
+        return '이미지로 저장';
+      // [REQ-07] 서버 기록 저장 전용 — 기기 저장과 혼동되지 않도록 라벨 분리.
       case TarotResultAction.save:
-        return '저장하기';
+        return '기록에 저장';
       case TarotResultAction.share:
         return '공유하기';
       case TarotResultAction.deepDive:
@@ -205,6 +223,9 @@ extension TarotResultActionX on TarotResultAction {
         return Icons.history_rounded;
       case TarotResultAction.redraw:
         return Icons.refresh_rounded;
+      // [REQ-08] 기기 저장 아이콘을 전 화면 공통 download_rounded로 통일.
+      case TarotResultAction.saveDevice:
+        return Icons.download_rounded;
       case TarotResultAction.save:
         return Icons.bookmark_border_rounded;
       case TarotResultAction.share:

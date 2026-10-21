@@ -50,6 +50,9 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
   final _originalFooterKey = GlobalKey();
   final _originalOverlayKey = GlobalKey();
   bool _justSaved = false;
+  // [REQ-07] 기기 저장 직후 하이라이트 — 서버 기록 저장(_justSaved)과 별도로
+  // 관리해 두 액션의 "저장됨" 표시가 서로 간섭하지 않게 한다.
+  bool _justSavedDevice = false;
 
   @override
   void initState() {
@@ -72,8 +75,11 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       case TarotResultAction.redraw:
         session.reset();
         Navigator.of(context).pushNamed('/ai-fortune/tarot/question');
+      // [REQ-07] 기기(갤러리) 저장과 서버 기록 저장을 각각 다른 액션으로 분리.
+      case TarotResultAction.saveDevice:
+        await _onSaveDevice(view);
       case TarotResultAction.save:
-        await _onSave(view);
+        await _onSaveRecord(view);
       case TarotResultAction.share:
         await _onShare(view);
       case TarotResultAction.deepDive:
@@ -89,7 +95,11 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     }
   }
 
-  Future<void> _onSave(TarotResultView view) async {
+  // [REQ-07 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기기(갤러리) 저장
+  // 전용. 토스트/성공 판정은 saveOriginalResult 내부(REQ-05 반영)가 전담하며,
+  // 여기서는 서버 기록을 함께 저장하지 않는다 — "기록에 저장되었어요" 같은
+  // 기기 저장과 무관한 문구가 뜨지 않도록 분리.
+  Future<void> _onSaveDevice(TarotResultView view) async {
     final saved = await saveOriginalResult(
       context,
       _originalResultKey,
@@ -98,8 +108,18 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       overlayKeys: [_originalOverlayKey],
     );
     if (!mounted || !saved) return;
-    context.read<TarotSessionController>().markSaved();
     context.read<TarotAudioController>().playSaveConfirm();
+    setState(() => _justSavedDevice = true);
+    Future.delayed(const Duration(milliseconds: 1600), () {
+      if (mounted) setState(() => _justSavedDevice = false);
+    });
+  }
+
+  // [REQ-07] 서버(마이페이지) 기록 저장 전용 — 기기 저장과 별도 액션/라벨로
+  // 분리했으므로, 토스트도 실제 수행한 동작("내 운세 기록")과 정확히
+  // 일치시킨다.
+  Future<void> _onSaveRecord(TarotResultView view) async {
+    context.read<TarotSessionController>().markSaved();
     await MyFortuneRecordStore.save(
       SavedFortuneRecord(
         id: 'tarot_${view.result.id}',
@@ -482,8 +502,10 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                             child: _ResultActionButton(
                               action: action,
                               saved:
-                                  action == TarotResultAction.save &&
-                                  _justSaved,
+                                  (action == TarotResultAction.save &&
+                                      _justSaved) ||
+                                  (action == TarotResultAction.saveDevice &&
+                                      _justSavedDevice),
                               onTap: () => _handleAction(
                                 action,
                                 TarotResultView.fromResult(state.data!),

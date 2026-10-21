@@ -5,6 +5,7 @@ import '../../../../core/data/my_fortune_record_store.dart';
 import '../../../../core/domain/access/access_checker.dart';
 import '../../../../core/domain/gate/category_gate.dart';
 import '../../../../core/theme/app_unified_style.dart';
+import '../../../../core/util/original_result_capture.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/fortune/disclaimer_banner.dart';
 import '../../../../core/widgets/fortune/hero_summary_card.dart';
@@ -46,6 +47,9 @@ class _GenericFortuneResultScreenState
   bool _allowed = false;
   String? _reasonLabel;
   FortuneCategoryEntry? _entry;
+  // [REQ-06/REQ-07 - 신통방통_저장기능_정상화_개발지시서_v1.0] 기기(갤러리)
+  // 저장용 캡처 키. 기존 "저장"(서버 기록 저장)과 별도 버튼/동작으로 분리한다.
+  final _originalResultKey = GlobalKey();
 
   @override
   void initState() {
@@ -83,14 +87,20 @@ class _GenericFortuneResultScreenState
             ? _ResultBody(
                 entry: _entry!,
                 saved: _saved,
-                onSave: () => _onSave(_entry!),
+                captureKey: _originalResultKey,
+                onSaveDevice: () => _onSaveDevice(_entry!),
+                onSaveRecord: () => _onSaveRecord(_entry!),
               )
             : _LockedView(entry: _entry!, reasonLabel: _reasonLabel),
       ),
     );
   }
 
-  Future<void> _onSave(FortuneCategoryEntry entry) async {
+  // [REQ-07] 서버(마이페이지) 기록 저장 전용. 과거에는 이 메서드 하나가
+  // "저장" 버튼의 유일한 동작이면서 기기 저장으로 오인되기 쉬웠다(P-05) -
+  // 토스트 문구("내 운세 기록에 저장되었어요")는 실제로 이 동작에만
+  // 해당하므로 그대로 유지하되, 버튼 라벨을 "기록에 저장"으로 분리했다.
+  Future<void> _onSaveRecord(FortuneCategoryEntry entry) async {
     final report = GenericFortuneReportBuilder.build(entry);
     await MyFortuneRecordStore.save(
       SavedFortuneRecord(
@@ -106,6 +116,16 @@ class _GenericFortuneResultScreenState
     if (!mounted) return;
     setState(() => _saved = true);
     AppToast.show(context, '마이 > 내 운세 기록에 저장되었어요');
+  }
+
+  // [REQ-07] 기기(갤러리) 저장 - 신규 추가. 성공/실패 토스트는
+  // saveOriginalResult(REQ-05 반영)가 전담하므로 여기서 별도 처리하지 않는다.
+  Future<void> _onSaveDevice(FortuneCategoryEntry entry) async {
+    await saveOriginalResult(
+      context,
+      _originalResultKey,
+      name: 'sintong_category_${entry.id}',
+    );
   }
 }
 
@@ -211,12 +231,17 @@ class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.entry,
     required this.saved,
-    required this.onSave,
+    required this.captureKey,
+    required this.onSaveDevice,
+    required this.onSaveRecord,
   });
 
   final FortuneCategoryEntry entry;
   final bool saved;
-  final VoidCallback onSave;
+  // [REQ-06] 기기 저장(갤러리/다운로드) 캡처 대상 키.
+  final GlobalKey captureKey;
+  final VoidCallback onSaveDevice;
+  final VoidCallback onSaveRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -225,50 +250,68 @@ class _ResultBody extends StatelessWidget {
       children: [
         _Header(title: entry.title),
         Expanded(
-          child: ListView(
+          // [REQ-06/REQ-07] 기존 ListView(지연 렌더링) 대신 OriginalResultBody
+          // (SingleChildScrollView + RepaintBoundary)로 교체해, 화면 밖으로
+          // 스크롤된 영역까지 포함한 전체 본문을 캡처할 수 있게 한다
+          // (ResultCardStack/face_result_screen과 동일한 패턴 재사용).
+          child: OriginalResultBody(
+            captureKey: captureKey,
+            background: UnifiedColors.bg,
             padding: const EdgeInsets.fromLTRB(
               UnifiedTokens.spaceXl,
               UnifiedTokens.spaceMd,
               UnifiedTokens.spaceXl,
               UnifiedTokens.spaceXl,
             ),
-            children: [
-              const DisclaimerBanner.common(),
-              const SizedBox(height: UnifiedTokens.spaceMd),
-              if (entry.disclaimers.isNotEmpty) ...[
-                DisclaimerBanner.forTags(entry.disclaimers),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const DisclaimerBanner.common(),
                 const SizedBox(height: UnifiedTokens.spaceMd),
-              ],
-              HeroSummaryCard(
-                name: report.hero.name,
-                date: report.hero.date,
-                score: report.hero.score,
-                headline: report.hero.headline,
-                statusLabel: report.hero.statusLabel,
-                keywords: report.hero.keywords,
-                subDescription: report.hero.subDescription,
-              ),
-              const SizedBox(height: UnifiedTokens.spaceMd),
-              for (final section in report.sections) ...[
-                _buildSection(section),
-                const SizedBox(height: UnifiedTokens.spaceMd),
-              ],
-              ResultBottomActions(
-                actions: [
-                  ResultActionItem(
-                    icon: Icons.bookmark_border_rounded,
-                    label: '저장',
-                    onTap: onSave,
-                  ),
-                  ResultActionItem(
-                    icon: Icons.grid_view_rounded,
-                    label: '다른 운세',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/home/all-categories'),
-                  ),
+                if (entry.disclaimers.isNotEmpty) ...[
+                  DisclaimerBanner.forTags(entry.disclaimers),
+                  const SizedBox(height: UnifiedTokens.spaceMd),
                 ],
-              ),
-            ],
+                HeroSummaryCard(
+                  name: report.hero.name,
+                  date: report.hero.date,
+                  score: report.hero.score,
+                  headline: report.hero.headline,
+                  statusLabel: report.hero.statusLabel,
+                  keywords: report.hero.keywords,
+                  subDescription: report.hero.subDescription,
+                ),
+                const SizedBox(height: UnifiedTokens.spaceMd),
+                for (final section in report.sections) ...[
+                  _buildSection(section),
+                  const SizedBox(height: UnifiedTokens.spaceMd),
+                ],
+                // [REQ-07] 기기 저장과 서버 기록 저장을 라벨·동작으로 분리.
+                // "이미지로 저장"(REQ-08 공통 문구)은 기기 갤러리/다운로드
+                // 전용, "기록에 저장"은 마이 > 내 운세 기록 전용이다.
+                ResultBottomActions(
+                  actions: [
+                    ResultActionItem(
+                      icon: Icons.download_rounded,
+                      label: '이미지로 저장',
+                      onTap: onSaveDevice,
+                    ),
+                    ResultActionItem(
+                      icon: Icons.bookmark_border_rounded,
+                      label: '기록에 저장',
+                      onTap: onSaveRecord,
+                    ),
+                    ResultActionItem(
+                      icon: Icons.grid_view_rounded,
+                      label: '다른 운세',
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushNamed('/home/all-categories'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ],
