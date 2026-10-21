@@ -1,10 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../../core/util/image_gallery_saver_io.dart'
-    if (dart.library.html) '../../../core/util/image_gallery_saver_web.dart';
 
 import '../application/share_service.dart';
+// [REQ-04 — 신통방통_저장기능_정상화_개발지시서_v1.0] 이 파일은 기존에
+// `if (dart.library.html)` 조건부 export로 직접 플랫폼 구현 파일을
+// import하고 있었다 — image_gallery_saver.dart에 이미 적용된 kIsWeb
+// 런타임 분기(REQ-04)를 우회하는 별도의 P-03 위험 지점이었다(dart2wasm
+// 빌드 시 이 조건이 거짓으로 평가되어 Web인데도 io 구현이 선택될 수
+// 있었음). 공용 진입점(image_gallery_saver.dart)을 통하도록 교체한다.
+import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
+import '../../../core/util/save_filename.dart';
 import '../../../core/widgets/app_toast.dart';
 
 /// 앱·공유 수신 화면이 같은 전체 결과 데이터를 사용한다. 본문 절단 없음.
@@ -130,16 +136,15 @@ class _FullResultSheetState extends State<FullResultSheet> {
     try {
       final png = widget.originalPng ?? await captureOriginalResult(_capture);
       // [REQ-05] 원인별 안내 — 권한 거부/공간 부족/형식 오류/기타를 구분.
+      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
       final result = await saveImageBytesToGalleryDetailed(
         png,
-        name: 'sintong_original_${DateTime.now().millisecondsSinceEpoch}',
+        name: buildSaveFileName('share', 'original'),
       );
       if (mounted) {
         if (result.isSuccess) {
-          AppToast.show(
-            context,
-            kIsWeb ? '원본 결과 파일 다운로드를 요청했어요.' : '원본 결과를 갤러리에 저장했어요.',
-          );
+          // [REQ-09] 성공 토스트 문구를 전 화면 공통 표준으로 통일.
+          AppToast.show(context, gallerySaveSuccessMessage());
         } else {
           AppToast.show(
             context,

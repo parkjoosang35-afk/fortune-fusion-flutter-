@@ -32,6 +32,7 @@ import 'wallpaper_service.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 import '../../../../core/util/image_gallery_saver.dart';
+import '../../../../core/util/save_filename.dart';
 
 /// 지금 활성 플랫폼. 이 프로젝트는 Android 전용 빌드이므로 상수로 둔다(§4 공통 —
 /// ios/ 폴더에 실제 네이티브 빌드 파이프라인이 없어 Live Photo 경로는 화면
@@ -194,9 +195,13 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
 
   /// §8 "정지 이미지 저장" — 배경화면 설정과 분리된 보조 메뉴. 실제 OS
   /// 배경화면을 바꾸지 않고 현재 소원방의 정지 프레임만 갤러리(사진 앱,
-  /// 웹은 브라우저 다운로드)에 저장한다. 성공 문구는 앱에서는 '이미지가
-  /// 저장됐어요'(§8 표), 웹에서는 '정지 이미지가 저장됐어요'(§14.4 표)로
-  /// 서로 다르게 한정한다 — 두 문구를 섞어 쓰지 않는다.
+  /// 웹은 브라우저 다운로드)에 저장한다.
+  ///
+  /// [REQ-09 — 신통방통_저장기능_정상화_개발지시서_v1.0] 과거에는 이 화면만
+  /// '이미지가 저장됐어요'/'정지 이미지 파일 다운로드를 요청했어요'라는
+  /// 별도 문구를 썼으나, REQ-09가 전 화면 공통 성공 문구("갤러리에
+  /// 저장했어요" / "파일 다운로드를 시작했어요")로 통일할 것을 명시
+  /// 요구사항으로 규정하므로 이를 따른다.
   Future<void> _saveStillImage(WishRoom room) async {
     final bytes = await _captureStillFrame();
     if (!mounted) return;
@@ -205,15 +210,17 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
       return;
     }
     // [REQ-05] 원인별 안내로 교체.
+    // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
     final result = await saveImageBytesToGalleryDetailed(
       bytes,
-      name: 'wishroom_${room.id}_${DateTime.now().millisecondsSinceEpoch}',
+      name: buildSaveFileName('wish', room.id),
     );
     if (!mounted) return;
-    final successMsg = kIsWeb ? '정지 이미지 파일 다운로드를 요청했어요.' : '이미지가 갤러리에 저장됐어요.';
     WrToast.show(
       context,
-      result.isSuccess ? successMsg : (result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.'),
+      result.isSuccess
+          ? gallerySaveSuccessMessage()
+          : (result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.'),
     );
   }
 

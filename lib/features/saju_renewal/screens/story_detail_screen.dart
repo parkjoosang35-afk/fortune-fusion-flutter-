@@ -20,6 +20,7 @@ import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 import 'more_stories_screen.dart';
 import '../../../core/util/original_result_capture.dart';
+import '../../../core/util/save_filename.dart';
 
 /// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑦ 상세 사주
 /// 해석. `design_files/saju/screens-b.jsx`의 `ScreenDetail`을 재현한다 —
@@ -587,7 +588,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                   onPressed: () => saveOriginalResult(
                                     context,
                                     _originalResultKey,
-                                    name: 'sintong_saju_${detail.topicId}',
+                                    // [REQ-09] 파일명 규칙 통일.
+                                    name: buildSaveFileName('saju', detail.topicId),
                                     leadingKeys: [_originalHeaderKey],
                                   ),
                                   icon: const Icon(Icons.download_rounded),

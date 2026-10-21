@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/data/my_fortune_record_store.dart';
 
 import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../../core/utils/load_state.dart';
 import '../../../../core/web_ads/web_ad_config.dart';
@@ -103,7 +104,8 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     final saved = await saveOriginalResult(
       context,
       _originalResultKey,
-      name: 'sintong_tarot_${view.result.id}',
+      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      name: buildSaveFileName('tarot', view.result.id),
       trailingKeys: [_originalFooterKey],
       overlayKeys: [_originalOverlayKey],
     );

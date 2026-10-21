@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/util/original_result_capture.dart';
+import '../../../core/util/save_filename.dart';
 import '../../../core/utils/load_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/result_card_stack.dart';
@@ -61,7 +62,8 @@ class _CompatibilityResultScreenState
     final saved = await saveOriginalResult(
       context,
       _originalResultKey,
-      name: 'sintong_compat_${result.id}',
+      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      name: buildSaveFileName('compat', result.id),
     );
     if (!mounted || !saved) return;
     // [REQ-09 토스트 규칙] 성공 토스트는 saveOriginalResult 내부에서 이미

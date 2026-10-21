@@ -6,6 +6,7 @@ import '../../../../core/domain/access/access_checker.dart';
 import '../../../../core/domain/gate/category_gate.dart';
 import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/fortune/disclaimer_banner.dart';
 import '../../../../core/widgets/fortune/hero_summary_card.dart';
@@ -124,7 +125,8 @@ class _GenericFortuneResultScreenState
     await saveOriginalResult(
       context,
       _originalResultKey,
-      name: 'sintong_category_${entry.id}',
+      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      name: buildSaveFileName('category', entry.id),
     );
   }
 }

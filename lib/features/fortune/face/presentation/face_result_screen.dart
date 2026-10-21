@@ -14,6 +14,7 @@ import '../../../share/domain/share_result_model.dart';
 import '../application/face_provider.dart';
 import '../domain/face_model.dart';
 import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
 import '../../shared/domain/reading_artifact_builder.dart';
 import '../../shared/presentation/reading_disclosure_widgets.dart';
 import '../../shared/presentation/seal_reading_flow.dart';
@@ -202,7 +203,8 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
           onTap: () => saveOriginalResult(
             context,
             _originalResultKey,
-            name: 'sintong_face_${result.id}',
+            // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+            name: buildSaveFileName('face', result.id),
             leadingKeys: [_originalHeaderKey],
           ),
         ),

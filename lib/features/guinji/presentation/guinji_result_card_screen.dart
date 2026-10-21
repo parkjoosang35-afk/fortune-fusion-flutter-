@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../core/util/save_filename.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../../share/application/share_service.dart';
@@ -114,15 +114,20 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
       // [REQ-05 — 신통방통_저장기능_정상화_개발지시서_v1.0] 실패 원인을
       // 구분해 안내한다(과거에는 모든 실패가 "권한을 확인해주세요"로
       // 뭉뚱그려져, 저장 공간 부족 사용자가 엉뚱한 설정을 뒤지게 됨).
+      // [REQ-09] 파일명 규칙을 sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}로
+      // 통일. 결과카드는 화면에 고정 ID가 없어 'card'로 대체하고,
+      // buildSaveFileName이 자동으로 붙이는 시각(초 단위)이 매번 새 파일로
+      // 생성되도록 보장한다(시각 미포함이던 기존 규칙의 충돌 문제 해결).
       final result = await saveImageBytesToGalleryDetailed(
         bytes,
-        name: 'guinji_result_${DateTime.now().millisecondsSinceEpoch}',
+        name: buildSaveFileName('guinji', 'card'),
       );
       if (!mounted) return;
+      // [REQ-09] 성공 토스트 문구를 전 화면 공통 표준으로 통일.
       AppToast.show(
         context,
         result.isSuccess
-            ? (kIsWeb ? '카드 파일 다운로드를 요청했어요.' : '카드 이미지를 갤러리에 저장했어요.')
+            ? gallerySaveSuccessMessage()
             : (result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.'),
       );
     } catch (_) {

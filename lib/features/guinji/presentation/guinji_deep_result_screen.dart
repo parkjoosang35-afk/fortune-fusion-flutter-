@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
+import '../../../core/util/save_filename.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
@@ -59,16 +60,18 @@ class GuinjiDeepResultScreen extends StatelessWidget {
       return;
     }
     // [REQ-05] 원인별 안내로 교체.
+    // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
     final result = await saveImageBytesToGalleryDetailed(
       bytes,
-      name: 'sintong_guinji_deep',
+      name: buildSaveFileName('guinji', 'deep'),
     );
     if (!context.mounted) return;
+    // [REQ-09] 성공 토스트 문구를 전 화면 공통 표준으로 통일.
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           result.isSuccess
-              ? (kIsWeb ? '전체 결과 파일 다운로드를 요청했어요.' : '페이지 전체를 갤러리에 저장했어요.')
+              ? gallerySaveSuccessMessage()
               : (result.failureMessage ?? '저장에 실패했어요. 잠시 후 다시 시도해주세요.'),
         ),
       ),

@@ -156,10 +156,8 @@ Future<bool> saveOriginalResult(
       return false;
     }
     if (context.mounted) {
-      AppToast.show(
-        context,
-        kIsWeb ? '원래 결과 페이지 파일 다운로드를 요청했어요.' : '원래 결과 페이지를 갤러리에 저장했어요.',
-      );
+      // [REQ-09] 성공 토스트 문구를 전 화면 공통 표준으로 통일.
+      AppToast.show(context, gallerySaveSuccessMessage());
     }
     return true;
   } catch (error) {

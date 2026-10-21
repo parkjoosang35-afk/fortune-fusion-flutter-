@@ -21,6 +21,7 @@ import '../../core/wr_toast.dart';
 import '../../../share/application/share_service.dart';
 import '../../../share/domain/share_result_model.dart';
 import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
 
 class CompleteScreen extends StatefulWidget {
   const CompleteScreen({super.key, required this.roomId, this.already = false});
@@ -218,10 +219,11 @@ class _CompleteScreenState extends State<CompleteScreen> {
                 child: _SealedBody(
                   room: room,
                   items: p.items,
+                  // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
                   onSave: () => saveOriginalResult(
                     context,
                     _originalResultKey,
-                    name: 'sintong_wish_${room.id}',
+                    name: buildSaveFileName('wish', room.id),
                   ),
                   onShare: () => _shareResult(room),
                 ),
@@ -377,10 +379,11 @@ class _CompleteScreenState extends State<CompleteScreen> {
                         onReview: () => _openReview(room),
                         onSeal: () => _doSeal(p),
                         onShare: () => _shareResult(room),
+                        // [REQ-09] 파일명 규칙 통일.
                         onSave: () => saveOriginalResult(
                           context,
                           _originalResultKey,
-                          name: 'sintong_wish_${room.id}',
+                          name: buildSaveFileName('wish', room.id),
                         ),
                       ),
                     ),
