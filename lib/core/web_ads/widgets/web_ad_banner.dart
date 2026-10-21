@@ -43,16 +43,29 @@ class WebAdBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (WebAdService.shouldShow(surface, WebAdFormat.banner)) {
-      return buildAdSenseUnit(
-        publisherId: WebAdConfig.publisherId,
-        adSlot: adSlot,
-        height: height,
-      );
-    }
-    if (WebAdService.shouldShowPlaceholder(surface, WebAdFormat.banner)) {
-      return WebAdPlaceholder(height: height, label: 'BANNER');
-    }
-    return const SizedBox.shrink();
+    final showAd = WebAdService.shouldShow(surface, WebAdFormat.banner);
+    final showPlaceholder = !showAd &&
+        WebAdService.shouldShowPlaceholder(surface, WebAdFormat.banner);
+    if (!showAd && !showPlaceholder) return const SizedBox.shrink();
+
+    // [REQ-10 — 신통방통_저장기능_정상화_개발지시서_v1.0 / P-06] 결과
+    // 캡처가 진행되는 동안에는 실제 `HtmlElementView`(플랫폼 뷰) 생성을
+    // 건너뛰고 동일 높이의 빈 박스를 그린다 — 레이아웃 크기가 그대로라
+    // 캡처 결과물의 모양·스크롤 위치는 바뀌지 않으면서, 플랫폼 뷰 합성
+    // 타이밍 경쟁으로 인한 `LateInitializationError` 재발을 차단한다.
+    return ValueListenableBuilder<bool>(
+      valueListenable: WebAdService.isCapturing,
+      builder: (context, capturing, _) {
+        if (capturing) return SizedBox(height: height, width: double.infinity);
+        if (showAd) {
+          return buildAdSenseUnit(
+            publisherId: WebAdConfig.publisherId,
+            adSlot: adSlot,
+            height: height,
+          );
+        }
+        return WebAdPlaceholder(height: height, label: 'BANNER');
+      },
+    );
   }
 }

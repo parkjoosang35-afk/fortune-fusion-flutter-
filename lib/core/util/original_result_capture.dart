@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart';
 import 'image_gallery_saver.dart';
+import '../web_ads/web_ad_service.dart';
 import '../widgets/app_toast.dart';
 
 /// 실제 화면에 배치된 전체 본문만 캡처한다. 텍스트 재구성/스크롤 스티치 없음.
@@ -13,18 +14,46 @@ Future<Uint8List> captureOriginalResult(
   List<GlobalKey> trailingKeys = const [],
   List<GlobalKey> overlayKeys = const [],
 }) async {
+  // [REQ-10 — 신통방통_저장기능_정상화_개발지시서_v1.0 / P-06 근본 조치]
+  // 과거 안전망(프레임 대기 + 유예시간, 아래 try 블록)은 "확률을 낮출 뿐"
+  // 근본 해결이 아니었다 — 캡처 영역 내 AdSense `HtmlElementView`(플랫폼
+  // 뷰)가 Flutter의 Skia 캔버스와 별도 브라우저 합성 레이어에서 그려지는
+  // 한, 타이밍 경쟁 자체가 사라지지 않기 때문이다. 이번 조치는 캡처가
+  // 끝날 때까지 `WebAdService.isCapturing`을 true로 세워 광고 위젯
+  // (`WebAdBanner`/`WebAdInPage`)이 `HtmlElementView` 생성 자체를 건너뛰고
+  // 동일 크기의 빈 박스를 그리게 한다 — 즉 캡처 시점에는 애초에 플랫폼
+  // 뷰가 존재하지 않으므로 합성 타이밍 경쟁이 구조적으로 발생할 수 없다.
+  // `finally`로 반드시 원복해 캡처 실패/예외 시에도 광고가 계속 꺼진
+  // 채로 남지 않게 한다.
+  WebAdService.isCapturing.value = true;
+  try {
+    return await _captureOriginalResultInner(
+      key,
+      leadingKeys: leadingKeys,
+      trailingKeys: trailingKeys,
+      overlayKeys: overlayKeys,
+    );
+  } finally {
+    WebAdService.isCapturing.value = false;
+  }
+}
+
+Future<Uint8List> _captureOriginalResultInner(
+  GlobalKey key, {
+  List<GlobalKey> leadingKeys = const [],
+  List<GlobalKey> trailingKeys = const [],
+  List<GlobalKey> overlayKeys = const [],
+}) async {
   // [웹 공유 LateInitializationError 대응 — 2026-10 재발] 프레임 대기 자체가
   // 일부 환경에서 실패해도 이미 그려진 마지막 프레임으로 계속 진행한다.
   // 과거(d0c39a74/d68ee136/f5447ec) 안전망 적용 후에도 웹 릴리스(AOT) 빌드
-  // 에서 동일 토스트가 재발 — 코드 전수 추적 결과 우리 코드에 해당 메시지와
-  // 일치하는 `late` 변수가 전혀 없어, 캡처 영역 내부에 배치된 AdSense
-  // `HtmlElementView`(플랫폼 뷰, platform_view 비동기 등록)가 아직 완전히
-  // 자리잡기 전에 `toImage()`가 호출되는 타이밍 경쟁이 유력한 원인으로
-  // 추정된다. 기존 테스트 하네스(widget test의 수동 pump 사이클)와의
-  // 호환을 위해 endOfFrame 대기 자체는 1회로 유지하고, 그 뒤에 짧은
-  // 유예시간만 추가해 플랫폼 뷰 합성이 안정될 시간을 더 준다(부작용 없음 —
-  // 수십~백 ms 지연만 추가, runAsync 환경의 실제 타이머에서만 유효).
+  // 에서 동일 토스트가 재발했던 문제는 위 [REQ-10]의 `isCapturing` 플래그로
+  // 근본 차단했다. 이 대기 자체는 광고 외에 다른 비동기 레이아웃(이미지
+  // 디코딩 등)이 걸려 있을 가능성까지 대비한 일반적인 안전망으로 유지한다.
   try {
+    // isCapturing=true로 세운 뒤 광고 위젯이 빈 박스로 다시 그려지려면
+    // 최소 1프레임이 필요하므로, endOfFrame 대기가 이 리빌드를 실제로
+    // 기다려주는 역할도 함께 한다.
     await WidgetsBinding.instance.endOfFrame;
   } catch (_) {}
   try {

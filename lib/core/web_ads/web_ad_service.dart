@@ -30,6 +30,19 @@ import 'web_ad_page_level.dart';
 class WebAdService {
   WebAdService._();
 
+  // [REQ-10 — 신통방통_저장기능_정상화_개발지시서_v1.0 / P-06] 웹 결과
+  // 캡처(`captureOriginalResult`)가 진행되는 동안에는 true. AdSense
+  // `HtmlElementView`(플랫폼 뷰)는 Flutter의 Skia 캔버스와 별도의 브라우저
+  // 합성 레이어에서 그려지므로, `RenderRepaintBoundary.toImage()` 호출
+  // 시점에 플랫폼 뷰가 아직 자리잡지 않았으면 `LateInitializationError`가
+  // 재발한다(원본 분석 주석 — original_result_capture.dart 참고). 과거
+  // 안전망(프레임 대기 + 유예시간)은 "확률을 낮출" 뿐 근본 해결이 아니므로,
+  // 캡처 구간 동안에는 광고 위젯(`WebAdBanner`/`WebAdInPage`)이
+  // `HtmlElementView` 자체를 그리지 않고 동일 크기의 빈 박스로 대체하도록
+  // 이 플래그로 신호를 보낸다 — 레이아웃 크기(height)는 그대로이므로
+  // 캡처 결과물의 모양·스크롤 위치는 바뀌지 않는다.
+  static final ValueNotifier<bool> isCapturing = ValueNotifier<bool>(false);
+
   // [버그 수정 — 원격 설정으로 AdSense를 켜도 스크립트가 영영 주입되지
   // 않던 결함] main.dart는 `AdRemoteConfigService.load()`를 await 없이
   // fire-and-forget으로 호출한 직후 곧바로 `ensureInitialized()`를

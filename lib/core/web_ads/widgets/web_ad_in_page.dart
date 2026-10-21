@@ -32,17 +32,28 @@ class WebAdInPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (WebAdService.shouldShow(surface, WebAdFormat.inPage)) {
-      return buildAdSenseUnit(
-        publisherId: WebAdConfig.publisherId,
-        adSlot: adSlot,
-        height: height,
-        adFormat: 'fluid',
-      );
-    }
-    if (WebAdService.shouldShowPlaceholder(surface, WebAdFormat.inPage)) {
-      return WebAdPlaceholder(height: height, label: 'IN-PAGE');
-    }
-    return const SizedBox.shrink();
+    final showAd = WebAdService.shouldShow(surface, WebAdFormat.inPage);
+    final showPlaceholder = !showAd &&
+        WebAdService.shouldShowPlaceholder(surface, WebAdFormat.inPage);
+    if (!showAd && !showPlaceholder) return const SizedBox.shrink();
+
+    // [REQ-10 — 신통방통_저장기능_정상화_개발지시서_v1.0 / P-06] WebAdBanner와
+    // 동일한 이유로, 캡처 진행 중에는 플랫폼 뷰 생성을 건너뛰고 동일 높이의
+    // 빈 박스로 대체한다(레이아웃 크기 불변 — 캡처 결과물에 영향 없음).
+    return ValueListenableBuilder<bool>(
+      valueListenable: WebAdService.isCapturing,
+      builder: (context, capturing, _) {
+        if (capturing) return SizedBox(height: height, width: double.infinity);
+        if (showAd) {
+          return buildAdSenseUnit(
+            publisherId: WebAdConfig.publisherId,
+            adSlot: adSlot,
+            height: height,
+            adFormat: 'fluid',
+          );
+        }
+        return WebAdPlaceholder(height: height, label: 'IN-PAGE');
+      },
+    );
   }
 }
