@@ -418,8 +418,10 @@ void main() {
       ),
       findsOneWidget,
     );
+    // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0] 저장 버튼 라벨을
+    // "결과 그대로 저장"에서 "이미지로 저장"으로 전 화면 통일(커밋 d77aad4).
     expect(
-      find.descendant(of: sceneFinder, matching: find.text('결과 그대로 저장')),
+      find.descendant(of: sceneFinder, matching: find.text('이미지로 저장')),
       findsOneWidget,
     );
     expect(
@@ -478,7 +480,8 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     final sceneFinder = find.byType(OriginalResultScene);
     expect(sceneFinder, findsOneWidget);
-    for (final text in ['축하합니다', '완료 원문 표식', '결과 그대로 저장', '기념 이미지 공유하기']) {
+    // [REQ-08] '결과 그대로 저장' → '이미지로 저장' 라벨 통일(커밋 d77aad4).
+    for (final text in ['축하합니다', '완료 원문 표식', '이미지로 저장', '기념 이미지 공유하기']) {
       expect(
         find.descendant(of: sceneFinder, matching: find.text(text)),
         findsOneWidget,

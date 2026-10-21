@@ -65,7 +65,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('전체 저장'), findsOneWidget);
+    // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0] 저장 버튼 라벨을
+    // "전체 저장"에서 "이미지로 저장"으로 전 화면 통일(커밋 d77aad4).
+    expect(find.text('이미지로 저장'), findsOneWidget);
     expect(find.text('이미지 전송'), findsOneWidget);
     expect(find.text('링크 전송'), findsNothing);
     await tester.scrollUntilVisible(
