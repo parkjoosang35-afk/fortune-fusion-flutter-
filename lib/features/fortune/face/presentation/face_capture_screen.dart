@@ -15,6 +15,7 @@ import '../../sintong/widgets/face_silhouette.dart';
 import '../../sintong/widgets/sintong_button.dart';
 import '../../sintong/widgets/sintong_screen_bg.dart';
 import '../application/face_provider.dart';
+import '../../../../core/sound/sound_route_trigger.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] AI 관상 인트로/촬영 화면.
 ///
@@ -95,7 +96,11 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     final selectedImageBytes = context.watch<FaceProvider>().selectedImageBytes;
     final hasImage = selectedImageBytes != null;
 
-    return Scaffold(
+    // [신통방통 사운드 배치 개발 기획서 §5.1] face 라우트 BGM(06_face_E)
+    // 트리거(앰비언스 없음).
+    return SoundRouteTrigger(
+      routeKey: 'face',
+      child: Scaffold(
       body: Stack(
         children: [
           const Positioned.fill(child: SintongScreenBg()),
@@ -232,6 +237,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

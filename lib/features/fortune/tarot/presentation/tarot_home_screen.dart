@@ -11,6 +11,7 @@ import 'oz/widgets/oz_category_card.dart';
 import 'oz/widgets/oz_hero_carousel.dart';
 import 'oz/widgets/oz_theme_card.dart';
 import 'oz/widgets/oz_topbar.dart';
+import '../../../../core/sound/sound_route_trigger.dart';
 
 /// [타로 섹션 전면 개편 §2 정보구조 ①] 타로 메인 홈 — 오즈의 타로 리스킨.
 ///
@@ -30,7 +31,13 @@ class TarotHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<TarotAudioController>();
-    return Scaffold(
+    // [신통방통 사운드 배치 개발 기획서 §5.1] tarot 라우트 BGM(04_tarot_W)
+    // 트리거(앰비언스 없음). 기존 TarotAudioController(카드 SFX 전용)와는
+    // 별개 계층 — BGM은 SintongSoundService가, UI SFX는 기존 컨트롤러가
+    // 각자 담당한다(§2 3레이어 아키텍처).
+    return SoundRouteTrigger(
+      routeKey: 'tarot',
+      child: Scaffold(
       backgroundColor: OzColors.bgDeep,
       body: Stack(
         children: [
@@ -100,6 +107,7 @@ class TarotHomeScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -16,6 +16,7 @@ import '../../sintong/widgets/sintong_button.dart';
 import '../../sintong/widgets/sintong_screen_bg.dart';
 import '../application/palm_provider.dart';
 import '../domain/palm_model.dart';
+import '../../../../core/sound/sound_route_trigger.dart';
 
 /// [관상·손금 신통방통 "새벽 한지" 리스킨] AI 손금 인트로/촬영 화면.
 ///
@@ -91,7 +92,11 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
     final hasImage = selectedImageBytes != null;
     final handSide = palmProvider.handSide;
 
-    return Scaffold(
+    // [신통방통 사운드 배치 개발 기획서 §5.1] palm 라우트 BGM(07_palm_E)
+    // 트리거(앰비언스 없음).
+    return SoundRouteTrigger(
+      routeKey: 'palm',
+      child: Scaffold(
       body: Stack(
         children: [
           const Positioned.fill(child: SintongScreenBg()),
@@ -258,6 +263,7 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -235,6 +235,10 @@ flutter:
     - assets/images/guinji/chars/
     - assets/audio/tarot/
     - assets/audio/pouch_box/
+    - assets/audio/bgm/
+    - assets/audio/ambience/
+    - assets/audio/sfx/
+    - assets/config/sound_routes.json
     - assets/tarot/cards/majors/
     - assets/tarot/cards/cups/
     - assets/tarot/cards/wands/

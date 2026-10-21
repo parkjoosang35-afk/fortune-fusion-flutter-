@@ -15,6 +15,7 @@ import '../widgets/saju_visual_widgets.dart';
 import 'birth_input_screen.dart';
 import 'calculating_screen.dart';
 import 'story_preview_screen.dart';
+import '../../../core/sound/sound_route_trigger.dart';
 
 /// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면① 메인(진입).
 /// `design_handoff_jeongtong_saju_v3/design_files/saju/screens-a.jsx`의
@@ -244,7 +245,11 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final showRecentCard = _recentStoryLoaded && _recentStory != null;
-    return PopScope(
+    // [신통방통 사운드 배치 개발 기획서 §5.1] saju 라우트 BGM(02_saju_E)
+    // + 앰비언스(amb_02_archive) 트리거.
+    return SoundRouteTrigger(
+      routeKey: 'saju',
+      child: PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
@@ -370,6 +375,7 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

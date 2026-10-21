@@ -7,6 +7,8 @@ import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/widgets/web_mobile_frame.dart';
+import 'core/sound/sintong_sound_service.dart';
+import 'core/sound/sound_navigator_observer.dart';
 
 import 'features/auth/application/auth_provider.dart';
 import 'features/auth/data/auth_repository.dart';
@@ -118,6 +120,17 @@ class App extends StatelessWidget {
       providers: [
         // ── 전역 Provider(앱 전체에서 상시 참조) ──
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        // [신통방통 사운드 배치 개발 기획서 v1.0 — 2026-10-21] 8개 메뉴
+        // BGM·앰비언스·17종 UI SFX를 담당하는 전역 단일 서비스. 화면
+        // 라우트(main/saju/guide/tarot/wish/face/palm/shrine) 진입 시
+        // playRoute() 호출로 BGM이 등파워 크로스페이드(2.2초)되고, 공통
+        // 네비게이션 이벤트는 AppRouter의 NavigatorObserver가 이 서비스를
+        // 직접 구독해 처리한다(아래 SoundNavigatorObserver 참고). init()이
+        // 비동기이므로 즉시 생성 후 뒤에서 초기화한다 — 초기화 완료 전
+        // 호출되는 재생 요청은 _ready 가드로 조용히 무시된다.
+        ChangeNotifierProvider(
+          create: (_) => SintongSoundService()..init(),
+        ),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
         // [인트로 전면 개편] 첫 진입(스플래시→인트로→홈) 흐름의 로컬 완료 상태
         // (introSeen/skipped/continueAsGuest)와, admin_web에서 발행한 인트로
@@ -368,7 +381,10 @@ class App extends StatelessWidget {
               navigatorKey: appNavigatorKey,
               // [PC 랜딩 연동] 라우트 변화를 부모 윈도우(랜딩)에 알리기
               // 위한 Observer. 비-웹 플랫폼에서는 빈 구현(no-op)이다.
-              navigatorObservers: [WebNavBridgeObserver()],
+              navigatorObservers: [
+                WebNavBridgeObserver(),
+                SoundNavigatorObserver(context.read<SintongSoundService>()),
+              ],
               title: '신통방통',
               debugShowCheckedModeBanner: false,
               // [다크 베이스 — 사용자 피드백] 화면 전환 순간 흰/아이보리로

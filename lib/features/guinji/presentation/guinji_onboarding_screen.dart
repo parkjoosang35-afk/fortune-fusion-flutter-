@@ -9,6 +9,7 @@ import '../theme/guinji_theme.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
 import 'guinji_loading_screen.dart';
 import '../navigation/guinji_page_route.dart';
+import '../../../core/sound/sound_route_trigger.dart';
 
 /// [버그 수정 — 온보딩 비로그인/프로필 미완성 진입] 로그인 완료 후(또는
 /// 프로필 완성 후) 저장된 "귀인지도 지도 만들기 재시도" 요청이 있으면,
@@ -165,7 +166,11 @@ class _GuinjiOnboardingScreenState extends State<GuinjiOnboardingScreen> {
       user?.birthTimeUnknown ?? true,
     );
 
-    return Scaffold(
+    // [신통방통 사운드 배치 개발 기획서 §5.1] guide(귀인지도) 라우트
+    // BGM(03_guide_E) 트리거(앰비언스 없음).
+    return SoundRouteTrigger(
+      routeKey: 'guide',
+      child: Scaffold(
       backgroundColor: GuinjiColors.backgroundDeep,
       body: Stack(
         children: [
@@ -239,6 +244,7 @@ class _GuinjiOnboardingScreenState extends State<GuinjiOnboardingScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -42,6 +42,7 @@ import '../../../ads_test/presentation/admob_test_banner.dart';
 import '../../../ad_banner/presentation/ad_banner_widget.dart';
 import 'sintong_home_v2_tokens.dart';
 import 'widgets/sintong_hero_video.dart';
+import '../../../../core/sound/sound_route_trigger.dart';
 import 'widgets/sintong_v2_topbar.dart';
 import 'widgets/sintong_chip_row.dart';
 import 'widgets/sintong_v2_sheet.dart';
@@ -101,7 +102,14 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // [신통방통 사운드 배치 개발 기획서 §5.1] main 라우트 BGM(01_main_E)
+    // + 앰비언스(amb_01_courtyard) 트리거. 이 화면은 AppShell의 IndexedStack
+    // 0번 탭으로 항상 마운트돼 있어(dispose 안 됨) initState는 앱 최초
+    // 진입 시 1회만 호출되지만, 그것이 바로 "기본 베이스 화면" BGM으로서
+    // 올바른 동작이다(탭 전환 복귀마다 재시작하지 않음).
+    return SoundRouteTrigger(
+      routeKey: 'main',
+      child: Scaffold(
       // 하단 여백(시트를 히어로 위로 20px 겹치게 올리며 생기는 화면
       // 최하단 틈)도 시트와 동일한 다크 톤으로 채워 이질감이 없게 한다.
       backgroundColor: SHomeV2Colors.sheetBg,
@@ -191,6 +199,7 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -1,0 +1,21 @@
+{
+  "_comment": "신통방통 사운드 배치 기획서 v1.0 (2026-10-21) §9.2 설정 파일 그대로 사용. 코드에 하드코딩하지 않고 이 파일을 교체해 기획 변경에 대응한다.",
+  "routes": {
+    "main": { "bgm": "01_main_E", "amb": "amb_01_courtyard", "ambGain": -20 },
+    "saju": { "bgm": "02_saju_E", "amb": "amb_02_archive", "ambGain": -20 },
+    "guide": { "bgm": "03_guide_E", "amb": null },
+    "tarot": { "bgm": "04_tarot_W", "amb": null },
+    "wish": { "bgm": "05_wish_E", "amb": "amb_03_candle", "ambGain": -20 },
+    "face": { "bgm": "06_face_E", "amb": null },
+    "palm": { "bgm": "07_palm_E", "amb": null },
+    "shrine": { "bgm": "08_shrine_E", "amb": null }
+  },
+  "crossfadeSeconds": 2.2,
+  "marker": { "file": "transition_bell", "atSeconds": 0.3, "gainDb": -24 },
+  "duck": {
+    "voice": { "bgmDb": -4.5, "ambDb": -6.0, "attackMs": 160, "releaseMs": 300 },
+    "reveal": { "bgmDb": -12, "ambDb": -12, "attackMs": 80, "releaseMs": 1500 },
+    "reward": { "bgmDb": -2, "ambDb": 0, "attackMs": 40, "releaseMs": 250 }
+  },
+  "limits": { "minRetriggerMs": 80, "maxVoices": 4, "channelPoolSize": 8 }
+}
