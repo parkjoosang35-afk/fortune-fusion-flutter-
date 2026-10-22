@@ -711,10 +711,11 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
                       <button
                         type="button"
                         onClick={() => {
+                          if (!confirm(`"${el.name}" 요소를 삭제할까요? 삭제 후 되돌리려면 이 변경을 저장하지 않고 페이지를 새로고침해야 합니다.`)) return;
                           setLayout((p) => (p ? removeElement(p, el.id) : p));
                           if (selectedId === el.id) setSelectedId(null);
                         }}
-                        className="px-1 text-rose-500 hover:text-rose-700"
+                        className="ml-1 rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-rose-600 hover:bg-rose-100 hover:text-rose-800"
                       >
                         삭제
                       </button>

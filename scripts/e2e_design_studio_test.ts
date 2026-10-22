@@ -7,8 +7,8 @@
 import { chromium } from "playwright";
 import { SignJWT } from "jose";
 
-const BASE_URL = "http://localhost:3010";
-const CAMPAIGN_ID = process.env.E2E_CAMPAIGN_ID || "253";
+const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:3100";
+const CAMPAIGN_ID = process.env.E2E_CAMPAIGN_ID || "273";
 
 async function getSessionCookie() {
   const secretKey = process.env.SESSION_SECRET;
