@@ -69,6 +69,7 @@ import { buildSvg, type SvgRenderContext } from "@/lib/bokju-coupon-design/svg";
 //    (renderer.ts는 모듈 최상단에서 sharp를 import한다 — 클라이언트 번들이 깨진다)
 import QRCode from "qrcode"; // 번들러가 package.json의 "browser" 필드로 lib/browser.js로 자동 치환
 import { PART_GROUPS, PARTS, TEMPLATES, buildTemplate, insertPart } from "@/lib/bokju-coupon-design/templates";
+import FieldHelp from "@/components/FieldHelp";
 
 // ── 서버 응답 타입(studio-api.ts의 실제 interface와 맞춤) ───────────────────
 interface CatalogPalette {
@@ -401,7 +402,14 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
       {/* ── 좌측: 구성 고르기 ── */}
       <aside className="space-y-5 overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 lg:max-h-[calc(100vh-180px)]">
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">구성 템플릿 ({catalog?.templates.length ?? 0})</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            구성 템플릿 ({catalog?.templates.length ?? 0})
+            <FieldHelp
+              size={12}
+              title="구성 템플릿"
+              text="미리 만들어진 전체 레이아웃(요소 배치 조합)을 한 번에 불러옵니다. 클릭하면 현재 편집 중이던 내용이 템플릿 구성으로 완전히 교체되니, 저장 전이라면 되돌릴 수 없다는 점에 주의하세요."
+            />
+          </h2>
           <div className="space-y-1">
             {catalog?.templates.map((t) => (
               <button
@@ -419,7 +427,14 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">캔버스 크기</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            캔버스 크기
+            <FieldHelp
+              size={12}
+              title="캔버스 크기"
+              text="쿠폰 이미지 전체의 가로×세로 픽셀 크기입니다. 바꾸면 기존 요소들의 비율을 유지한 채 좌표/크기가 자동으로 재계산됩니다."
+            />
+          </h2>
           <div className="flex flex-wrap gap-1">
             {(Object.keys(CANVAS_PRESETS) as Array<keyof typeof CANVAS_PRESETS>).map((key) => {
               const preset = CANVAS_PRESETS[key];
@@ -465,7 +480,10 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">색 고르기 ({catalog?.palettes.length ?? 0})</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            색 고르기 ({catalog?.palettes.length ?? 0})
+            <FieldHelp size={12} text="쿠폰 전체의 배경·강조 색상 테마를 선택합니다. 선택한 팔레트는 텍스트/박스 등에서 '색 토큰'을 사용 중인 요소에 자동 반영됩니다." />
+          </h2>
           <div className="grid grid-cols-4 gap-1.5">
             {catalog?.palettes.map((p) => (
               <button
@@ -488,7 +506,10 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">글자 크기 · 글꼴</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            글자 크기 · 글꼴
+            <FieldHelp size={12} text="쿠폰 전체에 공통 적용되는 기본 글자 크기 단계와 글꼴 스타일입니다. 개별 텍스트 요소에서 글자 크기를 따로 지정하면 그 값이 우선합니다." />
+          </h2>
           <div className="flex gap-1">
             {(["compact", "normal", "large"] as const).map((scale) => (
               <button
@@ -530,7 +551,14 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">부품 얹기</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            부품 얹기
+            <FieldHelp
+              size={12}
+              title="부품 얹기"
+              text="쿠폰명·금액·QR·유효기간 등 개별 요소(부품)를 하나씩 캔버스에 추가합니다. 추가된 요소는 중앙 캔버스에서 드래그로 위치를 옮기거나 우측 '요소 속성'에서 세부 설정을 바꿀 수 있습니다."
+            />
+          </h2>
           {(PART_GROUPS as readonly string[]).map((g) => (
             <div key={g} className="mb-2">
               <h3 className="mb-1 text-[11px] font-medium text-slate-500">{g}</h3>
@@ -555,7 +583,10 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
 
         {selected?.kind === "image" && canWrite && (
           <section>
-            <h2 className="mb-2 text-xs font-semibold text-slate-700">사진 / 로고 올리기</h2>
+            <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+              사진 / 로고 올리기
+              <FieldHelp size={12} text="선택된 이미지 요소 자리에 표시할 실제 이미지 파일을 업로드합니다. jpg/png/webp, 5MB 이하만 허용되며 서버가 다시 한번 실제 파일 내용을 검증합니다." />
+            </h2>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -643,7 +674,14 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
       {/* ── 우측: 요소 목록 · 발행 전 검사 · 속성 · 되돌리기 ── */}
       <aside className="space-y-5 overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 lg:max-h-[calc(100vh-180px)]">
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">요소 목록 ({layout.elements.length})</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            요소 목록 ({layout.elements.length})
+            <FieldHelp
+              size={12}
+              title="요소 목록"
+              text="현재 쿠폰에 들어있는 모든 요소(텍스트/이미지/QR/박스/선)의 목록입니다. 클릭하면 선택되어 캔버스에서 하이라이트되고 우측 '요소 속성'에서 편집할 수 있습니다. ▲▼로 쌓이는 순서(z-순서)를 바꾸거나 복제/삭제할 수 있습니다."
+            />
+          </h2>
           <ul className="space-y-1">
             {[...layout.elements]
               .sort((a, b) => b.z - a.z)
@@ -702,8 +740,13 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
             발행 전 검사 {blockers.length > 0 ? `(차단 ${blockers.length}건)` : report.issues.length > 0 ? `(경고 ${warnings.length}건)` : "(통과)"}
+            <FieldHelp
+              size={12}
+              title="발행 전 검사"
+              text={"디자인이 실제로 발행 가능한 상태인지 자동으로 점검한 결과입니다.\n'차단'(빨강)이 하나라도 있으면 저장할 수 없고 반드시 고쳐야 합니다. '경고'(주황)는 저장은 가능하지만 품질상 권장되지 않는 상태를 알려줍니다(예: QR이 너무 작음)."}
+            />
           </h2>
           {/* [02f §0-K] 하드코딩된 6종/10종 나열이 아니라 report.issues를
               배열 그대로 순회한다 — validateLayout이 반환하는 모든 검사
@@ -725,7 +768,14 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
 
         {canWrite && (
           <section>
-            <h2 className="mb-1 text-xs font-semibold text-slate-700">저장</h2>
+            <h2 className="mb-1 flex items-center gap-1 text-xs font-semibold text-slate-700">
+              저장
+              <FieldHelp
+                size={12}
+                title="저장"
+                text="지금까지 편집한 디자인을 새 리비전으로 저장합니다. 저장 즉시 '현재 디자인'이 되어, 앞으로 발행되는 모든 쿠폰에 이 디자인이 적용됩니다(이미 발행된 쿠폰은 영향받지 않음). '차단' 항목이 있으면 저장 버튼이 비활성화됩니다."
+              />
+            </h2>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -755,7 +805,14 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
         )}
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">요소 속성</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            요소 속성
+            <FieldHelp
+              size={12}
+              title="요소 속성"
+              text="좌측 '요소 목록'이나 캔버스에서 선택한 요소 하나의 세부 설정(위치 x/y, 값 출처, 글자 크기, 색상, 크기, 표시/잠금 여부 등)을 편집하는 영역입니다. 요소를 선택해야 내용이 나타납니다."
+            />
+          </h2>
           {!selected ? (
             <p className="text-[11px] text-slate-400">요소를 선택하세요.</p>
           ) : (
@@ -770,7 +827,10 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
                 />
               </label>
               <label className="block">
-                <span className="text-slate-500">값 출처(bind)</span>
+                <span className="flex items-center gap-1 text-slate-500">
+                  값 출처(bind)
+                  <FieldHelp size={12} text="이 요소에 표시할 내용이 어디서 오는지 결정합니다. 'static'은 직접 입력한 고정 텍스트, 그 외(쿠폰명/금액/QR 등)는 실제 캠페인·쿠폰 데이터에서 자동으로 채워집니다." />
+                </span>
                 <select
                   value={selected.bind}
                   disabled={!canWrite}
@@ -976,7 +1036,14 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold text-slate-700">되돌리기(리비전 이력)</h2>
+          <h2 className="mb-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
+            되돌리기(리비전 이력)
+            <FieldHelp
+              size={12}
+              title="되돌리기(리비전 이력)"
+              text="저장할 때마다 새 리비전(버전)이 남습니다. 과거 리비전의 '되돌리기'를 누르면 그 시점 디자인으로 복원되며, 복원 자체도 새 리비전으로 기록됩니다. 이미 발행된 쿠폰은 되돌려도 바뀌지 않고, 앞으로 새로 발행되는 쿠폰부터 적용됩니다."
+            />
+          </h2>
           <ul className="space-y-1">
             {revisions.map((r) => (
               <li key={r.id} className={`flex items-center justify-between rounded border px-2 py-1 text-[11px] ${r.isCurrent ? "border-indigo-400 bg-indigo-50" : "border-slate-200"}`}>
