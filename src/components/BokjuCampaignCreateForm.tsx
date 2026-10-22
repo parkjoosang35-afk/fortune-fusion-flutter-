@@ -10,6 +10,7 @@
 // 과도하므로 500ms debounce를 적용한다.
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import FieldHelp from "@/components/FieldHelp";
 
 const DESIGN_TEMPLATES: { id: "CLASSIC" | "PREMIUM" | "KAKAO" | "MINIMAL"; label: string; hint: string }[] = [
   { id: "CLASSIC", label: "전통 복주머니", hint: "적갈색 · 금색 톤" },
@@ -185,7 +186,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
       ) : (
         <form onSubmit={submit} className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-xs text-slate-500">1. 쿠폰명 *</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              1. 쿠폰명 *
+              <FieldHelp
+                title="쿠폰명"
+                text="쿠폰 목록, 캠페인 상세 화면, 그리고 발행되는 쿠폰 이미지에 표시되는 제목입니다. 사용자에게 보여지는 이름이므로 이벤트 내용을 한눈에 알 수 있게 작성하세요. (예: '설날맞이 복주머니 선물')"
+              />
+            </label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -195,7 +202,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">3. 지급 복주머니 *</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              3. 지급 복주머니 *
+              <FieldHelp
+                title="지급 복주머니"
+                text={"쿠폰을 등록(사용)했을 때 사용자 지갑에 지급되는 복주머니(포인트) 개수입니다.\n⚠️ 주의: 하루에 적립 가능한 복주머니는 일일 한도(현재 200개)로 제한되어 있습니다. 이 값이 하루 한도보다 크면, 사용자가 그날 이미 적립한 양에 따라 실제로는 더 적게 지급될 수 있습니다."}
+              />
+            </label>
             <input
               type="number"
               min={1}
@@ -206,7 +219,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div className="sm:col-span-2">
-            <label className="mb-2 block text-xs text-slate-500">2. 쿠폰 디자인</label>
+            <label className="mb-2 flex items-center gap-1 text-xs text-slate-500">
+              2. 쿠폰 디자인
+              <FieldHelp
+                title="쿠폰 디자인"
+                text="쿠폰 이미지의 배경/색상 테마를 고를 수 있습니다. 내장 4종(전통/고급/카카오톡/미니멀) 중 하나를 고르거나, 'AI 쿠폰 디자인' 메뉴에서 미리 만들어 저장한 커스텀 템플릿을 선택할 수 있습니다. 커스텀 템플릿을 선택하면 내장 4종 선택은 비활성화됩니다."
+              />
+            </label>
 
             {customTemplates.length > 0 && (
               <div className="mb-3">
@@ -255,7 +274,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">5. 쿠폰 유형</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              5. 쿠폰 유형
+              <FieldHelp
+                title="쿠폰 유형"
+                text={"개별번호: 사용자마다 서로 다른 고유 쿠폰번호가 발급됩니다(1쿠폰=1회 사용).\n공용번호: 모든 사용자가 동일한 번호를 공유하며, 옆에 나타나는 '공용 총 사용 한도'까지 여러 명이 함께 사용할 수 있습니다."}
+              />
+            </label>
             <select
               value={issueType}
               onChange={(e) => setIssueType(e.target.value as "INDIVIDUAL" | "SHARED")}
@@ -268,7 +293,14 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
 
           {issueType === "SHARED" && (
             <div>
-              <label className="mb-1 block text-xs text-slate-500">공용 총 사용 한도 *</label>
+              <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                공용 총 사용 한도 *
+                <FieldHelp
+                  align="left"
+                  title="공용 총 사용 한도"
+                  text="'공용번호' 쿠폰 유형을 선택했을 때만 나타납니다. 하나의 공용 쿠폰번호를 총 몇 번까지 사용(등록)할 수 있는지 설정합니다. 이 한도에 도달하면 같은 번호라도 더 이상 사용할 수 없습니다."
+                />
+              </label>
               <input
                 type="number"
                 min={1}
@@ -280,7 +312,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           )}
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">6. 사용 대상</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              6. 사용 대상
+              <FieldHelp
+                title="사용 대상"
+                text={"이 쿠폰을 등록할 수 있는 회원 범위를 제한합니다.\n전체: 모든 회원 사용 가능\n신규 회원: 가입한 지 얼마 안 된 회원만 가능\n기존 회원: 신규가 아닌 회원만 가능\n대상이 아닌 회원이 등록을 시도하면 '이 쿠폰의 사용 대상이 아닙니다' 오류가 표시됩니다."}
+              />
+            </label>
             <select
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value as "ALL" | "NEW" | "EXISTING")}
@@ -293,7 +331,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">총 발행 수량 *</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              총 발행 수량 *
+              <FieldHelp
+                title="총 발행 수량"
+                text="이 캠페인에서 만들 수 있는 쿠폰의 최대 장수입니다. 여기서 설정한다고 바로 쿠폰이 만들어지는 것은 아니며, 캠페인 생성 후 상세 화면에서 '쿠폰 발행' 버튼을 눌러야 실제 쿠폰이 생성됩니다. 이미 발행된 수량이 이 값에 도달하면 더 이상 발행할 수 없습니다."
+              />
+            </label>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -319,7 +363,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">9. 1인당 발급 가능 수량</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              9. 1인당 발급 가능 수량
+              <FieldHelp
+                title="1인당 발급 가능 수량"
+                text="한 명의 회원이 동일한 캠페인의 쿠폰을 몇 번까지 등록할 수 있는지 제한합니다. 예를 들어 1로 설정하면, 이미 한 번 등록한 회원이 같은 캠페인의 다른 쿠폰을 또 등록하려고 하면 '한도 초과' 오류로 거부됩니다."
+              />
+            </label>
             <input
               type="number"
               min={1}
@@ -334,7 +384,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">7. 사용 시작일 *</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              7. 사용 시작일 *
+              <FieldHelp
+                title="사용 시작일"
+                text="사용자가 이 쿠폰을 등록(사용)할 수 있는 시작 날짜입니다. 이 날짜 이전에는 쿠폰을 갖고 있어도 등록할 수 없습니다."
+              />
+            </label>
             <input
               type="date"
               value={validFrom}
@@ -344,7 +400,14 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">8. 사용 만료일 *</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              8. 사용 만료일 *
+              <FieldHelp
+                align="left"
+                title="사용 만료일"
+                text="사용자가 이 쿠폰을 등록(사용)할 수 있는 마지막 날짜입니다. 이 날짜가 지나면 쿠폰을 갖고 있어도 '사용 기간이 만료된 쿠폰입니다' 오류와 함께 등록이 거부됩니다."
+              />
+            </label>
             <input
               type="date"
               value={validTo}
@@ -354,7 +417,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">11. 배포 방식</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              11. 배포 방식
+              <FieldHelp
+                title="배포 방식"
+                text={"쿠폰을 사용자에게 전달하는 방식을 결정합니다.\n제휴업체 배정: 발행된 쿠폰을 제휴 매장(파트너)에 할당해 오프라인에서 나눠주는 방식\n직접 배포: 관리자가 직접 쿠폰번호/이미지를 전달\n회원 선물: 특정 회원에게 쿠폰을 선물로 지급"}
+              />
+            </label>
             <select
               value={distributionMethod}
               onChange={(e) => setDistributionMethod(e.target.value as "DIRECT" | "PARTNER" | "GIFT")}
@@ -367,7 +436,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-xs text-slate-500">10. 쿠폰 안내 문구</label>
+            <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              10. 쿠폰 안내 문구
+              <FieldHelp
+                title="쿠폰 안내 문구"
+                text="쿠폰 이미지에 함께 표시되는 짧은 안내 문구입니다(예: 'QR코드를 찍고 복주머니를 받으세요!'). 비워두면 안내 문구 없이 쿠폰이 생성됩니다."
+              />
+            </label>
             <input
               value={guideText}
               onChange={(e) => setGuideText(e.target.value)}
@@ -377,7 +452,13 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
           </div>
 
           <div className="sm:col-span-2">
-            <label className="mb-2 block text-xs text-slate-500">12. 모바일 쿠폰 미리보기 (디자인 · 번호 · QR 확인)</label>
+            <label className="mb-2 flex items-center gap-1 text-xs text-slate-500">
+              12. 모바일 쿠폰 미리보기 (디자인 · 번호 · QR 확인)
+              <FieldHelp
+                title="모바일 쿠폰 미리보기"
+                text="지금까지 입력한 쿠폰명/디자인/지급액/안내문구/유효기간을 반영한 실제 쿠폰 이미지 미리보기입니다. 입력값을 바꾸면 0.5초 후 자동으로 다시 그려집니다. 실제 쿠폰번호와 QR코드는 캠페인을 생성한 뒤, 상세 화면에서 '쿠폰 발행'을 해야 생성됩니다."
+              />
+            </label>
             <div className="flex justify-center rounded-lg bg-slate-100 p-4">
               {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -397,7 +478,7 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
             </p>
           </div>
 
-          <div className="flex gap-2 sm:col-span-2">
+          <div className="flex items-center gap-2 sm:col-span-2">
             <button
               type="submit"
               disabled={pending}
@@ -412,6 +493,10 @@ export default function BokjuCampaignCreateForm({ canWrite }: { canWrite: boolea
             >
               취소
             </button>
+            <FieldHelp
+              title="쿠폰 캠페인 만들기(DRAFT)"
+              text={"지금까지 입력한 설정으로 캠페인을 'DRAFT(임시저장)' 상태로 생성합니다. 이 단계에서는 아직 실제 쿠폰이 만들어지지 않고, 사용자에게도 노출되지 않습니다.\n생성 후 이동하는 캠페인 상세 화면에서 상태를 'ACTIVE'로 바꾸고 '쿠폰 발행' 버튼을 눌러야 실제 쿠폰이 만들어지고 사용자에게 노출됩니다."}
+            />
           </div>
           {error && <p className="sm:col-span-2 text-xs text-rose-700">{error}</p>}
         </form>
