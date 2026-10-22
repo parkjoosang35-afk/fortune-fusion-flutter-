@@ -4,6 +4,7 @@
 // "쿠폰 배정 및 전달"을 한 화면에서 처리한다(§3 8개 메뉴 중 3개를 캠페인 단위로 통합).
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import FieldHelp from "@/components/FieldHelp";
 
 interface Campaign {
   id: number;
@@ -397,8 +398,12 @@ export default function BokjuCampaignDetailClient({
         <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-indigo-900">
+              <p className="flex items-center gap-1 text-sm font-semibold text-indigo-900">
                 이 캠페인은 아직 기존 디자인 방식(11개 표시 항목 토글)을 사용 중입니다.
+                <FieldHelp
+                  title="신규 디자인으로 전환"
+                  text={"기존 11개 토글(테두리 유무, 색상 등 on/off) 방식 대신, 자유롭게 요소를 배치할 수 있는 신규 디자인 스튜디오로 전환합니다.\n전환 전 설정은 리비전으로 보존되므로 '레거시로 되돌리기' 버튼으로 언제든 원복할 수 있습니다. 이미 발행된 쿠폰의 디자인은 전환해도 바뀌지 않습니다."}
+                />
               </p>
               <p className="mt-1 text-xs text-indigo-700">
                 신규 디자인 스튜디오로 전환하면 현재 설정을 기반으로 자유롭게 배치를 편집할 수 있습니다.
@@ -433,12 +438,18 @@ export default function BokjuCampaignDetailClient({
       {campaign.currentDesignRevisionId != null && (
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <a
-              href={`/bokju-coupons/campaigns/${campaign.id}/design`}
-              className="text-sm font-medium text-indigo-600 hover:underline"
-            >
-              쿠폰 디자인 스튜디오 열기 →
-            </a>
+            <span className="flex items-center gap-1">
+              <a
+                href={`/bokju-coupons/campaigns/${campaign.id}/design`}
+                className="text-sm font-medium text-indigo-600 hover:underline"
+              >
+                쿠폰 디자인 스튜디오 열기 →
+              </a>
+              <FieldHelp
+                title="쿠폰 디자인 스튜디오"
+                text="이 캠페인에서 발행되는 쿠폰 이미지의 배치/색상/텍스트를 자유롭게 편집하는 화면으로 이동합니다. 여기서 저장한 디자인은 이후 '쿠폰 발행' 시 생성되는 이미지에 그대로 반영됩니다."
+              />
+            </span>
             {canWrite && (
               <button
                 onClick={handleRevertToLegacy}
@@ -525,29 +536,50 @@ export default function BokjuCampaignDetailClient({
 
       {/* 발행 현황 + 발행 쿠폰 관리 */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 className="mb-3 text-sm font-bold text-slate-900">발행 쿠폰 관리</h3>
+        <h3 className="mb-3 flex items-center gap-1 text-sm font-bold text-slate-900">
+          발행 쿠폰 관리
+          <FieldHelp
+            title="발행 쿠폰 관리"
+            text="이 캠페인의 쿠폰 발행 수량과 현재 진행 상황(발급/사용/배정)을 확인하고, 새 쿠폰을 추가로 발행할 수 있는 영역입니다."
+          />
+        </h3>
         {/* [마케팅 쿠폰 발행 관리 개선 §4] 총발행/발급완료/사용완료/발급후미사용/추가발급가능 5가지 수치 */}
         <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
           <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">총 발행 한도</p>
+            <p className="flex items-center gap-1 text-xs text-slate-500">
+              총 발행 한도
+              <FieldHelp text="이 캠페인에서 발행할 수 있는 쿠폰의 최대 장수입니다. 캠페인 생성 시 설정한 값이며, '무제한'이면 발행 수량에 제한이 없습니다." />
+            </p>
             <p className="text-xl font-bold text-slate-900">
               {campaign.totalIssueLimit != null ? campaign.totalIssueLimit.toLocaleString() : "무제한"}
             </p>
           </div>
           <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">발급 완료</p>
+            <p className="flex items-center gap-1 text-xs text-slate-500">
+              발급 완료
+              <FieldHelp text="지금까지 실제로 발행(생성)된 쿠폰의 누적 장수입니다. 사용 여부와 무관하게, 발행 버튼을 눌러 만들어진 쿠폰의 총합입니다." />
+            </p>
             <p className="text-xl font-bold text-slate-900">{campaign.issuedCount}</p>
           </div>
           <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">사용 완료</p>
+            <p className="flex items-center gap-1 text-xs text-slate-500">
+              사용 완료
+              <FieldHelp text="사용자가 쿠폰 번호/QR을 등록해서 실제로 복주머니(포인트)가 지급 완료된 쿠폰 수입니다." />
+            </p>
             <p className="text-xl font-bold text-emerald-700">{campaign.redeemedCount}</p>
           </div>
           <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">발급 후 미사용</p>
+            <p className="flex items-center gap-1 text-xs text-slate-500">
+              발급 후 미사용
+              <FieldHelp text="발행은 되었지만(발급 완료) 아직 사용자가 등록하지 않은 쿠폰 수입니다. '발급 완료 − 사용 완료'로 계산됩니다. 배정/미배정 여부와는 무관합니다." />
+            </p>
             <p className="text-xl font-bold text-amber-700">{unusedAfterIssue}</p>
           </div>
           <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs text-slate-500">추가 발급 가능</p>
+            <p className="flex items-center gap-1 text-xs text-slate-500">
+              추가 발급 가능
+              <FieldHelp text="총 발행 한도에서 이미 발행한 수량을 뺀, 앞으로 더 발행할 수 있는 장수입니다. '발급 후 미사용'과는 다른 개념이니 혼동하지 마세요. 총 발행 한도가 '무제한'이면 여기도 '무제한'으로 표시됩니다." />
+            </p>
             <p className="text-xl font-bold text-indigo-700">
               {remainingIssuable != null ? remainingIssuable.toLocaleString() : "무제한"}
             </p>
@@ -571,7 +603,10 @@ export default function BokjuCampaignDetailClient({
         {canWrite && campaign.status === "ACTIVE" && (
           <div className="flex items-end gap-2">
             <div>
-              <label className="mb-1 block text-xs text-slate-500">발행 수량</label>
+              <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                발행 수량
+                <FieldHelp text="지금 이 버튼으로 새로 발행할 쿠폰의 장수입니다. 총 발행 한도가 설정되어 있으면 '추가 발급 가능' 수량을 넘을 수 없습니다." />
+              </label>
               <input
                 type="number"
                 min={1}
@@ -596,7 +631,13 @@ export default function BokjuCampaignDetailClient({
 
       {/* 이미지 생성 관리 */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 className="mb-3 text-sm font-bold text-slate-900">이미지 생성 관리 (모바일 쿠폰 QR 이미지)</h3>
+        <h3 className="mb-3 flex items-center gap-1 text-sm font-bold text-slate-900">
+          이미지 생성 관리 (모바일 쿠폰 QR 이미지)
+          <FieldHelp
+            title="이미지 생성 관리"
+            text="발행된 각 쿠폰마다 고유 QR코드가 포함된 이미지를 일괄로 만들어, 매장/업체에 전달할 ZIP 파일과 쿠폰번호 목록 엑셀을 내려받을 수 있는 영역입니다. 쿠폰을 먼저 발행해야 이용할 수 있습니다."
+          />
+        </h3>
         {campaign.issuedCount === 0 ? (
           <p className="text-xs text-slate-500">먼저 쿠폰을 발행해야 이미지를 생성할 수 있습니다.</p>
         ) : (
@@ -606,6 +647,7 @@ export default function BokjuCampaignDetailClient({
                 onClick={handleGenerateImages}
                 disabled={pending === "images"}
                 className="mb-3 rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                title="지금까지 발행된 모든 쿠폰의 QR 이미지를 한 번에 생성합니다. 완료까지 다소 시간이 걸릴 수 있습니다."
               >
                 {pending === "images" ? "시작 중..." : "전체 쿠폰 이미지 일괄 생성"}
               </button>
@@ -670,11 +712,20 @@ export default function BokjuCampaignDetailClient({
 
       {/* 쿠폰 배정 및 전달 */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 className="mb-3 text-sm font-bold text-slate-900">쿠폰 배정 및 전달</h3>
+        <h3 className="mb-3 flex items-center gap-1 text-sm font-bold text-slate-900">
+          쿠폰 배정 및 전달
+          <FieldHelp
+            title="쿠폰 배정 및 전달"
+            text="발행된 쿠폰을 특정 제휴 업체에게 배정(할당)하고, 실제 발송 여부를 기록하는 영역입니다. 업체별 배정 수량, 발송 상태, 업체 보고 수량과 실제 시스템 등록(적립) 수량을 비교해 전환율을 확인할 수 있습니다."
+          />
+        </h3>
         {canWrite && campaign.distributionMethod === "PARTNER" && unallocated > 0 && (
           <div className="mb-4 flex items-end gap-2">
             <div>
-              <label className="mb-1 block text-xs text-slate-500">업체 선택</label>
+              <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                업체 선택
+                <FieldHelp text="미배정 쿠폰을 넘겨줄 제휴 업체를 선택합니다. 업체 목록에 없으면 '제휴업체 관리' 메뉴에서 먼저 등록해야 합니다." />
+              </label>
               <select
                 value={allocPartnerId}
                 onChange={(e) => setAllocPartnerId(e.target.value ? Number(e.target.value) : "")}
@@ -689,7 +740,10 @@ export default function BokjuCampaignDetailClient({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-slate-500">수량(미배정 {unallocated}장)</label>
+              <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                수량(미배정 {unallocated}장)
+                <FieldHelp text="선택한 업체에게 배정할 쿠폰 장수입니다. 아직 어느 업체에도 배정되지 않은 쿠폰(미배정) 수량을 넘을 수 없습니다." />
+              </label>
               <input
                 type="number"
                 min={1}
@@ -771,14 +825,23 @@ export default function BokjuCampaignDetailClient({
 
       {/* 회수 쿠폰 재배정 (§9/§22.6) */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 className="mb-1 text-sm font-bold text-slate-900">회수 쿠폰 재배정</h3>
+        <h3 className="mb-1 flex items-center gap-1 text-sm font-bold text-slate-900">
+          회수 쿠폰 재배정
+          <FieldHelp
+            title="회수 쿠폰 재배정"
+            text="업체에서 '미등록 회수' 처리된(아직 사용되지 않고 회수된) 쿠폰을 다른 업체에게 다시 배정합니다. 회수 이력의 기존 실적과는 분리되어 새 배정 건으로 집계됩니다."
+          />
+        </h3>
         <p className="mb-3 text-xs text-slate-500">
           재배정 가능 수량(회수됨 · 미사용 · 미배정): <strong className="text-rose-700">{recalledAvailable}장</strong>
         </p>
         {canWrite && recalledAvailable > 0 ? (
           <div className="flex items-end gap-2">
             <div>
-              <label className="mb-1 block text-xs text-slate-500">재배정 업체 선택</label>
+              <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                재배정 업체 선택
+                <FieldHelp text="회수된 쿠폰을 새로 전달할 업체를 선택합니다. 기존에 배정됐던 업체를 다시 선택해도 됩니다." />
+              </label>
               <select
                 value={reassignPartnerId}
                 onChange={(e) => setReassignPartnerId(e.target.value ? Number(e.target.value) : "")}
