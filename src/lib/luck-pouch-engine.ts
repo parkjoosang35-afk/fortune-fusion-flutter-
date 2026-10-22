@@ -32,6 +32,10 @@ type Tx = Prisma.TransactionClient;
 // 광고 시청 보상)도 AD_WATCH_REWARD와 동일한 이유로 전역 일일 적립 상한에서
 // 면제한다. 행운상자 전용 일일 제한(하루 5회)은 PouchBoxOpenLog 테이블의
 // 당일 COMPLETED 카운트로 별도 체크하므로 전역 상한과 별개로 안전하다.
+// [2026-10 — 일일 상한 정책 폐지] clipToDailyCap()이 더 이상 이 목록을 참조하지
+// 않는다(상한 자체가 없어졌으므로 "면제 대상" 개념도 무의미). 과거 맥락 보존을
+// 위해 주석/상수는 남겨두되 미사용 경고는 의도적으로 무시한다.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CAP_EXEMPT_SOURCE_TYPES = new Set([
   "admin_adjust",
   "admin_grant",
@@ -179,36 +183,33 @@ async function getWalletOrCreate(tx: Tx, userId: number) {
 }
 
 /**
- * [복주머니 적립 구간표 §일일 총 적립 상한]
- * 오늘 하루 이미 적립된 총량(운영자 지급 제외)에 requestedAmount를 더했을 때
- * 상한을 넘는다면, 상한까지만 잘라서 적립하고 나머지는 버린다(0으로 클리핑).
- * 반환값 grantedAmount가 0이면 이미 상한 도달 상태이므로 지갑 갱신을 하지 않아야 한다.
+ * [2026-10 — 일일 총 적립 상한 정책 폐지 — 대표 요청]
+ * 과거에는 "오늘 하루 이미 적립된 총량(운영자 지급 제외)에 requestedAmount를
+ * 더했을 때 상한을 넘으면 상한까지만 잘라서 적립"하는 로직이었으나, 대표
+ * 승인 하에 일일 상한 정책 자체를 완전히 폐지한다(마케팅쿠폰 지급액이
+ * 의도와 다르게 깎여 나가는 문제가 계기였으나, 범위는 쿠폰에 한정하지 않고
+ * 사이트 전체 모든 적립 경로에 적용되는 상한 규칙 자체를 없애기로 결정됨).
+ *
+ * 함수 시그니처(인자/반환 타입)는 유지한다 — 이 함수를 거쳐가는 25곳 이상의
+ * 호출부(wallet/earn, 커뮤니티 글/댓글, 소원 등록/성취, 감사인장, 귀인지도,
+ * 소원방, 마케팅쿠폰(bokju_coupon) 등)를 전혀 수정하지 않고도 "상한 없음"
+ * 상태로 안전하게 전환하기 위함이다. economy_config의 daily_earn_cap_normal/
+ * daily_earn_cap_event 값 및 관리자 설정 화면은 더 이상 실제 지급액에
+ * 영향을 주지 않는다(레거시 설정값으로 남아있을 뿐).
+ *
+ * 되돌리고 싶을 경우, 이 함수 본문을 git 이력에서 복원하면 된다(원본 로직은
+ * git log -p 로 이 주석이 추가되기 직전 커밋에서 확인 가능).
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export async function clipToDailyCap(
-  tx: Tx,
-  userId: number,
+  _tx: Tx,
+  _userId: number,
   requestedAmount: number,
-  sourceType: string
+  _sourceType: string
 ): Promise<{ grantedAmount: number; cap: number; todayTotal: number }> {
-  if (CAP_EXEMPT_SOURCE_TYPES.has(sourceType) || requestedAmount <= 0) {
-    return { grantedAmount: requestedAmount, cap: Infinity, todayTotal: 0 };
-  }
-  const cap = await getDailyEarnCap(tx);
-  const { start, end } = todayRangeKst();
-  const todayEarns = await tx.pointHistory.findMany({
-    where: {
-      userId,
-      type: "earn",
-      createdAt: { gte: start, lt: end },
-      sourceType: { notIn: Array.from(CAP_EXEMPT_SOURCE_TYPES) },
-    },
-    select: { amount: true },
-  });
-  const todayTotal = todayEarns.reduce((sum, h) => sum + h.amount, 0);
-  const remaining = Math.max(0, cap - todayTotal);
-  const grantedAmount = Math.min(requestedAmount, remaining);
-  return { grantedAmount, cap, todayTotal };
+  return { grantedAmount: requestedAmount, cap: Infinity, todayTotal: 0 };
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 /**
  * 복주머니(Wallet/POINT) 적립을 "일일 상한 클리핑"까지 적용해서 실행한다.
