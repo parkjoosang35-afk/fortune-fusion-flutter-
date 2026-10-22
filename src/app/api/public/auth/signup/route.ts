@@ -11,17 +11,26 @@
 // "가입당 정확히 1회"가 구조적으로 보장된다. 재로그인은 이 API를 다시 타지 않으므로
 // 재지급 위험도 없다.
 //
-// [결함-A07-01 수정 — 2026-09-18] 지시서 스펙(회원가입 완료 즉시 "프리패스 1시간 +
+// [결함-A07-01 수정 — 2026-09-18] 지시서 스펙(회원가입 완료 즉시 "프리패스 +
 // 복주머니 100개" 지급)과 실제 동작이 두 가지 지점에서 불일치했다:
 //   ① point_policies(signup_reward).amount=20 vs IntroConfig.signupRewardAmount=100
 //      (관리자 화면에는 "100개 지급"이라고 표시되면서 실제로는 20개만 지급되던 문제)
-//   ② 프리패스 1시간 지급 로직이 이 파일에 전혀 없었음(UserPass 생성 코드 0건)
+//   ② 프리패스 지급 로직이 이 파일에 전혀 없었음(UserPass 생성 코드 0건)
 // ①은 DB 값 정정(point_policies.signup_reward.amount: 20→100)으로, ②는 아래
-// PassPolicy(passType="event", durationMin=60) 조회 + UserPass 발급 로직 신설로
-// 해결한다. sourceType="signup"으로 기록해 광고(ad)/파트너(partner) 등 다른 발급
-// 경로와 구분되도록 한다(claim-ad/route.ts의 UserPass 생성 패턴을 그대로 재사용).
-// 복주머니와 마찬가지로 User row 생성 자체가 "최초 1회"를 구조적으로 보장하므로
-// 별도의 중복 지급 방지 플래그는 두지 않는다.
+// PassPolicy 조회 + UserPass 발급 로직 신설로 해결한다. sourceType="signup"으로
+// 기록해 광고(ad)/파트너(partner) 등 다른 발급 경로와 구분되도록 한다
+// (claim-ad/route.ts의 UserPass 생성 패턴을 그대로 재사용). 복주머니와 마찬가지로
+// User row 생성 자체가 "최초 1회"를 구조적으로 보장하므로 별도의 중복 지급 방지
+// 플래그는 두지 않는다.
+//
+// [2026-10 — 프리패스 시간제 완전 폐지에 따른 수정] 최초 구현 시에는
+// passType="event" + durationMin=60(시간제) 정책을 조회했으나, 프리패스가
+// 횟수제(passType="ad", grantCount != null)로만 운영되도록 정책이 바뀐 뒤에도
+// 이 라우트만 갱신되지 않아 시간제 정책을 계속 찾다가 운영 DB에서 해당 정책의
+// grantCount가 null(레거시 미설정)인 상태와 맞물려 COUNT_POLICY_REQUIRED
+// 예외로 전체 회원가입이 트랜잭션 롤백되는 장애가 있었다. claimCoupangDailyPass()
+// 와 동일한 조회 조건(passType="ad", grantCount != null)으로 수정해 횟수제
+// 정책만 선택하도록 바로잡았다.
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
@@ -100,13 +109,13 @@ export async function POST(request: NextRequest) {
     const signupRewardAmount =
       signupRewardPolicy?.isActive === false ? 0 : signupRewardPolicy?.amount ?? 20;
 
-    // [결함-A07-01 수정] 회원가입 프리패스(1시간) 지급 대상 정책 조회.
-    // passType="event" + durationMin=60인 활성 정책 중 첫 번째를 사용한다(기존
-    // "프리패스 1시간(복주머니 구매)" 정책과 동일 효과를 공유 — 이용자 입장에서는
-    // 발급 경로만 다를 뿐 "1시간 동안 전체 운세 콘텐츠 이용 가능"이라는 동일한
-    // 혜택이므로 별도 전용 정책을 새로 만들지 않고 재사용한다).
+    // [2026-10 — 프리패스 시간제 완전 폐지 반영] 과거에는 passType="event" +
+    // durationMin=60(시간제) 정책을 조회해 지급했으나, 프리패스는 이제 횟수제
+    // (passType="ad", grantCount != null)로만 운영된다 — claimCoupangDailyPass()와
+    // 동일한 조회 조건을 사용해 "횟수제로 전환된 활성 ad 정책"을 찾는다.
+    // 시간제 정책(event/partner, grantCount=null)은 더 이상 선택하지 않는다.
     const signupPassPolicy = await prisma.passPolicy.findFirst({
-      where: { passType: "event", durationMin: 60, isActive: true, deletedAt: null },
+      where: { passType: "ad", isActive: true, deletedAt: null, grantCount: { not: null } },
       orderBy: { id: "asc" },
     });
 
@@ -145,8 +154,11 @@ export async function POST(request: NextRequest) {
         balanceAfter = rewardResult.balanceAfter;
       }
 
-      // [결함-A07-01 수정] 프리패스 1시간 지급. claim-ad/route.ts와 동일한
-      // UserPass 생성 패턴(activatedAt=now, expiresAt=now+durationMin분).
+      // [2026-10 — 프리패스 시간제 완전 폐지 반영] 회원가입 프리패스 지급.
+      // countPassGrantFields()가 grantCount/remainingCount(횟수제 필드)를
+      // 계산해주므로 claim-ad/route.ts, grantOpenPass()와 동일한 패턴으로
+      // UserPass를 생성한다(활성 ad 정책은 위에서 이미 grantCount != null인
+      // 것만 조회했으므로 이 시점엔 항상 횟수제 건이다).
       let expiresAt: Date | null = null;
       if (signupPassPolicy) {
         const grantFields = countPassGrantFields(signupPassPolicy, now);
@@ -158,6 +170,7 @@ export async function POST(request: NextRequest) {
             activatedAt: now,
             ...grantFields,
             sourceType: "signup",
+            grantSource: "EVENT",
           },
         });
         await tx.operationLog.create({
