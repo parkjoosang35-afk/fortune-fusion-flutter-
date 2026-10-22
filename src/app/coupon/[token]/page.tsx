@@ -42,6 +42,9 @@ async function loadCouponByToken(token: string) {
       grantAmount: coupon.campaign.grantAmount,
       guideText: coupon.campaign.guideText,
       validTo: coupon.campaign.validTo,
+      // [2026-10-22, 디자인 핸드오프] 실제 쿠폰 번호 — 초기 서버 렌더에서도
+      // 깜빡임 없이 바로 표시하기 위해 OG 메타 조회 시점에 함께 가져온다.
+      couponNo: coupon.couponNo,
       // [5단계 — 02q §1-4 / 02s 승인] 카카오 캐시버스팅용 경로 세그먼트.
       // 이 쿠폰이 "발행된 시점"에 각인된 디자인 리비전(3단계 designRevisionId)을
       // 그대로 쓴다 — 캠페인의 "지금" 리비전이 아니다(02d §3-2/§3-3 원칙과
@@ -107,7 +110,7 @@ export default async function BokjuCouponLandingPage({ params }: PageProps) {
   const coupon = await loadCouponByToken(token);
 
   return (
-    <div className="min-h-screen bg-[#0E0A14] pb-[76px]">
+    <div className="min-h-screen bg-[#0a0716]">
       <CouponPreviewView
         token={token}
         state={coupon.state === "ok" ? "ok" : coupon.state === "not_found" ? "not_found" : "error"}
@@ -115,6 +118,7 @@ export default async function BokjuCouponLandingPage({ params }: PageProps) {
         grantAmount={coupon.state === "ok" ? coupon.grantAmount : undefined}
         guideText={coupon.state === "ok" ? coupon.guideText : undefined}
         validTo={coupon.state === "ok" ? coupon.validTo.toISOString() : undefined}
+        couponNo={coupon.state === "ok" ? coupon.couponNo : undefined}
       />
     </div>
   );

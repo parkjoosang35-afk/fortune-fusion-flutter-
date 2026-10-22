@@ -71,6 +71,15 @@ export async function GET(request: NextRequest) {
           validTo: coupon.campaign.validTo.toISOString(),
           generalStatus,
           statusMessage,
+          // [2026-10-22, 디자인 핸드오프 반영] 실제 쿠폰 번호 노출.
+          // 이 라우트는 `token`(redeemToken) 하나만 알아도 조회되므로
+          // 토큰 소유자는 이미 이 쿠폰을 "실질적으로 보유"한 상태다
+          // (관리자 쿠폰 목록 API가 couponNo를 마스킹하는 것과는 다른
+          // 맥락 — 거기는 "누가 봐도 되는지" 모르는 불특정 열람이지만,
+          // 여기는 카카오 공유로 "이 쿠폰을 전달받은 바로 그 사람"만
+          // 아는 토큰이 있어야 도달한다). 디자인 목업의 가짜 시리얼
+          // "SAMPLE-0000-0000" 자리를 이 실제 값으로 교체한다.
+          couponNo: coupon.couponNo,
         },
       },
       { headers: CORS_HEADERS }
