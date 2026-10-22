@@ -1,21 +1,25 @@
 // 복주머니 마케팅 쿠폰 등록 링크 — 공개 웹 랜딩페이지.
 //
-// [앱·웹 분리 원칙 — `/w/[token]`·`/g/[token]`·`/r/[id]`와 동일하게 적용]
-// 쿠폰 미리보기(resolve) → 로그인 유도 → 실제 등록(redeem)까지의 전체 흐름은
-// 이미 Flutter 웹앱(`https://sintong.kr/app/`)의 `/coupon/{token}` named
-// route(app_router.dart → BokjuCouponResolveScreen)에 완전히 구현되어
-// 있다(비로그인 시 PendingBokjuCouponStore에 토큰을 저장해두고 로그인
-// 완료 후 자동 복귀하는 것까지 전부 native에서 처리). 이 Next.js 서버에
-// 쿠폰 등록 폼이나 결과 카드를 중복으로 만들지 않는다.
+// [2026-10-22, 콘텐츠 선노출 원칙으로 수정 — 사용자 명시 지적]
+// "카카오톡을 보냈는데 쿠폰이 보여야지, 이 사람들이 들어와서 무슨 내용인지
+// 알아야 회원가입을 해서 쿠폰등록을 할 것 아니야" — 과거에는 마운트 즉시
+// `RedirectToApp`으로 Flutter 앱(BokjuCouponResolveScreen)에 강제 이동시켰고,
+// 그 화면도 로그인 여부부터 확인해 비로그인이면 쿠폰 내용을 전혀 보여주지
+// 않고 바로 로그인 화면으로 보냈다 — 받은 사람이 "이게 뭔지" 전혀 모른 채
+// 회원가입부터 강요당하는 구조였다. `/g/[token]`(귀인지도, 2026-09)·
+// `/w/[token]`(소원방, 2026-11)이 동일한 문제를 "콘텐츠가 먼저 보여야 한다"
+// 원칙으로 해결한 선례를 그대로 따른다: 이 페이지 자체가 쿠폰 내용을 먼저
+// 보여주고(`CouponPreviewView`), "로그인하고 쿠폰 등록하러 가기" 버튼을
+// 눌러야만 비로소 `https://sintong.kr/app/#/coupon/{token}`으로 이동한다.
+// Flutter 쪽 로그인→자동 복귀→등록 흐름(BokjuCouponResolveScreen)은 이미
+// 완성되어 있으므로 전혀 수정하지 않는다 — 이 변경은 "등록 전 내용 확인"
+// 단계만 보강한다.
 //
-// 이 페이지가 서버에서 하는 유일한 일은 카카오톡 등 SNS 크롤러를 위한
-// `generateMetadata()` OG 태그 생성뿐이다(크롤러는 JS를 실행하지 않아
-// Flutter SPA의 동적 내용을 볼 수 없으므로 SSR 메타가 필수). 실제 사람
-// 방문자는 `RedirectToApp`이 즉시 `https://sintong.kr/app/#/coupon/{token}`
-// 으로 보낸다.
+// `generateMetadata()`의 OG 태그 생성(카카오톡 등 SNS 크롤러용)은 기존과
+// 동일하다.
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import { RedirectToApp } from "./redirect-to-app";
+import { CouponPreviewView } from "./coupon-preview-view";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +41,7 @@ async function loadCouponByToken(token: string) {
       campaignTitle: coupon.campaign.title,
       grantAmount: coupon.campaign.grantAmount,
       guideText: coupon.campaign.guideText,
+      validTo: coupon.campaign.validTo,
       // [5단계 — 02q §1-4 / 02s 승인] 카카오 캐시버스팅용 경로 세그먼트.
       // 이 쿠폰이 "발행된 시점"에 각인된 디자인 리비전(3단계 designRevisionId)을
       // 그대로 쓴다 — 캠페인의 "지금" 리비전이 아니다(02d §3-2/§3-3 원칙과
@@ -99,5 +104,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BokjuCouponLandingPage({ params }: PageProps) {
   const { token } = await params;
-  return <RedirectToApp token={token} />;
+  const coupon = await loadCouponByToken(token);
+
+  return (
+    <div className="min-h-screen bg-[#0E0A14] pb-[76px]">
+      <CouponPreviewView
+        token={token}
+        state={coupon.state === "ok" ? "ok" : coupon.state === "not_found" ? "not_found" : "error"}
+        campaignTitle={coupon.state === "ok" ? coupon.campaignTitle : undefined}
+        grantAmount={coupon.state === "ok" ? coupon.grantAmount : undefined}
+        guideText={coupon.state === "ok" ? coupon.guideText : undefined}
+        validTo={coupon.state === "ok" ? coupon.validTo.toISOString() : undefined}
+      />
+    </div>
+  );
 }
