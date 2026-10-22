@@ -57,6 +57,29 @@ export const BIND_SOURCES = [
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
 export type BindSource = (typeof BIND_SOURCES)[number];
 
+/** [마케팅쿠폰 디자인 스튜디오 UX 개선] BIND_SOURCES의 각 값을 관리자 화면에
+ * 표시할 한글 라벨로 매핑한다. 'campaign.title' 같은 개발자용 식별자를 그대로
+ * 드롭다운에 노출하면 관리자가 의미를 알기 어렵고, "자동으로 채워지는 값"이라는
+ * 사실도 전달되지 않아 직접 입력이 안 되는 이유를 알 수 없다 — 이 문제를 신고한
+ * 실사용자 피드백(2026-10-22)에 따른 수정. */
+export const BIND_SOURCE_LABELS: Record<BindSource, string> = {
+  static: "직접 입력(고정 텍스트)",
+  "campaign.title": "쿠폰명 (캠페인 정보에서 자동)",
+  "campaign.grantAmount": "지급 금액 (캠페인 정보에서 자동)",
+  "campaign.guideText": "안내 문구 (캠페인 정보에서 자동)",
+  "campaign.validPeriod": "사용기간 (캠페인 정보에서 자동)",
+  "coupon.couponNo": "쿠폰번호 (쿠폰마다 자동)",
+  "coupon.qr": "QR코드 (쿠폰마다 자동)",
+  "brand.domain": "도메인 주소 (자동, sintong.kr)",
+  "coupon.registerUrl": "쿠폰 등록 링크 (쿠폰마다 자동)",
+  "partner.name": "제휴업체명 (배정 정보에서 자동)",
+};
+
+/** static을 제외한 모든 값 출처는 "자동으로 채워지는 값"이다. */
+export function isAutoFilledBind(bind: BindSource): boolean {
+  return bind !== "static";
+}
+
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, '색상은 #RRGGBB 형식이어야 합니다.');
 /** 테마 토큰 참조 — '@primary' 처럼 쓴다. 팔레트를 바꾸면 이 요소가 따라온다. */
 const tokenRef = z.string().regex(/^@[a-zA-Z]+$/, "토큰은 '@primary' 형식이어야 합니다.");

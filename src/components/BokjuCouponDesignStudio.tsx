@@ -59,6 +59,8 @@ import {
   resolveLayoutTheme,
   CANVAS_PRESETS,
   BIND_SOURCES,
+  BIND_SOURCE_LABELS,
+  isAutoFilledBind,
   type DesignLayout,
   type LayoutElement,
   type LayoutIssue,
@@ -840,11 +842,23 @@ export default function BokjuCouponDesignStudio({ campaignId, canWrite, campaign
                 >
                   {BIND_SOURCES.map((b) => (
                     <option key={b} value={b}>
-                      {b}
+                      {BIND_SOURCE_LABELS[b]}
                     </option>
                   ))}
                 </select>
               </label>
+              {/* [UX 개선 — 실사용자 피드백 2026-10-22] "쿠폰명" 등 캠페인 정보에서
+                  자동으로 채워지는 요소를 선택하면, 왜 텍스트 입력칸이 안 보이는지
+                  바로 아래에 안내한다. 이게 없으면 "글씨가 안 바뀐다"는 오인이
+                  반복된다 — 입력칸 자체가 없는 게 아니라 '값 출처'가 자동 채움으로
+                  설정되어 있을 뿐이라는 것을 명시적으로 알려준다. */}
+              {isAutoFilledBind(selected.bind) && (
+                <div className="rounded border border-sky-300 bg-sky-50 px-2 py-1.5 text-[11px] leading-relaxed text-sky-800">
+                  이 항목은 <strong>{BIND_SOURCE_LABELS[selected.bind]}</strong>으로 설정되어 있어
+                  텍스트 입력칸이 보이지 않습니다. 글자를 직접 입력하려면 위 &apos;값 출처&apos;를
+                  <strong> &apos;직접 입력(고정 텍스트)&apos;</strong>으로 바꾸세요.
+                </div>
+              )}
               <div className="flex gap-2">
                 <label className="flex-1">
                   <span className="text-slate-500">x</span>
