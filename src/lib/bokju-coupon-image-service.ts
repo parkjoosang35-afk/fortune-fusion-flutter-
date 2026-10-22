@@ -616,6 +616,38 @@ async function runImageJob(
     data: { status: "RUNNING", startedAt: new Date() },
   });
 
+  // [실사용자 피드백 2026-10-22 — "모바일쿠폰 100장 다운로드가 안 된다"]
+  // 원인: 이 함수 본문(mkdir/렌더링 루프 등)에서 예외가 던져지면, 호출부는
+  // `.catch()`로 콘솔에만 로그를 남기고 DB의 status는 "RUNNING"에 그대로
+  // 멈춰 있었다 — 화면은 PENDING/RUNNING일 때 재시도·다운로드 버튼을 아예
+  // 숨기고 폴링만 하므로, 관리자 입장에서는 "처리 중..."이 영원히 끝나지
+  // 않는 것으로 보였다(실제 장애 사례: EACCES: permission denied,
+  // mkdir '/var/lib/sintong' — 디스크 경로 권한 문제로 작업 1개가 멈춰
+  // 있었음). 아래 try/catch로 본문 전체를 감싸 "어떤 예외든 반드시
+  // status를 FAILED로 되돌린다"를 보장한다 — 재시도 버튼이 다시 보이게
+  // 하기 위한 최소 수정이다(실패 사유 자체를 고치는 것이 아니라, 실패
+  // 했을 때 화면이 멈추지 않고 사용자가 재시도할 수 있게 하는 것이 목적).
+  try {
+    await runImageJobBody(job, jobId, options, onlyCouponIds);
+  } catch (e) {
+    console.error(`[BokjuCouponImageJob ${jobId}] 처리 중 예외로 작업 실패 처리:`, e);
+    await prisma.bokjuCouponImageJob.update({
+      where: { id: jobId },
+      data: { status: "FAILED", completedAt: new Date() },
+    }).catch((updateErr) => {
+      // 상태 갱신 자체가 실패하는 극단적 경우(DB 접속 끊김 등)에도 적어도
+      // 로그는 남겨 운영자가 수동으로 확인할 수 있게 한다.
+      console.error(`[BokjuCouponImageJob ${jobId}] FAILED 상태 갱신마저 실패:`, updateErr);
+    });
+  }
+}
+
+async function runImageJobBody(
+  job: { campaignId: number; processedCount: number },
+  jobId: number,
+  options: StartImageJobOptions,
+  onlyCouponIds?: number[]
+): Promise<void> {
   const campaign = await prisma.bokjuCouponCampaign.findUnique({ where: { id: job.campaignId } });
   if (!campaign) {
     await prisma.bokjuCouponImageJob.update({ where: { id: jobId }, data: { status: "FAILED" } });
