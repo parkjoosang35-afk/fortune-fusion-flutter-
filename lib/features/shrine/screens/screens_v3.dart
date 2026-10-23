@@ -22,6 +22,7 @@ import '../shrine_module.dart' show shrine, shrinePay, ShrineProduct, kShrineBas
 import '../data/models.dart';
 import '../engine/shrine_engine.dart';
 import '../engine/real_member_repository.dart' show ShrineMemberLinkError;
+import '../engine/shrine_server_repository.dart';
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -395,11 +396,24 @@ class RecommendScreen extends StatefulWidget { const RecommendScreen({super.key}
 class _RecState extends State<RecommendScreen> {
   String? pick;
   @override
-  void initState() { super.initState(); final st = context.read<ShrineSessionProvider>().state; pick = recommend(st.saju).pick ?? st.topic; }
+  void initState() {
+    super.initState();
+    final st = context.read<ShrineSessionProvider>().state;
+    final ta = topicsAllowed(st.saju);
+    // [U12 — 원본 JS 그대로] 추천 > (현재 선택이 허용 목록 안이면 유지) > 오늘의 1순위
+    pick = recommend(st.saju).pick ?? (ta.allowed.contains(st.topic) ? st.topic : ta.today);
+  }
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final rec = recommend(st.saju);
     final recT = rec.pick == null ? null : shrine.topic(rec.pick);
+    // [U12 · 어뷰징 방지 — 사주 근거 없는 주제 잠금] 근거를 준 주제가 하나라도
+    // 있으면 그 목록 밖의 주제는 선택할 수 없다(원본 shrine-screens-d.jsx의
+    // `TA.allowed.length && !TA.allowed.includes(tp.id)` locked 분기와 동일).
+    // allowed가 비어 있으면(엔진이 근거를 전혀 안 준 경우) 기존처럼 전부 연다 —
+    // "근거가 없다고 전부 잠그면 체험 자체가 막힌다"는 엔진 경계 원칙의 반대쪽.
+    final ta = topicsAllowed(st.saju);
+    bool isLocked(String id) => ta.allowed.isNotEmpty && !ta.allowed.contains(id);
     return Scaffold(body: Stack(fit: StackFit.expand, children: [
       ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6), child: const ShrineVideo(name: 'talk', poster: 'talk')),
       const BottomShade(stops: [0, .3, .6, 1], colors: [Color(0x80070404), Color(0x8C070404), Color(0xF2070404), Color(0xF2070404)]),
@@ -420,7 +434,19 @@ class _RecState extends State<RecommendScreen> {
         ] else Text('무엇이 가장 궁금해서\n이곳에 오셨습니까?', style: t.display(17, h: 1.65)),
         const SizedBox(height: 6),
         for (final tp in shrine.topics) Padding(padding: const EdgeInsets.only(bottom: 7), child: Stack(children: [
-          TopicButton(sig: tp.sig, label: tp.id == rec.pick ? '${tp.label}  ·  추천' : tp.label, desc: tp.d, ts: st.ts, onTap: () => setState(() => pick = tp.id)),
+          Opacity(opacity: isLocked(tp.id) ? .45 : 1, child: TopicButton(
+            sig: isLocked(tp.id) ? '封' : tp.sig,
+            label: tp.id == rec.pick ? '${tp.label}  ·  추천' : tp.label,
+            desc: isLocked(tp.id) ? '사주에 근거 없음 · 닫힘' : tp.d,
+            ts: st.ts,
+            onTap: () {
+              if (isLocked(tp.id)) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이 주제는 사주에 근거가 나타나지 않아 열리지 않습니다')));
+                return;
+              }
+              setState(() => pick = tp.id);
+            },
+          )),
           if (pick == tp.id) Positioned.fill(child: IgnorePointer(child: Container(decoration: BoxDecoration(borderRadius: BorderRadius.circular(R.opt), border: Border.all(color: C.redHot), boxShadow: Glow.red(24))))),
         ])),
         const SizedBox(height: 6),
@@ -437,11 +463,59 @@ class _RecState extends State<RecommendScreen> {
 // ═══════════ 義 선택의 의미 → 부적 구성 (/meaning) ═══════════
 class MeaningScreen extends StatefulWidget { const MeaningScreen({super.key}); @override State<MeaningScreen> createState() => _MeaningState(); }
 class _MeaningState extends State<MeaningScreen> {
-  int step = 0; final _ts = <Timer>[];
+  int step = 0; final _ts = <Timer>[]; bool busy = false;
   @override
   void initState() { super.initState(); final r = context.read<ShrineSessionProvider>().state.reduce;
     for (final (i, ms) in [600, 1700, 2900].indexed) { _ts.add(Timer(Duration(milliseconds: r ? 100 * (i + 1) : ms), () => mounted ? setState(() => step = i + 1) : null)); } }
   @override void dispose() { for (final x in _ts) { x.cancel(); } super.dispose(); }
+
+  /// [U12 어뷰징 방지 — Step 3] "월화에게 부적을 부탁하기"를 누르는 순간
+  /// admin_web /api/public/shrine/can-issue 로 서버 재검증한다(원본 JS
+  /// MeaningScreen의 `gate = ENG.canIssue(d, src.story)` 그대로 포팅,
+  /// 다만 ledger가 로컬 localStorage가 아니라 서버 ShrineIssueLedger임).
+  /// ok=false일 때 사유별 분기도 원본과 동일: 이미 발급됨 → 부적함으로,
+  /// 그 외 사유 → 안내 후 머무름. 실제 최종 기록(recordIssue)은
+  /// ReceiveScreen "부적 간직하기"에서 한 번 더 일어난다(이중 재검증).
+  Future<void> _go(StorySource src, Pending pending) async {
+    if (busy) return;
+    setState(() => busy = true);
+    final st = context.read<ShrineSessionProvider>().state;
+    final fp = sajuFingerprint(st.saju);
+    final result = await context.read<ShrineServerRepository>().canIssue(
+      sajuFp: fp,
+      storyId: src.story,
+    );
+    if (!mounted) return;
+    setState(() => busy = false);
+
+    if (!result.success) {
+      // [네트워크/인증 레벨 실패] UNAUTHORIZED면 회원 연결이 끊긴 것이므로
+      // ConnectScreen으로 보낸다(원본 JS의 `gate.trial` 분기와 동일 취지).
+      if (result.errorCode == 'UNAUTHORIZED') {
+        ShrineNav.go(context, 'connect');
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.errorMessage ?? '확인 중 문제가 발생했습니다.')),
+      );
+      return;
+    }
+
+    final gate = result.data!;
+    if (!gate.ok) {
+      if (gate.code == 'ALREADY_ISSUED') {
+        ShrineNav.go(context, 'box');
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(gate.reason ?? '지금은 부적을 받을 수 없습니다.')),
+      );
+      return;
+    }
+
+    context.read<ShrineSessionProvider>().update((s) => s.copy(pending: pending));
+    ShrineNav.go(context, 'ritual');
+  }
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final src = st.meaningSrc!;
@@ -482,9 +556,8 @@ class _MeaningState extends State<MeaningScreen> {
               Text(spec.designId, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),
             ])),
           ]))),
-        Opacity(opacity: step >= 3 ? 1 : .4, child: RedButton('월화에게 부적을 부탁하기', ts: st.ts, onTap: step < 3 ? null : () {
-          context.read<ShrineSessionProvider>().update((s) => s.copy(pending: Pending(spec, StorySource(src.story, src.ending), flav.id, isMain ? '$kShrineBase/result/${src.ending}' : '$kShrineBase/list')));
-          ShrineNav.go(context, 'ritual');
+        Opacity(opacity: step >= 3 && !busy ? 1 : .4, child: RedButton('월화에게 부적을 부탁하기', ts: st.ts, onTap: step < 3 || busy ? null : () {
+          _go(src, Pending(spec, StorySource(src.story, src.ending), flav.id, isMain ? '$kShrineBase/result/${src.ending}' : '$kShrineBase/list'));
         })),
       ]))),
       _top(context, back: () => isMain ? ShrineNav.go(context, 'end', params: {'code': src.ending}) : ShrineNav.go(context, 'tale-end', params: {'id': src.story, 'code': src.ending})),
@@ -498,8 +571,62 @@ class _MeaningState extends State<MeaningScreen> {
 enum RPh { give, unroll, name, keep, use }
 class ReceiveScreen extends StatefulWidget { const ReceiveScreen({super.key}); @override State<ReceiveScreen> createState() => _ReceiveState(); }
 class _ReceiveState extends State<ReceiveScreen> {
-  RPh ph = RPh.give; String mode = 'full'; BoxItem? item; bool dup = false;
+  RPh ph = RPh.give; String mode = 'full'; BoxItem? item; bool dup = false; bool keeping = false;
   void _go(RPh p) { setState(() => ph = p); if (p == RPh.unroll) Future.delayed(Duration(milliseconds: context.read<ShrineSessionProvider>().state.reduce ? 300 : 2600), () => mounted && ph == RPh.unroll ? _go(RPh.name) : null); }
+
+  /// [U12 어뷰징 방지 — Step 3] "부적 간직하기" 버튼의 최종 발급 기록.
+  /// 로컬 부적함(box)에 이미 같은 key가 있으면(같은 유형·성향·이야기·결말
+  /// 조합을 다시 펼치는 경우) 서버 호출 없이 바로 재열람시킨다 — 원본 JS
+  /// issueTalisman()의 `box.find(b => b.key === spec.key)` 즉시 재열람과
+  /// 동일. 새 발급일 때만 admin_web /api/public/shrine/record-issue 를
+  /// 호출해 서버 원장에 먼저 기록한 뒤, 성공한 경우에만 로컬
+  /// ShrineSessionProvider.issue()로 부적함에 추가한다(서버가 정본,
+  /// 로컬은 그 결과를 반영만 한다).
+  Future<void> _keep(Pending p, SajuResult? saju) async {
+    if (keeping) return;
+    final already = context.read<ShrineSessionProvider>().state.box.any((b) => b.key == p.spec.key);
+    if (already) {
+      final r = context.read<ShrineSessionProvider>().issue(p, mode);
+      setState(() { item = r.item; dup = r.dup; });
+      _go(RPh.keep);
+      return;
+    }
+    setState(() => keeping = true);
+    final fp = sajuFingerprint(saju);
+    if (fp == null) {
+      // MeaningScreen의 canIssue 게이트를 통과했다면 보통 일어나지 않지만,
+      // 사주 데이터가 세션 중간에 사라진 경계 케이스를 방어한다 —
+      // 지어내지 않는다: fp 없이 서버를 호출하지 않고 명확히 실패 처리.
+      setState(() => keeping = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('정통사주 정보가 없어 부적을 기록할 수 없습니다.')),
+      );
+      return;
+    }
+    final result = await context.read<ShrineServerRepository>().recordIssue(
+      sajuFp: fp,
+      storyId: p.source.story,
+      composeKey: p.spec.key,
+    );
+    if (!mounted) return;
+    setState(() => keeping = false);
+    if (!result.success) {
+      // [서버 재검증 — 경쟁 상태] 동시에 두 번 눌렸거나 다른 기기에서
+      // 이미 발급된 경우 서버가 ALREADY_ISSUED로 막는다 — 부적함으로 안내.
+      if (result.errorCode == 'ALREADY_ISSUED') {
+        ShrineNav.go(context, 'box');
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.errorMessage ?? '부적 발급 기록에 실패했습니다.')),
+      );
+      return;
+    }
+    final r = context.read<ShrineSessionProvider>().issue(p, mode);
+    setState(() { item = r.item; dup = r.dup; });
+    _go(RPh.keep);
+  }
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final p = st.pending!; final sp = p.spec;
@@ -541,7 +668,7 @@ class _ReceiveState extends State<ReceiveScreen> {
                 Text(m.$3, style: m.$1 == 'hidden' ? t.display(16, c: C.redHot) : T(1).logo.copyWith(fontSize: 20, color: C.redHot, height: 1)),
               ]))),
           Text('공유 이미지에는 생년월일이 들어가지 않습니다.', style: t.ui(11, c: C.faint)), const SizedBox(height: 10),
-          RedButton('부적 간직하기', ts: st.ts, onTap: () { final r = context.read<ShrineSessionProvider>().issue(p, mode); setState(() { item = r.item; dup = r.dup; }); _go(RPh.keep); }),
+          Opacity(opacity: keeping ? .6 : 1, child: RedButton(keeping ? '기록하는 중…' : '부적 간직하기', ts: st.ts, onTap: keeping ? null : () => _keep(p, st.saju))),
         ]),
         RPh.keep => Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
           BjOneBadge(name: shown, spec: sp, serial: serial, compact: true), const SizedBox(height: 10),

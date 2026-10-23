@@ -102,6 +102,37 @@ class SampleSajuRepository implements SajuRepository {
   }
 }
 
+// ═══════════ U12 · 어뷰징 방지 · 사주 기반 개인화 ═══════════
+// [포팅 원본] /tmp/shrine_v3/merged/prototype/shrine-engine.js의
+// fingerprint()/topicsAllowed()를 Dart로 1:1 포팅한다(순수 함수,
+// 네트워크 없음). 발급 가능 여부(canIssue)/발급 기록(recordIssue)/
+// 서명(sign)은 서버(admin_web)가 정본이므로 ShrineServerRepository에서
+// HTTP로 호출한다 — 원본 JS 주석 그대로: "SECRET·원장·서명은 반드시 서버".
+//
+// 원칙 ③ 부적 = 사주 지문 × 주제 × 이야기 × 선택의 길 × 결말 조합.
+// 같은 사람 = 같은 부적, 다른 사람 = 다른 부적 — 지문은 사주 네 기둥
+// (년/월/일/시)만으로 계산하고, 로그인 사용자 식별은 별개로
+// RealMemberRepository.memberId(실제 userId)가 담당한다.
+String? sajuFingerprint(SajuResult? saju) {
+  if (saju == null) return null;
+  final p = saju.pillars;
+  final year = p['year'], month = p['month'], day = p['day'];
+  if (year == null || month == null || day == null) return null;
+  final key = [year, month, day, p['hour'] ?? '-'].join('|');
+  final h = fnv(key) % 1679616; // 36^4
+  return h.toRadixString(36).toUpperCase().padLeft(4, '0');
+}
+
+/// 사주가 근거(note)를 준 주제만 허용한다 — 근거 없는 주제는 잠금.
+/// [엔진 경계 원칙] 지어내지 않는다: note가 없는 주제는 추천 후보에서도 제외.
+({List<String> allowed, String? today}) topicsAllowed(SajuResult? saju) {
+  if (saju == null || saju.topics.isEmpty) return (allowed: const [], today: null);
+  final r = saju.topics.entries.where((e) => e.value.note != null).toList()
+    ..sort((a, b) => b.value.score.compareTo(a.value.score));
+  final allowed = r.map((e) => e.key).toList();
+  return (allowed: allowed, today: allowed.isEmpty ? null : allowed.first);
+}
+
 // ═══════════ 주제 추천 — 근거가 있는 주제만 ═══════════
 class Recommendation { final String? pick; final String? reason; final List<MapEntry<String, TopicReading>> ranked;
   const Recommendation(this.pick, this.reason, this.ranked); }

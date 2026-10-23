@@ -109,6 +109,7 @@ import 'features/shrine/application/shrine_payment_gateway.dart';
 import 'features/shrine/engine/shrine_engine.dart';
 import 'features/shrine/engine/real_saju_repository.dart';
 import 'features/shrine/engine/real_member_repository.dart';
+import 'features/shrine/engine/shrine_server_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -202,6 +203,14 @@ class App extends StatelessWidget {
           create: (context) => RealMemberRepository(context.read<AuthProvider>()),
         ),
         Provider<SajuRepository>(create: (_) => RealSajuRepository()),
+        // [U12 어뷰징 방지 — Step 3] admin_web ShrineIssueLedger API
+        // (can-issue/record-issue/sign/verify-share) 호출 전용. UI 상태를
+        // 갖지 않는 순수 HTTP Repository이므로 ChangeNotifier가 아닌
+        // 단순 Provider로 등록한다(PouchBoxRepository와 달리 Repository
+        // 자체를 Provider 래퍼 없이 직접 context.read<...>()로 꺼내 쓴다).
+        Provider<ShrineServerRepository>(
+          create: (_) => ShrineServerRepository(),
+        ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
         ),
