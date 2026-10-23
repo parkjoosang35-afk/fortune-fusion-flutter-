@@ -107,6 +107,7 @@ import 'features/shrine/shrine_module.dart';
 import 'features/shrine/state/shrine_session_provider.dart';
 import 'features/shrine/application/shrine_payment_gateway.dart';
 import 'features/shrine/engine/shrine_engine.dart';
+import 'features/shrine/engine/real_saju_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -185,13 +186,16 @@ class App extends StatelessWidget {
         // 전파되어 async 함수가 중간에 끊기고 `busy` 플래그가 되돌아오지
         // 않아 "신당의 명부를 펼치는 중…" 버튼이 영원히 멈춰 다음 화면으로
         // 전혀 넘어가지 않았다.
-        // [실제 신통방통 API 연동 전] shrine_engine.dart의 Sample*Repository는
-        // 화면에 "SAMPLE" 배지를 명시적으로 띄우는 의도된 임시 구현체다
-        // (엔진 연동 전 시연용 — shrine_engine.dart 상단 주석 참고). 실제
-        // 신통방통 회원/정통사주 API 연동 시 이 두 줄의 구현체만 교체하면
-        // 된다.
+        // [신당 정통사주 연동 — 후보 A 확정] 회원 연결은 신통방통 OAuth
+        // 연동 전까지 SampleMemberRepository를 유지한다(명부 데이터는
+        // 여전히 예시). 정통사주 풀이는 서버 saju-renewal API가 아니라
+        // 신통방통이 이미 보유한 로컬 PHASE1~4 만세력 엔진
+        // (JeontongReportBuilder + SajuInterpreter)을 그대로 호출하는
+        // RealSajuRepository로 교체한다 — 새 계산 로직 없음, 화면에
+        // 뜨던 "SAMPLE" 배지도 이제 source가 'STB_SAJU_ENGINE'이 되어
+        // 자동으로 사라진다(screens_v3.dart SajuScreen 기존 분기).
         Provider<MemberRepository>(create: (_) => SampleMemberRepository()),
-        Provider<SajuRepository>(create: (_) => SampleSajuRepository()),
+        Provider<SajuRepository>(create: (_) => RealSajuRepository()),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
         ),
