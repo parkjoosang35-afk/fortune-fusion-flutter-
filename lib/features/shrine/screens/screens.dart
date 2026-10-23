@@ -2474,6 +2474,16 @@ class ResultScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
+                              if (myT != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: BjOneBadge(
+                                    name: nameShown(name, myT.mode),
+                                    spec: myT.spec,
+                                    serial: '神堂 · ${myT.no}',
+                                    onScroll: true,
+                                  ),
+                                ),
                               if (path.isNotEmpty)
                                 Container(
                                   width: double.infinity,

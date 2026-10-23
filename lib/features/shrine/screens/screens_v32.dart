@@ -107,6 +107,8 @@ class _TMState extends State<_TalisManual> {
             Text(sp.name, style: t.display(24, w: FontWeight.w900, h: 1.2)),
             Text.rich(TextSpan(children: [TextSpan(text: '${sp.phrase}  ', style: t.display(15, w: FontWeight.w900, c: C.redHot).copyWith(letterSpacing: 4)), TextSpan(text: sp.phraseMeaning, style: t.body(13, c: C.muted))])),
             if (fl != null) Text('${fl['k']} ${fl['label']}에서 나온 부적', style: t.ui(11.5, c: C.faint)),
+            const SizedBox(height: 8),
+            BjOneBadge(name: name, spec: sp, serial: widget.item != null ? '神堂 · ${widget.item!.no}' : null, compact: true),
           ])),
           IconButton(onPressed: () => Navigator.pop(context), icon: const Text('✕', style: TextStyle(color: C.fg))),
         ]),

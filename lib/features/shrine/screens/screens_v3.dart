@@ -493,6 +493,7 @@ class _ReceiveState extends State<ReceiveScreen> {
           Text(sp.head, style: t.display(26, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 10)), const SizedBox(height: 10),
           Text('${sp.phrase.characters.join(' ')} · ${sp.phraseMeaning}', style: t.body(13, c: C.muted))]),
         RPh.name => Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+          BjOneBadge(name: shown, spec: sp, serial: serial, compact: true), const SizedBox(height: 12),
           Text('名 · 이름을 어떻게 남기시겠습니까', style: t.mono.copyWith(color: C.gold)), const SizedBox(height: 8),
           for (final m in [('full', '이름 전부', st.name ?? '—'), ('initial', '첫 글자만', nameShown(st.name, 'initial')), ('hidden', '적지 않음', '持者不記')])
             GestureDetector(onTap: () => setState(() => mode = m.$1), child: Container(margin: const EdgeInsets.only(bottom: 7), height: 46, padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -507,6 +508,7 @@ class _ReceiveState extends State<ReceiveScreen> {
           RedButton('부적 간직하기', ts: st.ts, onTap: () { final r = context.read<ShrineSessionProvider>().issue(p, mode); setState(() { item = r.item; dup = r.dup; }); _go(RPh.keep); }),
         ]),
         RPh.keep => Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+          BjOneBadge(name: shown, spec: sp, serial: serial, compact: true), const SizedBox(height: 10),
           Text('持 · ${dup ? '이미 간직한 부적' : '부적함에 담았습니다'}', style: t.mono.copyWith(color: C.gold)), const SizedBox(height: 6),
           Text('${st.name != null ? '${st.name}님의 ' : ''}${sp.name} · ${sp.phrase}', style: t.display(21, h: 1.4)),
           Text('${sp.phraseMeaning}. ${copy['line']}', style: t.body(14, c: C.muted)),
