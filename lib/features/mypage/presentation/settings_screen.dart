@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -191,6 +192,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // BirthInputScreen을 isEditMode=true로 열면 기존 저장값이
                   // 전부 프리필되고, 저장 후에는 03(계산중)으로 보내지 않고
                   // 이 화면으로 되돌아온다.
+                  // [신당(THE SHRINE) U12 어뷰징 방지 — 실명 필드] 신당
+                  // 부적에 새길 실명을 등록/수정하는 메뉴. 닉네임과는 별개
+                  // 필드이며(사용자 확정: "실명으로 해야해"), 신당
+                  // ConnectScreen이 이 값이 비어있으면 등록을 안내한다.
+                  if (isLoggedIn)
+                    _PolicyLinkRow(
+                      icon: Icons.badge_outlined,
+                      title: '실명 등록/수정',
+                      subtitle: () {
+                        final realName =
+                            context.watch<AuthProvider>().currentUser?.realName;
+                        return (realName == null || realName.trim().isEmpty)
+                            ? '미등록 — 신당 부적 발급 전 등록이 필요해요'
+                            : realName;
+                      }(),
+                      onTap: () => _editRealName(context),
+                      useExternalIcon: false,
+                    ),
                   if (isLoggedIn)
                     _PolicyLinkRow(
                       icon: Icons.cake_outlined,
@@ -440,7 +459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     ),
-    );;
+    );
   }
 
   /// [애드몹 테스트 연동] "테스트 리워드 광고 보기" 버튼 탭 핸들러.
@@ -457,6 +476,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// [6-7-4-B-4] admin_web 공개 페이지(이용약관/개인정보처리방침/계정삭제 안내)를
   /// 외부 브라우저로 연다.
+  /// [신당(THE SHRINE) U12 어뷰징 방지 — 실명 필드] 신당 부적에 새길 실명을
+  /// 입력받아 서버(AuthProvider.updateProfile)에 저장한다. 닉네임과 별개
+  /// 필드이며(사용자 확정: "실명으로 해야해"), 한 번만 입력하면 신당이
+  /// 이후 자동으로 가져다 쓴다 — 신당 쓸 때마다 다시 묻지 않는다.
+  Future<void> _editRealName(BuildContext context) async {
+    final auth = context.read<AuthProvider>();
+    final controller = TextEditingController(
+      text: auth.currentUser?.realName ?? '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: UnifiedColors.bg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+        ),
+        title: Text('실명 등록', style: UnifiedText.title()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '신당(THE SHRINE)에서 발급하는 부적에 새길 이름입니다.\n'
+              '닉네임과는 별도로 실명을 입력해 주세요.',
+              style: UnifiedText.caption(),
+            ),
+            const SizedBox(height: UnifiedTokens.spaceMd),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: '예) 홍길동',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('취소', style: UnifiedText.bodyStrong()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: Text('저장', style: UnifiedText.bodyStrong()),
+          ),
+        ],
+      ),
+    );
+    if (result == null || !context.mounted) return;
+    if (result.isEmpty) {
+      AppToast.show(context, '실명을 입력해 주세요.', isError: true);
+      return;
+    }
+    final ok = await auth.updateProfile(realName: result);
+    if (!context.mounted) return;
+    if (ok) {
+      AppToast.show(context, '실명이 저장되었습니다.');
+    } else {
+      AppToast.show(
+        context,
+        auth.lastProfileUpdateError ?? '실명 저장에 실패했습니다.',
+        isError: true,
+      );
+    }
+  }
+
   Future<void> _openPolicyLink(BuildContext context, String path) async {
     final uri = Uri.tryParse('${EnvConfig.adminApiBaseUrl}$path');
     if (uri == null) return;
@@ -540,6 +632,7 @@ class _PolicyLinkRow extends StatelessWidget {
     // 앱 내부 화면(출생정보 수정)으로 이동하는지에 따라 우측 아이콘을
     // 바꾼다 — 외부면 open_in_new, 내부면 일반 chevron.
     this.useExternalIcon = true,
+    this.subtitle,
   });
 
   final IconData icon;
@@ -547,6 +640,8 @@ class _PolicyLinkRow extends StatelessWidget {
   final VoidCallback onTap;
   final bool showDivider;
   final bool useExternalIcon;
+  // [신당 U12 — 실명 등록/수정 행] 현재 값을 제목 아래에 표시(미등록이면 null → 안내 문구).
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -572,7 +667,20 @@ class _PolicyLinkRow extends StatelessWidget {
               size: UnifiedTokens.iconLg,
             ),
             const SizedBox(width: UnifiedTokens.spaceMd),
-            Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title, style: UnifiedText.bodyStrong()),
+                  if (subtitle != null && subtitle!.trim().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(subtitle!, style: UnifiedText.caption()),
+                    ),
+                ],
+              ),
+            ),
             Icon(
               useExternalIcon
                   ? Icons.open_in_new_rounded

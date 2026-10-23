@@ -21,6 +21,7 @@ import 'package:gal/gal.dart';
 import '../shrine_module.dart' show shrine, shrinePay, ShrineProduct, kShrineBase;
 import '../data/models.dart';
 import '../engine/shrine_engine.dart';
+import '../engine/real_member_repository.dart' show ShrineMemberLinkError;
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -91,12 +92,47 @@ class _ConnectState extends State<ConnectScreen> {
     final waitMs = st.reduce ? 400 : stepMs * (order.length + 1) + 500;
     await Future.delayed(Duration(milliseconds: waitMs));
     if (!mounted) return;
-    final m = await context.read<MemberRepository>().link(scope: order.toSet());
+    // [신당 실제 로그인 연동 — 후보 B] RealMemberRepository가 미로그인/
+    // 실명 미등록 시 ShrineMemberLinkError를 던진다. 이 화면은 "신당의
+    // 명부를 펼치는 중…" 버튼이 영원히 멈추지 않도록 반드시 처리해야 한다
+    // (app.dart Provider 등록 버그 수정 주석과 동일한 교훈).
+    final MemberProfile m;
+    try {
+      m = await context.read<MemberRepository>().link(scope: order.toSet());
+    } on ShrineMemberLinkError catch (e) {
+      if (!mounted) return;
+      setState(() { busy = false; moved = 0; });
+      await _showLinkError(e);
+      return;
+    }
     final season = m.birth == null ? null : seasonOf(int.parse(m.birth!.substring(5, 7)));
     context.read<ShrineSessionProvider>().update((s) => s.copy(memberId: m.memberId, memberScope: order,
       name: m.name, birth: m.birth, time: m.time ?? '모름', season: season, visits: s.visits + 1));
     if (!mounted) return;
     ShrineNav.go(context, m.name == null || m.birth == null ? 'info' : 'talk');
+  }
+
+  /// 로그인 필요/실명 미등록 사유를 안내하고, 해당 화면(로그인/설정)으로
+  /// 이동할지 묻는다. 신당 자체 Navigator(ShrineNav)가 아니라 신통방통
+  /// 메인 Navigator(pushNamed)로 이동한다 — 신당 밖의 화면이기 때문.
+  Future<void> _showLinkError(ShrineMemberLinkError e) async {
+    final goTo = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(e.code == 'NOT_LOGGED_IN' ? '로그인이 필요합니다' : '실명 등록이 필요합니다'),
+        content: Text(e.message),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(e.code == 'NOT_LOGGED_IN' ? '/login' : '/my/settings'),
+            child: Text(e.code == 'NOT_LOGGED_IN' ? '로그인하기' : '설정으로 이동'),
+          ),
+        ],
+      ),
+    );
+    if (goTo != null && mounted) {
+      Navigator.of(context).pushNamed(goTo);
+    }
   }
 
   @override

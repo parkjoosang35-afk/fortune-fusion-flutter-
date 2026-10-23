@@ -259,6 +259,7 @@ class AuthRepository {
             },
             body: jsonEncode({
               'nickname': updated.nickname,
+              'real_name': updated.realName,
               'birth_date': updated.birthDate,
               'birth_time': updated.birthTime,
               'is_lunar': updated.isLunar,

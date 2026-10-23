@@ -14,6 +14,12 @@ class UserModel {
   final String id;
   final String nickname;
   final String? email;
+  // [신당(THE SHRINE) U12 어뷰징 방지 — 실명 필드] 닉네임과 별개의 실명.
+  // 신통방통은 가입 시 닉네임만 받고 실명을 받지 않았으므로(사용자 확정:
+  // "실명으로 해야해"), 이 필드는 마이페이지에서 추가로 1회 입력받으면만
+  // 채워진다(기존 회원은 null). 신당 ConnectScreen이 이 값이 없으면 "실명
+  // 등록 필요" 안내로 분기한다.
+  final String? realName;
   final String? birthDate; // YYYY-MM-DD
   final String? birthTime; // HH:mm, nullable
   final bool isLunar;
@@ -31,6 +37,7 @@ class UserModel {
     required this.id,
     required this.nickname,
     this.email,
+    this.realName,
     this.birthDate,
     this.birthTime,
     this.isLunar = false,
@@ -45,6 +52,7 @@ class UserModel {
   UserModel copyWith({
     String? nickname,
     String? email,
+    String? realName,
     String? birthDate,
     String? birthTime,
     bool? isLunar,
@@ -58,6 +66,7 @@ class UserModel {
       id: id,
       nickname: nickname ?? this.nickname,
       email: email ?? this.email,
+      realName: realName ?? this.realName,
       birthDate: birthDate ?? this.birthDate,
       birthTime: birthTime ?? this.birthTime,
       isLunar: isLunar ?? this.isLunar,
@@ -74,6 +83,7 @@ class UserModel {
     'id': id,
     'nickname': nickname,
     'email': email,
+    'real_name': realName,
     'birth_date': birthDate,
     'birth_time': birthTime,
     'is_lunar': isLunar,
@@ -89,6 +99,7 @@ class UserModel {
     id: json['id'] as String,
     nickname: json['nickname'] as String,
     email: json['email'] as String?,
+    realName: json['real_name'] as String?,
     birthDate: json['birth_date'] as String?,
     birthTime: json['birth_time'] as String?,
     isLunar: json['is_lunar'] as bool? ?? false,

@@ -201,6 +201,7 @@ class AuthProvider extends ChangeNotifier {
     String? birthPlace,
     String? gender,
     String? nickname,
+    String? realName,
   }) async {
     final user = currentUser;
     if (user == null) {
@@ -225,6 +226,7 @@ class AuthProvider extends ChangeNotifier {
       birthPlace: birthPlace,
       gender: gender,
       nickname: nickname,
+      realName: realName,
     );
     final result = await _repository.updateProfile(updated);
     if (result.success && result.data != null) {
