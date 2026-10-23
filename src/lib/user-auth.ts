@@ -81,6 +81,7 @@ export function toUserDto(user: {
   grade: { code: string } | null;
   welcomeGiftClaimed?: boolean;
   profile: {
+    realName: string | null;
     birthDate: string | null;
     birthTime: string | null;
     isLunar: boolean;
@@ -93,6 +94,9 @@ export function toUserDto(user: {
     id: String(user.id),
     nickname: user.nickname,
     email: user.email,
+    // [신당 U12 — 실명 필드] 신당 부적에 새길 실명. 미입력 회원은 null —
+    // 신당 ConnectScreen이 이 값을 보고 "실명 등록 필요" 안내로 분기한다.
+    real_name: user.profile?.realName ?? null,
     birth_date: user.profile?.birthDate ?? null,
     birth_time: user.profile?.birthTime ?? null,
     is_lunar: user.profile?.isLunar ?? false,

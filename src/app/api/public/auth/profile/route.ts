@@ -26,6 +26,8 @@ export async function PATCH(request: NextRequest) {
 
   let body: {
     nickname?: string;
+    // [신당 U12 — 실명 필드] 신당 부적에 새길 실명(닉네임과 별개).
+    real_name?: string | null;
     birth_date?: string | null;
     birth_time?: string | null;
     is_lunar?: boolean;
@@ -108,6 +110,7 @@ export async function PATCH(request: NextRequest) {
         profile: {
           upsert: {
             create: {
+              realName: body.real_name?.trim() || null,
               birthDate: body.birth_date ?? null,
               birthTime: body.birth_time ?? null,
               isLunar: body.is_lunar ?? false,
@@ -116,6 +119,7 @@ export async function PATCH(request: NextRequest) {
               birthPlace: body.birth_place ?? null,
             },
             update: {
+              ...(body.real_name !== undefined ? { realName: body.real_name?.trim() || null } : {}),
               ...(body.birth_date !== undefined ? { birthDate: body.birth_date } : {}),
               ...(body.birth_time !== undefined ? { birthTime: body.birth_time } : {}),
               ...(body.is_lunar !== undefined ? { isLunar: body.is_lunar } : {}),

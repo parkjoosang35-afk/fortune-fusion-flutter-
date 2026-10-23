@@ -208,6 +208,7 @@ model User {
   openPassAdRewardLogs          OpenPassAdRewardLog[]
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
+  shrineIssueLedgers             ShrineIssueLedger[]
   // [행운상자 - 복주머니 탭 신규 기능]
   pouchBoxOpenLogs              PouchBoxOpenLog[]
   // [복주머니 확장 Phase02-A]
@@ -253,6 +254,13 @@ model User {
 model UserProfile {
   id               Int       @id @default(autoincrement())
   userId           Int       @unique @map("user_id")
+  // [신당(THE SHRINE) U12 어뷰징 방지 — 2026 신당 서버연동 지시서] 신통방통은
+  // 가입 시 닉네임만 받고 실명 필드가 없었다. 신당 부적에 새길 "이름"은
+  // 반드시 실명이어야 한다는 사용자 확정에 따라 신규 추가한다(기존
+  // nickname과는 별개 — nickname은 그대로 커뮤니티 표시용으로 유지).
+  // 기존 회원은 전부 null이며, 마이페이지에서 1회 입력하면 채워진다
+  // (소급 강제 입력 요구 없음 — 신당 진입 시에만 안내).
+  realName         String?   @map("real_name")
   birthDate        String?   @map("birth_date") // 민감정보(암호화 대상), 로컬 개발단계에서는 평문 문자열로 보관
   birthTime        String?   @map("birth_time")
   isLunar          Boolean   @default(false) @map("is_lunar")
@@ -4927,4 +4935,33 @@ model FunnelEvent {
   @@index([eventName, createdAt])
   @@index([mapToken])
   @@map("funnel_events")
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 신당(THE SHRINE) U12 어뷰징 방지 — 발급 원장 (2026 신당 서버연동 지시서)
+// ══════════════════════════════════════════════════════════════════
+// [설계 원칙] 신당 JS 프로토타입(shrine-engine.js)의 ledger/RULES/canIssue/
+// recordIssue를 서버로 포팅한다. 클라이언트(SharedPreferences/localStorage)
+// 원장은 기기 초기화·재설치로 쉽게 우회되므로, "정본"은 반드시 이 테이블이다.
+// RULES: perStory=1(이야기 1편당 부적 1장), perDay=2(하루 2장 상한, KST 자정 기준).
+model ShrineIssueLedger {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  // 사주 지문(SajuResult.pillars 기반 해시) — 같은 회원이라도 사주 자체가
+  // 없으면(연결 전) 발급 불가이므로 이 값은 항상 non-null로 기록된다.
+  sajuFp      String   @map("saju_fp")
+  storyId     String   @map("story_id") // 이야기 1편 식별자(재발급 방지 단위)
+  composeKey  String   @map("compose_key") // fp|type|flavor|story|ending 조합(복제 방지)
+  serial      String   @unique // "SHR-xxxxxxxx" 발급 일련번호(부적에 노출)
+  // [일일 한도 집계] KST 기준 'YYYY-MM-DD' 문자열. DateTime 범위 쿼리 대신
+  // 문자열 equality로 단순하게 집계해 타임존 버그를 피한다.
+  issuedDate  String   @map("issued_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  // perStory=1 재발급 방지: 같은 회원+같은 이야기는 1건만 존재해야 한다.
+  @@unique([userId, storyId])
+  @@index([userId, issuedDate])
+  @@map("shrine_issue_ledgers")
 }
