@@ -92,6 +92,16 @@ void showSettingsSheet(BuildContext context) {
                   () => provider.update((s) => s.copy(reduce: !s.reduce)),
                 ),
               ),
+              // [U8-4 포팅] 진동 — 원본 shrine-app.jsx
+              // <Sw on={app.haptic} k={() => app.setPref({ haptic: !app.haptic })} label="진동" />
+              row(
+                '진동',
+                '선택·인장·클라이맥스 등에 가볍게 울림',
+                sw(
+                  st.haptic,
+                  () => provider.update((s) => s.copy(haptic: !s.haptic)),
+                ),
+              ),
               row(
                 '클라이맥스 제한 시간',
                 '향이 다 타기 전에 선택',

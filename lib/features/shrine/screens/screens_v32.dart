@@ -21,6 +21,7 @@ import '../shrine_module.dart' show shrine;
 import '../widgets/life_panel.dart' show LifePanel;
 import '../engine/life_system.dart' show kLifeState;
 import 'seal_screen.dart' show showSealToWishRoomSheet;
+import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel;
 
 // ※ 00 신통방통 소원방 홈 목업(StbHomeScreen)은 삭제 — 실제 신통방통 앱의 홈·하단바를 그대로 쓰고,
 //   하단바의 「신당 부적」 탭이 이 모듈의 진입점(ShrineTab)이다. integration/ 참고.
@@ -30,13 +31,33 @@ import 'seal_screen.dart' show showSealToWishRoomSheet;
 class DoorScreenV32 extends StatefulWidget { const DoorScreenV32({super.key}); @override State<DoorScreenV32> createState() => _DoorV32State(); }
 class _DoorV32State extends State<DoorScreenV32> with TickerProviderStateMixin {
   int ph = 0; final _ts = <Timer>[];
+  // [U8-4 포팅] 재방문 문 짧게 — provider는 initState에서 캡처해 dispose 이후에도
+  // (context 없이) update() 호출에 안전하게 쓸 수 있도록 한다(원본
+  // shrine-screens-e.jsx: `app.set({ doorSeen: true })`가 타이머 콜백 안에서 호출됨).
+  late final ShrineSessionProvider _provider = context.read<ShrineSessionProvider>();
   late final _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 120))..repeat();
   @override
   void initState() {
     super.initState();
-    if (context.read<ShrineSessionProvider>().state.reduce) { _ts.add(Timer(const Duration(milliseconds: 500), _go)); return; }
-    for (final (ms, p) in [(500, 1), (1900, 2), (3500, 3), (4900, 4)]) { _ts.add(Timer(Duration(milliseconds: ms), () => mounted ? setState(() => ph = p) : null)); }
-    _ts.add(Timer(const Duration(milliseconds: 5700), _go));
+    if (_provider.state.reduce) { _ts.add(Timer(const Duration(milliseconds: 500), _go)); return; }
+    // 원본: `const k = app.data.doorSeen ? .45 : 1;` — 두 번째 방문부터 전체
+    // 타임라인을 0.45배(5.7s → 약 2.6s)로 줄인다. 첫 방문 완료 시(5800ms, 원본과
+    // 동일한 고정 지연 — 이 시점의 k는 항상 1이므로 doorSeen 분기와 무관) doorSeen=true 저장.
+    final doorSeen = _provider.state.doorSeen;
+    final k = doorSeen ? .45 : 1.0;
+    for (final (ms, p) in [(500, 1), (1900, 2), (3500, 3), (4900, 4)]) {
+      _ts.add(Timer(Duration(milliseconds: (ms * k).round()), () {
+        if (!mounted) return;
+        setState(() => ph = p);
+        // 원본: `setPh(2); S.door(); window.shrineHaptic('mid');` — 문짝이
+        // 열리기 시작하는 순간(ph==2) 중(中) 진동.
+        if (p == 2) shrineHaptic(context, ShrineHapticLevel.mid);
+      }));
+    }
+    _ts.add(Timer(Duration(milliseconds: (5700 * k).round()), _go));
+    if (!doorSeen) {
+      _ts.add(Timer(const Duration(milliseconds: 5800), () => _provider.update((s) => s.copy(doorSeen: true))));
+    }
   }
   void _go() { if (mounted) ShrineNav.go(context, 'hall', replace: true); }
   @override void dispose() { for (final x in _ts) { x.cancel(); } _shake.dispose(); super.dispose(); }

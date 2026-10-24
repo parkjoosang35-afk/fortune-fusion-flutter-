@@ -247,6 +247,10 @@ class ShrineState {
   // pref
   final bool reduce, timer, sound, coached;
   final double ts;
+  // [U8-4 포팅] 진동 on/off(pref.haptic, 기본 켬) · 문을 한 번이라도
+  // 본 적 있는지(doorSeen) — 재방문부터 DoorScreenV32 연출을 0.45배속으로 줄인다.
+  final bool haptic;
+  final bool doorSeen;
 
   const ShrineState({
     this.memberId,
@@ -275,6 +279,8 @@ class ShrineState {
     this.sound = false,
     this.coached = false,
     this.ts = 1,
+    this.haptic = true,
+    this.doorSeen = false,
   });
 
   ShrineState copy({
@@ -306,6 +312,8 @@ class ShrineState {
     bool? sound,
     bool? coached,
     double? ts,
+    bool? haptic,
+    bool? doorSeen,
   }) => ShrineState(
     memberId: memberId ?? this.memberId,
     memberScope: memberScope ?? this.memberScope,
@@ -333,6 +341,8 @@ class ShrineState {
     sound: sound ?? this.sound,
     coached: coached ?? this.coached,
     ts: ts ?? this.ts,
+    haptic: haptic ?? this.haptic,
+    doorSeen: doorSeen ?? this.doorSeen,
   );
 
   bool get visited => visits > 1 || endings.isNotEmpty; // 실제 기록이 있을 때만 재방문 대사
@@ -361,6 +371,7 @@ class ShrineState {
       'issued': issued,
       'aboutSeen': aboutSeen,
       'aboutBack': aboutBack,
+      'doorSeen': doorSeen,
     },
     'pref': {
       'reduce': reduce,
@@ -368,6 +379,7 @@ class ShrineState {
       'sound': sound,
       'coached': coached,
       'ts': ts,
+      'haptic': haptic,
     },
   };
   static ShrineState fromJson(Map j) {
@@ -404,11 +416,13 @@ class ShrineState {
       issued: d['issued'] ?? 0,
       aboutSeen: d['aboutSeen'] == true,
       aboutBack: d['aboutBack'],
+      doorSeen: d['doorSeen'] == true,
       reduce: p['reduce'] ?? false,
       timer: p['timer'] ?? true,
       sound: p['sound'] ?? false,
       coached: p['coached'] ?? false,
       ts: (p['ts'] ?? 1).toDouble(),
+      haptic: p['haptic'] ?? true,
     );
   }
 }
@@ -493,6 +507,8 @@ class ShrineSessionProvider extends ChangeNotifier {
       sound: s.sound,
       ts: s.ts,
       coached: s.coached,
+      haptic: s.haptic,
+      doorSeen: s.doorSeen,
       box: s.box,
       issued: s.issued,
       endings: s.endings,
@@ -507,6 +523,8 @@ class ShrineSessionProvider extends ChangeNotifier {
       sound: s.sound,
       ts: s.ts,
       coached: s.coached,
+      haptic: s.haptic,
+      doorSeen: s.doorSeen,
     ),
   );
 }
