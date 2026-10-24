@@ -4,9 +4,9 @@
 // 파일의 shrineScreenFor(id, params)를 호출해 실제 화면 위젯을 만든다.
 //
 // id 목록(원본 go_router path와 1:1, 맨 앞 kShrineBase('/shrine')는 제외):
-//   entry · door · hall · connect · info · talk · saju · recommend ·
-//   story · end/:code · meaning · ritual · receive · result/:code ·
-//   tale/:id · tale-end/:id/:code · list · box
+//   entry · about(U5 緣起) · door · hall · connect · info · talk · saju ·
+//   recommend · story · end/:code · meaning · ritual · receive ·
+//   result/:code · tale/:id · tale-end/:id/:code · list · box
 //
 // params 규칙(ShrineNav.go 호출부 및 ShrineNav.goPath 전수 조사 기준):
 //   end        → {'code': ...}
@@ -23,6 +23,8 @@ Widget shrineScreenFor(String id, Map<String, String>? params) {
   switch (id) {
     case 'entry':
       return const EntryScreen();
+    case 'about':
+      return const AboutScreen();
     case 'door':
       return const DoorScreenV32();
     case 'hall':

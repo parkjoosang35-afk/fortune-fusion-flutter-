@@ -89,12 +89,22 @@ class StorySource {
 }
 
 /// 부적함 한 장. key = 생성 조건(type|flavor|story|ending) — 같은 key 는 재열람, 다른 key 는 새 부적
+/// [U5 포팅] shrine-screens-f.jsx — 수명 시스템 필드 추가:
+///   at(발급 시각 ms) · tended(향 올린 횟수) · lastTend(마지막 향 올린 시각 ms) · sentAt(보낸 시각 ms)
+/// ⚠ 원본 주석: "서버 저장 시 at·tended·lastTend·sentAt를 함께 저장. 날짜 계산은 서버 시간
+/// 기준 권장(기기 시간 조작 방지)" — 단, 이 필드는 재발급 방지처럼 악용 방지가 필요한 영역이
+/// 아니므로(수명 조작으로 인한 실질적 피해 없음) 현재는 기존 정책대로 로컬(SharedPreferences)에만
+/// 저장한다. 서버 영속화가 필요해지면 이 주석을 참고해 ShrineIssueLedger 패턴을 확장할 것.
 class BoxItem {
   final String key, no, date;
   final TalismanSpec spec;
   final StorySource source;
   final String mode;
   final bool saved;
+  final int? at;
+  final int tended;
+  final int? lastTend;
+  final int? sentAt;
   const BoxItem({
     required this.key,
     required this.no,
@@ -103,8 +113,19 @@ class BoxItem {
     required this.source,
     this.mode = 'full',
     this.saved = false,
+    this.at,
+    this.tended = 0,
+    this.lastTend,
+    this.sentAt,
   });
-  BoxItem copy({String? mode, bool? saved}) => BoxItem(
+  BoxItem copy({
+    String? mode,
+    bool? saved,
+    int? at,
+    int? tended,
+    int? lastTend,
+    int? sentAt,
+  }) => BoxItem(
     key: key,
     no: no,
     date: date,
@@ -112,6 +133,10 @@ class BoxItem {
     source: source,
     mode: mode ?? this.mode,
     saved: saved ?? this.saved,
+    at: at ?? this.at,
+    tended: tended ?? this.tended,
+    lastTend: lastTend ?? this.lastTend,
+    sentAt: sentAt ?? this.sentAt,
   );
   Map toJson() => {
     'key': key,
@@ -122,6 +147,10 @@ class BoxItem {
     'source': source.toJson(),
     'mode': mode,
     'saved': saved,
+    'at': at,
+    'tended': tended,
+    'lastTend': lastTend,
+    'sentAt': sentAt,
   };
   static BoxItem fromJson(Map j) => BoxItem(
     key: j['key'],
@@ -131,6 +160,10 @@ class BoxItem {
     source: StorySource.fromJson(j['source'])!,
     mode: j['mode'] ?? 'full',
     saved: j['saved'] == true,
+    at: j['at'] as int?,
+    tended: j['tended'] ?? 0,
+    lastTend: j['lastTend'] as int?,
+    sentAt: j['sentAt'] as int?,
   );
 }
 
@@ -176,6 +209,9 @@ class ShrineState {
   final Pending? pending;
   final List<BoxItem> box;
   final int issued;
+  // [U5 포팅] 신당 이야기(緣起) 열람 여부 · 들어가기 후 돌아갈 라우트 id
+  final bool aboutSeen;
+  final String? aboutBack;
   // pref
   final bool reduce, timer, sound, coached;
   final double ts;
@@ -200,6 +236,8 @@ class ShrineState {
     this.pending,
     this.box = const [],
     this.issued = 0,
+    this.aboutSeen = false,
+    this.aboutBack,
     this.reduce = false,
     this.timer = true,
     this.sound = false,
@@ -229,6 +267,8 @@ class ShrineState {
     bool clearPending = false,
     List<BoxItem>? box,
     int? issued,
+    bool? aboutSeen,
+    String? aboutBack,
     bool? reduce,
     bool? timer,
     bool? sound,
@@ -254,6 +294,8 @@ class ShrineState {
     pending: clearPending ? null : (pending ?? this.pending),
     box: box ?? this.box,
     issued: issued ?? this.issued,
+    aboutSeen: aboutSeen ?? this.aboutSeen,
+    aboutBack: aboutBack ?? this.aboutBack,
     reduce: reduce ?? this.reduce,
     timer: timer ?? this.timer,
     sound: sound ?? this.sound,
@@ -285,6 +327,8 @@ class ShrineState {
       'pending': pending?.toJson(),
       'box': box.map((b) => b.toJson()).toList(),
       'issued': issued,
+      'aboutSeen': aboutSeen,
+      'aboutBack': aboutBack,
     },
     'pref': {
       'reduce': reduce,
@@ -326,6 +370,8 @@ class ShrineState {
           .map((b) => BoxItem.fromJson(b))
           .toList(),
       issued: d['issued'] ?? 0,
+      aboutSeen: d['aboutSeen'] == true,
+      aboutBack: d['aboutBack'],
       reduce: p['reduce'] ?? false,
       timer: p['timer'] ?? true,
       sound: p['sound'] ?? false,
@@ -380,8 +426,13 @@ class ShrineSessionProvider extends ChangeNotifier {
   );
 
   /// 부적 발급 — 같은 key 면 기존 항목 반환(dup), 아니면 새 일련번호. 최신 상태 기준.
+  /// [U5 포팅] 보낸(sentAt != null, 灰) 부적은 중복 판정에서 제외한다 — 같은 길을
+  /// 다시 걸으면 새 부적을 받을 수 있다(UPDATE_LOG_U1-U13.md U5-2 "보낸 부적은 같은
+  /// 조건 부적의 중복 판정에서 제외" 참고).
   ({BoxItem item, bool dup}) issue(Pending p, String mode) {
-    final ex = _state.box.where((b) => b.key == p.spec.key).firstOrNull;
+    final ex = _state.box
+        .where((b) => b.key == p.spec.key && b.sentAt == null)
+        .firstOrNull;
     if (ex != null) return (item: ex, dup: true);
     late BoxItem item;
     update((s) {
@@ -392,6 +443,7 @@ class ShrineSessionProvider extends ChangeNotifier {
         spec: p.spec,
         source: p.source,
         mode: mode,
+        at: DateTime.now().millisecondsSinceEpoch,
       );
       return s.copy(box: [...s.box, item], issued: s.issued + 1);
     });

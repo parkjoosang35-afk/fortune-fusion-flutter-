@@ -18,6 +18,8 @@ import '../widgets/shrine_video.dart';
 import '../widgets/bujeok.dart';
 import '../widgets/shrine_nav.dart';
 import '../shrine_module.dart' show shrine;
+import '../widgets/life_panel.dart' show LifePanel;
+import '../engine/life_system.dart' show kLifeState;
 
 // ※ 00 신통방통 소원방 홈 목업(StbHomeScreen)은 삭제 — 실제 신통방통 앱의 홈·하단바를 그대로 쓰고,
 //   하단바의 「신당 부적」 탭이 이 모듈의 진입점(ShrineTab)이다. integration/ 참고.
@@ -137,11 +139,185 @@ class _TMState extends State<_TalisManual> {
         if (tab == 'end') ...[
           h('삼갈 것'), for (final e in cp['avoid'] as List) Text('✕  $e', style: t.body(13.5, c: const Color(0xD9EFE4D2), h: 1.8)),
           h('보내는 법'), Text(cp['end'], style: t.body(14, c: const Color(0xE0EFE4D2), h: 1.8)),
+          // [U5 포팅] 부적 수명 카드 — 향 올리기 · 보내 드리기. 부적함에서 연 경우(item 보유)에만 표시.
+          if (widget.item != null) LifePanel(item: widget.item!),
         ],
         Padding(padding: const EdgeInsets.only(top: 14), child: Text('신당의 부적은 이야기 속 창작 부적입니다. 질병 · 사고 · 금전 문제의 해결을 약속하지 않습니다.', style: t.ui(11, c: C.faint))),
         if (widget.actions != null) Padding(padding: const EdgeInsets.only(top: 12), child: Container(clipBehavior: Clip.antiAlias, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: C.goldLine)),
           child: Row(children: [for (final a in widget.actions!) Expanded(child: GestureDetector(onTap: a.$3, child: Container(color: const Color(0xF20E0706), margin: const EdgeInsets.symmetric(horizontal: .5), padding: const EdgeInsets.fromLTRB(0, 13, 0, 11),
             child: Column(children: [Text(a.$1, style: t.display(16, w: FontWeight.w900, c: C.gold)), const SizedBox(height: 7), Text(a.$2, style: t.ui(12))]))))]))),
       ]))));
+  }
+}
+
+// ═══════════ U5 · 緣起 — 이 신당은 무엇을 하는 곳인가 (/about) ═══════════
+// 원본: shrine-screens-f.jsx AboutScreen. 6장(緣/命/話/符/滅/敬) 넘기는 소개.
+// 滅(5번째) 장에는 생盛衰滅灰 5단계 요약 표를 함께 보여준다.
+class _AboutPage {
+  final String k, art;
+  final String title;
+  final List<String> body;
+  final bool life;
+  const _AboutPage(this.k, this.title, this.art, this.body, {this.life = false});
+}
+
+const _aboutPages = [
+  _AboutPage('緣', '이 신당은\n무엇을 하는 곳입니까', 'hall', [
+    '이곳은 태어난 날의 기운을 읽어, 그 사람에게만 맞는 부적을 써 드리는 신당입니다.',
+    '저는 이 신당을 지키는 월화입니다. 사람마다 타고난 기운이 다르니, 부적도 사람마다 달라야 합니다.',
+  ]),
+  _AboutPage('命', '먼저,\n태어난 날을 읽습니다', 'talk', [
+    '생년월일과 태어난 시간으로 정통사주를 풉니다. 나무·불·흙·쇠·물, 다섯 기운 가운데 무엇이 넘치고 무엇이 모자란지.',
+    '신당은 사주를 지어내지 않습니다. 정통사주 풀이에서 나온 값만 씁니다.',
+  ]),
+  _AboutPage('話', '그다음,\n이야기 속을 걷습니다', 'stairs', [
+    '사주에 비친 고민을 따라 이야기 하나가 열립니다. 이야기 속에서 고른 길 — 살피는지, 지키는지, 마주하는지 — 이 당신의 마음을 보여 줍니다.',
+    '같은 이야기라도 고른 길이 다르면 닿는 결말이 다릅니다.',
+  ]),
+  _AboutPage('符', '그리고,\n하나뿐인 부적을 씁니다', 'write', [
+    '사주의 기운, 이야기 속 선택, 닿은 결말, 그리고 이름. 이것을 조각으로 삼아 부적을 쓰는 순서대로 한 획씩 써 내려갑니다.',
+    '그래서 이 신당의 부적은 이 세상에 한 장뿐입니다. 같은 부적은 다시 나오지 않습니다.',
+  ]),
+  _AboutPage('滅', '부적은\n영원하지 않습니다', 'paper', [
+    '부적은 마흔아흐레 동안 기운을 품습니다. 돌보지 않으면 먹빛이 바래고, 기운을 다하면 스스로 사라집니다.',
+    '하루에 한 번 향을 올리면 기운이 사흘 더 이어집니다. 기운이 다한 부적은 태워서 보내 드리십시오. 그래야 다음 부적이 들어올 자리가 생깁니다.',
+  ], life: true),
+  _AboutPage('敬', '부디,\n귀하게 지니십시오', 'give', [
+    '부적은 물건이 아니라 매듭입니다. 쓰는 사람과 지니는 사람의 마음이 함께 묶여 있습니다.',
+    '함부로 버리거나 남에게 넘기지 마십시오. 보낼 때는 이 신당에서 태워 보내십시오.',
+    '신당의 부적은 이야기 속 창작 부적이며, 질병·사고·금전 문제의 해결을 약속하지 않습니다.',
+  ]),
+];
+
+class AboutScreen extends StatefulWidget {
+  const AboutScreen({super.key});
+  @override
+  State<AboutScreen> createState() => _AboutState();
+}
+
+class _AboutState extends State<AboutScreen> {
+  int i = 0;
+
+  void _finish() {
+    final provider = context.read<ShrineSessionProvider>();
+    final back = provider.state.aboutBack;
+    provider.update((s) => s.copy(aboutSeen: true));
+    ShrineNav.go(context, (back == null || back.isEmpty) ? 'entry' : back, replace: true);
+  }
+
+  void _next() {
+    if (i == _aboutPages.length - 1) {
+      _finish();
+    } else {
+      setState(() => i++);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<ShrineSessionProvider>().state;
+    final t = T(st.ts);
+    final p = _aboutPages[i];
+    final last = i == _aboutPages.length - 1;
+    final nm = st.name;
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: ColorFiltered(
+              key: ValueKey(p.art),
+              colorFilter: const ColorFilter.mode(Color(0x941A0A08), BlendMode.darken),
+              child: Image.asset('assets/shrine/img/${p.art}.jpg', fit: BoxFit.cover),
+            ),
+          ),
+          const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(
+            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+            colors: [Color(0x8C070404), Colors.transparent, Colors.transparent, Color(0xC7070404), C.bg],
+            stops: [0, .28, .52, .78, 1],
+          ))),
+          const Embers(count: 10),
+          Positioned(top: 56, left: 22, right: 22, child: SafeArea(bottom: false, child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('緣起 · 신당 이야기', style: t.mono),
+              Row(children: [for (var j = 0; j < _aboutPages.length; j++) Container(
+                width: 14, height: 2, margin: const EdgeInsets.only(left: 5),
+                color: j == i ? C.redHot : j < i ? C.goldDim : const Color(0x2EEFE4D2),
+              )]),
+            ],
+          ))),
+          Positioned(
+            left: 22, right: 22, bottom: 112,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: Column(
+                key: ValueKey(i),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 52, height: 52, alignment: Alignment.center,
+                    transform: Matrix4.rotationZ(-.09),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(7),
+                      gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFB8241F), Color(0xFF6E0F0C)]),
+                      border: Border.all(color: const Color(0x99D6AA64)),
+                      boxShadow: Glow.red(26),
+                    ),
+                    child: Text(p.k, style: t.display(26, w: FontWeight.w900, c: C.btnText)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(p.title, style: t.display(25, w: FontWeight.w900, h: 1.38).copyWith(shadows: const [Shadow(color: Colors.black, blurRadius: 16)])),
+                  const SizedBox(height: 14),
+                  for (final (j, b) in p.body.indexed) Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      j == 0 && i == 0 && nm != null && nm.isNotEmpty ? '$nm님. $b' : b,
+                      style: t.body(14.5, c: C.muted, h: 1.8),
+                    ),
+                  ),
+                  if (p.life) Padding(
+                    padding: const EdgeInsets.only(top: 2, bottom: 6),
+                    child: Row(children: [
+                      for (final s in ['born', 'full', 'wane', 'gone', 'sent']) Expanded(child: Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: C.line), color: const Color(0x59000000)),
+                        child: Column(children: [
+                          Text(kLifeState[s]!.k, style: t.display(17, w: FontWeight.w900,
+                            c: s == 'gone' ? C.redHot : s == 'wane' ? const Color(0xFFC98A3A) : s == 'sent' ? const Color(0xFF8A7F74) : const Color(0xFFF8C900))),
+                          const SizedBox(height: 5),
+                          Text(kLifeState[s]!.label, textAlign: TextAlign.center, style: t.ui(9.5, c: C.muted)),
+                        ]),
+                      )),
+                    ]),
+                  ),
+                  Text('— 월화 · 月華', style: t.body(12, c: C.gold)),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 22, right: 22, bottom: 26,
+            child: SafeArea(top: false, child: Row(children: [
+              if (i > 0 && !last) Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: GestureDetector(
+                  onTap: _finish,
+                  child: Container(
+                    height: 56, padding: const EdgeInsets.symmetric(horizontal: 16), alignment: Alignment.center,
+                    decoration: BoxDecoration(color: const Color(0x1AEFE4D2), borderRadius: BorderRadius.circular(R.btn), border: Border.all(color: const Color(0x47EFE4D2))),
+                    child: Text('건너뛰기', style: t.ui(14, c: C.muted)),
+                  ),
+                ),
+              ),
+              Expanded(child: RedButton(last ? '신당으로 들어가기' : '다음', ts: st.ts, onTap: _next)),
+            ])),
+          ),
+        ],
+      ),
+    );
   }
 }

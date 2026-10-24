@@ -31,6 +31,8 @@ import '../widgets/bujeok.dart';
 import '../widgets/sheets.dart';
 import '../widgets/shrine_nav.dart';
 import 'screens_v32.dart' show showTalisManual;
+import '../engine/life_system.dart' show lifeOf, kLifeState;
+import '../widgets/life_panel.dart' show LifeVeil, LifeBar;
 
 String _img(String n) => 'assets/shrine/img/$n.jpg';
 const _elColor = {'木': Color(0xFF6F9A5A), '火': Color(0xFFE0412F), '土': Color(0xFFC9A368), '金': Color(0xFFD9D2C4), '水': Color(0xFF5B7FA8)};
@@ -720,12 +722,33 @@ class _BoxState extends State<BoxScreen> {
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final types = (shrine.talismans.types as Map).keys.cast<String>().toList();
     final list = st.box.where((b) => flt == 'all' || b.spec.type == flt).toList().reversed.toList();
+    // [U5 포팅] 제목 개수 = 보내지 않은(sentAt == null) 부적만 (UPDATE_LOG U5-3)
+    final keptCount = st.box.where((b) => b.sentAt == null).length;
     return Scaffold(body: Stack(children: [
       const DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(0, -1), radius: 1, colors: [Color(0xFF220B09), C.bg]))),
       ListView(padding: const EdgeInsets.fromLTRB(16, 104, 16, 40), children: [
         Text('持符 · 내 부적함', style: t.mono), const SizedBox(height: 10),
-        Text('간직한 부적 ${st.box.length}장', style: t.display(24, w: FontWeight.w900)), const SizedBox(height: 6),
-        Text('이야기와 선택이 다르면 같은 종류라도 다른 부적이 됩니다. 같은 길에서 나온 부적은 다시 펼쳐 봅니다.', style: t.body(13, c: C.muted)), const SizedBox(height: 14),
+        Text('간직한 부적 $keptCount장', style: t.display(24, w: FontWeight.w900)), const SizedBox(height: 6),
+        Text('부적은 마흔아흘레 동안 기운을 품습니다. 향을 올리면 기운이 이어지고, 다하면 태워 보내 드립니다.', style: t.body(13, c: C.muted)),
+        const SizedBox(height: 4),
+        GestureDetector(onTap: () => ShrineNav.go(context, 'about'), child: Text('부적은 왜 사라집니까 — 신당 이야기 보기 ›', style: t.ui(12, c: C.gold))),
+        const SizedBox(height: 14),
+        // [U5 포팅] 盛/衰/滅/灰 요약 — 돌봄이 필요한 부적을 한눈에. 衰·滅이 있으면 숫자 봉게(UPDATE_LOG U5-3)
+        if (st.box.isNotEmpty) Builder(builder: (_) {
+          final lives = st.box.map(lifeOf).toList();
+          int cnt(String s) => lives.where((l) => l.st == s).length;
+          return Padding(padding: const EdgeInsets.only(bottom: 14), child: Row(children: [
+            for (final s in ['full', 'wane', 'gone', 'sent']) Expanded(child: Padding(padding: const EdgeInsets.only(right: 6), child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8), alignment: Alignment.center,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(9), border: Border.all(color: C.line), color: const Color(0x4D000000)),
+              child: Column(children: [
+                Text(kLifeState[s]!.k, style: t.display(15, w: FontWeight.w900, c: s == 'gone' ? C.redHot : s == 'wane' ? const Color(0xFFC98A3A) : s == 'sent' ? C.faint : C.gold)),
+                const SizedBox(height: 2),
+                Text('${cnt(s)}', style: t.mono.copyWith(fontSize: 10, color: (s == 'wane' || s == 'gone') && cnt(s) > 0 ? C.redHot : C.muted, fontWeight: (s == 'wane' || s == 'gone') && cnt(s) > 0 ? FontWeight.w700 : FontWeight.w500)),
+              ]),
+            ))),
+          ]));
+        }),
         SizedBox(height: 32, child: ListView(scrollDirection: Axis.horizontal, children: [
           _chip('전체 ${st.box.length}', flt == 'all', () => setState(() => flt = 'all')),
           for (final ty in types) _chip('${(shrine.talismans.types as Map)[ty]['sig']} ${st.box.where((b) => b.spec.type == ty).length}', flt == ty, () => setState(() => flt = ty)),
@@ -734,17 +757,24 @@ class _BoxState extends State<BoxScreen> {
         if (list.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 40), child: Column(children: [
           Text('封', style: t.display(48, w: FontWeight.w900, c: const Color(0x1AEFE4D2))), const SizedBox(height: 10),
           Text('아직 간직한 부적이 없습니다.\n이야기를 마치면 월화가 부적을 써 드립니다.', textAlign: TextAlign.center, style: t.body(13, c: C.faint))])),
-        GridView.count(crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 16, crossAxisSpacing: 10, childAspectRatio: 96 / 240, children: [
-          for (final b in list) GestureDetector(onTap: () => showTalisManual(context, spec: b.spec, item: b, actions: [
-              ('名', '이름 표시', () => context.read<ShrineSessionProvider>().updateBox(b.no, (x) => x.copy(mode: x.mode == 'full' ? 'initial' : x.mode == 'initial' ? 'hidden' : 'full'))),
-              ('話', '이야기 보기', () { Navigator.pop(context); b.source.story == 'red-bell' ? ShrineNav.go(context, 'end', params: {'code': b.source.ending}) : ShrineNav.go(context, 'tale-end', params: {'id': b.source.story, 'code': b.source.ending}); }),
-              ('詳', '상세 · 저장', () { Navigator.pop(context); _detail(b); }),
-            ]), child: Column(children: [
-            BujeokSheet(w: 96, name: nameShown(st.name, b.mode), spec: b.spec), const SizedBox(height: 8),
-            Text(b.spec.name, style: t.body(13, w: FontWeight.w700, h: 1.2)),
-            Text(b.spec.phrase, style: t.display(11, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 3)),
-            Text(b.no, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),
-          ])),
+        GridView.count(crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 16, crossAxisSpacing: 10, childAspectRatio: 96 / 252, children: [
+          for (final b in list) Builder(builder: (_) {
+            final life = lifeOf(b);
+            return GestureDetector(onTap: () => showTalisManual(context, spec: b.spec, item: b, actions: [
+                ('名', '이름 표시', () => context.read<ShrineSessionProvider>().updateBox(b.no, (x) => x.copy(mode: x.mode == 'full' ? 'initial' : x.mode == 'initial' ? 'hidden' : 'full'))),
+                ('話', '이야기 보기', () { Navigator.pop(context); b.source.story == 'red-bell' ? ShrineNav.go(context, 'end', params: {'code': b.source.ending}) : ShrineNav.go(context, 'tale-end', params: {'id': b.source.story, 'code': b.source.ending}); }),
+                ('詳', '상세 · 저장', () { Navigator.pop(context); _detail(b); }),
+              ]), child: Column(children: [
+              ClipRRect(borderRadius: BorderRadius.circular(6), child: Stack(children: [
+                BujeokSheet(w: 96, name: nameShown(st.name, b.mode), spec: b.spec),
+                Positioned.fill(child: LifeVeil(life: life)),
+              ])), const SizedBox(height: 8),
+              Text(b.spec.name, style: t.body(13, w: FontWeight.w700, h: 1.2)),
+              Text(b.spec.phrase, style: t.display(11, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 3)),
+              Text(b.no, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),
+              if (life.st != 'sent') Padding(padding: const EdgeInsets.only(top: 4), child: LifeBar(life: life, small: true)),
+            ]));
+          }),
         ]),
       ]),
       _top(context, back: () => ShrineNav.canPop(context) ? ShrineNav.pop(context) : ShrineNav.go(context, 'list')),

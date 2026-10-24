@@ -182,7 +182,24 @@ class _EntryState extends State<EntryScreen>
                         onTap: () => ShrineNav.go(context, 'door'),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
+                    // [U5 포팅] 입장 화면 보조 링크 — 緣起(신당 이야기) 수동 진입.
+                    _in(
+                      2.1,
+                      TextButton(
+                        onPressed: () {
+                          context.read<ShrineSessionProvider>().update(
+                            (s) => s.copy(aboutBack: 'entry'),
+                          );
+                          ShrineNav.go(context, 'about');
+                        },
+                        child: Text(
+                          '緣起  이 신당은 무엇을 하는 곳입니까 ›',
+                          style: t.ui(13, c: C.gold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     _in(
                       2.2,
                       Row(
@@ -359,16 +376,18 @@ class _HallState extends State<HallScreen> {
   bool _done = false;
 
   /// 「제단 앞으로 다가가기」 → 신통방통 결제창 (이미 이용권 있으면 바로 통과)
-  void _enter() => shrinePay(
-    context,
-    ShrineProduct.entry,
-    () => ShrineNav.go(
-      context,
-      context.read<ShrineSessionProvider>().state.name != null
-          ? 'talk'
-          : 'connect',
-    ),
-  );
+  /// [U5 포팅] 첫 방문(aboutSeen == false)이면 緣起(AboutScreen)를 먼저 보여주고,
+  /// 다 보면 aboutBack 라우트(talk/connect)로 이어간다 — 원본 U5-1 "진입 ① 첫 방문 시" 반영.
+  void _enter() => shrinePay(context, ShrineProduct.entry, () {
+    final provider = context.read<ShrineSessionProvider>();
+    final dest = provider.state.name != null ? 'talk' : 'connect';
+    if (!provider.state.aboutSeen) {
+      provider.update((s) => s.copy(aboutBack: dest));
+      ShrineNav.go(context, 'about');
+    } else {
+      ShrineNav.go(context, dest);
+    }
+  });
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state;
