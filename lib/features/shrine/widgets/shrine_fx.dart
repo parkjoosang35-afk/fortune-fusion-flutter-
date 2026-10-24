@@ -20,8 +20,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../engine/life_system.dart';
+import '../engine/shrine_engine.dart';
+import '../shrine_module.dart' show shrine;
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
+import 'bujeok.dart' show bjCompose, BujeokLayout;
 import 'shrine_nav.dart';
 
 /// ② 진동 규칙 — 약: 선택·탭·서명 진행 / 중: 인장·향 꽂힘·문 열림 / 강: 클라이맥스·부적 완성·저장 완료
@@ -737,6 +740,172 @@ class _DpArrowState extends State<_DpArrow> with SingleTickerProviderStateMixin 
           ),
         );
       },
+    );
+  }
+}
+
+// ═══════════ U9-3 — 부적 뒤집기 ═══════════
+// 원본: shrine-u9.jsx FlipCard · TalisBack · shrine.css .flip/.fl-in/.fl-front/
+// .fl-back/.fl-hint/.tback/.tb-h/.tb-id/.tb-seal. 부적(앞면)을 탭하면 0.7s
+// rotateY(180°)로 뒤집혀 한지 재질의 뒷면(표제 · 받은 날 · 닿은 결말 · 고른 길 ·
+// 사주 근거 · 조합 ID · 「神堂」 작은 인)이 보인다. 다시 탭하면 앞면으로.
+class FlipCard extends StatefulWidget {
+  final double w;
+  final Widget front;
+  final Widget back;
+  final bool hint;
+  const FlipCard({super.key, required this.w, required this.front, required this.back, this.hint = true});
+
+  @override
+  State<FlipCard> createState() => _FlipCardState();
+}
+
+class _FlipCardState extends State<FlipCard> {
+  bool _f = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = BujeokLayout.L['ratio'] as List;
+    final h = widget.w * (r[1] as num) / (r[0] as num);
+    return GestureDetector(
+      onTap: () {
+        setState(() => _f = !_f);
+        // 원본: `window.ShrineAudio.tick()` — 효과음 미채택 정책(U8-0부터
+        // 일관 유지)에 따라 생략, 진동만 이식.
+        shrineHaptic(context, ShrineHapticLevel.light);
+      },
+      child: SizedBox(
+        width: widget.w,
+        height: h + (widget.hint ? 18 : 0),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SizedBox(
+              width: widget.w,
+              height: h,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: _f ? 0 : 1, end: _f ? 1 : 0),
+                duration: const Duration(milliseconds: 700),
+                curve: const Cubic(.3, .8, .3, 1),
+                builder: (_, v, __) {
+                  // 원본: `.fl-in { transform-style: preserve-3d; } .flip.on .fl-in
+                  // { transform: rotateY(180deg); }` — v(0→1)만큼 Y축 회전.
+                  // 90°를 지나는 순간 앞/뒤를 바꿔 뒤집힌 글자가 비치지 않게 한다
+                  // (원본 backface-visibility: hidden 과 동일한 효과).
+                  final angle = v * math.pi;
+                  final showBack = angle > math.pi / 2;
+                  final child = showBack
+                      ? Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()..rotateY(math.pi),
+                          child: widget.back,
+                        )
+                      : widget.front;
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()..setEntry(3, 2, .0012)..rotateY(angle),
+                    child: child,
+                  );
+                },
+              ),
+            ),
+            if (widget.hint)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: -2,
+                child: Text(
+                  '${_f ? '앞면' : '뒷면'} ↻',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontFamily: 'Pretendard', fontSize: 9.5, fontWeight: FontWeight.w500, color: C.gold),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// `TalisBack` — FlipCard 뒷면. 원본 한지 질감 배경(`#ecdcb9 → #dcc596`)에
+/// 먹빛 텍스트. 받은 날 · 닿은 결말 · 고른 길(성향) · 사주 근거(있으면) ·
+/// 조합 ID(bjCompose().recipe.id) · 우측 하단 「神堂」 작은 인.
+class TalisBack extends StatelessWidget {
+  final TalismanSpec spec;
+  final BoxItem? item;
+  final String name;
+  const TalisBack({super.key, required this.spec, this.item, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<ShrineSessionProvider>().state;
+    final src = item?.source;
+    final fl = shrine.talismans.flavors[spec.flavor] as Map?;
+    final note = st.saju?.topics[spec.type]?.note;
+    final endingLabel = src == null
+        ? '—'
+        : src.story == 'red-bell'
+            ? '붉은 방울 · ${src.ending}'
+            : (shrine.tales[src.story] != null ? '${shrine.tales[src.story]!.title} · ${src.ending}' : '—');
+    final recipeId = bjCompose(
+      type: spec.type, phrase: spec.phrase, key: spec.key, flavor: spec.flavor,
+      story: spec.story, ending: spec.ending, element: spec.element,
+      base: spec.base, motif: spec.motif, name: name,
+      serial: item != null ? '神堂 · ${item!.no}' : null,
+    ).recipe.id;
+    const ink = Color(0xFF3A1A0E);
+    TextStyle dt = const TextStyle(fontFamily: 'Pretendard', fontSize: 6.5, fontWeight: FontWeight.w500, letterSpacing: .55, color: Color(0x993C1E0F));
+    TextStyle dd = const TextStyle(fontFamily: 'Pretendard', fontSize: 7.5, fontWeight: FontWeight.w700, color: ink, height: 1.3);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFECDCB9), Color(0xFFDCC596)]),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(6, 7, 6, 6),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(bottom: 3),
+                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0x4D5A3214), width: 1))),
+                  child: Text(spec.head, textAlign: TextAlign.center,
+                      style: const TextStyle(fontFamily: 'Pretendard', fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Color(0xFFA11D19))),
+                ),
+                const SizedBox(height: 4),
+                Text('받은 날', style: dt),
+                Text(item?.date ?? '—', style: dd),
+                const SizedBox(height: 3),
+                Text('닿은 결말', style: dt),
+                Text(endingLabel, style: dd),
+                const SizedBox(height: 3),
+                Text('고른 길', style: dt),
+                Text(fl != null ? '${fl['k']} ${fl['label']}' : '—', style: dd),
+                if (note != null) ...[
+                  const SizedBox(height: 3),
+                  Text('사주 근거', style: dt),
+                  Text(note, style: dd),
+                ],
+                const Spacer(),
+                Text(recipeId, style: const TextStyle(fontFamily: 'Pretendard', fontSize: 6.5, fontWeight: FontWeight.w500, letterSpacing: .4, color: Color(0xFFA11D19))),
+              ],
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 18, height: 18, alignment: Alignment.center,
+                transform: Matrix4.rotationZ(6 * math.pi / 180),
+                decoration: BoxDecoration(border: Border.all(color: const Color(0xCCA11D19), width: 1.5), borderRadius: BorderRadius.circular(3)),
+                child: const Text('神堂', style: TextStyle(fontFamily: 'Pretendard', fontSize: 6, fontWeight: FontWeight.w900, color: Color(0xFFA11D19), height: 1)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

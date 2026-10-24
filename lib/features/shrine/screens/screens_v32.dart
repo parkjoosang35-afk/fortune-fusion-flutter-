@@ -21,7 +21,7 @@ import '../shrine_module.dart' show shrine;
 import '../widgets/life_panel.dart' show LifePanel;
 import '../engine/life_system.dart' show kLifeState;
 import 'seal_screen.dart' show showSealToWishRoomSheet;
-import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel, DoorPull;
+import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel, DoorPull, FlipCard, TalisBack;
 
 // ※ 00 신통방통 소원방 홈 목업(StbHomeScreen)은 삭제 — 실제 신통방통 앱의 홈·하단바를 그대로 쓰고,
 //   하단바의 「신당 부적」 탭이 이 모듈의 진입점(ShrineTab)이다. integration/ 참고.
@@ -171,7 +171,10 @@ class _TMState extends State<_TalisManual> {
       decoration: const BoxDecoration(borderRadius: BorderRadius.vertical(top: Radius.circular(22)), gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF1B0D0B), Color(0xFF0A0505)]), border: Border(top: BorderSide(color: C.goldLine))),
       child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          BujeokSheet(w: 92, name: name, spec: sp), const SizedBox(width: 16),
+          // [U9-3 포팅] 부적을 탭하면 뒤집혀 뒷면(받은 날·닿은 결말·고른 길·
+          // 사주 근거·조합 ID·「神堂」 인)이 보인다. 다시 탭하면 앞면.
+          FlipCard(w: 92, front: BujeokSheet(w: 92, name: name, spec: sp), back: TalisBack(spec: sp, item: widget.item, name: name)),
+          const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${sp.head}${widget.item != null ? ' · ${widget.item!.no}' : ''}', style: t.mono.copyWith(color: C.gold)),
             Text(sp.name, style: t.display(24, w: FontWeight.w900, h: 1.2)),
