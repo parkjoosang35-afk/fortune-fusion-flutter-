@@ -155,6 +155,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
       // 부적을 로컬로 봉인한다(BoxItem.sealedTo, 서버 비저장).
       if (widget.pendingShrineBoxNo != null) {
         final newRoom = context.read<WishRoomProvider>().room;
+        debugPrint(
+          '[U13-DEBUG] pendingShrineBoxNo=${widget.pendingShrineBoxNo} newRoom=${newRoom?.id} mounted=$mounted',
+        );
         if (newRoom != null && mounted) {
           context.read<ShrineSessionProvider>().updateBox(
             widget.pendingShrineBoxNo!,
@@ -165,6 +168,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
                 at: DateTime.now().millisecondsSinceEpoch,
               ),
             ),
+          );
+          debugPrint(
+            '[U13-DEBUG] updateBox called for ${widget.pendingShrineBoxNo}',
           );
         }
       }
