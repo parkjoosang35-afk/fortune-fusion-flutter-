@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/shrine/state/shrine_session_provider.dart';
 
 void main() {
-  test('ShrineState.fromJson with box item should not throw', () {
+  test('ShrineState.fromJson via jsonEncode/jsonDecode round-trip (matches real code path)', () {
     final now = DateTime.now().millisecondsSinceEpoch;
     const day = 86400000;
     Map spec(String key) => {
@@ -22,7 +23,12 @@ void main() {
       "data": {"box": box, "issued": 1, "aboutSeen": true},
       "pref": {}
     };
-    final s = ShrineState.fromJson(state);
+
+    // 실제 코드 경로 재현: jsonEncode -> (localStorage 저장 가정) -> jsonDecode -> fromJson
+    final encoded = jsonEncode(state);
+    print('encoded length: ${encoded.length}');
+    final decoded = jsonDecode(encoded);
+    final s = ShrineState.fromJson(decoded);
     expect(s.box.length, 1);
     print('OK: box[0].spec.name=${s.box[0].spec.name}');
   });
