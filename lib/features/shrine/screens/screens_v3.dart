@@ -715,9 +715,27 @@ Widget _acts(List<(String, String, VoidCallback)> a) => Container(clipBehavior: 
     child: Column(children: [Text(x.$1, style: T(1).display(16, w: FontWeight.w900, c: C.gold)), const SizedBox(height: 7), Text(x.$2, style: T(1).ui(12))]))))]));
 
 // ═══════════ 持 부적함 (/box) — 컬렉션 ═══════════
-class BoxScreen extends StatefulWidget { const BoxScreen({super.key}); @override State<BoxScreen> createState() => _BoxState(); }
+class BoxScreen extends StatefulWidget {
+  // [U8-3 포팅] 원본 `app.data.boxOpen`(부적함 진입과 동시에 특정 부적
+  // 설명서를 바로 연다 — EntryOmen 소멸 임박 전갈 탭) 1:1 대응.
+  final String? openNo;
+  const BoxScreen({super.key, this.openNo});
+  @override State<BoxScreen> createState() => _BoxState();
+}
 class _BoxState extends State<BoxScreen> {
   String flt = 'all';
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openNo != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final st = context.read<ShrineSessionProvider>().state;
+        final b = st.box.where((x) => x.no == widget.openNo).firstOrNull;
+        if (b != null) _detail(b);
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final types = (shrine.talismans.types as Map).keys.cast<String>().toList();

@@ -58,7 +58,10 @@ Widget shrineScreenFor(String id, Map<String, String>? params) {
     case 'list':
       return const ListScreenV3();
     case 'box':
-      return const BoxScreen();
+      // [U8-3 포팅] EntryOmen 소멸 임박 전갈 탭 → 부적함 진입과 동시에 그
+      // 부적의 설명서를 바로 연다(원본: `app.set({ boxOpen: urgent.b.no });
+      // app.go('box');` → BoxScreen의 `useState(app.data.boxOpen)`).
+      return BoxScreen(openNo: params?['open']);
     default:
       // 알 수 없는 id는 신당 입장 화면으로 안전하게 되돌린다.
       return const EntryScreen();

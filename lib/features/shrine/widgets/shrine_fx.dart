@@ -14,11 +14,14 @@
 //   mid    → HapticFeedback.mediumImpact()     (원본 30ms)
 //   strong → HapticFeedback.heavyImpact()      (원본 [40,60,80]ms 패턴)
 // 추후 정밀 패턴 재현이 필요해지면 vibration 패키지 추가를 사용자에게 재확인할 것.
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../engine/life_system.dart';
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
+import 'shrine_nav.dart';
 
 /// ② 진동 규칙 — 약: 선택·탭·서명 진행 / 중: 인장·향 꽂힘·문 열림 / 강: 클라이맥스·부적 완성·저장 완료
 enum ShrineHapticLevel { light, mid, strong }
@@ -182,6 +185,255 @@ class _CandleWaitState extends State<CandleWait>
           const SizedBox(height: 10),
           Text(widget.label, style: T(1).mono.copyWith(color: C.gold)),
         ],
+      ),
+    );
+  }
+}
+
+// ═══════════ U8-3 — 오늘의 일진 한 줄 · 소멸 임박 전갈 ═══════════
+// 원본: shrine-u8.jsx todayGZ/ILJIN/iljinLine/EntryOmen.
+// ⚠ 원본 주석 그대로 유지: "실서비스는 정통사주 엔진의 일진 값을 그대로
+// 쓸 것(이 계산은 시연용)". 기준일 2000-01-01 = 戊午(60갑자 54번째).
+const String _gzStem = '甲乙丙丁戊己庚辛壬癸';
+const String _gzBr = '子丑寅卯辰巳午未申酉戌亥';
+const Map<String, String> _stemEl = {
+  '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+  '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水',
+};
+const Map<String, String> _elKo = {
+  '木': '나무', '火': '불', '土': '흙', '金': '쇠', '水': '물',
+};
+const Map<String, String> _genEl = {'木': '火', '火': '土', '土': '金', '金': '水', '水': '木'}; // 생(生)
+const Map<String, String> _ctrlEl = {'木': '土', '土': '水', '水': '火', '火': '金', '金': '木'}; // 극(剋)
+
+class TodayGz {
+  final String gz;
+  final String stem;
+  final String el;
+  const TodayGz(this.gz, this.stem, this.el);
+}
+
+/// 원본 `todayGZ(now)` 1:1 포팅.
+TodayGz todayGZ(DateTime now) {
+  final base = DateTime.utc(2000, 1, 1);
+  final t = DateTime.utc(now.year, now.month, now.day);
+  final days = t.difference(base).inDays;
+  final n = ((54 + days) % 60 + 60) % 60;
+  final stem = _gzStem[n % 10];
+  final br = _gzBr[n % 12];
+  return TodayGz(stem + br, stem, _stemEl[stem]!);
+}
+
+/// 원본 `ILJIN` 6종 문구 — 오늘 일진 오행(d) 기준 서술.
+String _iljinText(String relation, String d) {
+  final nm = _elKo[d]!;
+  switch (relation) {
+    case 'same':
+      return '오늘은 당신과 같은 $nm의 기운이 겹치는 날입니다. 고집은 한 걸음 물리십시오.';
+    case 'give':
+      return '오늘 들어온 $nm의 기운이 당신을 북돋습니다. 미뤄 둔 일을 꺼내도 좋은 날입니다.';
+    case 'take':
+      return '오늘은 당신의 기운이 $nm을(를) 키우느라 조금 빠지는 날입니다. 무리하지 마십시오.';
+    case 'hit':
+      return '오늘 들어온 $nm의 기운이 당신을 누릅니다. 말을 아끼고 서두르지 마십시오.';
+    case 'win':
+      return '오늘은 당신이 $nm의 기운을 다스리는 날입니다. 정한 일을 밀고 나가셔도 됩니다.';
+    default:
+      return '오늘은 $nm의 기운이 들어오는 날입니다. 마음을 고요히 두십시오.';
+  }
+}
+
+class IljinLine {
+  final String gz;
+  final String el;
+  final String text;
+  const IljinLine(this.gz, this.el, this.text);
+}
+
+/// 원본 `iljinLine(app)` 포팅. 사용자 일간 오행(me)과 오늘 일진 오행(t.el)의
+/// 관계 6종(same/give/take/hit/win/none)을 판정한다.
+/// [dayOffset 미채택] 원본은 Tweaks 패널 시연 전용 `app.data.dayOffset`로
+/// "하루/열흘 지나기"를 테스트하지만, 이 값은 실제 서비스 사용자 데이터가
+/// 아니라 웹 프로토타입 디버그 전용 상태이므로 Flutter ShrineState에는
+/// 포팅하지 않는다(항상 DateTime.now() 기준).
+IljinLine iljinLine(ShrineState st) {
+  final t = todayGZ(DateTime.now());
+  final me = st.saju?.dayElement;
+  String k = 'none';
+  if (me != null) {
+    if (me == t.el) {
+      k = 'same';
+    } else if (_genEl[t.el] == me) {
+      k = 'give';
+    } else if (_genEl[me] == t.el) {
+      k = 'take';
+    } else if (_ctrlEl[t.el] == me) {
+      k = 'hit';
+    } else if (_ctrlEl[me] == t.el) {
+      k = 'win';
+    }
+  }
+  return IljinLine(t.gz, t.el, _iljinText(k, t.el));
+}
+
+/// 입장 화면 한 줄 — 소멸 임박 부적이 있으면 그 전갈이 우선(원본 `EntryOmen`).
+/// urgent: 기운이 남은 날(left) ≤ 3이고 오늘 아직 향을 올리지 않은 부적 중
+/// 가장 급한 것. 없으면 오늘의 일진 한 줄을 9초 보여주고 사라진다.
+class EntryOmen extends StatefulWidget {
+  const EntryOmen({super.key});
+
+  @override
+  State<EntryOmen> createState() => _EntryOmenState();
+}
+
+class _EntryOmenState extends State<EntryOmen> {
+  bool _show = true;
+  Timer? _timer;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  ({BoxItem b, Life l})? _urgent(ShrineState st) {
+    final cands = <({BoxItem b, Life l})>[];
+    for (final b in st.box) {
+      final l = lifeOf(b);
+      if ((l.st == 'wane' || l.st == 'full' || l.st == 'born') &&
+          l.left <= 3 &&
+          !l.tendedToday) {
+        cands.add((b: b, l: l));
+      }
+    }
+    if (cands.isEmpty) return null;
+    cands.sort((a, b) => a.l.left.compareTo(b.l.left));
+    return cands.first;
+  }
+
+  // [타이머 재등록 버그 수정] build()는 ShrineSessionProvider의 무관한 상태
+  // 변경(예: 사운드 토글)으로도 재호출될 수 있다. 매번 _timer?.cancel() 후
+  // 새로 걸면 9초 카운트다운이 계속 리셋되어 원본의 "9초 후 사라짐"이 깨진다.
+  // 원본 useEffect([urgent])는 urgent 값이 바뀔 때만 1회 재등록하므로, 여기서는
+  // 이미 타이머가 돌고 있으면(= _timer != null) 재등록하지 않는 가드를 둔다.
+  void _armAutoHide(bool hasUrgent) {
+    if (hasUrgent) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+    if (_timer != null) return; // 이미 카운트다운 중 — 리셋하지 않음
+    _timer = Timer(const Duration(milliseconds: 9000), () {
+      if (mounted) setState(() => _show = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<ShrineSessionProvider>().state;
+    final t = T(st.ts);
+    final urgent = _urgent(st);
+    // 원본 useEffect([urgent]) — urgent가 없을 때만 9초 타이머를 건다.
+    _armAutoHide(urgent != null);
+    if (!_show) return const SizedBox.shrink();
+    if (urgent != null) {
+      final sp = urgent.b.spec;
+      final name = (st.name != null && st.name!.isNotEmpty) ? '${st.name}님의 ' : '';
+      return GestureDetector(
+        onTap: () {
+          shrineHaptic(context, ShrineHapticLevel.light);
+          ShrineNav.go(context, 'box', params: {'open': urgent.b.no});
+        },
+        child: Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: const Color(0x995A0E0C),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0x99E0412F)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: C.red,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0x99D6AA64)),
+                ),
+                child: Text(
+                  '衰',
+                  style: t.display(15, w: FontWeight.w900, c: const Color(0xFFF8EAD6)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$name${sp.name}이 ${urgent.l.left}일 뒤 기운을 다합니다.',
+                      style: t.body(12.5, w: FontWeight.w600, c: C.fg, h: 1.5),
+                    ),
+                    Text(
+                      '향을 올리시겠습니까 ›',
+                      style: t.ui(11.5, w: FontWeight.w600, c: const Color(0xFFFF9A86)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final ij = iljinLine(st);
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0x9E080404),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: C.goldLine),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: C.goldLine),
+              ),
+              child: Text(
+                ij.gz[0],
+                style: t.display(15, w: FontWeight.w900, c: C.gold),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('今日 · ${ij.gz}일', style: t.mono.copyWith(letterSpacing: 2)),
+                  const SizedBox(height: 2),
+                  Text(ij.text, style: t.body(12.5, c: C.fg, h: 1.5)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

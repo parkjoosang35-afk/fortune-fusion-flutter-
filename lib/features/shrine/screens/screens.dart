@@ -28,6 +28,7 @@ import '../widgets/shrine_video.dart';
 import '../widgets/talisman_stage.dart';
 import '../widgets/sheets.dart';
 import '../widgets/bujeok.dart';
+import '../widgets/shrine_fx.dart' show EntryOmen;
 import 'screens_v3.dart' show CoachOverlay;
 import '../../../core/sound/sound_route_trigger.dart';
 
@@ -173,7 +174,12 @@ class _EntryState extends State<EntryScreen>
                         style: t.body(13, c: C.faint),
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 14),
+                    // [U8-3 포팅] 오늘의 일진 한 줄 · 소멸 임박 부적 전갈
+                    // (원본 CSS `animation: up 1s ease 1.4s both` 위치 그대로
+                    // — sub 문구와 CTA 버튼 사이, 緣起 버튼보다 위).
+                    const EntryOmen(),
+                    const SizedBox(height: 8),
                     _in(
                       2.0,
                       RedButton(
