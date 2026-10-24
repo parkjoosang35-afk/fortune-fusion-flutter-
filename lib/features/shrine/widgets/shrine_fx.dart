@@ -15,6 +15,7 @@
 //   strong → HapticFeedback.heavyImpact()      (원본 [40,60,80]ms 패턴)
 // 추후 정밀 패턴 재현이 필요해지면 vibration 패키지 추가를 사용자에게 재확인할 것.
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -577,6 +578,161 @@ class _SignStrokeState extends State<SignStroke> {
                     ),
                   ),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ═══════════ U9-1 — 문을 손으로 벌려 열기 ═══════════
+// 원본: shrine-u9.jsx DoorPull · shrine.css .dpull/.dp-hint/.dp-area
+// (+ .d2-leaf translate: calc(var(--pull,0) * ±12%) 0). 두 손가락으로 벌리거나
+// 한 손가락을 좌우로 끌면 진행도 p(0→1)가 올라가고, 두 문짝이 각각 ±12%까지
+// 벌어진다. p가 .5를 넘으면 즉시 자동으로 열림(onOpen 1회 호출) — 그 뒤로는
+// 입력을 받지 않는다(done). 손을 떼었는데 .5 미만이면 0으로 되돌아간다(문이
+// 다시 닫힘). 모바일에는 두 손가락 핀치가 자연스러우므로 scale 제스처
+// (ScaleStart/Update/End)로 포팅한다 — onPointerDown/Move 두 손가락 추적을
+// 직접 구현하는 것보다 Flutter가 제공하는 멀티터치 핀치 인식을 쓰는 편이
+// 더 안정적이다. 원본의 "한 손가락 좌우 끌기"는 스케일 제스처가 1개 포인터
+// 에서도 pan으로 동작하므로 focalPointDelta로 동일하게 처리한다.
+class DoorPull extends StatefulWidget {
+  final double ts;
+  final VoidCallback onOpen;
+  final ValueChanged<double> onPull;
+  const DoorPull({super.key, required this.ts, required this.onOpen, required this.onPull});
+
+  @override
+  State<DoorPull> createState() => _DoorPullState();
+}
+
+class _DoorPullState extends State<DoorPull> {
+  double _p = 0;
+  bool _done = false;
+  double? _panX0;
+
+  void _setP(double v) {
+    setState(() => _p = v);
+    widget.onPull(v);
+  }
+
+  void _onScaleStart(ScaleStartDetails d) {
+    if (_done) return;
+    _panX0 = d.focalPoint.dx;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails d) {
+    if (_done) return;
+    // 원본: 두 손가락이면 두 손가락 X 간격 변화량, 한 손가락이면 좌우 이동량*2.
+    // ScaleUpdateDetails.scale은 이미 "초기 손가락 간격 대비 배율"이므로
+    // pointerCount>=2일 때는 (scale-1)을 벌어진 비율로 쓰고, 1개면 pan 이동량을 쓴다.
+    double v;
+    if (d.pointerCount >= 2) {
+      v = (d.scale - 1).abs();
+    } else {
+      final dx = (d.focalPoint.dx - (_panX0 ?? d.focalPoint.dx)).abs() * 2;
+      final w = context.size?.width ?? 1;
+      v = w > 0 ? dx / (w * .7) : 0;
+    }
+    v = v.clamp(0.0, 1.0);
+    if (v > _p) _setP(v);
+    // 원본: `if (v > .5) { done=true; setP(1); shrineHaptic('mid'); onOpen(); }`
+    if (_p > .5) {
+      _done = true;
+      _setP(1);
+      shrineHaptic(context, ShrineHapticLevel.mid);
+      widget.onOpen();
+    }
+  }
+
+  void _onScaleEnd(ScaleEndDetails d) {
+    if (!_done) _setP(0);
+    _panX0 = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = T(widget.ts);
+    return GestureDetector(
+      onScaleStart: _onScaleStart,
+      onScaleUpdate: _onScaleUpdate,
+      onScaleEnd: _onScaleEnd,
+      child: Container(
+        color: Colors.transparent,
+        width: double.infinity,
+        height: double.infinity,
+        child: (!_done && _p == 0)
+            ? Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _DpArrow(left: true),
+                    const SizedBox(width: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0x8C070404),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '문을 양쪽으로 벌리십시오',
+                        style: t.mono.copyWith(
+                          color: const Color(0xFFFFD9B0),
+                          letterSpacing: 2.5,
+                          shadows: const [Shadow(color: Colors.black, blurRadius: 10)],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    _DpArrow(left: false),
+                  ],
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+}
+
+/// `.dp-hint i` 좌우 화살표 — 원본 `@keyframes dpL/dpR`(10px 이동 + 반투명,
+/// 1.4s 반복)을 TweenAnimationBuilder 반복으로 근사한다.
+class _DpArrow extends StatefulWidget {
+  final bool left;
+  const _DpArrow({required this.left});
+  @override
+  State<_DpArrow> createState() => _DpArrowState();
+}
+
+class _DpArrowState extends State<_DpArrow> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, __) {
+        // 원본 keyframes: 50%에서 translateX(±10px) + opacity .5, 0%/100%는 원위치/불투명.
+        final s = math.sin(_c.value * math.pi); // 0→1→0, 삼각형이 아닌 사인 보간
+        final dx = (widget.left ? -10.0 : 10.0) * s;
+        final op = 1 - .5 * s;
+        return Transform.translate(
+          offset: Offset(dx, 0),
+          child: Opacity(
+            opacity: op,
+            child: Text(
+              widget.left ? '‹' : '›',
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFFFB08A),
+                shadows: [Shadow(color: Color(0xCCE0412F), blurRadius: 12)],
+              ),
             ),
           ),
         );

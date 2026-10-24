@@ -21,7 +21,7 @@ import '../shrine_module.dart' show shrine;
 import '../widgets/life_panel.dart' show LifePanel;
 import '../engine/life_system.dart' show kLifeState;
 import 'seal_screen.dart' show showSealToWishRoomSheet;
-import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel;
+import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel, DoorPull;
 
 // ※ 00 신통방통 소원방 홈 목업(StbHomeScreen)은 삭제 — 실제 신통방통 앱의 홈·하단바를 그대로 쓰고,
 //   하단바의 「신당 부적」 탭이 이 모듈의 진입점(ShrineTab)이다. integration/ 참고.
@@ -36,34 +36,72 @@ class _DoorV32State extends State<DoorScreenV32> with TickerProviderStateMixin {
   // shrine-screens-e.jsx: `app.set({ doorSeen: true })`가 타이머 콜백 안에서 호출됨).
   late final ShrineSessionProvider _provider = context.read<ShrineSessionProvider>();
   late final _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 120))..repeat();
+  late final bool _doorSeen = _provider.state.doorSeen;
+  // 원본: `const k = app.data.doorSeen ? .45 : 1;` — 두 번째 방문부터 전체
+  // 타임라인을 0.45배(5.7s → 약 2.6s)로 줄인다.
+  late final double _k = _doorSeen ? .45 : 1.0;
+  // [U9-1 포팅] 첫 방문에만 ph==1(문틈 빛)에서 멈춰 DoorPull 입력을 기다린다.
+  bool _pull = false;
+  // 원본 CSS 변수 `--pull`(0→1) — 드래그 중 문짝이 벌어지는 정도. .d2-leaf의
+  // FractionalTranslation에 전달한다(원본 `.d2-leaf.l { translate: calc(var(--pull,0)*-12%) }`).
+  double _pullP = 0;
+  bool _opened = false; // openNow() 이중 호출 가드(제스처 완료 + 8초 타임아웃 동시 경합 방지)
+  // 원본: `if (!app.data.doorSeen) setTimeout(() => app.set({doorSeen:true}), 5800)`는
+  // React `ts` 배열(정리 대상)에 포함되지 않는 독립 타이머다 — 사용자가 문을 일찍
+  // 열어도(= _openNow 조기 호출) 이 저장 타이머는 취소되지 않도록 _ts와 분리해 둔다.
+  Timer? _doorSeenTimer;
   @override
   void initState() {
     super.initState();
     if (_provider.state.reduce) { _ts.add(Timer(const Duration(milliseconds: 500), _go)); return; }
-    // 원본: `const k = app.data.doorSeen ? .45 : 1;` — 두 번째 방문부터 전체
-    // 타임라인을 0.45배(5.7s → 약 2.6s)로 줄인다. 첫 방문 완료 시(5800ms, 원본과
-    // 동일한 고정 지연 — 이 시점의 k는 항상 1이므로 doorSeen 분기와 무관) doorSeen=true 저장.
-    final doorSeen = _provider.state.doorSeen;
-    final k = doorSeen ? .45 : 1.0;
-    for (final (ms, p) in [(500, 1), (1900, 2), (3500, 3), (4900, 4)]) {
-      _ts.add(Timer(Duration(milliseconds: (ms * k).round()), () {
-        if (!mounted) return;
-        setState(() => ph = p);
-        // 원본: `setPh(2); S.door(); window.shrineHaptic('mid');` — 문짝이
-        // 열리기 시작하는 순간(ph==2) 중(中) 진동.
-        if (p == 2) shrineHaptic(context, ShrineHapticLevel.mid);
-      }));
+    if (!_doorSeen) {
+      _doorSeenTimer = Timer(const Duration(milliseconds: 5800), () => _provider.update((s) => s.copy(doorSeen: true)));
     }
-    _ts.add(Timer(Duration(milliseconds: (5700 * k).round()), _go));
-    if (!doorSeen) {
-      _ts.add(Timer(const Duration(milliseconds: 5800), () => _provider.update((s) => s.copy(doorSeen: true))));
+    // 원본: `ts.push(setTimeout(() => { setPh(1); S.rumble(); if (!app.data.doorSeen)
+    // { setPull(true); ts.push(setTimeout(() => openNow.current(), 8000)); } }, 500*k));`
+    _ts.add(Timer(Duration(milliseconds: (500 * _k).round()), () {
+      if (!mounted) return;
+      setState(() => ph = 1);
+      if (!_doorSeen) {
+        setState(() => _pull = true);
+        // 첫 방문: 8초 무입력 시 자동으로 열림.
+        _ts.add(Timer(const Duration(milliseconds: 8000), _openNow));
+      }
+    }));
+    // 원본: `if (app.data.doorSeen) ts.push(setTimeout(rest, 1900*k));` — 재방문은
+    // 손 제스처 없이 고정 타임라인으로 바로 rest() 진행.
+    if (_doorSeen) {
+      _ts.add(Timer(Duration(milliseconds: (1900 * _k).round()), _openNow));
     }
   }
+  // 원본 `openNow.current = () => { ts.forEach(clearTimeout); ts = []; rest(); }`.
+  // DoorPull이 50% 넘게 벌어졌을 때(onOpen)와 8초 타임아웃 양쪽에서 호출될 수
+  // 있으므로 `_opened` 가드로 이중 실행을 막는다.
+  void _openNow() {
+    if (_opened) return;
+    _opened = true;
+    for (final x in _ts) { x.cancel(); }
+    _ts.clear();
+    _rest();
+  }
+  // 원본 `rest = () => { setPull(false); ts.push(setPh(2)+진동, setPh(3), setPh(4)+bell, go); }`.
+  void _rest() {
+    if (!mounted) return;
+    setState(() { _pull = false; ph = 2; });
+    shrineHaptic(context, ShrineHapticLevel.mid);
+    _ts.add(Timer(Duration(milliseconds: (1600 * _k).round()), () { if (mounted) setState(() => ph = 3); }));
+    _ts.add(Timer(Duration(milliseconds: (3000 * _k).round()), () { if (mounted) setState(() => ph = 4); }));
+    _ts.add(Timer(Duration(milliseconds: (3800 * _k).round()), _go));
+  }
   void _go() { if (mounted) ShrineNav.go(context, 'hall', replace: true); }
-  @override void dispose() { for (final x in _ts) { x.cancel(); } _shake.dispose(); super.dispose(); }
+  @override void dispose() { for (final x in _ts) { x.cancel(); } _doorSeenTimer?.cancel(); _shake.dispose(); super.dispose(); }
   Widget _leaf(bool left) => AnimatedBuilder(animation: _shake, builder: (_, child) {
       final j = ph == 1 ? (math.sin(_shake.value * math.pi * 2) * .6) : 0.0;
-      return Transform.translate(offset: Offset(j, -j * .6), child: child);
+      // [U9-1] 드래그 중(ph==1)에만 --pull 변환 적용 — 원본 `.d2-leaf.l { translate:
+      // calc(var(--pull,0) * -12%) 0 }`(leaf 자체 너비 기준 %이므로 FractionalTranslation 사용).
+      final pullFrac = ph == 1 ? (left ? -_pullP * .12 : _pullP * .12) : 0.0;
+      return FractionalTranslation(translation: Offset(pullFrac, 0),
+        child: Transform.translate(offset: Offset(j, -j * .6), child: child));
     },
     child: TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: ph >= 2 ? 1 : 0), duration: const Duration(milliseconds: 2200), curve: const Cubic(.55, 0, .2, 1),
       builder: (_, v, child) => Transform(alignment: left ? Alignment.centerLeft : Alignment.centerRight,
@@ -97,6 +135,14 @@ class _DoorV32State extends State<DoorScreenV32> with TickerProviderStateMixin {
         child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF1A0503), border: Border.all(color: const Color(0x99D6AA64), width: 1.5)),
           child: Text('神堂', style: t.display(15, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 6)))))),
       const Embers(count: 16),
+      // [U9-1 포팅] 원본: `{pull && ph === 1 && <DoorPull onOpen={...}>}` — 첫 방문에만
+      // 문틈 빛 단계에서 전면에 깔려 두 손가락 벌리기(또는 좌우 끌기) 입력을 받는다.
+      if (_pull && ph == 1)
+        Positioned.fill(child: DoorPull(
+          ts: context.watch<ShrineSessionProvider>().state.ts,
+          onPull: (v) => setState(() => _pullP = v),
+          onOpen: _openNow,
+        )),
       Positioned(left: 0, right: 0, bottom: 70, child: Text(ph < 2 ? '문 너머에서, 무언가 숨을 고릅니다.' : ph < 4 ? '들어오십시오.' : '', textAlign: TextAlign.center, style: t.body(14, c: C.muted))),
       // 섬광
       IgnorePointer(child: AnimatedOpacity(opacity: ph >= 4 ? 1 : 0, duration: const Duration(milliseconds: 800), child: const DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(colors: [Color(0xE6FF8C64), Color(0xB3E0412F), C.bg], stops: [0, .3, .8]))))),
