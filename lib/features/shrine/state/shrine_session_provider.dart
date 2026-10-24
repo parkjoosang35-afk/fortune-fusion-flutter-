@@ -105,6 +105,10 @@ class BoxItem {
   final int tended;
   final int? lastTend;
   final int? sentAt;
+  // [U9-4 포팅] 향을 올린 날짜(일자 번호, floor(ms/86400000)). devotionOf()가
+  // 이 목록으로 연속 일수(streak)를 계산한다. 최근 30개만 보관(원본
+  // `.slice(-30)`과 동일) — 무한정 쌓이지 않도록.
+  final List<int> tendDays;
   // [U13 포팅] 부적을 소원방(WishRoom)에 봉인한 기록 — 로컬 전용(서버 비저장,
   // U5 원칙과 동일). wishRoomId는 WishRoom.id(Flutter 쪽 공개 id 문자열),
   // wishText는 봉인 당시 소원 문구 스냅샷(소원이 나중에 바뀌어도 "그때 그
@@ -123,6 +127,7 @@ class BoxItem {
     this.lastTend,
     this.sentAt,
     this.sealedTo,
+    this.tendDays = const [],
   });
   BoxItem copy({
     String? mode,
@@ -132,6 +137,7 @@ class BoxItem {
     int? lastTend,
     int? sentAt,
     SealedTo? sealedTo,
+    List<int>? tendDays,
   }) => BoxItem(
     key: key,
     no: no,
@@ -145,6 +151,7 @@ class BoxItem {
     lastTend: lastTend ?? this.lastTend,
     sentAt: sentAt ?? this.sentAt,
     sealedTo: sealedTo ?? this.sealedTo,
+    tendDays: tendDays ?? this.tendDays,
   );
   Map toJson() => {
     'key': key,
@@ -160,6 +167,7 @@ class BoxItem {
     'lastTend': lastTend,
     'sentAt': sentAt,
     'sealedTo': sealedTo?.toJson(),
+    'tendDays': tendDays,
   };
   static BoxItem fromJson(Map j) => BoxItem(
     key: j['key'],
@@ -174,6 +182,7 @@ class BoxItem {
     lastTend: j['lastTend'] as int?,
     sentAt: j['sentAt'] as int?,
     sealedTo: SealedTo.fromJson(j['sealedTo'] as Map?),
+    tendDays: j['tendDays'] == null ? const [] : List<int>.from(j['tendDays']),
   );
 }
 

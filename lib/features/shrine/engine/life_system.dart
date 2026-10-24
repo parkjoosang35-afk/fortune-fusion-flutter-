@@ -96,10 +96,48 @@ Life lifeOf(BoxItem b) {
 }
 
 /// [tendTalis 포팅] 향 올리기 — 하루 한 번 +3일. `updateBox()`를 통해 적용한다.
+/// [U9-4 포팅] 원본: `tendDays: [...(b.tendDays||[]).filter(x => x !== day), day].slice(-30)`
+/// — 오늘 일자 번호(day)를 중복 없이 추가하고 최근 30개만 보관한다.
 BoxItem tendTalisItem(BoxItem b) {
   final n = nowMs();
-  return b.copy(tended: b.tended + 1, lastTend: n);
+  final day = n ~/ _dayMs;
+  final days = b.tendDays.where((x) => x != day).toList()..add(day);
+  final kept = days.length > 30 ? days.sublist(days.length - 30) : days;
+  return b.copy(tended: b.tended + 1, lastTend: n, tendDays: kept);
 }
 
 /// [sendTalis 포팅] 보내 드리기 — 태워서 재(灰)로 남긴다. 소멸(滅) 상태의 부적만 가능.
 BoxItem sendTalisItem(BoxItem b) => b.copy(sentAt: nowMs());
+
+// ═══════════ U9-4 — 誠 정성의 테두리(연속 향 일수) ═══════════
+// 원본: shrine-u9.jsx devotionOf(item, now). item.tendDays(일자 번호 목록)로
+// 연속 일수를 계산한다. 오늘(또는 어제까지, 아직 오늘 향을 안 올렸어도
+// 어제까지 이어졌으면 유지) 기준으로 끊기지 않았는지 확인 후, 최근 날짜부터
+// 거꾸로 훑어 연속된 구간의 길이를 streak로 삼는다. rank: 7일↑=1(금테),
+// 21일↑=2(붉은 금테).
+class Devotion {
+  final int streak;
+  final int rank; // 0 없음 · 1 금(7일) · 2 붉은 금(21일)
+  const Devotion(this.streak, this.rank);
+}
+
+Devotion devotionOf(BoxItem item, int now) {
+  final days = item.tendDays.toList()..sort((a, b) => b.compareTo(a));
+  if (days.isEmpty) return const Devotion(0, 0);
+  final today = now ~/ _dayMs;
+  // 원본: `if (today - days[0] > 1) return { streak: 0, rank: 0 };` — 오늘도
+  // 어제도 아니면(이틀 이상 공백) 연속이 끊긴 것으로 본다.
+  if (today - days[0] > 1) return const Devotion(0, 0);
+  var s = 1;
+  for (var i = 1; i < days.length; i++) {
+    if (days[i - 1] - days[i] == 1) {
+      s++;
+    } else {
+      break;
+    }
+  }
+  return Devotion(s, s >= 21 ? 2 : s >= 7 ? 1 : 0);
+}
+
+/// 원본 `DEV_NAME` — rank(0~2)에 대응하는 정성 호칭.
+const List<String> kDevName = ['', '誠 · 이레의 정성', '誠 · 스무하루의 정성'];

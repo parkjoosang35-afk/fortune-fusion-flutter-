@@ -31,9 +31,9 @@ import '../widgets/shrine_video.dart';
 import '../widgets/bujeok.dart';
 import '../widgets/sheets.dart';
 import '../widgets/shrine_nav.dart';
-import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel;
+import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel, DevotionMark;
 import 'screens_v32.dart' show showTalisManual;
-import '../engine/life_system.dart' show lifeOf, kLifeState;
+import '../engine/life_system.dart' show lifeOf, kLifeState, devotionOf, nowMs;
 import '../widgets/life_panel.dart' show LifeVeil, LifeBar;
 
 String _img(String n) => 'assets/shrine/img/$n.jpg';
@@ -885,16 +885,35 @@ class _BoxState extends State<BoxScreen> {
                 ('話', '이야기 보기', () { Navigator.pop(context); b.source.story == 'red-bell' ? ShrineNav.go(context, 'end', params: {'code': b.source.ending}) : ShrineNav.go(context, 'tale-end', params: {'id': b.source.story, 'code': b.source.ending}); }),
                 ('詳', '상세 · 저장', () { Navigator.pop(context); _detail(b); }),
               ]), child: Column(children: [
-              ClipRRect(borderRadius: BorderRadius.circular(6), child: Stack(children: [
-                BujeokSheet(w: 96, name: nameShown(st.name, b.mode), spec: b.spec),
-                Positioned.fill(child: LifeVeil(life: life)),
-                // [U13 포팅] 소원방에 봉인된 부적 — 좌상단 「封」 뱃지.
-                if (b.sealedTo != null) Positioned(top: 4, left: 4, child: Container(
-                  width: 22, height: 22, alignment: Alignment.center,
-                  decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(5), boxShadow: Glow.gold(8)),
-                  child: Text('封', style: t.display(12, w: FontWeight.w900, c: const Color(0xFFF8F2E6))),
-                )),
-              ])), const SizedBox(height: 8),
+              Builder(builder: (_) {
+                // [U9-4 포팅] 誠 정성 테두리 — 7일 연속 향: 금테+글로우,
+                // 21일 연속: 붉은 테+금 인셋+글로우(원본 .bcell.dev1/.dev2).
+                final dv = devotionOf(b, nowMs());
+                final devBorder = dv.rank == 2
+                    ? Border.all(color: const Color(0xFFE0412F), width: 2)
+                    : dv.rank == 1
+                        ? Border.all(color: const Color(0xFFF8C900), width: 2)
+                        : null;
+                final devShadow = dv.rank == 2
+                    ? [BoxShadow(color: const Color(0x99F8C900), blurRadius: 0, spreadRadius: 4), BoxShadow(color: const Color(0x8CE0412F), blurRadius: 20)]
+                    : dv.rank == 1
+                        ? [const BoxShadow(color: Color(0x73F8C900), blurRadius: 16)]
+                        : null;
+                return Container(
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), border: devBorder, boxShadow: devShadow),
+                  child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Stack(children: [
+                    BujeokSheet(w: 96, name: nameShown(st.name, b.mode), spec: b.spec),
+                    Positioned.fill(child: LifeVeil(life: life)),
+                    DevotionMark(dv: dv),
+                    // [U13 포팅] 소원방에 봉인된 부적 — 좌상단 「封」 뱃지.
+                    if (b.sealedTo != null) Positioned(top: 4, left: 4, child: Container(
+                      width: 22, height: 22, alignment: Alignment.center,
+                      decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(5), boxShadow: Glow.gold(8)),
+                      child: Text('封', style: t.display(12, w: FontWeight.w900, c: const Color(0xFFF8F2E6))),
+                    )),
+                  ])),
+                );
+              }), const SizedBox(height: 8),
               Text(b.spec.name, style: t.body(13, w: FontWeight.w700, h: 1.2)),
               Text(b.spec.phrase, style: t.display(11, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 3)),
               Text(b.no, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),

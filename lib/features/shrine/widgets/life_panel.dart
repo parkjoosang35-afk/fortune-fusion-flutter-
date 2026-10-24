@@ -1,13 +1,15 @@
 // 신당(THE SHRINE) U5 — 부적 수명 표현 위젯: LifeVeil · LifeBar · LifePanel
 // 원본: shrine-screens-f.jsx + shrine.css(.life-veil/.life-bar/.life-panel)
 // [범위 조정] U5 승인 범위에 따라, 향 올리기는 U7(전체화면 의식)을 생략하고 즉시 처리
-// + 스낵바 안내로 간소화했다. devotionOf(U9, 연속 향 올림 "정성" 표시)는 이번 단계에서는
-// 노출하지 않는다(단, tended/lastTend 데이터는 이미 쌓이므로 U9 구현 시 그대로 활용 가능).
+// + 스낵바 안내로 간소화했다.
+// [U9-4 포팅] devotionOf(연속 향 올림 "정성" 표시) — tended/lastTend에 더해
+// U9-4에서 추가한 tendDays를 이용해 연속 일수를 계산하고 lp-dev 줄로 노출한다.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../engine/life_system.dart';
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
+import 'shrine_fx.dart' show DevotionMark;
 
 /// 부적 그리드 셀 위에 얹는 수명 오버레이 — 盛/生 이면 아무것도 그리지 않는다.
 class LifeVeil extends StatelessWidget {
@@ -278,6 +280,25 @@ class _LifePanelState extends State<LifePanel> {
                 const SizedBox(height: 10),
                 LifeBar(life: life),
               ],
+              // [U9-4 포팅] 원본: `(L.st !== 'sent' && L.st !== 'gone') ? <div
+              // className={'lp-dev r'+dv.rank}>...</div> : null`.
+              if (life.st != 'sent' && life.st != 'gone') Builder(builder: (_) {
+                final dv = devotionOf(item, nowMs());
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                    DevotionMark(dv: dv, small: true),
+                    if (dv.rank > 0) const SizedBox(width: 8),
+                    Expanded(
+                      child: Text.rich(TextSpan(children: [
+                        if (dv.rank > 0) TextSpan(text: '${kDevName[dv.rank]} · '),
+                        TextSpan(text: '향 ${dv.streak}일째 이어 올림'),
+                        if (dv.rank < 2) TextSpan(text: ' · ${dv.rank > 0 ? 21 : 7}일이면 테두리가 ${dv.rank > 0 ? '붉은 금빛' : '금빛'}으로'),
+                      ]), style: T(1).ui(11.5, c: dv.rank == 2 ? const Color(0xFFFF9A86) : dv.rank == 1 ? C.gold : C.muted)),
+                    ),
+                  ]),
+                );
+              }),
               const SizedBox(height: 10),
               Text(
                 life.st == 'sent'

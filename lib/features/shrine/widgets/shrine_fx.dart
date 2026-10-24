@@ -909,3 +909,46 @@ class TalisBack extends StatelessWidget {
     );
   }
 }
+
+// ═══════════ U9-4 — 誠 정성의 테두리 배지 ═══════════
+// 원본: shrine-u9.jsx DevotionMark · shrine.css .dev-mark/.dev-mark.r2/.small.
+// rank==0이면 아무것도 그리지 않는다(원본 `if (!dv || !dv.rank) return null`).
+// rank==1(7일 연속 금): 금빛 바탕 어두운 글자. rank==2(21일 연속): 붉은
+// 바탕 밝은 글자 + 금 테두리 인셋.
+class DevotionMark extends StatelessWidget {
+  final Devotion dv;
+  final bool small;
+  const DevotionMark({super.key, required this.dv, this.small = false});
+
+  @override
+  Widget build(BuildContext context) {
+    if (dv.rank == 0) return const SizedBox.shrink();
+    final r2 = dv.rank == 2;
+    final size = small ? 18.0 : 20.0;
+    final badge = Transform.rotate(
+      angle: -6 * math.pi / 180,
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(4),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: r2 ? const [Color(0xFFE0412F), Color(0xFF8A1410)] : const [Color(0xFFFFE08A), Color(0xFFC99A2A)],
+          ),
+          border: r2 ? Border.all(color: const Color(0xFFF8C900), width: 1.5) : null,
+          boxShadow: [BoxShadow(color: r2 ? const Color(0xCCE0412F) : const Color(0xB3F8C900), blurRadius: r2 ? 12 : 10)],
+        ),
+        child: Text(
+          '誠',
+          style: TextStyle(fontFamily: 'Pretendard', fontSize: small ? 9 : 10, fontWeight: FontWeight.w900, color: r2 ? const Color(0xFFFFF1DC) : const Color(0xFF1A0D05), height: 1),
+        ),
+      ),
+    );
+    return small
+        ? badge
+        : Positioned(left: 4, top: 4, child: badge);
+  }
+}
