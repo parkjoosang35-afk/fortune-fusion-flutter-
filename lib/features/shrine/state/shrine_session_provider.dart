@@ -482,15 +482,9 @@ class ShrineSessionProvider extends ChangeNotifier {
     return (item: item, dup: false);
   }
 
-  void updateBox(String no, BoxItem Function(BoxItem) f) {
-    final before = _state.box.where((b) => b.no == no).firstOrNull;
-    debugPrint(
-      '[U13-DEBUG] updateBox(no=$no) found=${before != null} boxNos=${_state.box.map((b) => b.no).toList()}',
-    );
-    update((s) => s.copy(box: s.box.map((b) => b.no == no ? f(b) : b).toList()));
-    final after = _state.box.where((b) => b.no == no).firstOrNull;
-    debugPrint('[U13-DEBUG] updateBox after sealedTo=${after?.sealedTo?.wishRoomId}');
-  }
+  void updateBox(String no, BoxItem Function(BoxItem) f) => update(
+    (s) => s.copy(box: s.box.map((b) => b.no == no ? f(b) : b).toList()),
+  );
 
   void unlinkMember() => update(
     (s) => ShrineState(
