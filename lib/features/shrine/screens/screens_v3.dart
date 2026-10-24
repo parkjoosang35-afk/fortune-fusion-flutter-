@@ -14,6 +14,7 @@
 //  · shrinePay(context, ref, p, onPaid)   → shrinePay(context, p, onPaid)
 //  · showTalisManual(context, ref, {...}) → showTalisManual(context, {...})
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -30,6 +31,7 @@ import '../widgets/shrine_video.dart';
 import '../widgets/bujeok.dart';
 import '../widgets/sheets.dart';
 import '../widgets/shrine_nav.dart';
+import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel;
 import 'screens_v32.dart' show showTalisManual;
 import '../engine/life_system.dart' show lifeOf, kLifeState;
 import '../widgets/life_panel.dart' show LifeVeil, LifeBar;
@@ -307,9 +309,68 @@ class _LedgerSwitch extends StatelessWidget {
 }
 
 // ═══════════ 命 정통사주 해석 (/saju) ═══════════
+// [U8-2 포팅] 年→月→日→時 순서로 한 글자씩 "인장 찍힘" — 원본 상수
+// `STAMP_ORDER = {年:0,月:1,日:2,時:3}`(shrine-screens-d.jsx 96행). 글자당
+// 0.42s, 간격 0.32s(= 8글자 전체에서 i*.32+.2초에 i번째 글자 시작).
+const Map<String, int> _stampOrder = {'年': 0, '月': 1, '日': 2, '時': 3};
+
+/// 글자 하나의 인장 애니메이션 — 원본 CSS `@keyframes stpIn`
+/// (0%: opacity 0·scale 2.2·rotate -12°·blur 2px → 60%: opacity 1·scale .92·
+/// rotate 2°·blur 없음 → 100%: 제자리) 1:1 근사. CandleWait와 동일하게
+/// 키프레임 구간을 선형 보간한다(easing cubic-bezier 자체는 근사하지 않음).
+/// startSec·totalSec은 공유 컨트롤러(_SajuState._stamp)의 타임라인 기준.
+class _StampChar extends AnimatedWidget {
+  final String ch;
+  final double startSec;
+  final double totalSec;
+  final TextStyle style;
+  const _StampChar({
+    required Animation<double> ctrl,
+    required this.ch,
+    required this.startSec,
+    required this.totalSec,
+    required this.style,
+  }) : super(listenable: ctrl);
+  Animation<double> get _ctrl => listenable as Animation<double>;
+  @override
+  Widget build(BuildContext context) {
+    final elapsed = _ctrl.value * totalSec;
+    final local = ((elapsed - startSec) / .42).clamp(0.0, 1.0);
+    double opacity, scale, rotateDeg, blur;
+    if (local <= 0) {
+      opacity = 0;
+      scale = 2.2;
+      rotateDeg = -12;
+      blur = 2;
+    } else if (local < .6) {
+      final p = local / .6;
+      opacity = p;
+      scale = 2.2 - 1.28 * p;
+      rotateDeg = -12 + 14 * p;
+      blur = 2 * (1 - p);
+    } else {
+      final p = (local - .6) / .4;
+      opacity = 1;
+      scale = .92 + .08 * p;
+      rotateDeg = 2 - 2 * p;
+      blur = 0;
+    }
+    Widget w = Text(ch, style: style);
+    if (blur > .01) {
+      w = ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur), child: w);
+    }
+    return Opacity(opacity: opacity, child: Transform.rotate(angle: rotateDeg * math.pi / 180, child: Transform.scale(scale: scale, child: w)));
+  }
+}
+
 class SajuScreen extends StatefulWidget { const SajuScreen({super.key}); @override State<SajuScreen> createState() => _SajuState(); }
-class _SajuState extends State<SajuScreen> {
+class _SajuState extends State<SajuScreen> with SingleTickerProviderStateMixin {
   SajuResult? saju; bool loading = true; int open = 0; Timer? _t;
+  // [U8-2] 8글자 인장 공유 타임라인 — 마지막 글자(時柱 둘째 글자) 시작 2.44s
+  // + 애니메이션 .42s = 2.86s. 하나의 컨트롤러를 공유해 티커 비용을 줄인다.
+  static const double _stampTotalSec = 2.86;
+  late final AnimationController _stamp = AnimationController(vsync: this, duration: const Duration(milliseconds: 2860));
+  final List<Timer> _stampHaptics = [];
   @override
   void initState() {
     super.initState();
@@ -317,11 +378,36 @@ class _SajuState extends State<SajuScreen> {
     context.read<SajuRepository>().fetch(birth: st.birth ?? '', time: st.time).then((r) {
       if (!mounted) return;
       setState(() { saju = r; loading = false; });
-      if (r != null) context.read<ShrineSessionProvider>().update((s) => s.copy(saju: r));
+      if (r != null) {
+        context.read<ShrineSessionProvider>().update((s) => s.copy(saju: r));
+        // [U8-2] 원본 `useEffect`(shrine-screens-d.jsx 103행) — window.__SHOT ·
+        // app.reduce일 때 스킵. 효과음(ShrineAudio.tick)은 이 프로젝트에
+        // 포팅된 적이 없으므로(U8-4까지 진동만 이식) 진동만 재현한다.
+        if (st.reduce) {
+          _stamp.value = 1; // CSS `.reduce *` 규칙과 동일 — 거의 즉시 완료 상태
+        } else {
+          _stamp.forward(from: 0);
+          for (var i = 0; i < 8; i++) {
+            _stampHaptics.add(Timer(Duration(milliseconds: i * 320 + 200 + 250), () {
+              if (!mounted) return;
+              // ⚠ 원본 코드 그대로: i===5(日柱 둘째 글자)에서 mid, 그 외 light.
+              // (U8_U9_구현스펙.md 요약은 "일간(日柱 첫 글자)"이라 적었으나
+              // 실제 shrine-screens-d.jsx 소스는 i===5를 사용 — 코드가 정본)
+              shrineHaptic(context, i == 5 ? ShrineHapticLevel.mid : ShrineHapticLevel.light);
+            }));
+          }
+        }
+      }
       _t = Timer.periodic(Duration(milliseconds: st.reduce ? 60 : 380), (tm) { setState(() => open++); if (open > 6) tm.cancel(); });
     });
   }
-  @override void dispose() { _t?.cancel(); super.dispose(); }
+  @override
+  void dispose() {
+    _t?.cancel();
+    for (final tm in _stampHaptics) { tm.cancel(); }
+    _stamp.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts);
@@ -349,8 +435,24 @@ class _SajuState extends State<SajuScreen> {
             color: p.$1 == '日' ? null : const Color(0xCC0E0706)),
           child: Column(children: [
             Text('${p.$1}柱', style: t.mono.copyWith(fontSize: 9, letterSpacing: 1.8)), const SizedBox(height: 6),
-            for (var i = 0; i < 2; i++) Text(p.$2 == null ? '·' : p.$2!.characters.elementAt(i),
-              style: t.display(28, w: FontWeight.w900, c: p.$2 == null ? const Color(0x26EFE4D2) : (p.$1 == '日' && i == 0 ? C.redHot : C.fg)).copyWith(height: 1.05)),
+            // [U8-2] 글자별 인장 — 원본 `STAMP_ORDER[k]*2*.32 + (.2|.52)`초에
+            // 시작. 움직임 줄이기(st.reduce)면 애니메이션 없이 즉시 표시.
+            if (p.$2 == null)
+              for (var i = 0; i < 2; i++)
+                Text('·', style: t.display(28, w: FontWeight.w900, c: const Color(0x26EFE4D2)).copyWith(height: 1.05))
+            else if (st.reduce)
+              for (var i = 0; i < 2; i++)
+                Text(p.$2!.characters.elementAt(i),
+                  style: t.display(28, w: FontWeight.w900, c: p.$1 == '日' && i == 0 ? C.redHot : C.fg).copyWith(height: 1.05))
+            else
+              for (var i = 0; i < 2; i++)
+                _StampChar(
+                  ctrl: _stamp,
+                  ch: p.$2!.characters.elementAt(i),
+                  startSec: _stampOrder[p.$1]! * 2 * .32 + (i == 0 ? .2 : .52),
+                  totalSec: _stampTotalSec,
+                  style: t.display(28, w: FontWeight.w900, c: p.$1 == '日' && i == 0 ? C.redHot : C.fg).copyWith(height: 1.05),
+                ),
             if (p.$2 == null) Text('시간 미상', style: t.ui(9, c: C.faint)),
           ])))])),
         const SizedBox(height: 12),
