@@ -768,6 +768,12 @@ class _BoxState extends State<BoxScreen> {
               ClipRRect(borderRadius: BorderRadius.circular(6), child: Stack(children: [
                 BujeokSheet(w: 96, name: nameShown(st.name, b.mode), spec: b.spec),
                 Positioned.fill(child: LifeVeil(life: life)),
+                // [U13 포팅] 소원방에 봉인된 부적 — 좌상단 「封」 뱃지.
+                if (b.sealedTo != null) Positioned(top: 4, left: 4, child: Container(
+                  width: 22, height: 22, alignment: Alignment.center,
+                  decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(5), boxShadow: Glow.gold(8)),
+                  child: Text('封', style: t.display(12, w: FontWeight.w900, c: const Color(0xFFF8F2E6))),
+                )),
               ])), const SizedBox(height: 8),
               Text(b.spec.name, style: t.body(13, w: FontWeight.w700, h: 1.2)),
               Text(b.spec.phrase, style: t.display(11, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 3)),

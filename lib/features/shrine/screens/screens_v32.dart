@@ -20,6 +20,7 @@ import '../widgets/shrine_nav.dart';
 import '../shrine_module.dart' show shrine;
 import '../widgets/life_panel.dart' show LifePanel;
 import '../engine/life_system.dart' show kLifeState;
+import 'seal_screen.dart' show showSealToWishRoomSheet;
 
 // ※ 00 신통방통 소원방 홈 목업(StbHomeScreen)은 삭제 — 실제 신통방통 앱의 홈·하단바를 그대로 쓰고,
 //   하단바의 「신당 부적」 탭이 이 모듈의 진입점(ShrineTab)이다. integration/ 참고.
@@ -141,12 +142,52 @@ class _TMState extends State<_TalisManual> {
           h('보내는 법'), Text(cp['end'], style: t.body(14, c: const Color(0xE0EFE4D2), h: 1.8)),
           // [U5 포팅] 부적 수명 카드 — 향 올리기 · 보내 드리기. 부적함에서 연 경우(item 보유)에만 표시.
           if (widget.item != null) LifePanel(item: widget.item!),
+          // [U13 포팅] 부적을 소원방에 봉인 — 보낸(灰) 부적이거나 이미 봉인된 부적이면 숨김/비활성.
+          if (widget.item != null && widget.item!.sentAt == null) ...[
+            const SizedBox(height: 10),
+            _SealToWishRoomButton(item: widget.item!),
+          ],
         ],
         Padding(padding: const EdgeInsets.only(top: 14), child: Text('신당의 부적은 이야기 속 창작 부적입니다. 질병 · 사고 · 금전 문제의 해결을 약속하지 않습니다.', style: t.ui(11, c: C.faint))),
         if (widget.actions != null) Padding(padding: const EdgeInsets.only(top: 12), child: Container(clipBehavior: Clip.antiAlias, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: C.goldLine)),
           child: Row(children: [for (final a in widget.actions!) Expanded(child: GestureDetector(onTap: a.$3, child: Container(color: const Color(0xF20E0706), margin: const EdgeInsets.symmetric(horizontal: .5), padding: const EdgeInsets.fromLTRB(0, 13, 0, 11),
             child: Column(children: [Text(a.$1, style: t.display(16, w: FontWeight.w900, c: C.gold)), const SizedBox(height: 7), Text(a.$2, style: t.ui(12))]))))]))),
       ]))));
+  }
+}
+
+/// [U13 포팅] 「願 소원방에 봉인」 버튼 — showTalisManual 'end' 탭 전용.
+/// 이미 봉인된 부적이면 "봉인됨" 비활성 배지로 바뀐다.
+class _SealToWishRoomButton extends StatelessWidget {
+  final BoxItem item;
+  const _SealToWishRoomButton({required this.item});
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<ShrineSessionProvider>().state;
+    final t = T(st.ts);
+    final sealed = item.sealedTo != null;
+    return GestureDetector(
+      onTap: sealed ? null : () => showSealToWishRoomSheet(context, item: item),
+      child: Container(
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: sealed ? const Color(0x1AEFE4D2) : const Color(0x1FC9A368),
+          border: Border.all(color: sealed ? const Color(0x47EFE4D2) : C.goldLine),
+        ),
+        child: Row(children: [
+          Text('願', style: t.display(18, w: FontWeight.w900, c: sealed ? C.muted : C.gold)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(
+            sealed ? '소원방에 봉인됨 — ${item.sealedTo!.wishText}' : '소원방에 봉인하기',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: t.ui(13, w: FontWeight.w600, c: sealed ? C.muted : C.fg),
+          )),
+          if (!sealed) Icon(Icons.chevron_right, size: 18, color: C.gold),
+        ]),
+      ),
+    );
   }
 }
 

@@ -105,6 +105,11 @@ class BoxItem {
   final int tended;
   final int? lastTend;
   final int? sentAt;
+  // [U13 포팅] 부적을 소원방(WishRoom)에 봉인한 기록 — 로컬 전용(서버 비저장,
+  // U5 원칙과 동일). wishRoomId는 WishRoom.id(Flutter 쪽 공개 id 문자열),
+  // wishText는 봉인 당시 소원 문구 스냅샷(소원이 나중에 바뀌어도 "그때 그
+  // 소원"을 보여주기 위함), at은 봉인 시각(ms).
+  final SealedTo? sealedTo;
   const BoxItem({
     required this.key,
     required this.no,
@@ -117,6 +122,7 @@ class BoxItem {
     this.tended = 0,
     this.lastTend,
     this.sentAt,
+    this.sealedTo,
   });
   BoxItem copy({
     String? mode,
@@ -125,6 +131,7 @@ class BoxItem {
     int? tended,
     int? lastTend,
     int? sentAt,
+    SealedTo? sealedTo,
   }) => BoxItem(
     key: key,
     no: no,
@@ -137,6 +144,7 @@ class BoxItem {
     tended: tended ?? this.tended,
     lastTend: lastTend ?? this.lastTend,
     sentAt: sentAt ?? this.sentAt,
+    sealedTo: sealedTo ?? this.sealedTo,
   );
   Map toJson() => {
     'key': key,
@@ -151,6 +159,7 @@ class BoxItem {
     'tended': tended,
     'lastTend': lastTend,
     'sentAt': sentAt,
+    'sealedTo': sealedTo?.toJson(),
   };
   static BoxItem fromJson(Map j) => BoxItem(
     key: j['key'],
@@ -164,7 +173,30 @@ class BoxItem {
     tended: j['tended'] ?? 0,
     lastTend: j['lastTend'] as int?,
     sentAt: j['sentAt'] as int?,
+    sealedTo: SealedTo.fromJson(j['sealedTo'] as Map?),
   );
+}
+
+/// [U13 포팅] 부적 1장이 봉인된 소원방 정보 스냅샷. 로컬(SharedPreferences
+/// 'shrine.v2')에만 저장되며 서버 WishRoom 스키마는 전혀 변경하지 않는다
+/// (사용자 확정 원칙 — "소원방은 이미 있음, 봉인 연출만 포팅").
+class SealedTo {
+  final String wishRoomId;
+  final String wishText;
+  final int at;
+  const SealedTo({
+    required this.wishRoomId,
+    required this.wishText,
+    required this.at,
+  });
+  Map toJson() => {'wishRoomId': wishRoomId, 'wishText': wishText, 'at': at};
+  static SealedTo? fromJson(Map? j) => j == null
+      ? null
+      : SealedTo(
+          wishRoomId: j['wishRoomId'],
+          wishText: j['wishText'] ?? '',
+          at: j['at'] ?? 0,
+        );
 }
 
 /// 의식 대기 중인 부적 — /meaning 에서 만들고 /ritual 과 /receive 가 "같은 것"을 쓴다
