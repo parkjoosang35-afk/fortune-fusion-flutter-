@@ -193,3 +193,91 @@ class TalismanEngine {
       designId: 'BJ-${type.toUpperCase()}-${F['k']}-${(h % 9973).toRadixString(36).toUpperCase()}');
   }
 }
+
+// ═══════════ U11 · 이야기방 추천(pickRooms) ═══════════
+// [포팅 원본] /tmp/shrine_v3/merged/prototype/shrine-engine.js의
+// seasonNow()/pickRooms()를 Dart로 1:1 포팅한다(순수 함수, 네트워크 없음).
+// 원본 hash()는 FNV-1a 32비트이며 이 파일의 fnv()와 완전히 동일하므로 그대로 재사용한다.
+//
+// 가벼운 입력 인터페이스만 받는다(Tale 전체를 넘기지 않고 필요한 필드만 뽑아
+// RoomBrief로 전달) — engine 레이어가 data 레이어를 역참조하지 않도록 하기 위함
+// (순환 참조 방지, shrine_engine.dart는 data/models.dart에 의존하지 않는다).
+class RoomBrief {
+  final String id; final List<String> theme; final String? wx, season;
+  const RoomBrief({required this.id, required this.theme, this.wx, this.season});
+}
+
+class RoomPick { final String id; final double score; final List<String> why;
+  const RoomPick(this.id, this.score, this.why); }
+
+class RoomPickResult { final String day; final List<RoomPick> picks; final List<String> rest;
+  const RoomPickResult(this.day, this.picks, this.rest); }
+
+const Map<String, String> kThemeOfTopic = {'love': '인연', 'fate': '운명', 'money': '재물', 'flow': '흐름'};
+
+/// 생일 1–3월은 Dart DateTime.month 그대로 사용(1=Jan). 원본 JS와 동일한 경계.
+String seasonNow([DateTime? d]) {
+  final m = (d ?? DateTime.now()).month;
+  if (m <= 2 || m == 12) return '겨울';
+  if (m <= 5) return '봄';
+  if (m <= 8) return '여름';
+  return '가을';
+}
+
+/// 오늘의 이야기 3편 추천.
+/// - rooms: 이야기방(Tale.room == true)만 RoomBrief로 뽑아 전달
+/// - saju: 사주 결과(있으면 주제 일치/오행 가점에 사용, 없으면 해당 가점 생략)
+/// - topic: 사용자가 고른/추천된 주제(fate/love/money/flow)
+/// - seen: 이미 다녀온 방 id 집합(room id, 'r001' 등) — 안 본 방 가점용
+/// - date: 기준 날짜(없으면 DateTime.now()) — 자정에 결과가 바뀜
+/// - name: 사용자 이름(날짜 흔들기 해시 입력에 사용, 같은 사람·같은 날=동일 결과)
+RoomPickResult pickRooms({
+  required List<RoomBrief> rooms,
+  SajuResult? saju,
+  String? topic,
+  Set<String> seen = const {},
+  DateTime? date,
+  String? name,
+}) {
+  final d = date ?? DateTime.now();
+  final day = '${d.year}-${d.month}-${d.day}';
+
+  // saju.topics 중 점수 최고 주제(recommend()와 별개로 가장 단순한 1위만 사용 — 원본과 동일)
+  String? rec;
+  if (saju != null && saju.topics.isNotEmpty) {
+    final sorted = saju.topics.entries.toList()
+      ..sort((a, b) => b.value.score.compareTo(a.value.score));
+    rec = sorted.first.key;
+  }
+
+  final want = <String>[
+    if (topic != null && kThemeOfTopic[topic] != null) kThemeOfTopic[topic]!,
+    if (rec != null && kThemeOfTopic[rec] != null) kThemeOfTopic[rec]!,
+  ];
+
+  final el = saju?.dayElement;
+  String? lack;
+  if (saju != null && saju.elements.isNotEmpty) {
+    final sorted = saju.elements.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    lack = sorted.first.key;
+  }
+
+  final sn = seasonNow(d);
+
+  final list = rooms.map((r) {
+    final why = <String>[];
+    var s = 0.0;
+    final th = r.theme.firstWhere((t) => want.contains(t), orElse: () => '');
+    if (th.isNotEmpty) { s += 3; why.add('$th 이야기'); }
+    if (lack != null && r.wx == lack) { s += 2; why.add('부족한 $lack 기운'); }
+    else if (el != null && r.wx == el) { s += 1.5; why.add('타고난 $el 기운'); }
+    if (r.season == sn) { s += 1; why.add('$sn의 이야기'); }
+    if (!seen.contains(r.id)) s += 1.2;
+    s += (fnv('$day|${name ?? ''}|${r.id}') % 1000) / 1000 * 1.6;
+    return RoomPick(r.id, s, why.take(2).toList());
+  }).toList()
+    ..sort((a, b) => b.score.compareTo(a.score));
+
+  return RoomPickResult(day, list.take(3).toList(), list.skip(3).map((x) => x.id).toList());
+}

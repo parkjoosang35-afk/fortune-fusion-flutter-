@@ -971,13 +971,154 @@ class ListScreenV3 extends StatelessWidget {
                 ]))),
               ])));
         }),
+        const _RoomSection(),
       ]),
       _top(context, back: () => ShrineNav.canPop(context) ? ShrineNav.pop(context) : ShrineNav.go(context, 'entry')),
     ]));
   }
-  Widget _stat(T t, String n, String l, {VoidCallback? onTap}) => Expanded(child: GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+  static Widget _stat(T t, String n, String l, {VoidCallback? onTap}) => Expanded(child: GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
     decoration: BoxDecoration(color: const Color(0xBF0E0706), borderRadius: BorderRadius.circular(12), border: Border.all(color: onTap != null ? C.goldLine : C.line)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(n, style: t.display(26, w: FontWeight.w900, c: C.gold).copyWith(height: 1)), const SizedBox(height: 6), Text(l, style: t.body(11.5, c: C.muted, h: 1.2))]))));
+}
+
+// ═══════════ U11 · 이야기방 — 오늘의 이야기 3편 + 전체 방 (/list 하단) ═══════════
+// [포팅 원본] shrine-screens-c.jsx RoomRow/RoomSection. 웹의 useMemo(의존성:
+// birth/topic/name/dayOffset/taleEndings keys)는 Flutter에서는 build() 때마다
+// 재계산하는 것으로 대체한다(pickRooms 자체가 가벼운 순수 함수라 캐시 불필요).
+class _RoomSection extends StatefulWidget {
+  const _RoomSection();
+  @override
+  State<_RoomSection> createState() => _RoomSectionState();
+}
+
+class _RoomSectionState extends State<_RoomSection> {
+  bool _all = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts);
+    final roomTales = shrine.tales.values.where((tl) => tl.room).toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
+    if (roomTales.isEmpty) return const SizedBox.shrink();
+
+    final briefs = roomTales
+        .map((tl) => RoomBrief(id: tl.id, theme: tl.theme, wx: tl.wx, season: tl.season))
+        .toList();
+    final seen = st.taleEndings.keys.where((k) => (st.taleEndings[k] ?? {}).isNotEmpty).toSet();
+    final result = pickRooms(
+      rooms: briefs,
+      saju: st.saju,
+      topic: st.topic,
+      seen: seen,
+      name: st.name,
+    );
+    final doneN = roomTales.where((tl) => (st.taleEndings[tl.id] ?? {}).isNotEmpty).length;
+    final whyOf = {for (final p in result.picks) p.id: p.why};
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 18),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: C.goldLine))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('今日 · 오늘의 이야기', style: t.mono),
+            const SizedBox(height: 6),
+            Text('민세레나가 고른 세 편', style: t.display(20, w: FontWeight.w900)),
+          ]),
+          Text(result.day.replaceAll('-', ' · '), style: t.mono.copyWith(color: C.faint)),
+        ]),
+        const SizedBox(height: 6),
+        Text(
+          st.saju != null ? '태어난 날의 기운과 고르신 주제를 보고 골랐습니다. 자정이 지나면 바뀝니다.' : '오늘의 기운으로 골랐습니다. 자정이 지나면 바뀝니다.',
+          style: t.body(12.5, c: C.muted, h: 1.6),
+        ),
+        const SizedBox(height: 14),
+        for (final p in result.picks)
+          _RoomRow(tale: shrine.tales[p.id]!, st: st, t: t, why: whyOf[p.id] ?? const []),
+        GestureDetector(
+          onTap: () => setState(() => _all = !_all),
+          child: Container(
+            margin: const EdgeInsets.only(top: 6, bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            height: 50,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: C.goldLine, style: BorderStyle.solid),
+              color: const Color(0x990E0706),
+            ),
+            child: Row(children: [
+              Text('이야기방 전체 ', style: t.body(14, w: FontWeight.w700)),
+              Text('${roomTales.length}', style: t.body(14, w: FontWeight.w700, c: C.gold)),
+              const Spacer(),
+              Text('다녀온 방 $doneN / ${roomTales.length}', style: t.mono.copyWith(color: C.faint)),
+              const SizedBox(width: 10),
+              Text(_all ? '접기 ▴' : '펼치기 ▾', style: t.ui(11, c: C.muted)),
+            ]),
+          ),
+        ),
+        if (_all)
+          for (final tl in roomTales) _RoomRow(tale: tl, st: st, t: t, why: const []),
+      ]),
+    );
+  }
+}
+
+class _RoomRow extends StatelessWidget {
+  final Tale tale; final ShrineState st; final T t; final List<String> why;
+  const _RoomRow({required this.tale, required this.st, required this.t, required this.why});
+
+  @override
+  Widget build(BuildContext context) {
+    final n = (st.taleEndings[tale.id] ?? {}).length;
+    final prog = st.talePos[tale.id] != null;
+    return GestureDetector(
+      onTap: () {
+        if (st.name == null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('먼저 신당에서 이름을 알려 주십시오')));
+          ShrineNav.go(context, 'connect');
+          return;
+        }
+        shrinePay(context, ShrineProduct.tale(tale.id, tale.title), () => ShrineNav.go(context, 'tale', params: {'id': tale.id}));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: C.line), color: const Color(0xD10E0706)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 84, height: 112, clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(9), border: Border.all(color: C.goldLine)),
+            child: Stack(fit: StackFit.expand, children: [
+              Image.asset(_img(tale.cover), fit: BoxFit.cover),
+              Positioned(left: 5, top: 5, child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                decoration: BoxDecoration(color: const Color(0xB3070404), borderRadius: BorderRadius.circular(4)),
+                child: Text(tale.id.replaceFirst('r', '') /* '001' */, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),
+              )),
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: SizedBox(height: 112, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tale.en, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1.8)), const SizedBox(height: 4),
+            Text(tale.title, style: t.body(16, w: FontWeight.w700, h: 1.3)),
+            Text(tale.intro, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.body(12, c: C.muted, h: 1.5)),
+            if (why.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(why.join(' · '), style: t.ui(11, w: FontWeight.w500, c: C.gold))),
+            const Spacer(),
+            Row(children: [
+              Text('約 ${tale.minutes} MIN', style: t.mono.copyWith(letterSpacing: 1)), const SizedBox(width: 8),
+              Container(height: 20, padding: const EdgeInsets.symmetric(horizontal: 8), alignment: Alignment.center,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), border: Border.all(color: n > 0 || prog ? C.goldLine : const Color(0x80E0412F))),
+                child: Text(n > 0 ? '結 $n/4' : prog ? '이어보기' : 'OPEN', style: t.mono.copyWith(fontSize: 9, letterSpacing: 1.2, color: n > 0 || prog ? C.gold : C.redHot))),
+              const Spacer(),
+              Container(width: 22, height: 22, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0xFFEFB800), borderRadius: BorderRadius.circular(4)),
+                child: Text((shrine.talismans.types as Map)[tale.talis]['sig'], style: t.display(12, w: FontWeight.w900, c: const Color(0xFFC81A10)))),
+            ]),
+          ]))),
+        ]),
+      ),
+    );
+  }
 }
 
 // ═══════════ 첫 사용 안내 (talk · saju · recommend · story 위에 한 번) ═══════════

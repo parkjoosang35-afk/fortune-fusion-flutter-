@@ -58,16 +58,20 @@ class Ending {
       : name = j['name'], art = j['art'], thumb = j['thumb'], line = j['line'], body = List<String>.from(j['body']);
 }
 
-/// 추가 이야기 (room · night · other · secret) — 메인과 같은 노드 구조
+/// 추가 이야기 (room · night · other · secret, 그리고 U11 이야기방 r001~r010) — 메인과 같은 노드 구조
 class Tale {
   final String id, title, en, intro, cover, talis, start; final int minutes, fear;
   final Map<String, StoryNode> nodes; final List<RouteRule> route; final Map<String, Ending> endings;
+  // [U11] 이야기방 전용 메타데이터. room/night/other/secret(기존 4편)에는 없으므로 모두 nullable/기본값.
+  // room=true 인 항목만 pickRooms()/이야기방 목록 UI 대상.
+  final List<String> theme; final String? wx, season; final bool room;
   Tale.fromJson(this.id, Map j)
       : title = j['title'], en = j['en'], intro = j['intro'], cover = j['cover'], talis = j['talis'], start = j['start'],
         minutes = j['min'], fear = j['fear'],
         nodes = (j['nodes'] as Map).map((k, v) => MapEntry(k as String, StoryNode.fromJson(k, v))),
         route = (j['route'] as List).map((e) => RouteRule.fromJson(e)).toList(),
-        endings = (j['endings'] as Map).map((k, v) => MapEntry(k as String, Ending.fromJson(k, {...v, 'thumb': v['art']})));
+        endings = (j['endings'] as Map).map((k, v) => MapEntry(k as String, Ending.fromJson(k, {...v, 'thumb': v['art']}))),
+        theme = List<String>.from(j['theme'] ?? const []), wx = j['wx'], season = j['season'], room = j['room'] == true;
   String judge(Set<String> f) => route.firstWhere((r) => r.match(f), orElse: () => route.last).ending;
 }
 
