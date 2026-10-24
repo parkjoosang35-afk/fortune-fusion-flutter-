@@ -438,3 +438,149 @@ class _EntryOmenState extends State<EntryOmen> {
     );
   }
 }
+
+// ═══════════ U8-1 — 마지막 획 직접 쓰기 ═══════════
+// 원본: shrine-u8.jsx SignStroke · shrine.css .signzone/.sz-guide/.sz-hand/
+// .sz-pulse(@keyframes srRip). 부적 오른쪽 아래 세로 영역(원본 CSS
+// `right:4%; top:70%; width:18%; height:26%` — RitualScreen의 .paperzone
+// 기준 좌표)에 금빛 점선 가이드를 두고, 위→아래로 드래그(포인터 다운→무브)
+// 하면 진행도(p, 0→1, 되돌아가지 않음)가 올라간다. p>=.96에서 자동 완성.
+class SignStroke extends StatefulWidget {
+  final ValueChanged<double> onProgress;
+  final VoidCallback onDone;
+  const SignStroke({super.key, required this.onProgress, required this.onDone});
+
+  @override
+  State<SignStroke> createState() => _SignStrokeState();
+}
+
+class _SignStrokeState extends State<SignStroke> {
+  double _p = 0;
+  bool _dragging = false;
+  bool _done = false;
+
+  void _move(Offset localPos, double height) {
+    if (!_dragging || _done) return;
+    final v = (localPos.dy / height).clamp(0.0, 1.0);
+    if (v > _p) {
+      final prevQuarter = (_p * 4).floor();
+      setState(() => _p = v);
+      widget.onProgress(v);
+      // 원본: `Math.floor(v*4) > Math.floor(p*4)` — 25% 구간마다 약한 진동.
+      if ((v * 4).floor() > prevQuarter) {
+        shrineHaptic(context, ShrineHapticLevel.light);
+      }
+    }
+    if (v >= .96) _finish();
+  }
+
+  void _finish() {
+    if (_done) return;
+    _done = true;
+    setState(() => _p = 1);
+    widget.onProgress(1);
+    shrineHaptic(context, ShrineHapticLevel.strong);
+    // [ShrineAudio.bell 미채택] 원본 `window.ShrineAudio.bell()` — 이 프로젝트는
+    // U8-4까지 효과음을 포팅한 적이 없어(진동만 이식) 여기서도 생략한다.
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) widget.onDone();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final h = constraints.maxHeight;
+        return Listener(
+          onPointerDown: (e) {
+            _dragging = true;
+            _move(e.localPosition, h);
+          },
+          onPointerMove: (e) => _move(e.localPosition, h),
+          onPointerUp: (_) => _dragging = false,
+          onPointerCancel: (_) => _dragging = false,
+          child: SizedBox.expand(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // sz-guide — 금빛 점선 세로줄(원본 repeating-linear-gradient).
+                // 완성 전까지 흔들림(nudge) 유지 — 되돌아가지 않는 점은
+                // "흔들림은 완성 전까지만 보여 끌림을 유도한다"는 원본 취지와
+                // 일치하므로 애니메이션 없이 고정 불투명도로 근사한다(저사양
+                // degrade 원칙 — 무한 반복 애니메이션 추가 비용을 들이지
+                // 않음). 이미 채워진 구간(붉은 `i` 바)만 progress로 표시.
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    width: 3,
+                    height: double.infinity,
+                    margin: const EdgeInsets.symmetric(horizontal: 0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      color: const Color(0xB2F8C900),
+                      boxShadow: const [BoxShadow(color: Color(0x80F8C900), blurRadius: 10)],
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: FractionallySizedBox(
+                    heightFactor: _p,
+                    child: Container(
+                      width: 3,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFC8170F),
+                        boxShadow: [BoxShadow(color: Color(0xB3C8170F), blurRadius: 8)],
+                      ),
+                    ),
+                  ),
+                ),
+                // sz-hand — 진행 위치를 따라가는 금빛 원 손잡이. 완성되면 숨김.
+                if (_p < 1)
+                  Positioned(
+                    left: 1.5 - 11,
+                    top: h * _p - 11,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFF8C900), width: 2),
+                        color: const Color(0x40F8C900),
+                        boxShadow: const [BoxShadow(color: Color(0xB3F8C900), blurRadius: 14)],
+                      ),
+                    ),
+                  ),
+                // sz-pulse — 완성 순간 금빛 파문(원본 @keyframes srRip: scale
+                // .4→5, opacity 1→0, .9s).
+                if (_p >= 1)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: .4, end: 5),
+                        duration: const Duration(milliseconds: 900),
+                        curve: Curves.easeOut,
+                        builder: (_, scale, __) => Opacity(
+                          opacity: (1 - (scale - .4) / 4.6).clamp(0.0, 1.0),
+                          child: Transform.scale(
+                            scale: scale,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(colors: [Color(0x99F8C900), Colors.transparent]),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

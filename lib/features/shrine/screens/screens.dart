@@ -28,7 +28,7 @@ import '../widgets/shrine_video.dart';
 import '../widgets/talisman_stage.dart';
 import '../widgets/sheets.dart';
 import '../widgets/bujeok.dart';
-import '../widgets/shrine_fx.dart' show EntryOmen;
+import '../widgets/shrine_fx.dart' show EntryOmen, SignStroke, shrineHaptic, ShrineHapticLevel;
 import 'screens_v3.dart' show CoachOverlay;
 import '../../../core/sound/sound_route_trigger.dart';
 
@@ -1052,12 +1052,32 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
   int an = 0;
   late AnimationController ink, burn;
   Timer? _an;
+  // [U8-1 포팅] 붓이 쓰는 지점(nameAt, 0~1)까지만 자동 진행하고 마지막
+  // 이름 부분은 손가락으로 긋게 한다 — 원본 `nameAt = name ? (steps-1.5)/
+  // steps : 1`. 이름이 없으면 nameAt=1(서명 단계 자체가 없음).
+  late final double nameAt;
+  bool signing = false;
   @override
   void initState() {
     super.initState();
-    final n =
-        (context.read<ShrineSessionProvider>().state.name ?? '').length + 3;
+    final st = context.read<ShrineSessionProvider>().state;
+    final name = st.name ?? '';
+    final n = name.length + 3;
     ink = AnimationController(vsync: this, duration: Dur.brushPerChar * n);
+    final spec = st.pending!.spec;
+    final steps = bjCompose(
+      type: spec.type,
+      phrase: spec.phrase,
+      key: spec.key,
+      flavor: spec.flavor,
+      story: spec.story,
+      ending: spec.ending,
+      element: spec.element,
+      base: spec.base,
+      motif: spec.motif,
+      name: name,
+    ).steps;
+    nameAt = name.isNotEmpty ? (steps - 1.5) / steps : 1;
     burn =
         AnimationController(
             vsync: this,
@@ -1086,12 +1106,25 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
     setState(() => ph = p);
     final reduce = context.read<ShrineSessionProvider>().state.reduce;
     if (p == Ph.paper) {
-      reduce
-          ? ink.value = 1
-          : Future.delayed(
-              const Duration(milliseconds: 500),
-              () => mounted ? ink.forward() : null,
-            );
+      if (reduce) {
+        // 원본: `if (app.reduce) { setInk(1); return; }` — 움직임 줄이기면
+        // 이름이 있어도 서명 단계 자체를 건너뛰고 바로 완성 상태로 간다.
+        ink.value = 1;
+      } else {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          // animateTo(nameAt)는 duration(전체 0→1 소요시간)에 nameAt 비율을
+          // 곱한 시간만큼만 재생한다 — 원본 `dur = 900*(len+3)*nameAt`와
+          // 동일한 결과(같은 속도로 nameAt에서 멈춤).
+          ink.animateTo(nameAt).then((_) {
+            if (!mounted || ph != Ph.paper) return;
+            if (nameAt < 1) {
+              setState(() => signing = true);
+              shrineHaptic(context, ShrineHapticLevel.mid);
+            }
+          });
+        });
+      }
     }
     // ⚠ 태우기는 영상 진행률과 분리된 고정 6.2s 타이머 (영상이 늦어도 반드시 끝까지 탐) + 안전 9s
     if (p == Ph.burn) {
@@ -1122,6 +1155,19 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
 
   // 웹과 동일: burnLine = clamp((t − .05) / .9)
   double get burnLine => ((burnT - .05) / .9).clamp(0.0, 1.0);
+
+  // [U8-1] SignStroke onProgress — 원본 `v => setInk(nameAt + (1-nameAt)*v)`.
+  void _onSignProgress(double v) {
+    ink.value = nameAt + (1 - nameAt) * v;
+  }
+
+  // [U8-1] SignStroke onDone / 「대신 써 주십시오」 건너뛰기 — 둘 다 원본처럼
+  // signing을 끄고 ink를 1로 고정한다.
+  void _finishSigning() {
+    setState(() => signing = false);
+    ink.value = 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state;
@@ -1162,55 +1208,79 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
               overlay: (ph == Ph.paper || ph == Ph.burn)
                   ? AnimatedBuilder(
                       animation: ink,
-                      builder: (_, __) => GestureDetector(
-                        onTap: () => (ph == Ph.paper && ink.value >= 1)
-                            ? _go(Ph.burn)
-                            : null,
-                        // 노란 종이 + 초서 (bujeokLayout) — 타는 동안 아래부터 마스크
-                        child: ShaderMask(
-                          blendMode: BlendMode.dstIn,
-                          shaderCallback: (r) => LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: const [
-                              Colors.transparent,
-                              Colors.transparent,
-                              Colors.black,
-                              Colors.black,
-                            ],
-                            stops: [
-                              0,
-                              ph == Ph.burn ? burnLine : 0,
-                              ((ph == Ph.burn ? burnLine : 0) + .04).clamp(
-                                0.0,
-                                1.0,
-                              ),
-                              1,
-                            ],
-                          ).createShader(r),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0xF2F6C300),
-                                      Color(0xF2ECB000),
-                                    ],
+                      builder: (_, __) => Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          GestureDetector(
+                            onTap: () => (ph == Ph.paper && ink.value >= 1)
+                                ? _go(Ph.burn)
+                                : null,
+                            // 노란 종이 + 초서 (bujeokLayout) — 타는 동안 아래부터 마스크
+                            child: ShaderMask(
+                              blendMode: BlendMode.dstIn,
+                              shaderCallback: (r) => LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: const [
+                                  Colors.transparent,
+                                  Colors.transparent,
+                                  Colors.black,
+                                  Colors.black,
+                                ],
+                                stops: [
+                                  0,
+                                  ph == Ph.burn ? burnLine : 0,
+                                  ((ph == Ph.burn ? burnLine : 0) + .04).clamp(
+                                    0.0,
+                                    1.0,
                                   ),
+                                  1,
+                                ],
+                              ).createShader(r),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  const DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0xF2F6C300),
+                                          Color(0xF2ECB000),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  BujeokInk(
+                                    name: st.name ?? '',
+                                    spec: spec,
+                                    ink: ink.value,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // [U8-1] 서명 자리 — 원본 CSS `.signzone` 좌표
+                          // (right:4%·top:70%·width:18%·height:26%, .paperzone
+                          // = 이 overlay 영역 자체가 기준 박스).
+                          if (ph == Ph.paper && signing && ink.value < 1)
+                            LayoutBuilder(
+                              builder: (context, c) => Positioned(
+                                right: c.maxWidth * .04,
+                                top: c.maxHeight * .70,
+                                width: c.maxWidth * .18,
+                                height: c.maxHeight * .26,
+                                child: SignStroke(
+                                  onProgress: _onSignProgress,
+                                  onDone: () {
+                                    setState(() => signing = false);
+                                    ink.value = 1;
+                                  },
                                 ),
                               ),
-                              BujeokInk(
-                                name: st.name ?? '',
-                                spec: spec,
-                                ink: ink.value,
-                              ),
-                            ],
-                          ),
-                        ),
+                            ),
+                        ],
                       ),
                     )
                   : const SizedBox(),
@@ -1301,11 +1371,66 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
                 Ph.paper => AnimatedBuilder(
                   animation: ink,
                   builder: (_, __) => ink.value < 1
-                      ? Text(
-                          '붓이 이름을 따라갑니다',
-                          textAlign: TextAlign.center,
-                          style: t.mono.copyWith(color: C.gold),
-                        )
+                      ? (signing
+                            // [U8-1] 서명 단계 안내 — 원본
+                            // `signing && ink<1` 분기(shrine-screens-a.jsx
+                            // 287행 캡션). 「대신 써 주십시오」로 건너뛰기.
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SpeakerBadge('월화', hanja: '月華'),
+                                  const SizedBox(height: 10),
+                                  Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        const TextSpan(text: '마지막 한 획은\n'),
+                                        TextSpan(
+                                          text: '손수 그으십시오.',
+                                          style: TextStyle(
+                                            color: C.gold,
+                                            shadows: Glow.gold()
+                                                .map(
+                                                  (b) => Shadow(
+                                                    color: b.color,
+                                                    blurRadius: b.blurRadius,
+                                                  ),
+                                                )
+                                                .toList(),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    style: t.body(19, w: FontWeight.w700, h: 1.6),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    '오른쪽 아래 금빛 줄을 위에서 아래로 따라 그으세요',
+                                    style: t.mono.copyWith(color: C.gold),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      alignment: Alignment.centerLeft,
+                                    ),
+                                    onPressed: _finishSigning,
+                                    child: Text(
+                                      '대신 써 주십시오',
+                                      style: t.ui(12, c: C.faint).copyWith(
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                '붓이 이름을 따라갑니다',
+                                textAlign: TextAlign.center,
+                                style: t.mono.copyWith(color: C.gold),
+                              ))
                       : Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
