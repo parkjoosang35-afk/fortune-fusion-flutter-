@@ -18,8 +18,10 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../shrine_module.dart' show shrine, ShrineProduct, shrinePay;
 import '../data/models.dart';
+import '../engine/shrine_engine.dart' show Flavor, TalismanSpec;
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -30,6 +32,7 @@ import '../widgets/sheets.dart';
 import '../widgets/bujeok.dart';
 import '../widgets/shrine_fx.dart' show EntryOmen, SignStroke, shrineHaptic, ShrineHapticLevel;
 import 'screens_v3.dart' show CoachOverlay;
+import 'screens_v32.dart' show showTalisManual;
 import '../../../core/sound/sound_route_trigger.dart';
 
 String _img(String n) => 'assets/shrine/img/$n.jpg';
@@ -2483,6 +2486,15 @@ class ResultScreen extends StatelessWidget {
     String f(String s) =>
         shrine.fill(s, name: name, season: season, topicId: topicId);
     final ink = t.body(14.5, c: const Color(0xFF3A2616), h: 1.95);
+    // [U2-6] 아직 부적을 안 받았어도 「肆 당신과 부적」엔 같은 조건으로
+    // 구성될 부적 미리보기를 보여준다 — 웹 ResultScreen의 tSpec 그대로.
+    final tSpec = myT?.spec ??
+        shrine.talismans.compose(
+          type: topicId ?? 'love',
+          flavor: flav?.id ?? 'observe',
+          story: 'red-bell',
+          ending: code,
+        );
 
     return Scaffold(
       body: Stack(
@@ -2543,33 +2555,40 @@ class ResultScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                shared ? '${name ?? '누군가'}님의 이야기' : '당신의 이야기',
+                                shared
+                                    ? '${name ?? '누군가'}님의 이야기'
+                                    : (name != null && name.isNotEmpty
+                                          ? '$name님의 이야기'
+                                          : '당신의 이야기'),
                                 style: t.display(
                                   22,
                                   w: FontWeight.w900,
                                   c: const Color(0xFF3A1A0E),
                                 ),
                               ),
-                              const SizedBox(height: 18),
-                              Text(
-                                f(
-                                  shrine.readings[topicId] ??
-                                      shrine.readings['fate']!,
-                                ),
-                                textAlign: TextAlign.center,
-                                style: ink.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                              const SizedBox(height: 16),
+                              // ── U2-2 「이 두루마리를 만든 것」 — 점선 박스 + 칩4 ──
+                              _rsMade(
+                                t,
+                                shared: shared,
+                                who: shared ? '이 사람' : (name ?? '당신'),
+                                topic: shrine.topic(topicId),
+                                flav: flav,
+                                code: code,
+                                season: season,
                               ),
-                              const SizedBox(height: 12),
-                              ...e.body.map(
-                                (p) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Text(
-                                    f(p),
-                                    textAlign: TextAlign.center,
-                                    style: ink,
+                              const SizedBox(height: 16),
+                              // ── U2-3 「壹 신당에 온 까닭」 ──
+                              _rsSec(t, '壹', '신당에 온 까닭'),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  f(
+                                    shrine.scroll.came[topicId] ??
+                                        shrine.scroll.came['fate']!,
                                   ),
+                                  textAlign: TextAlign.center,
+                                  style: ink,
                                 ),
                               ),
                               if (sajuNote != null)
@@ -2580,79 +2599,23 @@ class ResultScreen extends StatelessWidget {
                                   const Color(0x14784620),
                                   const Color(0x2E5A3214),
                                 ),
+                              const SizedBox(height: 18),
+                              // ── U2-4 「貳 걸어온 길」 — 선택 성향 + 실제 선택 경로(壹貳參肆) ──
+                              _rsSec(t, '貳', '걸어온 길'),
                               if (flav != null)
-                                _rbox(
-                                  t,
-                                  '選 선택의 의미 · ${flav.k} ${flav.label}',
-                                  '${flav.said} ${flav.story}',
-                                  const Color(0x0FA11D19),
-                                  const Color(0x40A11D19),
-                                ),
-                              if (myT != null)
-                                Container(
-                                  margin: const EdgeInsets.only(top: 14),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0x143C1408),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      BujeokSheet(
-                                        w: 64,
-                                        name: nameShown(name, myT.mode),
-                                        spec: myT.spec,
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              '符 받은 부적 · ${myT.no}',
-                                              style: t.mono.copyWith(
-                                                color: const Color(0x8C3C1E0F),
-                                                letterSpacing: 1.5,
-                                              ),
-                                            ),
-                                            Text(
-                                              '${myT.spec.name} · ${myT.spec.phrase}',
-                                              style: t.display(
-                                                15,
-                                                w: FontWeight.w900,
-                                                c: const Color(0xFF3A1A0E),
-                                              ),
-                                            ),
-                                            Text(
-                                              myT.spec.phraseMeaning,
-                                              style: t.body(
-                                                12,
-                                                c: const Color(0xFF5A3A22),
-                                                h: 1.4,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              if (myT != null)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 10),
-                                  child: BjOneBadge(
-                                    name: nameShown(name, myT.mode),
-                                    spec: myT.spec,
-                                    serial: '神堂 · ${myT.no}',
-                                    onScroll: true,
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    '${flav.said} ${flav.story}',
+                                    textAlign: TextAlign.center,
+                                    style: ink,
                                   ),
                                 ),
                               if (path.isNotEmpty)
                                 Container(
                                   width: double.infinity,
-                                  margin: const EdgeInsets.only(top: 18),
-                                  padding: const EdgeInsets.only(top: 14),
+                                  margin: const EdgeInsets.only(top: 12),
+                                  padding: const EdgeInsets.only(top: 12),
                                   decoration: const BoxDecoration(
                                     border: Border(
                                       top: BorderSide(color: Color(0x4D5A3214)),
@@ -2662,25 +2625,125 @@ class ResultScreen extends StatelessWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        '걸어온 길',
-                                        style: t.mono.copyWith(
-                                          color: const Color(0x8C3C1E0F),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
                                       for (var i = 0; i < path.length; i++)
-                                        Text(
-                                          '${i + 1}. ${path[i].label}${path[i].timeout ? ' — 향이 다 탔다' : ''}',
-                                          style: t.body(
-                                            13,
-                                            c: const Color(0xFF5A3A22),
-                                            h: 1.55,
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 6,
+                                          ),
+                                          child: Text.rich(
+                                            TextSpan(
+                                              children: [
+                                                TextSpan(
+                                                  text:
+                                                      '${_han(i)}  ',
+                                                  style: t.mono.copyWith(
+                                                    color: const Color(
+                                                      0xFFA11D19,
+                                                    ),
+                                                    fontWeight:
+                                                        FontWeight.w700,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text:
+                                                      '${path[i].label}${path[i].timeout ? ' — 향이 다 탔다' : ''}',
+                                                  style: t.body(
+                                                    13,
+                                                    c: const Color(0xFF5A3A22),
+                                                    h: 1.55,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                     ],
                                   ),
                                 ),
+                              const SizedBox(height: 18),
+                              // ── U2-5 「參 닿은 결말」 — 주제별 한 줄(굵게) + 결말 본문 ──
+                              _rsSec(t, '參', '닿은 결말 · ${e.name}'),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  f(
+                                    shrine.readings[topicId] ??
+                                        shrine.readings['fate']!,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: ink.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ...e.body.map(
+                                (p) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    f(p),
+                                    textAlign: TextAlign.center,
+                                    style: ink,
+                                  ),
+                                ),
+                              ),
+                              // ── U2-6 「肆 당신과 부적」 — 공유화면에서는 숨김 ──
+                              if (!shared) ...[
+                                const SizedBox(height: 8),
+                                _rsSec(t, '肆', '당신과 부적'),
+                                const SizedBox(height: 10),
+                                _rsTalisCard(
+                                  t,
+                                  name: name,
+                                  myT: myT,
+                                  tSpec: tSpec,
+                                ),
+                                const SizedBox(height: 10),
+                                BjOneBadge(
+                                  name: nameShown(name, myT?.mode ?? 'full'),
+                                  spec: tSpec,
+                                  serial: myT != null
+                                      ? '神堂 · ${myT.no}'
+                                      : null,
+                                  onScroll: true,
+                                ),
+                                const SizedBox(height: 14),
+                                _rsWhy(
+                                  t,
+                                  topicId: topicId,
+                                  flav: flav,
+                                  code: code,
+                                  tSpec: tSpec,
+                                ),
+                                const SizedBox(height: 16),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '"${f(shrine.scroll.letter)}"',
+                                        textAlign: TextAlign.center,
+                                        style: t.body(
+                                          14,
+                                          c: const Color(0xFF3A2616),
+                                          h: 1.8,
+                                        ).copyWith(
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        '— 민세레나 · 閔',
+                                        style: t.mono.copyWith(
+                                          color: const Color(0x8C3C1E0F),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 10),
                               ShaderMask(
                                 blendMode: BlendMode.dstIn,
@@ -2835,6 +2898,298 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
+  /// [U2-2] 한자숫자 壹貳參肆伍陸柒捌 — 걸어온 길 번호매김(웹 HAN 배열과 동일).
+  static const _hanNums = ['壹', '貳', '參', '肆', '伍', '陸', '柒', '捌'];
+  String _han(int i) => i < _hanNums.length ? _hanNums[i] : '${i + 1}';
+
+  /// [U2-3~2-5] 섹션 레이블 — 「壹 신당에 온 까닭」 형식 (붉은 원 한자 번호 + 제목)
+  Widget _rsSec(T t, String han, String title) => Padding(
+    padding: const EdgeInsets.only(top: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: Color(0xFFA11D19),
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            han,
+            style: GoogleFonts.notoSerifKr(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFFF8EAD6),
+              height: 1,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: t.display(15, w: FontWeight.w900, c: const Color(0xFF3A1A0E)),
+        ),
+      ],
+    ),
+  );
+
+  /// [U2-2] 「이 두루마리를 만든 것」 — 점선 박스 + 칩4(주제·선택의 길·결말·계절)
+  Widget _rsMade(
+    T t, {
+    required bool shared,
+    required String who,
+    required Topic topic,
+    required Flavor? flav,
+    required String code,
+    required String? season,
+  }) {
+    final chips = <Widget>[
+      _rsChip(t, topic.sig, topic.label),
+      if (flav != null) _rsChip(t, flav.k, flav.label),
+      _rsChip(t, '結', '결말 $code'),
+      if (!shared && season != null) _rsChip(t, '季', '$season생'),
+    ];
+    return _DottedBox(
+      color: const Color(0x4D5A3214),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Text(
+              '이 두루마리는 $who의 선택으로만 쓰였습니다',
+              textAlign: TextAlign.center,
+              style: t.display(12.5, w: FontWeight.w800, c: const Color(0xFF3A1A0E)),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: chips,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '주제 4 × 선택의 길 6 × 결말 4 — 같은 결말이라도 사람마다 다른 두루마리',
+              textAlign: TextAlign.center,
+              style: t.mono.copyWith(color: const Color(0x8C3C1E0F), fontSize: 9.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rsChip(T t, String sig, String label) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: const Color(0x0FA11D19),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0x40A11D19)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          sig,
+          style: GoogleFonts.notoSerifKr(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFFA11D19),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF5A3A22),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  /// [U2-6] 부적 카드 — 받았으면 눌러서 설명서, 안 받았으면 그림 흐리게 + 「아직 받지 않음」
+  Widget _rsTalisCard(
+    T t, {
+    required String? name,
+    required BoxItem? myT,
+    required TalismanSpec tSpec,
+  }) {
+    final shownName = nameShown(name, myT?.mode ?? 'full');
+    return Builder(
+      builder: (context) => GestureDetector(
+        onTap: myT != null
+            ? () => showTalisManual(context, spec: myT.spec, item: myT)
+            : null,
+        child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0x143C1408),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ColorFiltered(
+                      colorFilter: myT != null
+                          ? const ColorFilter.mode(
+                              Colors.transparent,
+                              BlendMode.multiply,
+                            )
+                          : const ColorFilter.matrix(<double>[
+                              0.35, 0, 0, 0, 0,
+                              0, 0.35, 0, 0, 0,
+                              0, 0, 0.35, 0, 0,
+                              0, 0, 0, 1, 0,
+                            ]),
+                      child: Opacity(
+                        opacity: myT != null ? 1 : .55,
+                        child: BujeokSheet(w: 72, name: shownName, spec: tSpec),
+                      ),
+                    ),
+                    if (myT == null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xE6070404),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '아직\n받지 않음',
+                          textAlign: TextAlign.center,
+                          style: t.mono.copyWith(
+                            color: const Color(0xFFEFE4D2),
+                            fontSize: 8.5,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        myT != null ? '符 받은 부적 · ${myT.no}' : '符 이 결말의 부적',
+                        style: t.mono.copyWith(
+                          color: const Color(0x8C3C1E0F),
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      Text(
+                        tSpec.name,
+                        style: t.display(
+                          15,
+                          w: FontWeight.w900,
+                          c: const Color(0xFF3A1A0E),
+                        ),
+                      ),
+                      Text(
+                        '${tSpec.phrase} — ${tSpec.phraseMeaning}',
+                        style: t.body(12, c: const Color(0xFF5A3A22), h: 1.4),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${shrine.scroll.borders[tSpec.border] ?? ''} · ${shrine.scroll.seals[tSpec.seal] ?? ''} · ${shrine.scroll.motifs[tSpec.motif] ?? ''}',
+                        style: t.mono.copyWith(
+                          color: const Color(0x8C3C1E0F),
+                          fontSize: 9,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+  }
+
+  /// [U2-6] 「왜 이 부적을 썼는가」 — 主題(talisType) · 選(talisPhrase) · 結(talisEnding) 세 줄
+  Widget _rsWhy(
+    T t, {
+    required String? topicId,
+    required Flavor? flav,
+    required String code,
+    required TalismanSpec tSpec,
+  }) {
+    Widget row(String sig, String body) => Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            margin: const EdgeInsets.only(top: 1),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFA11D19), width: 1.4),
+            ),
+            child: Text(
+              sig,
+              style: GoogleFonts.notoSerifKr(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFFA11D19),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              body,
+              style: t.body(13, c: const Color(0xFF3A2616), h: 1.7),
+            ),
+          ),
+        ],
+      ),
+    );
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0x0FA11D19),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x40A11D19)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '왜 이 부적을 썼는가',
+            style: t.mono.copyWith(color: const Color(0x8C3C1E0F), letterSpacing: 1.5),
+          ),
+          const SizedBox(height: 10),
+          row(
+            tSpec.sig,
+            shrine.scroll.talisType[topicId] ?? shrine.scroll.talisType['fate']!,
+          ),
+          if (flav != null)
+            row(
+              flav.k,
+              '${shrine.scroll.talisPhrase[flav.id] ?? ''} 「${tSpec.phrase}」, ${tSpec.phraseMeaning}.',
+            ),
+          row('結', shrine.scroll.talisEnding[code] ?? ''),
+        ],
+      ),
+    );
+  }
+
   Widget _rbox(T t, String h, String body, Color bg, Color bd) => Container(
     width: double.infinity,
     margin: const EdgeInsets.only(top: 12),
@@ -2888,6 +3243,48 @@ class ResultScreen extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// [U2-2] 「이 두루마리를 만든 것」 점선 테두리 박스 — CustomPaint로 대시 테두리만 그림.
+class _DottedBox extends StatelessWidget {
+  final Color color;
+  final Widget child;
+  const _DottedBox({required this.color, required this.child});
+  @override
+  Widget build(BuildContext context) =>
+      CustomPaint(painter: _DashBorderPainter(color), child: child);
+}
+
+class _DashBorderPainter extends CustomPainter {
+  final Color color;
+  _DashBorderPainter(this.color);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    const dash = 5.0, gap = 4.0;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(8),
+    );
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(d, (d + dash).clamp(0, metric.length)),
+          paint,
+        );
+        d += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashBorderPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 // 10 이야기 목록 → screens_v3.dart ListScreenV3 (v3에서 교체)

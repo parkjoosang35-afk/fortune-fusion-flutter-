@@ -58,6 +58,26 @@ class Ending {
       : name = j['name'], art = j['art'], thumb = j['thumb'], line = j['line'], body = List<String>.from(j['body']);
 }
 
+/// [U2 포팅] 09 결과 두루마리 개인화 데이터 — shrine.json `scroll`.
+/// [포팅 원본] /tmp/shrine_v3/merged/prototype/shrine-data.js L240-271 `scroll{}`.
+/// came(壹 온 까닭·주제4) · talisType(肆 부적종류 이유·주제4) ·
+/// talisPhrase(肆 선택성향 이유·6) · talisEnding(肆 결말별 역할·A-D) ·
+/// letter(민세레나 편지) · borders/seals/motifs(부적 테두리·인장·문양 한글명).
+class Scroll {
+  final Map<String, String> came, talisType, talisPhrase, talisEnding;
+  final String letter;
+  final Map<String, String> borders, seals, motifs;
+  Scroll.fromJson(Map j)
+      : came = Map<String, String>.from(j['came']),
+        talisType = Map<String, String>.from(j['talisType']),
+        talisPhrase = Map<String, String>.from(j['talisPhrase']),
+        talisEnding = Map<String, String>.from(j['talisEnding']),
+        letter = j['letter'],
+        borders = Map<String, String>.from(j['borders']),
+        seals = Map<String, String>.from(j['seals']),
+        motifs = Map<String, String>.from(j['motifs']);
+}
+
 /// 추가 이야기 (room · night · other · secret, 그리고 U11 이야기방 r001~r010) — 메인과 같은 노드 구조
 class Tale {
   final String id, title, en, intro, cover, talis, start; final int minutes, fear;
@@ -85,6 +105,7 @@ class Shrine {
   final List<RouteRule> route;
   final Map<String, Ending> endings;
   final Map<String, String> readings;
+  final Scroll scroll;
   final Map<String, Tale> tales;
   final TalismanEngine talismans;
 
@@ -98,6 +119,7 @@ class Shrine {
         route = (j['story']['route'] as List).map((e) => RouteRule.fromJson(e)).toList(),
         endings = (j['endings'] as Map).map((k, v) => MapEntry(k as String, Ending.fromJson(k, v))),
         readings = Map<String, String>.from(j['readings']),
+        scroll = Scroll.fromJson(j['scroll']),
         tales = (j['tales'] as Map).map((k, v) => MapEntry(k as String, Tale.fromJson(k, v))),
         talismans = TalismanEngine.fromShrineJson(j);
 

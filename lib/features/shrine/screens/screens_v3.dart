@@ -748,7 +748,6 @@ class _ReceiveState extends State<ReceiveScreen> {
     final serial = '神堂 · ${item?.no ?? 'N°${(st.issued + 1).toString().padLeft(4, '0')}'}';
     final srcLabel = p.source.story == 'red-bell' ? '「붉은 방울」 결말 ${p.source.ending}' : '「${shrine.tales[p.source.story]!.title}」 결말 ${p.source.ending}';
     void leave() { context.read<ShrineSessionProvider>().update((s) => s.copy(clearPending: true)); ShrineNav.goPath(context, p.back); }
-    final sheetW = ph == RPh.use ? 120.0 : ph == RPh.name ? 170.0 : 200.0;
     // [2-2 부적 수령 완료 후 하단바] 부적 제작 중(give/unroll/name)에는
     // 기존 의식 연출·화면 구성을 그대로 유지하고, 부적을 "최종적으로
     // 받은" 상태(keep: 부적함에 담김 · use: 간직하는 법 안내)부터만
@@ -763,12 +762,117 @@ class _ReceiveState extends State<ReceiveScreen> {
       else ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2), child: ColorFiltered(colorFilter: const ColorFilter.matrix([.32,0,0,0,0, 0,.32,0,0,0, 0,0,.32,0,0, 0,0,0,1,0]), child: Image.asset(_img('give'), fit: BoxFit.cover))),
       const BottomShade(stops: [0, .26, .62, 1], colors: [Color(0x99070404), Color(0x26070404), Color(0x66070404), Color(0xF5070404)]),
       if (ph != RPh.give) const Embers(count: 14),
-      if (ph != RPh.give) AnimatedPositioned(duration: const Duration(milliseconds: 1000), curve: Curves.ease, top: 98,
-        left: ph == RPh.use ? null : 0, right: ph == RPh.use ? 22 : 0,
-        child: Center(child: TweenAnimationBuilder<double>(key: ValueKey(ph == RPh.unroll), tween: Tween(begin: ph == RPh.unroll ? 0 : 1, end: 1), duration: const Duration(milliseconds: 2400), curve: const Cubic(.3, .9, .3, 1),
-          builder: (_, v, child) => ClipRect(child: Align(alignment: Alignment.bottomCenter, heightFactor: v, child: Opacity(opacity: v.clamp(0, 1), child: child))),
-          child: GestureDetector(onTap: ph == RPh.keep || ph == RPh.name ? () => showTalisManual(context, spec: sp, item: item) : null,
-            child: Transform.rotate(angle: ph == RPh.use ? .07 : 0, child: BujeokSheet(w: sheetW, name: shown, spec: sp, serial: ph == RPh.use ? null : serial)))))),
+      // [U10 포팅 — 부적 받기 흐름을 자연스럽게] 부적 한 장이 계속 화면에
+      // 있고 위치·크기만 1.1초 동안 부드럽게 옮겨진다(웹 .rv-sheet
+      // transition 1.1s cubic-bezier(.22,.8,.25,1)). 단계마다 다른 크기의
+      // 새 부적으로 갈아 끼우지 않는다 — AnimatedScale/AnimatedPositioned로
+      // 같은 BujeokSheet(w:150) 하나의 scale만 바꾼다.
+      if (ph != RPh.give)
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 1100),
+          curve: const Cubic(.22, .8, .25, 1),
+          top: ph == RPh.unroll ? 130 : 88,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 1100),
+              curve: const Cubic(.22, .8, .25, 1),
+              scale: switch (ph) {
+                RPh.unroll => 1.12,
+                RPh.name || RPh.keep => .64,
+                RPh.use => .46,
+                RPh.give => 1,
+              },
+              child: AnimatedRotation(
+                duration: const Duration(milliseconds: 1100),
+                curve: const Cubic(.22, .8, .25, 1),
+                turns: ph == RPh.use ? 3 / 360 : 0,
+                child: TweenAnimationBuilder<double>(
+                  key: const ValueKey('rv-reveal'),
+                  tween: Tween(begin: ph == RPh.unroll ? 0 : 1, end: 1),
+                  duration: const Duration(milliseconds: 1600),
+                  curve: const Cubic(.4, 0, .2, 1),
+                  builder: (_, v, child) => ClipRect(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: v,
+                      child: child,
+                    ),
+                  ),
+                  child: GestureDetector(
+                    onTap: ph == RPh.keep || ph == RPh.name
+                        ? () => showTalisManual(context, spec: sp, item: item)
+                        : null,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        BujeokSheet(
+                          w: 150,
+                          name: shown,
+                          spec: sp,
+                          serial: ph == RPh.use ? null : serial,
+                        ),
+                        // [U10] 「간직」 단계 진입 순간 붉은 인장 「持」가 찍힘
+                        if (ph == RPh.keep)
+                          Positioned(
+                            right: -14,
+                            top: 150 * 2.3 * .38, // 150px 폭 · 비율 1:2.3 기준 38% 지점(웹 .rv-stamp top:38%)
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: 1),
+                              duration: const Duration(milliseconds: 500),
+                              curve: const Cubic(.5, 0, .75, 1.5),
+                              builder: (_, v, child) => Opacity(
+                                opacity: v.clamp(0, 1),
+                                child: Transform.rotate(
+                                  angle: -8 * math.pi / 180,
+                                  child: child,
+                                ),
+                              ),
+                              child: Container(
+                                width: 34,
+                                height: 34,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFC42A22),
+                                      Color(0xFF7A0F0C),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(
+                                    color: const Color(0x8CFFDCAA),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xB3E0412F),
+                                      blurRadius: 18,
+                                    ),
+                                  ],
+                                ),
+                                child: const Text(
+                                  '持',
+                                  style: TextStyle(
+                                    fontFamily: 'NotoSerifKR',
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 17,
+                                    color: Color(0xFFFFF1DC),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       Positioned(left: 20, right: 20, bottom: 26, child: SafeArea(top: false, child: switch (ph) {
         RPh.give => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           const SpeakerBadge('민세레나', hanja: '閔'), const SizedBox(height: 10),
