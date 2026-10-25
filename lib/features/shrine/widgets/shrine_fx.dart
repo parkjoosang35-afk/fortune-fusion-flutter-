@@ -952,3 +952,134 @@ class DevotionMark extends StatelessWidget {
         : Positioned(left: 4, top: 4, child: badge);
   }
 }
+
+// ═══════════ U9-5 — 바스러짐(CrumbleFx) ═══════════
+// 원본: shrine-u9.jsx CrumbleFx · shrine.css .crumble/.cr-mask/.crumble i.
+// 소멸(滅)한 부적을 처음 열람할 때(showTalisManual, _TMState.initState에서
+// 1회 판정) 한 번만 부적 그림 위에 재가 날리며 바닥에서부터 어둠이 차오르는
+// 연출(총 3초, onEnd 콜백으로 종료 알림).
+// 원본 `window.ShrineAudio.crackle(true/false)`는 효과음 미채택 정책(U8-0부터
+// 일관 유지)에 따라 포팅하지 않는다. 원본에도 진동 호출이 없으므로 추가하지
+// 않는다.
+class _CrumbleBit {
+  final double x, y, dx, d, dl; // x,y: %, dx: px, d: 지속시간(초), dl: 지연(초)
+  const _CrumbleBit(this.x, this.y, this.dx, this.d, this.dl);
+}
+
+// 원본: `Array.from({ length: 36 }, (_, i) => ({ x: (i*29)%100, y: (i*53)%100,
+// dx: ((i*17)%40)-20, d: .9+(i%5)*.25, dl: ((100-(i*53)%100)/100)*1.4 }))`.
+// useMemo로 한 번만 계산되던 값이므로 top-level const 리스트로 1:1 고정한다.
+final List<_CrumbleBit> _crumbleBits = List.generate(36, (i) {
+  final x = (i * 29) % 100;
+  final y = (i * 53) % 100;
+  final dx = ((i * 17) % 40) - 20;
+  final d = .9 + (i % 5) * .25;
+  final dl = ((100 - (i * 53) % 100) / 100) * 1.4;
+  return _CrumbleBit(x.toDouble(), y.toDouble(), dx.toDouble(), d, dl);
+});
+
+class CrumbleFx extends StatefulWidget {
+  final VoidCallback? onEnd;
+  const CrumbleFx({super.key, this.onEnd});
+
+  @override
+  State<CrumbleFx> createState() => _CrumbleFxState();
+}
+
+class _CrumbleFxState extends State<CrumbleFx>
+    with SingleTickerProviderStateMixin {
+  // 원본: `useEffect(() => { ...; const t = setTimeout(() => { ...; onEnd?.(); },
+  // 3000); return () => clearTimeout(t); }, [])` — 3초 후 정확히 1회 onEnd 호출.
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3000),
+  )..forward();
+  Timer? _end;
+
+  @override
+  void initState() {
+    super.initState();
+    _end = Timer(const Duration(milliseconds: 3000), () {
+      widget.onEnd?.call();
+    });
+  }
+
+  @override
+  void dispose() {
+    _end?.cancel();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final h = constraints.maxHeight;
+          return AnimatedBuilder(
+            animation: _c,
+            builder: (_, __) {
+              // 원본 .cr-mask: `animation: crMask 3s ease-in forwards` —
+              // linear-gradient(0deg, color 0%→100%, transparent 0%→100%)로
+              // 바닥에서부터 어둠이 차오른다(ease-in 타이밍).
+              final maskT = Curves.easeIn.transform(_c.value);
+              final elapsed = _c.value * 3.0; // 경과 초
+              return Stack(
+                fit: StackFit.expand,
+                clipBehavior: Clip.none,
+                children: [
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: FractionallySizedBox(
+                      heightFactor: maskT.clamp(0.0, 1.0),
+                      widthFactor: 1,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(color: Color(0xEB0A0605)),
+                      ),
+                    ),
+                  ),
+                  // 원본 `.crumble i { ... animation-name: crBit; ... }` —
+                  // 각 재 조각이 delay(dl) 후 duration(d) 동안 ease-in으로
+                  // opacity 1→0, translate(0,0)→(dx,60px), rotate 0→140deg.
+                  for (final b in _crumbleBits)
+                    Builder(
+                      builder: (_) {
+                        if (elapsed < b.dl) return const SizedBox.shrink();
+                        final raw = ((elapsed - b.dl) / b.d).clamp(0.0, 1.0);
+                        final local = Curves.easeIn.transform(raw);
+                        final opacity = (1 - local).clamp(0.0, 1.0);
+                        if (opacity <= 0) return const SizedBox.shrink();
+                        return Positioned(
+                          left: b.x / 100 * w - 2,
+                          top: b.y / 100 * h - 2,
+                          child: Opacity(
+                            opacity: opacity,
+                            child: Transform.translate(
+                              offset: Offset(b.dx * local, 60 * local),
+                              child: Transform.rotate(
+                                angle: 140 * math.pi / 180 * local,
+                                child: Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(1),
+                                    color: const Color(0xFF6E625A),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}

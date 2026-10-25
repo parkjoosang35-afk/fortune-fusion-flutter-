@@ -19,9 +19,9 @@ import '../widgets/bujeok.dart';
 import '../widgets/shrine_nav.dart';
 import '../shrine_module.dart' show shrine;
 import '../widgets/life_panel.dart' show LifePanel;
-import '../engine/life_system.dart' show kLifeState;
+import '../engine/life_system.dart' show kLifeState, lifeOf;
 import 'seal_screen.dart' show showSealToWishRoomSheet;
-import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel, DoorPull, FlipCard, TalisBack;
+import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel, DoorPull, FlipCard, TalisBack, CrumbleFx;
 
 // ※ 00 신통방통 소원방 홈 목업(StbHomeScreen)은 삭제 — 실제 신통방통 앱의 홈·하단바를 그대로 쓰고,
 //   하단바의 「신당 부적」 탭이 이 모듈의 진입점(ShrineTab)이다. integration/ 참고.
@@ -160,6 +160,30 @@ class _TalisManual extends StatefulWidget { final TalismanSpec spec; final BoxIt
   const _TalisManual({required this.spec, this.item, this.actions}); @override State<_TalisManual> createState() => _TMState(); }
 class _TMState extends State<_TalisManual> {
   String tab = 'what';
+  // [U9-5 포팅] 소멸(滅)한 부적을 처음 열 때만 바스러짐 연출을 보여준다.
+  // 원본: `const live = item && box.find(b => b.no === item.no); const [crumble,
+  // setCrumble] = useState(() => !!(live && lifeOf(app,live).st === 'gone' &&
+  // !live.crumbled && !app.reduce)); useEffect(() => { if (crumble && live)
+  // app.update(... crumbled: true ...); }, []);` — 초기 판정 + 즉시 1회
+  // crumbled:true 기록(같은 부적을 다시 열어도 재생되지 않도록)을 그대로 옮긴다.
+  late bool _crumble;
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = context.read<ShrineSessionProvider>();
+    final st = provider.state;
+    final no = widget.item?.no;
+    final live = no == null
+        ? null
+        : st.box.where((b) => b.no == no).firstOrNull;
+    _crumble =
+        live != null && lifeOf(live).st == 'gone' && !live.crumbled && !st.reduce;
+    if (_crumble) {
+      provider.updateBox(live!.no, (b) => b.copy(crumbled: true));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final sp = widget.spec; final cp = shrine.talismans.copy[sp.type] as Map;
@@ -173,7 +197,12 @@ class _TMState extends State<_TalisManual> {
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           // [U9-3 포팅] 부적을 탭하면 뒤집혀 뒷면(받은 날·닿은 결말·고른 길·
           // 사주 근거·조합 ID·「神堂」 인)이 보인다. 다시 탭하면 앞면.
-          FlipCard(w: 92, front: BujeokSheet(w: 92, name: name, spec: sp), back: TalisBack(spec: sp, item: widget.item, name: name)),
+          // [U9-5 포팅] 원본 `.tm-art { position: relative }` 위에 CrumbleFx를
+          // Stack으로 얹는다(소멸한 부적 최초 열람 시 1회).
+          Stack(clipBehavior: Clip.none, children: [
+            FlipCard(w: 92, front: BujeokSheet(w: 92, name: name, spec: sp), back: TalisBack(spec: sp, item: widget.item, name: name)),
+            if (_crumble) Positioned.fill(child: CrumbleFx(onEnd: () { if (mounted) setState(() => _crumble = false); })),
+          ]),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${sp.head}${widget.item != null ? ' · ${widget.item!.no}' : ''}', style: t.mono.copyWith(color: C.gold)),

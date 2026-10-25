@@ -114,6 +114,11 @@ class BoxItem {
   // wishText는 봉인 당시 소원 문구 스냅샷(소원이 나중에 바뀌어도 "그때 그
   // 소원"을 보여주기 위함), at은 봉인 시각(ms).
   final SealedTo? sealedTo;
+  // [U9-5 포팅] 소멸(滅)한 부적을 처음 열람할 때 CrumbleFx(바스러짐)를
+  // 보여준 적이 있는지 기록. 원본: `live.crumbled`(TalisManual이 직접
+  // app.update로 기록). 한 번 true가 되면 같은 부적에 대해 다시는 연출을
+  // 보여주지 않는다(원본 `!live.crumbled` 가드와 동일).
+  final bool crumbled;
   const BoxItem({
     required this.key,
     required this.no,
@@ -128,6 +133,7 @@ class BoxItem {
     this.sentAt,
     this.sealedTo,
     this.tendDays = const [],
+    this.crumbled = false,
   });
   BoxItem copy({
     String? mode,
@@ -138,6 +144,7 @@ class BoxItem {
     int? sentAt,
     SealedTo? sealedTo,
     List<int>? tendDays,
+    bool? crumbled,
   }) => BoxItem(
     key: key,
     no: no,
@@ -152,6 +159,7 @@ class BoxItem {
     sentAt: sentAt ?? this.sentAt,
     sealedTo: sealedTo ?? this.sealedTo,
     tendDays: tendDays ?? this.tendDays,
+    crumbled: crumbled ?? this.crumbled,
   );
   Map toJson() => {
     'key': key,
@@ -168,6 +176,7 @@ class BoxItem {
     'sentAt': sentAt,
     'sealedTo': sealedTo?.toJson(),
     'tendDays': tendDays,
+    'crumbled': crumbled,
   };
   static BoxItem fromJson(Map j) => BoxItem(
     key: j['key'],
@@ -183,6 +192,7 @@ class BoxItem {
     sentAt: j['sentAt'] as int?,
     sealedTo: SealedTo.fromJson(j['sealedTo'] as Map?),
     tendDays: j['tendDays'] == null ? const [] : List<int>.from(j['tendDays']),
+    crumbled: j['crumbled'] == true,
   );
 }
 
