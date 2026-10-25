@@ -1,7 +1,10 @@
 // 신당(THE SHRINE) U5 — 부적 수명 표현 위젯: LifeVeil · LifeBar · LifePanel
 // 원본: shrine-screens-f.jsx + shrine.css(.life-veil/.life-bar/.life-panel)
-// [범위 조정] U5 승인 범위에 따라, 향 올리기는 U7(전체화면 의식)을 생략하고 즉시 처리
-// + 스낵바 안내로 간소화했다.
+// [U7 전체화면 의식 복구 — 통합 지시서 §2-3] 과거 "[범위 조정]" 주석으로
+// 향 올리기를 즉시처리+스낵바로 간소화했었으나, 이는 명시적 승인 기록이
+// 아니므로 이번 지시에 따라 원안의 전체화면 의식(ShrineIncenseRite, 약
+// 6.2초)을 복구한다. 실제 저장(tendTalisItem)은 의식의 "숫자" 단계(3.4s)
+// 에서 수행되며 이전과 동일한 updateBox() 경로를 그대로 쓴다.
 // [U9-4 포팅] devotionOf(연속 향 올림 "정성" 표시) — tended/lastTend에 더해
 // U9-4에서 추가한 tendDays를 이용해 연속 일수를 계산하고 lp-dev 줄로 노출한다.
 import 'package:flutter/material.dart';
@@ -10,6 +13,7 @@ import '../engine/life_system.dart';
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
 import 'shrine_fx.dart' show DevotionMark;
+import 'shrine_incense_rite.dart' show showShrineIncenseRite;
 
 /// 부적 그리드 셀 위에 얹는 수명 오버레이 — 盛/生 이면 아무것도 그리지 않는다.
 class LifeVeil extends StatelessWidget {
@@ -155,9 +159,12 @@ class _LifePanelState extends State<LifePanel> {
   bool _burning = false;
 
   void _tend(ShrineSessionProvider provider) {
-    provider.updateBox(widget.item.no, tendTalisItem);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('香 향을 올렸습니다 · 기운 +$kTendDays일')),
+    final beforeLeft = lifeOf(widget.item).left;
+    showShrineIncenseRite(
+      context,
+      beforeLeft: beforeLeft,
+      tendDays: kTendDays,
+      doTend: () => provider.updateBox(widget.item.no, tendTalisItem),
     );
   }
 

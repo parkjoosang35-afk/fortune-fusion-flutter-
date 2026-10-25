@@ -35,6 +35,15 @@ import '../widgets/shrine_fx.dart' show shrineHaptic, ShrineHapticLevel, Devotio
 import 'screens_v32.dart' show showTalisManual;
 import '../engine/life_system.dart' show lifeOf, kLifeState, devotionOf, nowMs;
 import '../widgets/life_panel.dart' show LifeVeil, LifeBar;
+import '../widgets/shrine_save_rite.dart' show showShrineSaveRite;
+// [2-2 부적 수령 완료 후 하단바 — 통합 지시서 §2-2] 부적을 "최종적으로
+// 받은" 화면(ph==keep/use)부터 신통방통 전역 하단바(홈/신당부적/복주머니/
+// 마이)를 노출하기 위해, AppShell 밖에서 push된 다른 화면들(정통사주 결과·
+// 타로 결과 등)과 동일한 공용 위젯 MainBottomNavBar를 재사용한다. 이
+// 위젯의 탭 전환은 `pushNamedAndRemoveUntil('/home', ..., arguments: i)`로
+// 신당 Navigator 스택 전체를 포함해 안전하게 빠져나가므로 ShrineNav와
+// 충돌하지 않는다.
+import '../../../core/router/main_bottom_nav_bar.dart';
 
 String _img(String n) => 'assets/shrine/img/$n.jpg';
 const _elColor = {'木': Color(0xFF6F9A5A), '火': Color(0xFFE0412F), '土': Color(0xFFC9A368), '金': Color(0xFFD9D2C4), '水': Color(0xFF5B7FA8)};
@@ -144,7 +153,7 @@ class _ConnectState extends State<ConnectScreen> {
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts);
     final rows = [
-      ('name', '名', '이름', '박서연', '월화가 부르고, 부적에 적습니다'),
+      ('name', '名', '이름', '박서연', '민세레나가 부르고, 부적에 적습니다'),
       ('birth', '生', '생년월일', '1995.08.14 · 양력', '정통사주 해석에 씁니다'),
       ('time', '時', '태어난 시간', '14:20', '없으면 시주(時柱)를 빼고 풀이합니다'),
     ];
@@ -522,7 +531,7 @@ class _RecState extends State<RecommendScreen> {
       ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6), child: const ShrineVideo(name: 'talk', poster: 'talk')),
       const BottomShade(stops: [0, .3, .6, 1], colors: [Color(0x80070404), Color(0x8C070404), Color(0xF2070404), Color(0xF2070404)]),
       Positioned(left: 16, right: 16, bottom: 22, child: SafeArea(top: false, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        const SpeakerBadge('월화', hanja: '月華'), const SizedBox(height: 10),
+        const SpeakerBadge('민세레나', hanja: '閔'), const SizedBox(height: 10),
         if (recT != null) ...[
           Text.rich(TextSpan(style: t.display(17, h: 1.65), children: [TextSpan(text: '${st.name}님의 명(命)을 보니,\n오늘은 '), TextSpan(text: recT.label, style: const TextStyle(color: C.redHot)), const TextSpan(text: '의 이야기가\n먼저 문을 두드립니다.')])),
           const SizedBox(height: 10),
@@ -573,7 +582,7 @@ class _MeaningState extends State<MeaningScreen> {
     for (final (i, ms) in [600, 1700, 2900].indexed) { _ts.add(Timer(Duration(milliseconds: r ? 100 * (i + 1) : ms), () => mounted ? setState(() => step = i + 1) : null)); } }
   @override void dispose() { for (final x in _ts) { x.cancel(); } super.dispose(); }
 
-  /// [U12 어뷰징 방지 — Step 3] "월화에게 부적을 부탁하기"를 누르는 순간
+  /// [U12 어뷰징 방지 — Step 3] "민세레나에게 부적을 부탁하기"를 누르는 순간
   /// admin_web /api/public/shrine/can-issue 로 서버 재검증한다(원본 JS
   /// MeaningScreen의 `gate = ENG.canIssue(d, src.story)` 그대로 포팅,
   /// 다만 ledger가 로컬 localStorage가 아니라 서버 ShrineIssueLedger임).
@@ -635,7 +644,7 @@ class _MeaningState extends State<MeaningScreen> {
       const BottomShade(stops: [0, .2, .44, .7], colors: [Color(0x73070404), Color(0x40070404), Color(0xE0070404), Color(0xF7070404)]),
       Positioned(left: 16, right: 16, bottom: 22, child: SafeArea(top: false, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
         Text('義 · ${isMain ? '붉은 방울' : tale!.title} · 결말 ${src.ending} $endName', style: t.mono.copyWith(color: C.gold)), const SizedBox(height: 8),
-        const SpeakerBadge('월화', hanja: '月華'), const SizedBox(height: 8),
+        const SpeakerBadge('민세레나', hanja: '閔'), const SizedBox(height: 8),
         Text('${st.name}님은 ${flav.said}', style: t.display(16.5, h: 1.65)),
         Text(flav.story, style: t.body(14, c: C.muted, h: 1.6)), const SizedBox(height: 10),
         _Reveal(step >= 1, _card(border: C.goldLine, pad: const EdgeInsets.fromLTRB(14, 12, 14, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -660,7 +669,7 @@ class _MeaningState extends State<MeaningScreen> {
               Text(spec.designId, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),
             ])),
           ]))),
-        Opacity(opacity: step >= 3 && !busy ? 1 : .4, child: RedButton('월화에게 부적을 부탁하기', ts: st.ts, onTap: step < 3 || busy ? null : () {
+        Opacity(opacity: step >= 3 && !busy ? 1 : .4, child: RedButton('민세레나에게 부적을 부탁하기', ts: st.ts, onTap: step < 3 || busy ? null : () {
           _go(src, Pending(spec, StorySource(src.story, src.ending), flav.id, isMain ? '$kShrineBase/result/${src.ending}' : '$kShrineBase/list'));
         })),
       ]))),
@@ -740,7 +749,16 @@ class _ReceiveState extends State<ReceiveScreen> {
     final srcLabel = p.source.story == 'red-bell' ? '「붉은 방울」 결말 ${p.source.ending}' : '「${shrine.tales[p.source.story]!.title}」 결말 ${p.source.ending}';
     void leave() { context.read<ShrineSessionProvider>().update((s) => s.copy(clearPending: true)); ShrineNav.goPath(context, p.back); }
     final sheetW = ph == RPh.use ? 120.0 : ph == RPh.name ? 170.0 : 200.0;
-    return Scaffold(body: Stack(fit: StackFit.expand, children: [
+    // [2-2 부적 수령 완료 후 하단바] 부적 제작 중(give/unroll/name)에는
+    // 기존 의식 연출·화면 구성을 그대로 유지하고, 부적을 "최종적으로
+    // 받은" 상태(keep: 부적함에 담김 · use: 간직하는 법 안내)부터만
+    // 하단바를 노출한다. Scaffold가 자동으로 body 영역을 하단바 높이만큼
+    // 줄여 주므로(extendBody를 쓰지 않음) 기존 Positioned(bottom:26) 패널·
+    // 부적 애니메이션을 가리지 않는다.
+    final showNav = ph == RPh.keep || ph == RPh.use;
+    return Scaffold(
+      bottomNavigationBar: showNav ? const MainBottomNavBar(currentIndex: 0) : null,
+      body: Stack(fit: StackFit.expand, children: [
       if (ph == RPh.give) ShrineVideo(name: 'give', poster: 'give', loop: false, onEnd: () => _go(RPh.unroll))
       else ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2), child: ColorFiltered(colorFilter: const ColorFilter.matrix([.32,0,0,0,0, 0,.32,0,0,0, 0,0,.32,0,0, 0,0,0,1,0]), child: Image.asset(_img('give'), fit: BoxFit.cover))),
       const BottomShade(stops: [0, .26, .62, 1], colors: [Color(0x99070404), Color(0x26070404), Color(0x66070404), Color(0xF5070404)]),
@@ -753,7 +771,7 @@ class _ReceiveState extends State<ReceiveScreen> {
             child: Transform.rotate(angle: ph == RPh.use ? .07 : 0, child: BujeokSheet(w: sheetW, name: shown, spec: sp, serial: ph == RPh.use ? null : serial)))))),
       Positioned(left: 20, right: 20, bottom: 26, child: SafeArea(top: false, child: switch (ph) {
         RPh.give => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          const SpeakerBadge('월화', hanja: '月華'), const SizedBox(height: 10),
+          const SpeakerBadge('민세레나', hanja: '閔'), const SizedBox(height: 10),
           Text.rich(TextSpan(style: t.body(19, w: FontWeight.w700, h: 1.6), children: [const TextSpan(text: '태운 것은 끝이 아닙니다.\n방금 올린 그 부적을,\n'),
             TextSpan(text: '${st.name ?? '당신'}님 몫으로 한 장 더 옮겨 적었습니다.', style: const TextStyle(color: C.redHot))]))]),
         RPh.unroll => Column(mainAxisSize: MainAxisSize.min, children: [
@@ -801,14 +819,27 @@ class _ReceiveState extends State<ReceiveScreen> {
         decoration: BoxDecoration(color: const Color(0x80080404), borderRadius: BorderRadius.circular(999), border: Border.all(color: C.goldLine)), child: Text('SKIP ›', style: t.mono.copyWith(letterSpacing: 2.5, color: C.muted)))) : null),
     ]));
   }
+  // [U6 저장 의식 4.7초 복구 — 통합 지시서 §2-3] 토스트(SnackBar) 안내 대신
+  // 전체 화면 저장 의식(ShrineSaveRite)을 띄운다. 실제 PNG 저장은 의식이
+  // 뜨는 즉시(doSave 콜백) 병렬로 시작되고, 완료 여부에 따라 의식 마지막
+  // 문구만 성공/실패로 갈린다. 저장 성공 시 box 상태(saved:true) 갱신은
+  // 기존과 동일하게 유지한다.
   Future<void> _save(BoxItem it) async {
-    final st = context.read<ShrineSessionProvider>().state; final copy = shrine.talismans.copy[it.spec.type] as Map;
+    final provider = context.read<ShrineSessionProvider>();
+    final st = provider.state;
+    final copy = shrine.talismans.copy[it.spec.type] as Map;
     final src = it.source.story == 'red-bell' ? '「붉은 방울」 결말 ${it.source.ending}' : '「${shrine.tales[it.source.story]!.title}」 결말 ${it.source.ending}';
-    final png = await renderBujeokPng(name: nameShown(st.name, it.mode), spec: it.spec, serial: '神堂 · ${it.no}', title: '${it.spec.name} · ${it.spec.phrase}',
-      line: '${it.spec.phraseMeaning} — ${copy['line']}', sub: '${it.date} · $src');
-    await Gal.putImageBytes(png, name: '신당_${it.spec.name}_${it.spec.phrase}');
-    context.read<ShrineSessionProvider>().updateBox(it.no, (b) => b.copy(saved: true));
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('부적을 사진첩에 저장했습니다')));
+    await showShrineSaveRite(context, name: nameShown(st.name, it.mode), spec: it.spec, doSave: () async {
+      try {
+        final png = await renderBujeokPng(name: nameShown(st.name, it.mode), spec: it.spec, serial: '神堂 · ${it.no}', title: '${it.spec.name} · ${it.spec.phrase}',
+          line: '${it.spec.phraseMeaning} — ${copy['line']}', sub: '${it.date} · $src');
+        await Gal.putImageBytes(png, name: '신당_${it.spec.name}_${it.spec.phrase}');
+        provider.updateBox(it.no, (b) => b.copy(saved: true));
+        return true;
+      } catch (_) {
+        return false;
+      }
+    });
   }
 }
 
@@ -876,7 +907,7 @@ class _BoxState extends State<BoxScreen> {
         const SizedBox(height: 14),
         if (list.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 40), child: Column(children: [
           Text('封', style: t.display(48, w: FontWeight.w900, c: const Color(0x1AEFE4D2))), const SizedBox(height: 10),
-          Text('아직 간직한 부적이 없습니다.\n이야기를 마치면 월화가 부적을 써 드립니다.', textAlign: TextAlign.center, style: t.body(13, c: C.faint))])),
+          Text('아직 간직한 부적이 없습니다.\n이야기를 마치면 민세레나가 부적을 써 드립니다.', textAlign: TextAlign.center, style: t.body(13, c: C.faint))])),
         GridView.count(crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 16, crossAxisSpacing: 10, childAspectRatio: 96 / 252, children: [
           for (final b in list) Builder(builder: (_) {
             final life = lifeOf(b);
@@ -941,8 +972,18 @@ class _BoxState extends State<BoxScreen> {
         Text('${cur.date} · $src에서 받음', style: t.ui(12, c: C.faint)), const SizedBox(height: 6),
         Text('${cur.spec.phraseMeaning}. ${copy['line']}', style: t.body(14, c: C.muted)), const SizedBox(height: 12),
         _acts([
-          ('⤓', cur.saved ? '다시 저장' : '사진첩 저장', () async { final png = await renderBujeokPng(name: nameShown(st.name, cur.mode), spec: cur.spec, serial: '神堂 · ${cur.no}', title: '${cur.spec.name} · ${cur.spec.phrase}', line: '${cur.spec.phraseMeaning} — ${copy['line']}', sub: '${cur.date} · $src');
-            await Gal.putImageBytes(png); provider.updateBox(cur.no, (x) => x.copy(saved: true)); }),
+          // [U6 저장 의식 복구] 부적함 상세 시트의 「사진첩 저장」도
+          // ReceiveScreen._save()와 동일하게 전체화면 저장 의식을 띄운다.
+          ('⤓', cur.saved ? '다시 저장' : '사진첩 저장', () => showShrineSaveRite(context, name: nameShown(st.name, cur.mode), spec: cur.spec, doSave: () async {
+            try {
+              final png = await renderBujeokPng(name: nameShown(st.name, cur.mode), spec: cur.spec, serial: '神堂 · ${cur.no}', title: '${cur.spec.name} · ${cur.spec.phrase}', line: '${cur.spec.phraseMeaning} — ${copy['line']}', sub: '${cur.date} · $src');
+              await Gal.putImageBytes(png);
+              provider.updateBox(cur.no, (x) => x.copy(saved: true));
+              return true;
+            } catch (_) {
+              return false;
+            }
+          })),
           ('名', '이름 표시', () => provider.updateBox(cur.no, (x) => x.copy(mode: x.mode == 'full' ? 'initial' : x.mode == 'initial' ? 'hidden' : 'full'))),
           ('話', '이야기 보기', () { Navigator.pop(ctx); cur.source.story == 'red-bell' ? ShrineNav.go(context, 'end', params: {'code': cur.source.ending}) : ShrineNav.go(context, 'tale-end', params: {'id': cur.source.story, 'code': cur.source.ending}); }),
         ]),
@@ -999,7 +1040,7 @@ class _TaleState extends State<TaleScreen> {
         GestureDetector(onTap: _next, child: Container(constraints: const BoxConstraints(minHeight: 116), padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
           decoration: BoxDecoration(color: C.panel, borderRadius: BorderRadius.circular(12), border: Border.all(color: C.goldLine)),
           child: Stack(clipBehavior: Clip.none, children: [
-            if (line.who != 'narr') Positioned(top: -30, left: -4, child: SpeakerBadge(line.who == 'wolhwa' ? '월화' : '목소리', hanja: line.who == 'wolhwa' ? '月華' : null, voice: line.who == 'voice')),
+            if (line.who != 'narr') Positioned(top: -30, left: -4, child: SpeakerBadge(line.who == 'wolhwa' ? '민세레나' : '목소리', hanja: line.who == 'wolhwa' ? '閔' : null, voice: line.who == 'voice')),
             Typewriter(line.who == 'voice' ? '"$text"' : text, key: _tw, msPerChar: st.reduce ? 0 : Dur.typeStory, style: t.body(15.5, c: line.who == 'narr' ? C.muted : C.fg, h: 1.75),
               onDone: () { setState(() => typed = true); if (atEnd) _startTimer(); }),
           ]))),
@@ -1043,7 +1084,7 @@ class TaleEndScreen extends StatelessWidget {
           for (final p in e.body) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(shrine.fill(p, name: st.name, season: st.season, topicId: st.topic), style: t.body(13.5, c: const Color(0xD1EFE4D2), h: 1.8)))]))),
         const SizedBox(height: 14),
         has ? RedButton('다른 이야기 보기', ts: st.ts, onTap: () => ShrineNav.go(context, 'list'))
-            : RedButton('월화의 풀이와 $tName 받기', ts: st.ts, onTap: () { context.read<ShrineSessionProvider>().update((s) => s.copy(meaningSrc: src)); ShrineNav.go(context, 'meaning'); }),
+            : RedButton('민세레나의 풀이와 $tName 받기', ts: st.ts, onTap: () { context.read<ShrineSessionProvider>().update((s) => s.copy(meaningSrc: src)); ShrineNav.go(context, 'meaning'); }),
         const SizedBox(height: 10),
         Row(children: [Expanded(child: Pill('다른 선택으로 다시', ts: st.ts, onTap: () { context.read<ShrineSessionProvider>().update((s) => s.copy(talePos: {...s.talePos, id: null})); ShrineNav.go(context, 'tale', params: {'id': id}); })),
           const SizedBox(width: 10), Expanded(child: Pill('부적함', ts: st.ts, onTap: () => ShrineNav.go(context, 'box')))]),

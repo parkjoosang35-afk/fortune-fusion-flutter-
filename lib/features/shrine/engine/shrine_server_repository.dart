@@ -33,7 +33,7 @@ class ShrineCanIssueResult {
 }
 
 class ShrineServerRepository {
-  /// 발급 전 사전 확인 — MeaningScreen "월화에게 부적을 부탁하기" 버튼에서 호출.
+  /// 발급 전 사전 확인 — MeaningScreen "민세레나에게 부적을 부탁하기" 버튼에서 호출.
   Future<ApiResult<ShrineCanIssueResult>> canIssue({
     required String? sajuFp,
     required String storyId,

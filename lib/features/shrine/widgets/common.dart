@@ -73,7 +73,7 @@ class Pill extends StatelessWidget {
   ));
 }
 
-/// 화자 배지 "월화 月華"
+/// 화자 배지 "민세레나 閔"
 class SpeakerBadge extends StatelessWidget {
   final String name; final String? hanja; final bool voice;
   const SpeakerBadge(this.name, {super.key, this.hanja, this.voice = false});

@@ -384,14 +384,28 @@ class _HallState extends State<HallScreen> {
   /// 「제단 앞으로 다가가기」 → 신통방통 결제창 (이미 이용권 있으면 바로 통과)
   /// [U5 포팅] 첫 방문(aboutSeen == false)이면 緣起(AboutScreen)를 먼저 보여주고,
   /// 다 보면 aboutBack 라우트(talk/connect)로 이어간다 — 원본 U5-1 "진입 ① 첫 방문 시" 반영.
+  ///
+  /// [2-1 결제 후 뒤로가기 차단 — 통합 지시서 §2-1] 결제(shrinePay)가
+  /// 성공해 신당 "안쪽"(about/talk/connect)으로 넘어가는 이 시점부터는
+  /// 시스템 뒤로가기로 결제 이전 화면(이 HallScreen 포함 entry/door)에
+  /// 돌아갈 수 없어야 한다. 기존 `ShrineNav.go()`(push)는 hall을 스택에
+  /// 그대로 남겨 두므로 뒤로가기 한 번이면 결제 화면(hall)로 복귀해
+  /// `_enter()`가 다시 호출되는 문제가 있었다. 이미 존재하는
+  /// `ShrineNav.goAndClearStack()`(entry/door/hall 등 'shrine:' 스택을
+  /// 모두 비우고 새 라우트 하나만 남김)로 바꿔, 결제 성공 이후의 첫
+  /// 화면이 신당 스택의 새 바닥이 되게 한다. 결제 호출(shrinePay) 자체와
+  /// 게이트웨이 로직은 전혀 바꾸지 않는다 — 결제 성공 콜백 "다음에 어느
+  /// 네비게이션 메서드를 쓰는지"만 바꾼다. 이후 신당 내부의 정상적인
+  /// 다음 단계 이동(talk→saju→recommend→... 등)은 여전히 기존
+  /// `ShrineNav.go()`(push)를 그대로 쓰므로 전혀 영향받지 않는다.
   void _enter() => shrinePay(context, ShrineProduct.entry, () {
     final provider = context.read<ShrineSessionProvider>();
     final dest = provider.state.name != null ? 'talk' : 'connect';
     if (!provider.state.aboutSeen) {
       provider.update((s) => s.copy(aboutBack: dest));
-      ShrineNav.go(context, 'about');
+      ShrineNav.goAndClearStack(context, 'about');
     } else {
-      ShrineNav.go(context, dest);
+      ShrineNav.goAndClearStack(context, dest);
     }
   });
   @override
@@ -429,7 +443,7 @@ class _HallState extends State<HallScreen> {
               bottom: 150,
               child: Column(
                 children: [
-                  Text('月華 · 신당의 주인', style: t.mono),
+                  Text('閔 · 신당의 주인', style: t.mono),
                   const SizedBox(height: 12),
                   Typewriter(
                     '신당의 주인이\n당신을 기다리고 있었습니다.',
@@ -529,7 +543,7 @@ class _TapPulseState extends State<TapPulse>
   );
 }
 
-// ─────────────────────────── 04 월화와 대화 ───────────────────────────
+// ─────────────────────────── 04 민세레나와 대화 ───────────────────────────
 class TalkScreen extends StatefulWidget {
   const TalkScreen({super.key});
   @override
@@ -594,7 +608,7 @@ class _TalkState extends State<TalkScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SpeakerBadge('월화', hanja: '月華'),
+                    const SpeakerBadge('민세레나', hanja: '閔'),
                     const SizedBox(height: 12),
                     // 규칙: 대사가 끝나야 선택지가 뜬다
                     Typewriter(
@@ -1360,7 +1374,7 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SpeakerBadge('월화', hanja: '月華'),
+                    const SpeakerBadge('민세레나', hanja: '閔'),
                     const SizedBox(height: 10),
                     Text(
                       '${st.name}… ${st.name}.\n이름을 적겠습니다.',
@@ -1379,7 +1393,7 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const SpeakerBadge('월화', hanja: '月華'),
+                                  const SpeakerBadge('민세레나', hanja: '閔'),
                                   const SizedBox(height: 10),
                                   Text.rich(
                                     TextSpan(
@@ -2066,7 +2080,7 @@ class _DialogPanel extends StatelessWidget {
         const Positioned(
           top: -12,
           left: 14,
-          child: SpeakerBadge('월화', hanja: '月華'),
+          child: SpeakerBadge('민세레나', hanja: '閔'),
         ),
       if (who == 'voice')
         const Positioned(
@@ -2386,7 +2400,7 @@ class EndingScreen extends StatelessWidget {
                   Text(e.line, style: t.display(25, w: FontWeight.w900)),
                   const SizedBox(height: 24),
                   RedButton(
-                    '월화의 풀이 듣기',
+                    '민세레나의 풀이 듣기',
                     ts: st.ts,
                     onTap: () {
                       context.read<ShrineSessionProvider>().update(
