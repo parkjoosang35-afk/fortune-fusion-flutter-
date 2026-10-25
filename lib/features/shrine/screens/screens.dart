@@ -1074,6 +1074,11 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
   // steps : 1`. 이름이 없으면 nameAt=1(서명 단계 자체가 없음).
   late final double nameAt;
   bool signing = false;
+  // [BUGFIX] TalismanStage 고정 디자인 박스(900×1613)에서 overlay 영역
+  // (left25%/right27%/top14.5%/bottom11.5%)의 실제 크기 — 서명 Positioned
+  // 좌표 계산에 사용(LayoutBuilder 제거에 따른 상수화, 값은 기존과 동일).
+  static const double _kOverlayW = 900 * (1 - .25 - .27); // = 432.0
+  static const double _kOverlayH = 1613 * (1 - .145 - .115); // = 1193.62
   @override
   void initState() {
     super.initState();
@@ -1281,20 +1286,32 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
                           // [U8-1] 서명 자리 — 원본 CSS `.signzone` 좌표
                           // (right:4%·top:70%·width:18%·height:26%, .paperzone
                           // = 이 overlay 영역 자체가 기준 박스).
+                          // [BUGFIX] 이 overlay Stack은 TalismanStage의 고정
+                          // 디자인 좌표(900×1613, left25%/right27%/top14.5%/
+                          // bottom11.5%)에 의해 항상 정확히
+                          // 432.0×1193.62(=900*.48, 1613*.74) 크기로 고정되므로
+                          // LayoutBuilder로 크기를 재조회할 필요가 없었음.
+                          // 기존에는 LayoutBuilder.builder가 Positioned를 직접
+                          // 반환해, Positioned의 실제 RenderObject 부모가
+                          // Stack이 아닌 LayoutBuilder가 되어 "Incorrect use of
+                          // ParentDataWidget"(StackParentData를
+                          // BoxParentData에 적용) 예외가 매 프레임 반복
+                          // 발생했고, 이것이 release 빌드에서 "RangeError:
+                          // Maximum call stack size exceeded" 스택오버플로우로
+                          // 나타났던 근본 원인. Positioned를 Stack의 직계
+                          // 자식으로 되돌리고 고정 상수로 치환해 해결.
                           if (ph == Ph.paper && signing && ink.value < 1)
-                            LayoutBuilder(
-                              builder: (context, c) => Positioned(
-                                right: c.maxWidth * .04,
-                                top: c.maxHeight * .70,
-                                width: c.maxWidth * .18,
-                                height: c.maxHeight * .26,
-                                child: SignStroke(
-                                  onProgress: _onSignProgress,
-                                  onDone: () {
-                                    setState(() => signing = false);
-                                    ink.value = 1;
-                                  },
-                                ),
+                            Positioned(
+                              right: _kOverlayW * .04,
+                              top: _kOverlayH * .70,
+                              width: _kOverlayW * .18,
+                              height: _kOverlayH * .26,
+                              child: SignStroke(
+                                onProgress: _onSignProgress,
+                                onDone: () {
+                                  setState(() => signing = false);
+                                  ink.value = 1;
+                                },
                               ),
                             ),
                         ],
@@ -1717,7 +1734,11 @@ class _StoryState extends State<StoryScreen> {
     final total = shrine.nodes.values
         .map((n) => n.step)
         .reduce((a, b) => a > b ? a : b);
-    const hnum = ['壹', '貳', '參'];
+    // [BUGFIX] 선택지 번호 표시용 한자숫자 — 기존 3개 고정 배열이 story
+    // 노드 중 선택지 5개(s0 등)를 초과하여 hnum[i] 접근 시
+    // RangeError(index out of range)로 크래시하던 문제 수정.
+    // ResultScreen._hanNums(8개, 壹~捌)와 동일한 확장 배열로 통일.
+    const hnum = ['壹', '貳', '參', '肆', '伍', '陸', '柒', '捌'];
 
     Widget scene = _sceneVideo.containsKey(art)
         ? ShrineVideo(
