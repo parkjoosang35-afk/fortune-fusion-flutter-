@@ -11,16 +11,32 @@
 //    PUSH/POP 개념이 희미하지만, Navigator 1.0에서는 스택이 명시적이다.
 //    화면 로직(screens/*.dart)을 고치지 않는다는 지시(③)를 지키기 위해,
 //    원본이 쓴 목적지(back 콜백 포함)를 그대로 ShrineNav.go(push)로
-//    옮긴다 — 즉 "뒤로가기 버튼"도 원칙적으로 push 다. 이는 네이티브
-//    시스템 뒤로가기를 여러 번 눌러야 신당을 완전히 빠져나가는 결과를
-//    낳지만, ShrineNav.exit()(= 「‹ 신통방통」)이 스택 깊이와 무관하게
-//    항상 신당 전체를 즉시 빠져나가므로 실사용에 지장이 없다. 추후
-//    스택 최적화가 필요하면 이 주석을 참고할 것.
+//    옮긴다 — 즉 "뒤로가기 버튼"도 원칙적으로 push 다(화면 안의 ← 버튼,
+//    상단 "‹ 신통방통", 하단바 탭 전환 등 모든 명시적 버튼 네비게이션).
 //  · DoorScreenV32 → HallScreen 자동 전환처럼 "뒤로 가면 안 되는" 구간만
 //    원본 A안 주석(door→shrine 자동 전환)과 동일하게 replace: true 를 쓴다.
 //  · 모든 신당 내부 라우트는 RouteSettings(name: 'shrine:$id')로 표시해,
 //    ShrineNav.exit()이 신당이 아닌 라우트(AppShell 등)를 만날 때까지
 //    안전하게 pop 할 수 있게 한다.
+//
+// [U1-1 신당 안 뒤로가기 금지 — 2026-10-26 수정] 설계 명세
+// (design_handoff_v2/UPDATE_LOG_U1-U13.md U1-1)는 "브라우저/기기 뒤로가기
+// 눌러도 현재 화면 유지"를 요구하나, 기존 구현은 위 메모처럼 뒤로가기도
+// push 로 취급해 왔다. 실기기/웹 재현(Playwright) 결과 시스템 뒤로가기
+// 한 번으로 이전 신당 화면(예: receive keep 단계 → meaning)으로 실제
+// 이동해 버리는 것을 확인 — 명세와 불일치하는 결함으로 확정, 수정한다.
+//
+// 구현: `_fadeRoute()`가 만드는 각 페이지를 PopScope(canPop: false,
+// onPopInvokedWithResult: 아무 동작 없음)로 감싼다. 이 프로젝트에 이미
+// 같은 패턴의 선례가 있다(calculating_screen.dart, 커밋 bb879ce,
+// "E-22/C-03a 무시(스킵 불가)"). PopScope(canPop:false)는 **시스템/브라우저
+// 뒤로가기(Navigator.maybePop 경로)만** 가로막고, 이 파일의 go()/pop()/
+// goAndClearStack()/exit() 같은 **명시적** Navigator.push/pop/popUntil
+// 호출에는 전혀 영향을 주지 않는다 — 즉 화면 안의 ← 버튼, 상단
+// "‹ 신통방통"(exit), 하단바 탭 전환(MainBottomNavBar, 신당 Navigator
+// 스택 바깥에서 pushNamedAndRemoveUntil 사용)은 기존과 동일하게 전부
+// 그대로 작동한다. 결제(shrinePay) 로직·단계 가드(_guard)·화면 위젯
+// 코드는 전혀 건드리지 않았다.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../shrine_module.dart' show kShrineBase;
@@ -50,7 +66,17 @@ class ShrineNav {
         settings: RouteSettings(name: 'shrine:$id'),
         transitionDuration: Dur.screen,
         reverseTransitionDuration: Dur.screen,
-        pageBuilder: (_, __, ___) => shrineScreenFor(id, params),
+        // [U1-1 신당 안 뒤로가기 금지] canPop:false — 시스템/브라우저
+        // 뒤로가기만 가로막아 현재 화면을 유지한다(onPopInvokedWithResult
+        // 콜백은 의도적으로 아무 동작도 하지 않음, calculating_screen.dart
+        // E-22/C-03a와 동일 패턴). go()/pop()/exit() 등 이 파일의 명시적
+        // Navigator 호출과 하단바 탭 전환은 이 PopScope와 무관하게 그대로
+        // 작동한다.
+        pageBuilder: (_, __, ___) => PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {},
+          child: shrineScreenFor(id, params),
+        ),
         transitionsBuilder: (_, a, __, c) =>
             FadeTransition(opacity: CurvedAnimation(parent: a, curve: Curves.ease), child: c),
       );
