@@ -31,8 +31,14 @@ jobs:
       # 공식 android-actions/setup-android 액션으로 Android SDK 전체
       # (cmdline-tools 포함 sdkmanager)를 명시적으로 설치하고 ANDROID_HOME/
       # ANDROID_SDK_ROOT를 GITHUB_ENV에 등록해 이후 모든 step에서 사용 가능하게 한다.
+      # [2차 수정] 기본 packages 입력값('tools platform-tools')의 'tools'
+      # 레거시 패키지가 최신 Google 저장소에서 제거되어 sdkmanager가
+      # exit code 1로 실패함(Warning: Failed to find package 'tools').
+      # platform-tools만 명시적으로 설치하도록 지정해 회피한다.
       - name: Set up Android SDK (sdkmanager 포함)
         uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools"
 
       - name: Install Android SDK Platform 35 / Build-Tools 35.0.0
         run: |
