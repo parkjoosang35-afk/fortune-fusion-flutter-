@@ -1,0 +1,133 @@
+name: Build Release APK (isolated CI runner)
+
+# 수동 트리거 전용 — 코드 push 시 자동 실행되지 않음(불필요한 자동 빌드 방지).
+# GitHub Actions의 ubuntu 러너는 매 실행마다 완전히 새로운 VM이므로,
+# 샌드박스 디스크 손상과 무관한 독립 빌드 환경을 제공한다.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "빌드할 브랜치 또는 커밋"
+        required: true
+        default: "feature/pouch-expansion-phase01"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Set up Flutter 3.35.4 (버전 고정 — 업그레이드 금지)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.35.4"
+          channel: "stable"
+          cache: true
+
+      - name: Flutter version check
+        run: |
+          flutter --version
+          dart --version
+          java -version
+
+      - name: Ensure Android SDK 35 / build-tools 35.0.0
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_BUILD_TOOLS=$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_ENV"
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: 운영 API 주소 확인 (sintong.kr 기본값, localhost 미포함 검증)
+        run: |
+          echo "--- EnvConfig 기본값 확인 ---"
+          grep -A2 "adminApiBaseUrl" lib/core/config/env_config.dart
+          echo "--- localhost 하드코딩 검색(0건이어야 정상) ---"
+          if grep -rn "localhost\|127\.0\.0\.1" lib/ --include="*.dart"; then
+            echo "::error::localhost/127.0.0.1 하드코딩이 발견되었습니다."
+            exit 1
+          else
+            echo "localhost 하드코딩 없음 확인"
+          fi
+
+      - name: flutter analyze
+        run: flutter analyze
+
+      - name: flutter test
+        run: flutter test
+
+      - name: 서명 키 복원 (GitHub Secrets → 로컬 파일, 로그에 값 노출 없음)
+        env:
+          KEYSTORE_JKS_BASE64: ${{ secrets.KEYSTORE_JKS_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE_JKS_BASE64" | base64 -d > android/release-key.jks
+          cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=../release-key.jks
+          EOF
+          # 키스토어 파일 무결성(원본과 동일 크기/해시인지)은 이후 검증 단계에서 apksigner로 간접 확인됨
+          ls -la android/release-key.jks
+          sha256sum android/release-key.jks
+
+      - name: Release APK 빌드 (단일 아키텍처 arm64-v8a 우선)
+        run: |
+          flutter build apk --release --target-platform android-arm64
+
+      - name: ZIP 무결성 검증
+        run: |
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          echo "APK=$APK" >> "$GITHUB_ENV"
+          unzip -t "$APK"
+
+      - name: SHA-256 계산
+        run: |
+          sha256sum "$APK" | tee apk-sha256.txt
+
+      - name: APK 서명 검증 (apksigner)
+        run: |
+          "$ANDROID_BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK" | tee apksigner-verify.txt
+
+      - name: 서명 키 파일 정리 (CI 러너는 매 실행 후 폐기되지만 명시적으로 삭제)
+        if: always()
+        run: |
+          rm -f android/release-key.jks android/key.properties
+
+      - name: 빌드 요약 출력
+        run: |
+          {
+            echo "## Release APK 빌드 결과"
+            echo ""
+            echo "- 빌드 ref: ${{ github.event.inputs.ref }}"
+            echo "- APK 경로: $APK"
+            echo "- SHA-256: $(cat apk-sha256.txt)"
+            echo ""
+            echo "### apksigner verify 결과"
+            echo '```'
+            cat apksigner-verify.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            apk-sha256.txt
+            apksigner-verify.txt
+          retention-days: 30
