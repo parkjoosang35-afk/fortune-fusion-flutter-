@@ -26,6 +26,35 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
+      # [SDK 설치 실패 수정] subosito/flutter-action은 sdkmanager를 PATH에
+      # 추가하지 않는다(Flutter SDK만 설치, Android SDK는 별도 책임).
+      # 공식 android-actions/setup-android 액션으로 Android SDK 전체
+      # (cmdline-tools 포함 sdkmanager)를 명시적으로 설치하고 ANDROID_HOME/
+      # ANDROID_SDK_ROOT를 GITHUB_ENV에 등록해 이후 모든 step에서 사용 가능하게 한다.
+      - name: Set up Android SDK (sdkmanager 포함)
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK Platform 35 / Build-Tools 35.0.0
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          which sdkmanager
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_BUILD_TOOLS=$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_ENV"
+
+      - name: Android SDK 설치 검증 (platform 35 / build-tools 35.0.0 / apksigner 존재 확인)
+        run: |
+          echo "--- 설치된 플랫폼 목록 ---"
+          ls "$ANDROID_HOME/platforms" | grep "android-35" || { echo "::error::android-35 플랫폼 미설치"; exit 1; }
+          echo "--- 설치된 build-tools 목록 ---"
+          ls "$ANDROID_HOME/build-tools" | grep "35.0.0" || { echo "::error::build-tools 35.0.0 미설치"; exit 1; }
+          echo "--- apksigner 실행파일 존재 확인 ---"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner" || { echo "::error::apksigner 실행파일 없음"; exit 1; }
+          echo "✅ Android SDK Platform 35 / Build-Tools 35.0.0 / apksigner 설치 확인 완료"
+
       - name: Set up Flutter 3.35.4 (버전 고정 — 업그레이드 금지)
         uses: subosito/flutter-action@v2
         with:
@@ -38,12 +67,8 @@ jobs:
           flutter --version
           dart --version
           java -version
-
-      - name: Ensure Android SDK 35 / build-tools 35.0.0
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-          echo "ANDROID_BUILD_TOOLS=$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_ENV"
+          flutter config --android-sdk "$ANDROID_HOME"
+          flutter doctor -v
 
       - name: flutter pub get
         run: flutter pub get
