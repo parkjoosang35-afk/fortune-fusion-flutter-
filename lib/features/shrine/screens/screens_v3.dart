@@ -1100,6 +1100,13 @@ class TaleScreen extends StatefulWidget { final String id; const TaleScreen({sup
 class _TaleState extends State<TaleScreen> {
   late Tale S; late StoryPos pos; bool typed = false; String? picked; int? left; Timer? _timer; String? chap;
   final _tw = GlobalKey<TypewriterState>();
+  // [BUGFIX 선제 보강] screens.dart StoryScreen과 동일한 선택지 번호 표시용
+  // 한자숫자. 기존 3개 고정 배열([i]) 직접 인덱싱은 현재 shrine.json의
+  // tales 데이터(최대 3개 선택지)에서는 안전하지만, 향후 4개 이상 선택지
+  // 노드가 추가되면 cb15e49와 동일한 RangeError 크래시가 재발할 수 있어
+  // ResultScreen._han()과 동일한 안전 fallback 패턴으로 미리 통일한다.
+  static const _hnum = ['壹', '貳', '參', '肆', '伍', '陸', '柒', '捌'];
+  String _han(int i) => i < _hnum.length ? _hnum[i] : '${i + 1}';
   @override
   void initState() {
     super.initState(); S = shrine.tales[widget.id]!;
@@ -1156,7 +1163,7 @@ class _TaleState extends State<TaleScreen> {
           child: AnimatedOpacity(duration: const Duration(milliseconds: 300), opacity: picked != null && picked != c.label ? .3 : 1, child: Container(constraints: const BoxConstraints(minHeight: 52), padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
             decoration: BoxDecoration(color: picked == c.label ? const Color(0xD95A0E0C) : const Color(0xD10E0706), borderRadius: BorderRadius.circular(11), border: Border.all(color: picked == c.label ? C.redHot : C.goldLine), boxShadow: picked == c.label ? Glow.red(24) : null),
             child: Row(children: [Container(width: 24, height: 24, alignment: Alignment.center, decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), border: Border.all(color: C.goldDim)),
-              child: Text(['壹', '貳', '參'][i], style: t.display(11, w: FontWeight.w900, c: C.gold))), const SizedBox(width: 12), Expanded(child: Text(c.label, style: t.body(14.5, w: FontWeight.w700, h: 1.4)))])))))],
+              child: Text(_han(i), style: t.display(11, w: FontWeight.w900, c: C.gold))), const SizedBox(width: 12), Expanded(child: Text(c.label, style: t.body(14.5, w: FontWeight.w700, h: 1.4)))])))))],
       ]))),
       _top(context, back: () => ShrineNav.go(context, 'list'), center: Column(mainAxisSize: MainAxisSize.min, children: [
         Text('${S.title} · ${S.en}', style: t.mono.copyWith(color: C.muted)), const SizedBox(height: 7),
