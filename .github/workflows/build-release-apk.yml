@@ -20,6 +20,19 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref }}
 
+      # [4차 수정] 일부 golden/font 테스트가 샌드박스 개발환경에 설치된
+      # 나눔글꼴(fonts-nanum, Ubuntu 공식 패키지)을 직접 파일 경로로 읽는다.
+      # ubuntu-latest 러너에는 기본 미설치 상태라
+      # PathNotFoundException(.../nanum/NanumSquareR.ttf)으로 4개 테스트가
+      # 실패했음(flutter analyze/코드 로직과 무관, 순수 환경 의존성 문제).
+      - name: 나눔글꼴 설치 (golden/font 테스트 의존성)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-nanum fonts-nanum-extra
+          test -f /usr/share/fonts/truetype/nanum/NanumSquareR.ttf \
+            && echo "✅ NanumSquareR.ttf 설치 확인" \
+            || { echo "::error::나눔글꼴 설치 실패"; exit 1; }
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
