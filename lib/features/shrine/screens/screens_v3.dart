@@ -685,6 +685,14 @@ enum RPh { give, unroll, name, keep, use }
 class ReceiveScreen extends StatefulWidget { const ReceiveScreen({super.key}); @override State<ReceiveScreen> createState() => _ReceiveState(); }
 class _ReceiveState extends State<ReceiveScreen> {
   RPh ph = RPh.give; String mode = 'full'; BoxItem? item; bool dup = false; bool keeping = false;
+  // [BUGFIX — 9426e2c와 동일 패턴 추가 발견분] 「간직하는 법」(RPh.use) 안내
+  // 번호 표시용 한자숫자. 기존 3개 고정 배열([i]) 직접 인덱싱은
+  // shrine.json의 talismans.copy.*.use가 현재 모두 정확히 3개 항목이라
+  // 안전하지만, TaleScreen._TaleState와 완전히 동일한 RangeError 위험
+  // 패턴(cb15e49 StoryScreen 버그와 동종)이었다. 항목 수가 늘어나도
+  // 깨지지 않도록 동일한 _hnum/_han 안전 fallback으로 통일한다.
+  static const _hnum = ['壹', '貳', '參', '肆', '伍', '陸', '柒', '捌'];
+  String _han(int i) => i < _hnum.length ? _hnum[i] : '${i + 1}';
   void _go(RPh p) { setState(() => ph = p); if (p == RPh.unroll) Future.delayed(Duration(milliseconds: context.read<ShrineSessionProvider>().state.reduce ? 300 : 2600), () => mounted && ph == RPh.unroll ? _go(RPh.name) : null); }
 
   /// [U12 어뷰징 방지 — Step 3] "부적 간직하기" 버튼의 최종 발급 기록.
@@ -913,7 +921,7 @@ class _ReceiveState extends State<ReceiveScreen> {
           _card(border: C.goldLine, pad: const EdgeInsets.symmetric(horizontal: 14, vertical: 2), child: Column(children: [
             for (final (i, u) in (copy['use'] as List).indexed) Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(border: i == 0 ? null : const Border(top: BorderSide(color: C.line))),
               child: Row(children: [Container(width: 28, height: 28, alignment: Alignment.center, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: C.goldDim)),
-                child: Text(['壹', '貳', '參'][i], style: t.display(12, w: FontWeight.w900, c: C.gold))), const SizedBox(width: 12), Text(u, style: t.body(14, w: FontWeight.w700))]))])),
+                child: Text(_han(i), style: t.display(12, w: FontWeight.w900, c: C.gold))), const SizedBox(width: 12), Text(u, style: t.body(14, w: FontWeight.w700))]))])),
           Pill('부적 설명서 전체 보기 — 뜻 · 삼갈 것 · 보내는 법', ts: st.ts, onTap: () => showTalisManual(context, spec: sp, item: item)), const SizedBox(height: 10),
           RedButton(p.back.startsWith('$kShrineBase/result') ? '결과 두루마리 보기' : '다른 이야기 보기', ts: st.ts, onTap: leave),
           Padding(padding: const EdgeInsets.only(top: 10), child: Text('부적은 창작 연출물이며 효험을 보증하지 않습니다.', textAlign: TextAlign.center, style: t.ui(11, c: C.faint))),

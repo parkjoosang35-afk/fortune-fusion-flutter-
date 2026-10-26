@@ -160,6 +160,16 @@ class _TalisManual extends StatefulWidget { final TalismanSpec spec; final BoxIt
   const _TalisManual({required this.spec, this.item, this.actions}); @override State<_TalisManual> createState() => _TMState(); }
 class _TMState extends State<_TalisManual> {
   String tab = 'what';
+  // [BUGFIX — 9426e2c/screens_v3.dart ReceiveScreen 916줄과 동일 패턴 추가
+  // 발견분] 「어떤 부적」 effects 번호(一二三)·「간직하는 법」 use 번호
+  // (壹貳參) 모두 3개 고정 배열 직접 인덱싱([i])이었다. shrine.json의
+  // talismans.copy.*.effects/*.use는 현재 6개 유형 모두 정확히 3개라
+  // 안전하지만, cb15e49(StoryScreen)·9426e2c(TaleScreen)와 동일한
+  // RangeError 위험 패턴이므로 같은 안전 fallback으로 통일한다.
+  static const _hnumCjk = ['一', '二', '三', '四', '五', '六', '七', '八'];
+  static const _hnumBig = ['壹', '貳', '參', '肆', '伍', '陸', '柒', '捌'];
+  String _hanCjk(int i) => i < _hnumCjk.length ? _hnumCjk[i] : '${i + 1}';
+  String _hanBig(int i) => i < _hnumBig.length ? _hnumBig[i] : '${i + 1}';
   // [U9-5 포팅] 소멸(滅)한 부적을 처음 열 때만 바스러짐 연출을 보여준다.
   // 원본: `const live = item && box.find(b => b.no === item.no); const [crumble,
   // setCrumble] = useState(() => !!(live && lifeOf(app,live).st === 'gone' &&
@@ -225,7 +235,7 @@ class _TMState extends State<_TalisManual> {
           for (final (i, e) in (cp['effects'] as List).indexed) Container(margin: const EdgeInsets.only(bottom: 6), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(color: const Color(0xD90E0706), borderRadius: BorderRadius.circular(10), border: Border.all(color: C.line)),
             child: Row(children: [Container(width: 24, height: 24, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0xFFEFB800), borderRadius: BorderRadius.circular(6)),
-              child: Text(['一', '二', '三'][i], style: t.display(12, w: FontWeight.w900, c: const Color(0xFFC81A10)))), const SizedBox(width: 10), Expanded(child: Text(e, style: t.body(14, w: FontWeight.w700, h: 1.4)))])),
+              child: Text(_hanCjk(i), style: t.display(12, w: FontWeight.w900, c: const Color(0xFFC81A10)))), const SizedBox(width: 10), Expanded(child: Text(e, style: t.body(14, w: FontWeight.w700, h: 1.4)))])),
           h('이럴 때 지니십시오'),
           for (final e in cp['when'] as List) Text('·  $e', style: t.body(13.5, c: const Color(0xD9EFE4D2), h: 1.8)),
         ],
@@ -233,7 +243,7 @@ class _TMState extends State<_TalisManual> {
           Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2), decoration: BoxDecoration(color: const Color(0xD90E0706), borderRadius: BorderRadius.circular(12), border: Border.all(color: C.goldLine)),
             child: Column(children: [for (final (i, u) in (cp['use'] as List).indexed) Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(border: i == 0 ? null : const Border(top: BorderSide(color: C.line))),
               child: Row(children: [Container(width: 30, height: 30, alignment: Alignment.center, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: C.goldDim)),
-                child: Text(['壹', '貳', '參'][i], style: t.display(13, w: FontWeight.w900, c: C.gold))), const SizedBox(width: 12), Expanded(child: Text(u, style: t.body(14.5, w: FontWeight.w700, h: 1.45)))]))])),
+                child: Text(_hanBig(i), style: t.display(13, w: FontWeight.w900, c: C.gold))), const SizedBox(width: 12), Expanded(child: Text(u, style: t.body(14.5, w: FontWeight.w700, h: 1.45)))]))])),
           Padding(padding: const EdgeInsets.only(top: 16), child: Center(child: Text('"${cp['line']}"', textAlign: TextAlign.center, style: t.body(14, c: C.muted)))),
         ],
         if (tab == 'end') ...[
