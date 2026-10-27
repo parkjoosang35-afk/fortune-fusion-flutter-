@@ -44,14 +44,23 @@ import '../widgets/shrine_save_rite.dart' show showShrineSaveRite;
 // 신당 Navigator 스택 전체를 포함해 안전하게 빠져나가므로 ShrineNav와
 // 충돌하지 않는다.
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/sound/sintong_sound_service.dart';
 
 String _img(String n) => 'assets/shrine/img/$n.jpg';
 const _elColor = {'木': Color(0xFF6F9A5A), '火': Color(0xFFE0412F), '土': Color(0xFFC9A368), '金': Color(0xFFD9D2C4), '水': Color(0xFF5B7FA8)};
 
 Widget _top(BuildContext ctx, {VoidCallback? back, Widget? center, Widget? trailing}) {
   final st = ctx.watch<ShrineSessionProvider>().state;
+  // [사운드 토글 단절 수정 — screens.dart _top과 동일한 수정] ♪ 버튼이
+  // 실제 SintongSoundService.toggleMute()를 호출하도록 연결한다.
+  void onSound() {
+    ctx.read<ShrineSessionProvider>().update((s) => s.copy(sound: !s.sound));
+    try {
+      ctx.read<SintongSoundService>().toggleMute();
+    } catch (_) {}
+  }
   return Positioned(top: 0, left: 0, right: 0, child: TopBar(onBack: back, center: center, trailing: trailing, soundOn: st.sound,
-    onSound: () => ctx.read<ShrineSessionProvider>().update((s) => s.copy(sound: !s.sound)), onSettings: () => showSettingsSheet(ctx)));
+    onSound: onSound, onSettings: () => showSettingsSheet(ctx)));
 }
 
 /// SAMPLE 표시 — 엔진 연동 전 예시 응답임을 화면에 밝힌다 (실제 연동 후 source == 'STB_SAJU_ENGINE' 이면 숨김)

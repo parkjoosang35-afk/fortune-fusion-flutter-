@@ -17,6 +17,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../data/models.dart';
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
+import '../../../core/sound/sintong_sound_service.dart';
 
 /// 설정 시트 — 상단 모서리 22px (이 화면만 현대 UI 어휘)
 void showSettingsSheet(BuildContext context) {
@@ -81,7 +82,14 @@ void showSettingsSheet(BuildContext context) {
                 '저음 · 방울 · 문 · 속삭임 · 심장 박동',
                 sw(
                   st.sound,
-                  () => provider.update((s) => s.copy(sound: !s.sound)),
+                  () {
+                    provider.update((s) => s.copy(sound: !s.sound));
+                    // [사운드 토글 단절 수정] 설정 시트의 이 스위치도
+                    // 실제 음악 재생(SintongSoundService)을 호출하도록 연결한다.
+                    try {
+                      ctx.read<SintongSoundService>().toggleMute();
+                    } catch (_) {}
+                  },
                 ),
               ),
               row(

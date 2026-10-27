@@ -34,6 +34,7 @@ import '../widgets/shrine_fx.dart' show EntryOmen, SignStroke, shrineHaptic, Shr
 import 'screens_v3.dart' show CoachOverlay;
 import 'screens_v32.dart' show showTalisManual;
 import '../../../core/sound/sound_route_trigger.dart';
+import '../../../core/sound/sintong_sound_service.dart';
 
 String _img(String n) => 'assets/shrine/img/$n.jpg';
 String _art(String n) => 'assets/shrine/art/$n.jpg';
@@ -46,6 +47,13 @@ Widget _top(
   Widget? trailing,
 }) {
   final st = ctx.watch<ShrineSessionProvider>().state;
+  // [사운드 토글 단절 수정 — 공통 원인 ①] 기존에는 ♪ 버튼이
+  // ShrineSessionProvider.state.sound(신당 로컬 표시 플래그)만 뒤집고,
+  // 실제 재생을 담당하는 전역 SintongSoundService를 전혀 호출하지
+  // 않았다 — 즉 버튼은 아이콘만 바뀜고 음악은 켜지지도 꺼지지도
+  // 않았다(BGM 미작동 신고의 근본 원인 중 하나). try/catch로 감싼
+  // SintongSoundService 미등록/실패가 신당 네비게이션을 막지 않게 한다
+  // (앱 전역 "저사양 degrade 원칙"과 동일한 보호).
   return Positioned(
     top: 0,
     left: 0,
@@ -55,9 +63,12 @@ Widget _top(
       center: center,
       trailing: trailing,
       soundOn: st.sound,
-      onSound: () => ctx.read<ShrineSessionProvider>().update(
-        (s) => s.copy(sound: !s.sound),
-      ),
+      onSound: () {
+        ctx.read<ShrineSessionProvider>().update((s) => s.copy(sound: !s.sound));
+        try {
+          ctx.read<SintongSoundService>().toggleMute();
+        } catch (_) {}
+      },
       onSettings: () => showSettingsSheet(ctx),
     ),
   );
@@ -215,9 +226,16 @@ class _EntryState extends State<EntryScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           TextButton(
-                            onPressed: () => context
-                                .read<ShrineSessionProvider>()
-                                .update((s) => s.copy(sound: !s.sound)),
+                            onPressed: () {
+                              context
+                                  .read<ShrineSessionProvider>()
+                                  .update((s) => s.copy(sound: !s.sound));
+                              // [사운드 토글 단절 수정] EntryScreen 하단 텍스트
+                              // 버튼도 동일하게 실제 재생을 제어하도록 연결한다.
+                              try {
+                                context.read<SintongSoundService>().toggleMute();
+                              } catch (_) {}
+                            },
                             child: Text(
                               st.sound ? '◉  사운드 끄기' : '◎  사운드 켜기',
                               style: t.ui(13, c: C.muted),
