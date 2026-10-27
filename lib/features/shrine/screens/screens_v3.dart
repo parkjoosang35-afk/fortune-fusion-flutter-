@@ -49,6 +49,10 @@ import '../../../core/sound/sintong_sound_service.dart';
 String _img(String n) => 'assets/shrine/img/$n.jpg';
 const _elColor = {'木': Color(0xFF6F9A5A), '火': Color(0xFFE0412F), '土': Color(0xFFC9A368), '金': Color(0xFFD9D2C4), '水': Color(0xFF5B7FA8)};
 
+// [U1-1 신당 안 뒤로가기 완전 차단 — 2026-10-27 수정] screens.dart의 공용
+// _top()과 동일한 이유로 "←" 아이콘을 완전히 제거한다 — back 파라미터는
+// 호출부(기존 코드) 호환을 위해 시그니처만 남기고 절대 TopBar로 넘기지
+// 않는다. 상세 근거는 screens.dart의 _top() 주석 참고.
 Widget _top(BuildContext ctx, {VoidCallback? back, Widget? center, Widget? trailing}) {
   final st = ctx.watch<ShrineSessionProvider>().state;
   // [사운드 토글 단절 수정 — screens.dart _top과 동일한 수정] ♪ 버튼이
@@ -59,7 +63,8 @@ Widget _top(BuildContext ctx, {VoidCallback? back, Widget? center, Widget? trail
       ctx.read<SintongSoundService>().toggleMute();
     } catch (_) {}
   }
-  return Positioned(top: 0, left: 0, right: 0, child: TopBar(onBack: back, center: center, trailing: trailing, soundOn: st.sound,
+  // [U1-1] "←" 완전 제거 — onBack: null 고정.
+  return Positioned(top: 0, left: 0, right: 0, child: TopBar(onBack: null, center: center, trailing: trailing, soundOn: st.sound,
     onSound: onSound, onSettings: () => showSettingsSheet(ctx)));
 }
 

@@ -41,8 +41,26 @@ String _img(String n) => 'assets/shrine/img/$n.jpg';
 String _art(String n) => 'assets/shrine/art/$n.jpg';
 
 /// 공통 상단바 (소리·설정 연결)
+///
+/// [U1-1 신당 안 뒤로가기 완전 차단 — 2026-10-27 수정] 설계 명세(U1-1
+/// "신당 안 뒤로가기 금지")에 맞춰 PopScope(canPop:false)로 시스템/브라우저
+/// 뒤로가기는 이미 막아뒀으나, 화면 안의 "←" 아이콘 버튼은 여전히 각 화면이
+/// 건네준 back 콜백을 그대로 실행해 왔다 — 즉 사용자가 손가락으로 "←"를
+/// 누르면 "결제 이전 화면"을 포함해 신당 어디로든 다시 돌아갈 수 있는 길이
+/// 남아 있었다(사용자 실기기 재현: SAJU 화면/부적함 화면 모두 "←" 존재,
+/// 이를 반복해서 누르면 결제 전 화면까지 복귀 가능 — "이미 지워진 결제
+/// 화면을 다시 띄우는 모순"을 goAndClearStack()으로 막아놓은 것과 정면
+/// 모순). 각 화면(screens.dart/screens_v3.dart)의 호출부를 전수 수정하는
+/// 대신, 이 공통 헬퍼에서 `back` 콜백 자체를 받지 않고 무조건 숨긴다 —
+/// 신당 내부에서는 "←"로 되돌아갈 수 있는 화면이 단 하나도 없어야 한다는
+/// 뜻이므로, 어느 화면이 back을 넘기든 안전하게 한 곳에서 차단된다.
+/// (공유 링크로 들어오는 ResultScreen(shared:true)은 신당 결제 플로우
+/// 바깥의 완전히 별개 화면이라 "‹ 신통방통"류 나가기 버튼과 무관 — 그
+/// 화면도 동일하게 "←"가 사라지지만 원래 "신당에 들어가기" CTA 외엔
+/// 나갈 다른 이동 수단이 필요 없는 화면이라 문제 없음.)
 Widget _top(
   BuildContext ctx, {
+  // ignore: unused_element_parameter
   VoidCallback? back,
   Widget? center,
   Widget? trailing,
@@ -60,7 +78,8 @@ Widget _top(
     left: 0,
     right: 0,
     child: TopBar(
-      onBack: back,
+      // [U1-1] "←" 완전 제거 — back 콜백을 절대 넘기지 않는다.
+      onBack: null,
       center: center,
       trailing: trailing,
       soundOn: st.sound,
