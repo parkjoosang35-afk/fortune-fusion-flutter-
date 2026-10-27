@@ -259,6 +259,17 @@ flutter:
     - assets/shrine/data/
     - assets/shrine/img/
     - assets/shrine/vid/
+    # [프리뷰-APK 화면 불일치 수정 — 2026-신규] google_fonts 패키지는 pubspec.yaml의
+    # assets 목록에 "{Family}-{Weight}.ttf" 규칙(구글 공식 파일명)으로 폰트가
+    # 있으면 fonts: 섹션 선언 없이도 자동으로 로컬 매칭해, 런타임에
+    # fonts.gstatic.com 네트워크 요청을 하지 않는다(공식 문서: "Bundling fonts
+    # when releasing"). 기존에는 이 폴더가 없어 신당(East Sea Dokdo·Nanum Brush
+    # Script·Liu Jian Mao Cao 등)과 스플래시/타로/온보딩 일부 폰트가 매 실행마다
+    # 네트워크 요청에 의존했다 — 프리뷰(안정적 샌드박스망)에서는 보통 성공하지만
+    # 실제 단말 네트워크에서는 실패/지연할 수 있어 "프리뷰와 APK 글자가 다르게
+    # 보인다"는 증상의 핵심 원인이었다. 아래 폴더에 실제 사용 중인 굵기만
+    # 번들해 네트워크 의존을 제거한다(미사용 고아 코드 화면의 폰트는 제외).
+    - assets/fonts/shrine/
     # [소원방 v2.6 재구축] design_handoff_sintong_wishroom_flutter 핸드오프
     # 에셋 전체(캐릭터22·의상88·포즈94·아이템65·테마방4 등). data/wishroom_data.json
     # 은 레벨/감쇠/슬롯/아이템/캐릭터/테마 전체 시드(Flutter 로더 + admin_web 서버
