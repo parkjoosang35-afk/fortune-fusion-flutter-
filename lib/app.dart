@@ -134,9 +134,7 @@ class App extends StatelessWidget {
         // 비동기이므로 즉시 생성 후 뒤에서 초기화한다 — 초기화 완료 전
         // 호출되는 재생 요청은 큐잉되어 init() 완료 직후 재시도된다(콜드
         // 스타트 경쟁 조건 수정, sintong_sound_service.dart 참고).
-        ChangeNotifierProvider(
-          create: (_) => SintongSoundService()..init(),
-        ),
+        ChangeNotifierProvider(create: (_) => SintongSoundService()..init()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
         // [인트로 전면 개편] 첫 진입(스플래시→인트로→홈) 흐름의 로컬 완료 상태
         // (introSeen/skipped/continueAsGuest)와, admin_web에서 발행한 인트로
@@ -200,7 +198,8 @@ class App extends StatelessWidget {
         // 뜨던 "SAMPLE" 배지도 이제 source가 'STB_SAJU_ENGINE'이 되어
         // 자동으로 사라진다(screens_v3.dart SajuScreen 기존 분기).
         Provider<MemberRepository>(
-          create: (context) => RealMemberRepository(context.read<AuthProvider>()),
+          create: (context) =>
+              RealMemberRepository(context.read<AuthProvider>()),
         ),
         Provider<SajuRepository>(create: (_) => RealSajuRepository()),
         // [U12 어뷰징 방지 — Step 3] admin_web ShrineIssueLedger API
@@ -531,6 +530,20 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     // 데이터가 응축된 UnifiedFortuneProfile이 로그아웃 후 잔존하면 안 된다.
     auth.registerLogoutCallback(
       context.read<OrchestratorProvider>().clearOnLogout,
+    );
+    // [신당(神堂) 계정 격리 버그 수정 — 2026-10-27] 위 "계정 격리 원칙"이
+    // 신당(ShrineSessionProvider)에는 등록되어 있지 않았다. 신당은 이름·
+    // 생년월일·이야기 진행상태·부적함(box)·결말 기록을
+    // SharedPreferences('shrine.v2')에 "로그인 계정과 무관하게" 영구
+    // 저장하므로, 로그아웃 후 다른 계정으로 새로 가입/로그인해도 이전
+    // 계정이 신당에 연결했던 이름(예: 샘플 회원 "박서연")과 진행 상태가
+    // 기기에 그대로 남아 다음 계정 화면에 섞여 나오는 결함이 있었다.
+    // resetData()는 이미 "신당 개인화 데이터 전체 초기화(방문설정·효과음
+    // 등 pref만 보존)" 역할로 구현되어 있었으나(ResultScreen 공유뷰
+    // "나도 신당에 들어가기"에서만 호출), 로그아웃 경로에는 연결되어
+    // 있지 않았다. 다른 feature Provider와 동일한 패턴으로 등록한다.
+    auth.registerLogoutCallback(
+      context.read<ShrineSessionProvider>().resetData,
     );
   }
 

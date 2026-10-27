@@ -12,6 +12,7 @@ import '../../features/home/presentation/sintong_home_v2/sintong_home_v2_screen.
 // 않는다 — 다만 이 파일에서는 더 이상 직접 참조하지 않는다.
 import '../../features/shrine/state/shrine_session_provider.dart';
 import '../../features/shrine/widgets/shrine_nav.dart';
+import '../../features/auth/application/auth_provider.dart';
 // [행운상자 - 복주머니 탭 신규 기능] 사용자 요청("복주머니 탭 자리에
 // 첨부한 행운상자 기능을 넣어달라, 하단바 라벨은 그대로 복주머니")에 따라
 // 이 탭이 보여주는 화면 내용을 LuckyBagScreen(잔액+광고카드+출석체크)에서
@@ -112,13 +113,42 @@ class _AppShellState extends State<AppShell> {
   /// 여기서는 그 스택의 첫 화면만 push하면 된다(1.1초 크로스페이드
   /// 모션은 `ShrineNav.rootRoute`가 기존 `_fadeRoute`를 그대로 재사용).
   Future<void> _openShrine() async {
+    // [신당 계정 격리 버그 수정 — 2026-10-27] 신당은 ConnectScreen에서
+    // 연결한 회원의 memberId(= 실제 신통방통 로그인 유저 PK)를
+    // ShrineSessionProvider.state.memberId에 저장한다. 그런데 이
+    // 상태는 로그인 세션과 무관하게 기기(SharedPreferences
+    // 'shrine.v2')에 영구 보관되므로, "로그아웃 콜백 등록"만으로는
+    // 막지 못하는 경우가 남는다 — 로그아웃을 거치지 않고 앱을 지웠다
+    // 설치하거나(데이터 미삭제), 같은 기기를 다른 사람이 이어서 쓰며
+    // 처음으로 회원가입/로그인한 경우다. 이런 경우에도 신당에 이전
+    // 사용자의 이름·생년월일·이야기 진행·부적함이 그대로 남아 있어
+    // 신규 가입자 화면에 엉뚱한 이름(예: 이전 세션의 실명)이 나오고
+    // 진행 흐름이 꼬이는 원인이 된다.
+    //
+    // 해결: 신당에 들어가는 매 순간(하단바 "신당부적" 탭을 누를 때마다)
+    // "신당에 마지막으로 연결됐던 memberId"와 "지금 실제로 로그인한
+    // 사용자 id"를 비교한다. 둘 다 존재하는데 서로 다르면, 다른
+    // 계정의 흔적이 남아있는 것이 확실하므로 로그아웃 콜백과 동일하게
+    // resetData()로 신당 개인화 데이터를 초기화한 뒤 입장시킨다.
+    // (로그인조차 안 한 상태로 신당에 들어가는 "회원 연결 없이 직접
+    // 적기" 경로는 currentUser가 null이므로 이 체크를 건드리지
+    // 않는다 — 기존 동작 그대로 유지.)
+    final shrineSession = context.read<ShrineSessionProvider>();
+    final currentUserId = context.read<AuthProvider>().currentUser?.id;
+    final linkedMemberId = shrineSession.state.memberId;
+    if (currentUserId != null &&
+        linkedMemberId != null &&
+        linkedMemberId != currentUserId) {
+      shrineSession.resetData();
+    }
     // [신규 신당 모듈 포팅] 구버전 ShrineState.kept(bool) 필드는 신규
     // 모델에 없다 — "소지부 간직" 여부는 box 리스트가 비어있지 않은지로
     // 판정한다(신당 README §9 "진행: ... kept" → 신규 state.box 목록에
     // 흡수됨). ShrineNav도 rootRoute(Route 반환)가 아니라 openRoot(직접
     // push 수행)로 바뀌었으므로 Navigator.push 이중 호출을 제거한다.
-    final kept = context.read<ShrineSessionProvider>().state.box.isNotEmpty;
+    final kept = shrineSession.state.box.isNotEmpty;
     final startId = kept ? 'list' : 'entry';
+    if (!mounted) return;
     ShrineNav.openRoot(context, startId);
   }
 
