@@ -161,16 +161,17 @@ class _ConnectState extends State<ConnectScreen> {
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts);
-    // [명부 미리보기 샘플 값 수정 — 2026-10-27] 실제 연동 전에는 아직 어떤
-    // 회원 정보도 가져오지 않았으므로, 실존 인물처럼 보일 수 있는 구체적인
-    // 가짜 값("박서연", 실제 같은 생년월일·시간) 대신 "예시"임이 값 자체에서도
-    // 분명히 드러나도록 표기한다. (기존에는 화면 하단의 SampleTag 하나에만
-    // 의존했는데, 명부 패널과 시각적으로 떨어져 있어 사용자가 실제 연동된
-    // 정보로 오인할 수 있었다.)
+    // [명부 미리보기 샘플 값 2차 수정 — 2026-10-27] 1차 수정("예) 박서연"처럼
+    // 접두어만 붙이는 것)은 실제 사용자 리뷰에서도 여전히 특정 인물의
+    // 실명(박서연)이 화면에 선명하게 보여 혼란을 준다는 지적을 받았다.
+    // 애초에 이 화면은 "동의하고 명부 옮기기"를 누르기 전 단계라 실제
+    // 값을 아직 모르므로, 가짜 사람 이름/생년월일/시간을 보여줄 이유가
+    // 없다 — 이 패널이 전달해야 하는 정보는 "어떤 항목을 가져오는지"뿐이다.
+    // 구체적인 가짜 값을 전부 제거하고, 항목 설명만 남긴다.
     final rows = [
-      ('name', '名', '이름', '예) 박서연', '민세레나가 부르고, 부적에 적습니다'),
-      ('birth', '生', '생년월일', '예) 1995.08.14 · 양력', '정통사주 해석에 씁니다'),
-      ('time', '時', '태어난 시간', '예) 14:20', '없으면 시주(時柱)를 빼고 풀이합니다'),
+      ('name', '名', '이름', '회원님의 이름', '민세레나가 부르고, 부적에 적습니다'),
+      ('birth', '生', '생년월일', '회원님의 생년월일', '정통사주 해석에 씁니다'),
+      ('time', '時', '태어난 시간', '회원님의 태어난 시간', '없으면 시주(時柱)를 빼고 풀이합니다'),
     ];
     final selected = rows.where((r) => sel[r.$1]!).toList();
     final selectedCount = selected.length;
@@ -227,10 +228,12 @@ class _ConnectState extends State<ConnectScreen> {
         const SizedBox(height: 14),
         RedButton(busy ? (moved < selectedCount ? '명부에 옮겨 적는 중…' : '신당의 문을 엽니다') : '동의하고 명부 옮기기', ts: st.ts, onTap: busy ? null : _link),
         const SizedBox(height: 10),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          TextButton(onPressed: busy ? null : () => ShrineNav.go(context, 'info'), child: Text('회원 연결 없이 직접 적기', style: t.ui(13, c: C.muted).copyWith(decoration: TextDecoration.underline))),
-          const SampleTag('회원 연동 전 예시 회원'),
-        ]),
+        // [명부 미리보기 샘플 값 2차 수정 — 2026-10-27] 위 rows가 더 이상
+        // "가짜 샘플 값"이 아니라 "가져올 항목 설명(회원님의 이름 등)"으로
+        // 바뀌었으므로, "연동 전 예시 회원" SampleTag(더 이상 의미가 맞지
+        // 않음 — 보여주는 게 예시 데이터가 아니라 항목 안내문이라서)를
+        // 제거하고 버튼만 남긴다.
+        TextButton(onPressed: busy ? null : () => ShrineNav.go(context, 'info'), child: Text('회원 연결 없이 직접 적기', style: t.ui(13, c: C.muted).copyWith(decoration: TextDecoration.underline))),
       ])))),
       _top(context, back: () => ShrineNav.go(context, 'hall')),
     ]));
