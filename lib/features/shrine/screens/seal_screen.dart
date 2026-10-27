@@ -61,6 +61,38 @@ Future<void> showSealToWishRoomSheet(
     await wr.loadMyRoom();
     if (!context.mounted) return;
   }
+  // [버그수정 2025 — 신당↔소원방 연동] loadMyRoom()이 네트워크 오류 등으로
+  // 실패했을 때도 room==null이면 무조건 "소원이 없다"로 안내해 왔다.
+  // 실제로는 서버/네트워크 문제일 수 있으므로, 에러가 있고 room도 없는
+  // 경우엔 재시도 가능한 오류 안내를 먼저 보여준다(소원 미작성과 구분).
+  if (wr.room == null && wr.lastError != null) {
+    final retry = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('소원방 정보를 불러오지 못했습니다'),
+        content: Text(
+          wr.lastError?.message ?? '네트워크 상태를 확인한 뒤 다시 시도해 주세요.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('닫기'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('다시 시도'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted) return;
+    if (retry == true) {
+      await wr.loadMyRoom();
+      if (!context.mounted) return;
+      return showSealToWishRoomSheet(context, item: item);
+    }
+    return;
+  }
   final room = wr.room;
   final hasActiveWish = room != null && !room.readOnly;
 
