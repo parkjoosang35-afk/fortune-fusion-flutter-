@@ -767,6 +767,37 @@ class _ReceiveState extends State<ReceiveScreen> {
     if (!mounted) return;
     setState(() => keeping = false);
     if (!result.success) {
+      // [공통 원인 수정 2025] MeaningScreen._go()와 동일한 이유로,
+      // UNAUTHORIZED는 설명 없이 SnackBar만 띄우면 사용자가 부적을
+      // 받을 길이 없다고 오해한다 — 로그인 안내 다이얼로그로 대체한다.
+      if (result.errorCode == 'UNAUTHORIZED') {
+        final goLogin = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('로그인이 필요합니다'),
+            content: const Text(
+              '부적을 간직하려면 신통방통 로그인이 필요합니다.\n로그인 후 다시 돌아와 이어서 진행해 주세요.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('로그인하기'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        if (goLogin == true) {
+          Navigator.of(context).pushNamed('/login');
+        } else {
+          ShrineNav.go(context, 'connect');
+        }
+        return;
+      }
       // [서버 재검증 — 경쟁 상태] 동시에 두 번 눌렸거나 다른 기기에서
       // 이미 발급된 경우 서버가 ALREADY_ISSUED로 막는다 — 부적함으로 안내.
       if (result.errorCode == 'ALREADY_ISSUED') {
