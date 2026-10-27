@@ -258,6 +258,23 @@ flutter:
     - assets/shrine/art/
     - assets/shrine/data/
     - assets/shrine/img/
+    # [이야기방 이미지 누락 버그 수정 — 2026-10-27] Flutter의 디렉터리
+    # asset 선언(`assets/shrine/img/`)은 1단계 깊이만 번들에 포함하고
+    # 하위 폴더(rooms/room-001/ 등)는 재귀적으로 포함하지 않는다(공식
+    # 동작). shrine.json의 r001~r010 "이야기방" 10편이 전부
+    # `rooms/room-0XX/room-0XX-...jpg` 경로를 쓰는데 이 폴더들이 선언에서
+    # 빠져 있어 표지(cover)·장면 이미지가 전부 404로 비어 보였다 — 10개
+    # 방 폴더를 모두 명시적으로 추가한다.
+    - assets/shrine/img/rooms/room-001/
+    - assets/shrine/img/rooms/room-002/
+    - assets/shrine/img/rooms/room-003/
+    - assets/shrine/img/rooms/room-004/
+    - assets/shrine/img/rooms/room-005/
+    - assets/shrine/img/rooms/room-006/
+    - assets/shrine/img/rooms/room-007/
+    - assets/shrine/img/rooms/room-008/
+    - assets/shrine/img/rooms/room-009/
+    - assets/shrine/img/rooms/room-010/
     - assets/shrine/vid/
     # [프리뷰-APK 화면 불일치 수정 — 2026-신규] google_fonts 패키지는 pubspec.yaml의
     # assets 목록에 "{Family}-{Weight}.ttf" 규칙(구글 공식 파일명)으로 폰트가
