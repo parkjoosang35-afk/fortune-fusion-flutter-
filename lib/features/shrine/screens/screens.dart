@@ -30,7 +30,9 @@ import '../widgets/shrine_video.dart';
 import '../widgets/talisman_stage.dart';
 import '../widgets/sheets.dart';
 import '../widgets/bujeok.dart';
-import '../widgets/shrine_fx.dart' show EntryOmen, SignStroke, shrineHaptic, ShrineHapticLevel;
+import '../widgets/burn_fx.dart';
+import '../widgets/shrine_fx.dart'
+    show EntryOmen, SignStroke, shrineHaptic, ShrineHapticLevel;
 import 'screens_v3.dart' show CoachOverlay;
 import 'screens_v32.dart' show showTalisManual;
 import '../../../core/sound/sound_route_trigger.dart';
@@ -64,7 +66,9 @@ Widget _top(
       trailing: trailing,
       soundOn: st.sound,
       onSound: () {
-        ctx.read<ShrineSessionProvider>().update((s) => s.copy(sound: !s.sound));
+        ctx.read<ShrineSessionProvider>().update(
+          (s) => s.copy(sound: !s.sound),
+        );
         try {
           ctx.read<SintongSoundService>().toggleMute();
         } catch (_) {}
@@ -227,13 +231,15 @@ class _EntryState extends State<EntryScreen>
                         children: [
                           TextButton(
                             onPressed: () {
-                              context
-                                  .read<ShrineSessionProvider>()
-                                  .update((s) => s.copy(sound: !s.sound));
+                              context.read<ShrineSessionProvider>().update(
+                                (s) => s.copy(sound: !s.sound),
+                              );
                               // [사운드 토글 단절 수정] EntryScreen 하단 텍스트
                               // 버튼도 동일하게 실제 재생을 제어하도록 연결한다.
                               try {
-                                context.read<SintongSoundService>().toggleMute();
+                                context
+                                    .read<SintongSoundService>()
+                                    .toggleMute();
                               } catch (_) {}
                             },
                             child: Text(
@@ -1245,96 +1251,109 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
             duration: const Duration(milliseconds: 1400),
             child: TalismanStage(
               background: bg,
+              // [신당 집중 수정] 원본 `.burnfx`(ash/char/edge/flames) 장식
+              // 레이어 — burn/reveal/read 단계에서 TalismanStage와 동일한
+              // overlay 영역에 겹쳐 그린다(shrine-screens-a.jsx 290~293행
+              // 1:1). 기존 ShaderMask 기반 종이-소멸 로직은 그대로 두고,
+              // 그 위에 순수 장식만 추가하므로 기능은 변경되지 않는다.
               overlay: (ph == Ph.paper || ph == Ph.burn)
-                  ? AnimatedBuilder(
-                      animation: ink,
-                      builder: (_, __) => Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          GestureDetector(
-                            onTap: () => (ph == Ph.paper && ink.value >= 1)
-                                ? _go(Ph.burn)
-                                : null,
-                            // 노란 종이 + 초서 (bujeokLayout) — 타는 동안 아래부터 마스크
-                            child: ShaderMask(
-                              blendMode: BlendMode.dstIn,
-                              shaderCallback: (r) => LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: const [
-                                  Colors.transparent,
-                                  Colors.transparent,
-                                  Colors.black,
-                                  Colors.black,
-                                ],
-                                stops: [
-                                  0,
-                                  ph == Ph.burn ? burnLine : 0,
-                                  ((ph == Ph.burn ? burnLine : 0) + .04).clamp(
-                                    0.0,
-                                    1.0,
-                                  ),
-                                  1,
-                                ],
-                              ).createShader(r),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  const DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          Color(0xF2F6C300),
-                                          Color(0xF2ECB000),
-                                        ],
+                  ? Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        AnimatedBuilder(
+                          animation: ink,
+                          builder: (_, __) => Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              GestureDetector(
+                                onTap: () => (ph == Ph.paper && ink.value >= 1)
+                                    ? _go(Ph.burn)
+                                    : null,
+                                // 노란 종이 + 초서 (bujeokLayout) — 타는 동안 아래부터 마스크
+                                child: ShaderMask(
+                                  blendMode: BlendMode.dstIn,
+                                  shaderCallback: (r) => LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: const [
+                                      Colors.transparent,
+                                      Colors.transparent,
+                                      Colors.black,
+                                      Colors.black,
+                                    ],
+                                    stops: [
+                                      0,
+                                      ph == Ph.burn ? burnLine : 0,
+                                      ((ph == Ph.burn ? burnLine : 0) + .04)
+                                          .clamp(0.0, 1.0),
+                                      1,
+                                    ],
+                                  ).createShader(r),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      const DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0xF2F6C300),
+                                              Color(0xF2ECB000),
+                                            ],
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      BujeokInk(
+                                        name: st.name ?? '',
+                                        spec: spec,
+                                        ink: ink.value,
+                                      ),
+                                    ],
                                   ),
-                                  BujeokInk(
-                                    name: st.name ?? '',
-                                    spec: spec,
-                                    ink: ink.value,
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
+                              // [U8-1] 서명 자리 — 원본 CSS `.signzone` 좌표
+                              // (right:4%·top:70%·width:18%·height:26%, .paperzone
+                              // = 이 overlay 영역 자체가 기준 박스).
+                              // [BUGFIX] 이 overlay Stack은 TalismanStage의 고정
+                              // 디자인 좌표(900×1613, left25%/right27%/top14.5%/
+                              // bottom11.5%)에 의해 항상 정확히
+                              // 432.0×1193.62(=900*.48, 1613*.74) 크기로 고정되므로
+                              // LayoutBuilder로 크기를 재조회할 필요가 없었음.
+                              // 기존에는 LayoutBuilder.builder가 Positioned를 직접
+                              // 반환해, Positioned의 실제 RenderObject 부모가
+                              // Stack이 아닌 LayoutBuilder가 되어 "Incorrect use of
+                              // ParentDataWidget"(StackParentData를
+                              // BoxParentData에 적용) 예외가 매 프레임 반복
+                              // 발생했고, 이것이 release 빌드에서 "RangeError:
+                              // Maximum call stack size exceeded" 스택오버플로우로
+                              // 나타났던 근본 원인. Positioned를 Stack의 직계
+                              // 자식으로 되돌리고 고정 상수로 치환해 해결.
+                              if (ph == Ph.paper && signing && ink.value < 1)
+                                Positioned(
+                                  right: _kOverlayW * .04,
+                                  top: _kOverlayH * .70,
+                                  width: _kOverlayW * .18,
+                                  height: _kOverlayH * .26,
+                                  child: SignStroke(
+                                    onProgress: _onSignProgress,
+                                    onDone: () {
+                                      setState(() => signing = false);
+                                      ink.value = 1;
+                                    },
+                                  ),
+                                ),
+                            ],
                           ),
-                          // [U8-1] 서명 자리 — 원본 CSS `.signzone` 좌표
-                          // (right:4%·top:70%·width:18%·height:26%, .paperzone
-                          // = 이 overlay 영역 자체가 기준 박스).
-                          // [BUGFIX] 이 overlay Stack은 TalismanStage의 고정
-                          // 디자인 좌표(900×1613, left25%/right27%/top14.5%/
-                          // bottom11.5%)에 의해 항상 정확히
-                          // 432.0×1193.62(=900*.48, 1613*.74) 크기로 고정되므로
-                          // LayoutBuilder로 크기를 재조회할 필요가 없었음.
-                          // 기존에는 LayoutBuilder.builder가 Positioned를 직접
-                          // 반환해, Positioned의 실제 RenderObject 부모가
-                          // Stack이 아닌 LayoutBuilder가 되어 "Incorrect use of
-                          // ParentDataWidget"(StackParentData를
-                          // BoxParentData에 적용) 예외가 매 프레임 반복
-                          // 발생했고, 이것이 release 빌드에서 "RangeError:
-                          // Maximum call stack size exceeded" 스택오버플로우로
-                          // 나타났던 근본 원인. Positioned를 Stack의 직계
-                          // 자식으로 되돌리고 고정 상수로 치환해 해결.
-                          if (ph == Ph.paper && signing && ink.value < 1)
-                            Positioned(
-                              right: _kOverlayW * .04,
-                              top: _kOverlayH * .70,
-                              width: _kOverlayW * .18,
-                              height: _kOverlayH * .26,
-                              child: SignStroke(
-                                onProgress: _onSignProgress,
-                                onDone: () {
-                                  setState(() => signing = false);
-                                  ink.value = 1;
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
+                        ),
+                        // burn 단계에서만 ash/char/edge/flames를 보여주고,
+                        // reveal/read(=done)에서는 재만 은은히 빛나며 멈춘다.
+                        if (ph == Ph.burn) BurnFx(burn: burnLine, done: false),
+                      ],
                     )
+                  : (ph == Ph.reveal || ph == Ph.read)
+                  ? const BurnFx(burn: 1, done: true)
                   : const SizedBox(),
             ),
           ),
@@ -1453,7 +1472,11 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
                                         ),
                                       ],
                                     ),
-                                    style: t.body(19, w: FontWeight.w700, h: 1.6),
+                                    style: t.body(
+                                      19,
+                                      w: FontWeight.w700,
+                                      h: 1.6,
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
                                   Text(
@@ -1465,15 +1488,19 @@ class _RitualState extends State<RitualScreen> with TickerProviderStateMixin {
                                     style: TextButton.styleFrom(
                                       padding: EdgeInsets.zero,
                                       minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                       alignment: Alignment.centerLeft,
                                     ),
                                     onPressed: _finishSigning,
                                     child: Text(
                                       '대신 써 주십시오',
-                                      style: t.ui(12, c: C.faint).copyWith(
-                                        decoration: TextDecoration.underline,
-                                      ),
+                                      style: t
+                                          .ui(12, c: C.faint)
+                                          .copyWith(
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
                                     ),
                                   ),
                                 ],
@@ -2527,7 +2554,8 @@ class ResultScreen extends StatelessWidget {
     final ink = t.body(14.5, c: const Color(0xFF3A2616), h: 1.95);
     // [U2-6] 아직 부적을 안 받았어도 「肆 당신과 부적」엔 같은 조건으로
     // 구성될 부적 미리보기를 보여준다 — 웹 ResultScreen의 tSpec 그대로.
-    final tSpec = myT?.spec ??
+    final tSpec =
+        myT?.spec ??
         shrine.talismans.compose(
           type: topicId ?? 'love',
           flavor: flav?.id ?? 'observe',
@@ -2673,14 +2701,12 @@ class ResultScreen extends StatelessWidget {
                                             TextSpan(
                                               children: [
                                                 TextSpan(
-                                                  text:
-                                                      '${_han(i)}  ',
+                                                  text: '${_han(i)}  ',
                                                   style: t.mono.copyWith(
                                                     color: const Color(
                                                       0xFFA11D19,
                                                     ),
-                                                    fontWeight:
-                                                        FontWeight.w700,
+                                                    fontWeight: FontWeight.w700,
                                                   ),
                                                 ),
                                                 TextSpan(
@@ -2741,9 +2767,7 @@ class ResultScreen extends StatelessWidget {
                                 BjOneBadge(
                                   name: nameShown(name, myT?.mode ?? 'full'),
                                   spec: tSpec,
-                                  serial: myT != null
-                                      ? '神堂 · ${myT.no}'
-                                      : null,
+                                  serial: myT != null ? '神堂 · ${myT.no}' : null,
                                   onScroll: true,
                                 ),
                                 const SizedBox(height: 14),
@@ -2764,13 +2788,15 @@ class ResultScreen extends StatelessWidget {
                                       Text(
                                         '"${f(shrine.scroll.letter)}"',
                                         textAlign: TextAlign.center,
-                                        style: t.body(
-                                          14,
-                                          c: const Color(0xFF3A2616),
-                                          h: 1.8,
-                                        ).copyWith(
-                                          fontStyle: FontStyle.italic,
-                                        ),
+                                        style: t
+                                            .body(
+                                              14,
+                                              c: const Color(0xFF3A2616),
+                                              h: 1.8,
+                                            )
+                                            .copyWith(
+                                              fontStyle: FontStyle.italic,
+                                            ),
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
@@ -2999,7 +3025,11 @@ class ResultScreen extends StatelessWidget {
             Text(
               '이 두루마리는 $who의 선택으로만 쓰였습니다',
               textAlign: TextAlign.center,
-              style: t.display(12.5, w: FontWeight.w800, c: const Color(0xFF3A1A0E)),
+              style: t.display(
+                12.5,
+                w: FontWeight.w800,
+                c: const Color(0xFF3A1A0E),
+              ),
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -3012,7 +3042,10 @@ class ResultScreen extends StatelessWidget {
             Text(
               '주제 4 × 선택의 길 6 × 결말 4 — 같은 결말이라도 사람마다 다른 두루마리',
               textAlign: TextAlign.center,
-              style: t.mono.copyWith(color: const Color(0x8C3C1E0F), fontSize: 9.5),
+              style: t.mono.copyWith(
+                color: const Color(0x8C3C1E0F),
+                fontSize: 9.5,
+              ),
             ),
           ],
         ),
@@ -3066,95 +3099,111 @@ class ResultScreen extends StatelessWidget {
             ? () => showTalisManual(context, spec: myT.spec, item: myT)
             : null,
         child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0x143C1408),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    ColorFiltered(
-                      colorFilter: myT != null
-                          ? const ColorFilter.mode(
-                              Colors.transparent,
-                              BlendMode.multiply,
-                            )
-                          : const ColorFilter.matrix(<double>[
-                              0.35, 0, 0, 0, 0,
-                              0, 0.35, 0, 0, 0,
-                              0, 0, 0.35, 0, 0,
-                              0, 0, 0, 1, 0,
-                            ]),
-                      child: Opacity(
-                        opacity: myT != null ? 1 : .55,
-                        child: BujeokSheet(w: 72, name: shownName, spec: tSpec),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0x143C1408),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  ColorFiltered(
+                    colorFilter: myT != null
+                        ? const ColorFilter.mode(
+                            Colors.transparent,
+                            BlendMode.multiply,
+                          )
+                        : const ColorFilter.matrix(<double>[
+                            0.35,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0.35,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0.35,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                          ]),
+                    child: Opacity(
+                      opacity: myT != null ? 1 : .55,
+                      child: BujeokSheet(w: 72, name: shownName, spec: tSpec),
+                    ),
+                  ),
+                  if (myT == null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE6070404),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '아직\n받지 않음',
+                        textAlign: TextAlign.center,
+                        style: t.mono.copyWith(
+                          color: const Color(0xFFEFE4D2),
+                          fontSize: 8.5,
+                          height: 1.3,
+                        ),
                       ),
                     ),
-                    if (myT == null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xE6070404),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '아직\n받지 않음',
-                          textAlign: TextAlign.center,
-                          style: t.mono.copyWith(
-                            color: const Color(0xFFEFE4D2),
-                            fontSize: 8.5,
-                            height: 1.3,
-                          ),
-                        ),
+                ],
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      myT != null ? '符 받은 부적 · ${myT.no}' : '符 이 결말의 부적',
+                      style: t.mono.copyWith(
+                        color: const Color(0x8C3C1E0F),
+                        letterSpacing: 1.5,
                       ),
+                    ),
+                    Text(
+                      tSpec.name,
+                      style: t.display(
+                        15,
+                        w: FontWeight.w900,
+                        c: const Color(0xFF3A1A0E),
+                      ),
+                    ),
+                    Text(
+                      '${tSpec.phrase} — ${tSpec.phraseMeaning}',
+                      style: t.body(12, c: const Color(0xFF5A3A22), h: 1.4),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${shrine.scroll.borders[tSpec.border] ?? ''} · ${shrine.scroll.seals[tSpec.seal] ?? ''} · ${shrine.scroll.motifs[tSpec.motif] ?? ''}',
+                      style: t.mono.copyWith(
+                        color: const Color(0x8C3C1E0F),
+                        fontSize: 9,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        myT != null ? '符 받은 부적 · ${myT.no}' : '符 이 결말의 부적',
-                        style: t.mono.copyWith(
-                          color: const Color(0x8C3C1E0F),
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      Text(
-                        tSpec.name,
-                        style: t.display(
-                          15,
-                          w: FontWeight.w900,
-                          c: const Color(0xFF3A1A0E),
-                        ),
-                      ),
-                      Text(
-                        '${tSpec.phrase} — ${tSpec.phraseMeaning}',
-                        style: t.body(12, c: const Color(0xFF5A3A22), h: 1.4),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${shrine.scroll.borders[tSpec.border] ?? ''} · ${shrine.scroll.seals[tSpec.seal] ?? ''} · ${shrine.scroll.motifs[tSpec.motif] ?? ''}',
-                        style: t.mono.copyWith(
-                          color: const Color(0x8C3C1E0F),
-                          fontSize: 9,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 
   /// [U2-6] 「왜 이 부적을 썼는가」 — 主題(talisType) · 選(talisPhrase) · 結(talisEnding) 세 줄
@@ -3211,12 +3260,16 @@ class ResultScreen extends StatelessWidget {
         children: [
           Text(
             '왜 이 부적을 썼는가',
-            style: t.mono.copyWith(color: const Color(0x8C3C1E0F), letterSpacing: 1.5),
+            style: t.mono.copyWith(
+              color: const Color(0x8C3C1E0F),
+              letterSpacing: 1.5,
+            ),
           ),
           const SizedBox(height: 10),
           row(
             tSpec.sig,
-            shrine.scroll.talisType[topicId] ?? shrine.scroll.talisType['fate']!,
+            shrine.scroll.talisType[topicId] ??
+                shrine.scroll.talisType['fate']!,
           ),
           if (flav != null)
             row(
