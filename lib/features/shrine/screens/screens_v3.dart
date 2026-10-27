@@ -667,13 +667,40 @@ class _MeaningState extends State<MeaningScreen> {
 
     final gate = result.data!;
     if (!gate.ok) {
+      // [어뷰징 방지 안내페이지 — 사용자 요청] "2번은 안돼게 한 어뷰징
+      // 처리가 있나봐 그럼 안돼는 안내페이지을 해줘야지" — 기존에는
+      // ALREADY_ISSUED일 때 설명 없이 곧장 부적함으로 튕기고,
+      // DAILY_LIMIT 등 다른 사유는 2~3초면 사라지는 SnackBar 한 줄로만
+      // 보여줘 사용자가 "버그 아닌가" 오해하기 쉬웠다. 서버가 이미
+      // 분명한 한국어 사유(gate.reason)를 내려주므로, 이를 명확한
+      // AlertDialog로 끝까지 읽게 한 뒤에만 다음 동작(부적함 이동 등)을
+      // 진행하도록 바꾼다.
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(
+            gate.code == 'ALREADY_ISSUED'
+                ? '이미 받은 부적입니다'
+                : gate.code == 'DAILY_LIMIT'
+                    ? '오늘은 더 받을 수 없습니다'
+                    : '지금은 부적을 받을 수 없습니다',
+          ),
+          content: Text(
+            gate.reason ??
+                '지금은 부적을 받을 수 없습니다. 잠시 후 다시 시도해 주세요.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(gate.code == 'ALREADY_ISSUED' ? '부적함으로' : '확인'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
       if (gate.code == 'ALREADY_ISSUED') {
         ShrineNav.go(context, 'box');
-        return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(gate.reason ?? '지금은 부적을 받을 수 없습니다.')),
-      );
       return;
     }
 
