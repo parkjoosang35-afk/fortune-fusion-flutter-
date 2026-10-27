@@ -611,10 +611,35 @@ class _MeaningState extends State<MeaningScreen> {
     setState(() => busy = false);
 
     if (!result.success) {
-      // [네트워크/인증 레벨 실패] UNAUTHORIZED면 회원 연결이 끊긴 것이므로
-      // ConnectScreen으로 보낸다(원본 JS의 `gate.trial` 분기와 동일 취지).
+      // [공통 원인 수정 2025] UNAUTHORIZED는 회원 연결이 끊어진 상태로,
+      // 설명 없이 ConnectScreen으로 튕기면 사용자가 진행이 막혔다고 오해한다.
+      // ConnectScreen._showLinkError()와 동일한 UX 패턴(설명 + 로그인 유도)을 사용한다.
       if (result.errorCode == 'UNAUTHORIZED') {
-        ShrineNav.go(context, 'connect');
+        final goLogin = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('로그인이 필요합니다'),
+            content: const Text(
+              '부적을 받으려면 신통방통 로그인이 필요합니다.\n로그인 후 다시 돌아와 이어서 진행해 주세요.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('로그인하기'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        if (goLogin == true) {
+          Navigator.of(context).pushNamed('/login');
+        } else {
+          ShrineNav.go(context, 'connect');
+        }
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
