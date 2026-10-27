@@ -1363,8 +1363,14 @@ class ListScreenV3 extends StatelessWidget {
           final S = shrine.tales[id]!; final u = unlock[id]!; final n = done(id); final prog = st.talePos[id] != null;
           return GestureDetector(onTap: () { if (!u.$1) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('잠긴 이야기입니다 — ${u.$2}'))); return; }
               if (st.name == null) { ShrineNav.go(context, 'connect'); return; }
-              // 다른 이야기 → 신통방통 결제창 (이미 구매했으면 바로 통과)
-              shrinePay(context, ShrineProduct.tale(id, S.title), () => ShrineNav.go(context, 'tale', params: {'id': id})); },
+              // [2-1 결제 후 뒤로가기 차단 — "다른 이야기"에도 동일 적용,
+              // 사용자 요청 "다른이야기도 마찬가지 결제 후 뒤로가기차단"]
+              // HallScreen._enter()와 동일한 이유로, 결제(shrinePay) 성공
+              // 직후 'list'(결제를 건 화면) 자체를 신당 스택에서 지워야
+              // 뒤로가기로 'list'에 복귀해 같은 이야기를 다시 결제해야 하는
+              // 모순이 생기지 않는다. 신당 내부 정상 진행(tale 안에서의
+              // 선택지 이동 등)은 여전히 go()를 쓰므로 영향 없음.
+              shrinePay(context, ShrineProduct.tale(id, S.title), () => ShrineNav.goAndClearStack(context, 'tale', params: {'id': id})); },
             child: Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: id == 'secret' ? const Color(0x73A11D19) : C.line),
                 gradient: id == 'secret' ? const LinearGradient(colors: [Color(0xB33C0A08), Color(0xD10E0706)]) : null, color: id == 'secret' ? null : const Color(0xD10E0706)),
@@ -1498,7 +1504,9 @@ class _RoomRow extends StatelessWidget {
           ShrineNav.go(context, 'connect');
           return;
         }
-        shrinePay(context, ShrineProduct.tale(tale.id, tale.title), () => ShrineNav.go(context, 'tale', params: {'id': tale.id}));
+        // [2-1 결제 후 뒤로가기 차단 — "다른 이야기"에도 동일 적용] 위
+        // ListScreenV3의 같은 수정과 동일 이유로 goAndClearStack() 사용.
+        shrinePay(context, ShrineProduct.tale(tale.id, tale.title), () => ShrineNav.goAndClearStack(context, 'tale', params: {'id': tale.id}));
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
