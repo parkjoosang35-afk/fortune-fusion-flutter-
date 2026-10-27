@@ -671,12 +671,25 @@ class _TalkState extends State<TalkScreen> {
           ),
           _top(
             context,
+            // [결제 후 뒤로가기 버그 수정 — 2차] TalkScreen은 결제(hall)
+            // 성공 직후 로그인 기존 회원(ConnectScreen 생략)이 곧바로
+            // 도달하는 화면이다. 기존에는 뒤로가기가 'hall'로 고정
+            // 이동했는데, HallScreen._enter()는 결제 성공 시
+            // goAndClearStack()으로 'hall'을 신당 스택에서 완전히
+            // 제거하므로(§2-1 "결제 이전 화면으로 돌아갈 수 없어야
+            // 한다"), 결제를 마치고 들어온 이 화면에서 뒤로가기를 누르면
+            // 이미 지워진 결제 화면을 다시 push해 재등장시키는 모순이
+            // 있었다(ConnectScreen과 동일 유형의 버그 — 그쪽은 이미
+            // 수정됐으나 talk 직행 경로는 누락돼 있었음). ListScreenV3/
+            // BoxScreen/ConnectScreen과 동일한 안전 패턴으로 교체한다.
             back: () => step > 0
                 ? setState(() {
                     step--;
                     done = false;
                   })
-                : ShrineNav.go(context, 'hall'),
+                : (ShrineNav.canPop(context)
+                    ? ShrineNav.pop(context)
+                    : ShrineNav.go(context, 'entry')),
           ),
           const CoachOverlay(),
         ],
