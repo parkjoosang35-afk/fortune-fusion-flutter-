@@ -235,7 +235,15 @@ class _ConnectState extends State<ConnectScreen> {
         // 제거하고 버튼만 남긴다.
         TextButton(onPressed: busy ? null : () => ShrineNav.go(context, 'info'), child: Text('회원 연결 없이 직접 적기', style: t.ui(13, c: C.muted).copyWith(decoration: TextDecoration.underline))),
       ])))),
-      _top(context, back: () => ShrineNav.go(context, 'hall')),
+      // [결제 후 뒤로가기 버그 수정] 기존에는 'hall'(결제 화면)로 고정
+      // 이동시켰다 — 그런데 HallScreen._enter()는 결제 성공 시
+      // goAndClearStack()으로 'hall'을 스택에서 완전히 제거하므로(주석:
+      // "결제 이전 화면으로 돌아갈 수 없어야 한다"), 결제를 마치고 들어온
+      // connect 화면에서 뒤로가기를 누르면 이미 지워진 결제 화면을 다시
+      // push해 재등장시키는 모순이 있었다. ListScreenV3/BoxScreen과 동일한
+      // 안전 패턴(스택에 쌓인 화면이 있으면 pop, 없으면(결제 직후 등
+      // 스택 바닥인 경우) 신당 입구 'entry'로)으로 교체한다.
+      _top(context, back: () => ShrineNav.canPop(context) ? ShrineNav.pop(context) : ShrineNav.go(context, 'entry')),
     ]));
   }
 }
