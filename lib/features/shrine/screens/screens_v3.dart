@@ -18,7 +18,7 @@ import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:gal/gal.dart';
+import '../../../core/util/image_gallery_saver_io.dart';
 import '../shrine_module.dart' show shrine, shrinePay, ShrineProduct, kShrineBase;
 import '../data/models.dart';
 import '../engine/shrine_engine.dart';
@@ -161,10 +161,16 @@ class _ConnectState extends State<ConnectScreen> {
   @override
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts);
+    // [명부 미리보기 샘플 값 수정 — 2026-10-27] 실제 연동 전에는 아직 어떤
+    // 회원 정보도 가져오지 않았으므로, 실존 인물처럼 보일 수 있는 구체적인
+    // 가짜 값("박서연", 실제 같은 생년월일·시간) 대신 "예시"임이 값 자체에서도
+    // 분명히 드러나도록 표기한다. (기존에는 화면 하단의 SampleTag 하나에만
+    // 의존했는데, 명부 패널과 시각적으로 떨어져 있어 사용자가 실제 연동된
+    // 정보로 오인할 수 있었다.)
     final rows = [
-      ('name', '名', '이름', '박서연', '민세레나가 부르고, 부적에 적습니다'),
-      ('birth', '生', '생년월일', '1995.08.14 · 양력', '정통사주 해석에 씁니다'),
-      ('time', '時', '태어난 시간', '14:20', '없으면 시주(時柱)를 빼고 풀이합니다'),
+      ('name', '名', '이름', '예) 박서연', '민세레나가 부르고, 부적에 적습니다'),
+      ('birth', '生', '생년월일', '예) 1995.08.14 · 양력', '정통사주 해석에 씁니다'),
+      ('time', '時', '태어난 시간', '예) 14:20', '없으면 시주(時柱)를 빼고 풀이합니다'),
     ];
     final selected = rows.where((r) => sel[r.$1]!).toList();
     final selectedCount = selected.length;
@@ -1010,7 +1016,15 @@ class _ReceiveState extends State<ReceiveScreen> {
       try {
         final png = await renderBujeokPng(name: nameShown(st.name, it.mode), spec: it.spec, serial: '神堂 · ${it.no}', title: '${it.spec.name} · ${it.spec.phrase}',
           line: '${it.spec.phraseMeaning} — ${copy['line']}', sub: '${it.date} · $src');
-        await Gal.putImageBytes(png, name: '신당_${it.spec.name}_${it.spec.phrase}');
+        // [저장 공유 안 됨 버그 수정 — 2026-10-27] 신당만 유일하게 권한
+        // 확인/요청 없이 Gal.putImageBytes()를 직접 호출해 왔다. 권한이
+        // 없는 기기(Android 10 이하 등)에서는 예외만 던져지고 사용자에게
+        // 실제 권한 요청 팝업이 한 번도 뜨지 않아 "안 된다"는 느낌만
+        // 주고 영구히 실패했다. 프로젝트 표준 저장 헬퍼
+        // (saveImageBytesToGalleryDetailed — hasAccess/requestAccess를
+        // 먼저 거친 뒤 저장, 귀인지도 등 8개 화면과 동일 경로)로 교체한다.
+        final result = await saveImageBytesToGalleryDetailed(png, name: '신당_${it.spec.name}_${it.spec.phrase}');
+        if (!result.isSuccess) return false;
         provider.updateBox(it.no, (b) => b.copy(saved: true));
         return true;
       } catch (_) {
@@ -1154,7 +1168,10 @@ class _BoxState extends State<BoxScreen> {
           ('⤓', cur.saved ? '다시 저장' : '사진첩 저장', () => showShrineSaveRite(context, name: nameShown(st.name, cur.mode), spec: cur.spec, doSave: () async {
             try {
               final png = await renderBujeokPng(name: nameShown(st.name, cur.mode), spec: cur.spec, serial: '神堂 · ${cur.no}', title: '${cur.spec.name} · ${cur.spec.phrase}', line: '${cur.spec.phraseMeaning} — ${copy['line']}', sub: '${cur.date} · $src');
-              await Gal.putImageBytes(png);
+              // [저장 공유 안 됨 버그 수정] 위 _save()와 동일하게 표준
+              // 권한 확인/요청 경로로 교체.
+              final result = await saveImageBytesToGalleryDetailed(png, name: '신당_${cur.spec.name}_${cur.spec.phrase}');
+              if (!result.isSuccess) return false;
               provider.updateBox(cur.no, (x) => x.copy(saved: true));
               return true;
             } catch (_) {

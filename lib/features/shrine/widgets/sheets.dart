@@ -11,13 +11,15 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
-import 'package:gal/gal.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
 import '../data/models.dart';
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
 import '../../../core/sound/sintong_sound_service.dart';
+import '../../../core/util/image_gallery_saver_io.dart';
 
 /// 설정 시트 — 상단 모서리 22px (이 화면만 현대 UI 어휘)
 void showSettingsSheet(BuildContext context) {
@@ -80,17 +82,14 @@ void showSettingsSheet(BuildContext context) {
               row(
                 '소리',
                 '저음 · 방울 · 문 · 속삭임 · 심장 박동',
-                sw(
-                  st.sound,
-                  () {
-                    provider.update((s) => s.copy(sound: !s.sound));
-                    // [사운드 토글 단절 수정] 설정 시트의 이 스위치도
-                    // 실제 음악 재생(SintongSoundService)을 호출하도록 연결한다.
-                    try {
-                      ctx.read<SintongSoundService>().toggleMute();
-                    } catch (_) {}
-                  },
-                ),
+                sw(st.sound, () {
+                  provider.update((s) => s.copy(sound: !s.sound));
+                  // [사운드 토글 단절 수정] 설정 시트의 이 스위치도
+                  // 실제 음악 재생(SintongSoundService)을 호출하도록 연결한다.
+                  try {
+                    ctx.read<SintongSoundService>().toggleMute();
+                  } catch (_) {}
+                }),
               ),
               row(
                 '움직임 줄이기',
@@ -180,13 +179,11 @@ void showSettingsSheet(BuildContext context) {
   );
 }
 
-/// 결말 카드 1080×1920 PNG → 갤러리 저장 (웹 renderCard 와 동일 레이아웃)
-/// riverpod 의존이 없어 원본 그대로 포팅(WidgetRef 매개변수 자체가 없었음).
-Future<void> saveEndingCard(
-  BuildContext context,
-  Ending e,
-  String? name,
-) async {
+/// 결말 카드 1080×1920 PNG 렌더링 (웹 renderCard 와 동일 레이아웃).
+/// [저장 공유 통합 — 2026-10-27] 기존 saveEndingCard()에 인라인되어
+/// 있던 렌더링 로직을 분리해, 저장(갤러리)·공유(OS 공유시트) 양쪽에서
+/// 동일한 PNG를 재사용할 수 있게 한다.
+Future<Uint8List> _renderEndingCardPng(Ending e, String? name) async {
   const w = 1080.0, h = 1920.0;
   final rec = ui.PictureRecorder();
   final c = Canvas(rec);
@@ -281,10 +278,91 @@ Future<void> saveEndingCard(
     w.toInt(),
     h.toInt(),
   )).toByteData(format: ui.ImageByteFormat.png);
-  await Gal.putImageBytes(png!.buffer.asUint8List(), name: '신당_엔딩${e.code}');
+  return png!.buffer.asUint8List();
+}
+
+/// 결말 카드 PNG → 갤러리 저장.
+/// riverpod 의존이 없어 원본 그대로 포팅(WidgetRef 매개변수 자체가 없었음).
+Future<void> saveEndingCard(
+  BuildContext context,
+  Ending e,
+  String? name,
+) async {
+  final bytes = await _renderEndingCardPng(e, name);
+  // [저장 공유 안 됨 버그 수정 — 2026-10-27] 신당만 유일하게 권한
+  // 확인/요청 없이 Gal.putImageBytes()를 직접 호출해 왔다. 권한이 없는
+  // 기기(Android 10 이하 등)에서는 예외만 던져지고 사용자에게 실제 권한
+  // 요청 팝업이 한 번도 뜨지 않아 "저장이 안 된다"는 신고로 이어졌다.
+  // 프로젝트 표준 저장 헬퍼(saveImageBytesToGalleryDetailed — 귀인지도
+  // 등 8개 화면과 동일 경로, hasAccess/requestAccess를 먼저 거친 뒤
+  // 저장)로 교체하고, 실패 원인별 안내 문구도 그대로 보여준다.
+  final result = await saveImageBytesToGalleryDetailed(
+    bytes,
+    name: '신당_엔딩${e.code}',
+  );
   if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.isSuccess
+              ? '결말 이미지를 저장했습니다'
+              : (result.failureMessage ?? '저장에 실패했습니다'),
+        ),
+      ),
+    );
+  }
+}
+
+/// 결말 카드 PNG → OS 공유 시트(공유하기).
+///
+/// [저장 공유 안 됨 버그 수정 — 2026-10-27] 기존 "공유하기" 버튼은
+/// `https://YOUR_DOMAIN/shrine/result/...` 라는 치환되지 않은 플레이스홀더
+/// 문자열을 실제 주소인 것처럼 그대로 Share.share()에 넘기고 있었다(서버
+/// 쪽에도 이 경로의 공개 결과 페이지가 없어, 도메인을 고치더라도 받는
+/// 사람은 404만 보게 된다 — admin_web에 신규 공개 페이지를 만드는 것은
+/// 서버 배포가 필요해 이번 수정 범위를 벗어난다). 서버 의존 없이 바로
+/// 동작하도록, 다른 결과 화면(타로/관상/손금 등)과 동일한 패턴 —
+/// 이미지(PNG)를 직접 OS 공유 시트로 전달 — 로 교체한다. 생년월일·계절·
+/// 사주 원본은 카드 렌더링에 애초에 포함되지 않으므로(결말 카드는 결말
+/// 코드·이름·대사만 그림) 기존 "공개용 최소 정보" 원칙은 그대로 지켜진다.
+Future<void> shareEndingCard(
+  BuildContext context,
+  Ending e,
+  String? name,
+) async {
+  if (kIsWeb) {
+    // [share_service.dart _sendImage()와 동일 원칙] share_plus의 웹
+    // 구현은 이미지 바이트 공유를 지원하지 않는 브라우저가 많아 혼란만
+    // 준다 — 다른 결과 화면들과 동일하게 웹에서는 안내만 하고 중단한다.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('웹에서는 "저장하기"로 이미지를 받아 공유해주세요.')),
+    );
+    return;
+  }
+  final bytes = await _renderEndingCardPng(e, name);
+  if (!context.mounted) return;
+  try {
+    final result = await Share.shareXFiles(
+      [
+        XFile.fromData(
+          bytes,
+          name: '신당_엔딩${e.code}.png',
+          mimeType: 'image/png',
+        ),
+      ],
+      text: e.line,
+      subject: '신당 · ${e.name}',
+    );
+    if (!context.mounted) return;
+    if (result.status == ShareResultStatus.unavailable) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('공유하기를 지원하지 않는 환경입니다.')));
+    }
+  } catch (_) {
+    if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('결말 이미지를 저장했습니다')));
+    ).showSnackBar(const SnackBar(content: Text('공유에 실패했어요. 다시 시도해주세요.')));
   }
 }

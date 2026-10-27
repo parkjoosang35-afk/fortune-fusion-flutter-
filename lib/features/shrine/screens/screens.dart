@@ -17,7 +17,6 @@ import 'dart:convert';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../shrine_module.dart' show shrine, ShrineProduct, shrinePay;
 import '../data/models.dart';
@@ -2886,27 +2885,22 @@ class ResultScreen extends StatelessWidget {
                           '저장하기',
                           () => saveEndingCard(context, e, name),
                         ),
-                        _act('⇪', '공유하기', () {
-                          // 공개용만: 사용자가 고른 이름 표시 방식으로 가린 이름 · 주제 · 경로. 생년월일·계절·사주 원본 없음
-                          final shown = myT != null
-                              ? nameShown(name, myT.mode)
-                              : (name == null || name.isEmpty
-                                    ? ''
-                                    : '${name.characters.first}○');
-                          final d = base64.encode(
-                            utf8.encode(
-                              jsonEncode({
-                                'name': shown,
-                                'topic': topicId,
-                                'path': path.map((p) => p.toJson()).toList(),
-                              }),
-                            ),
-                          );
-                          Share.share(
-                            '${e.line.replaceAll('\n', ' ')}\nhttps://YOUR_DOMAIN/shrine/result/$code?s=1&d=${Uri.encodeComponent(d)}',
-                            subject: '신당 · ${e.name}',
-                          );
-                        }),
+                        // [저장 공유 안 됨 버그 수정 — 2026-10-27] 기존에는
+                        // `https://YOUR_DOMAIN/shrine/result/...`라는
+                        // 치환되지 않은 플레이스홀더 주소를 실제 링크인
+                        // 것처럼 그대로 공유해, 받는 사람이 열면 존재하지
+                        // 않는 도메인/페이지로 연결되는 버그였다(서버
+                        // admin_web에도 이 경로의 공개 결과 페이지가 없어
+                        // 도메인만 고쳐서는 해결되지 않는다 — 신규 공개
+                        // 페이지는 서버 배포가 필요해 이번 범위 밖이다).
+                        // 다른 결과 화면(타로/관상/손금 등)과 동일하게
+                        // 서버 의존 없이 바로 동작하는 "결말 카드 이미지
+                        // 공유"(shareEndingCard, sheets.dart)로 교체한다.
+                        _act(
+                          '⇪',
+                          '공유하기',
+                          () => shareEndingCard(context, e, name),
+                        ),
                         _act('↻', '다시보기', () {
                           context.read<ShrineSessionProvider>().update(
                             (s) => s.copy(clearPos: true),
