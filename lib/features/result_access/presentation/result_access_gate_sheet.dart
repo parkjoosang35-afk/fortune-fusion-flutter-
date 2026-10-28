@@ -638,14 +638,24 @@ class _GateOptionButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool highlighted;
 
+  // [바텀시트 글씨 안 보임 버그 수정 — 2026-10-27] `UnifiedColors.black`은
+  // 이름과 달리 실제로는 밝은 골드색(#E9C46A, "다크 전환" 리네이밍 당시
+  // 이름만 남고 값이 골드로 바뀜)이고 `UnifiedColors.neon`도 밝은
+  // 연두색(#C6F24E)이다. 기존 코드는 이 밝은 배경 위에 흰색(enabled) 또는
+  // 같은 골드색(highlighted) 글씨를 올려 "복주머니로 보기"/"오늘의
+  // 프리패스 2회 받기" 버튼 글씨가 거의 안 보이는 문제였다(사용자 제보
+  // 스크린샷으로 확인). 밝은 배경에는 어두운 글씨를 써야 하므로, 다른
+  // 신당 금빛 아이콘에서 이미 쓰던 짙은 고동색(0xFF3A2A12)으로 통일한다.
+  static const _darkOnGold = Color(0xFF3A2A12);
+
   @override
   Widget build(BuildContext context) {
     final bg = highlighted
         ? UnifiedColors.neon
         : (enabled ? UnifiedColors.black : UnifiedColors.chipInactiveBg);
     final fg = highlighted
-        ? UnifiedColors.black
-        : (enabled ? Colors.white : UnifiedColors.textCaption);
+        ? _darkOnGold
+        : (enabled ? _darkOnGold : UnifiedColors.textCaption);
 
     return SizedBox(
       height: 56,
