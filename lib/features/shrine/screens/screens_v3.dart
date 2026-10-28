@@ -1172,7 +1172,6 @@ class _BoxState extends State<BoxScreen> {
             final life = lifeOf(b);
             return GestureDetector(onTap: () => showTalisManual(context, spec: b.spec, item: b, actions: [
                 ('名', '이름 표시', () => context.read<ShrineSessionProvider>().updateBox(b.no, (x) => x.copy(mode: x.mode == 'full' ? 'initial' : x.mode == 'initial' ? 'hidden' : 'full'))),
-                ('話', '이야기 보기', () { Navigator.pop(context); b.source.story == 'red-bell' ? ShrineNav.go(context, 'end', params: {'code': b.source.ending}) : ShrineNav.go(context, 'tale-end', params: {'id': b.source.story, 'code': b.source.ending}); }),
                 ('詳', '상세 · 저장', () { Navigator.pop(context); _detail(b); }),
               ]), child: Column(children: [
               Builder(builder: (_) {
@@ -1247,7 +1246,6 @@ class _BoxState extends State<BoxScreen> {
             }
           })),
           ('名', '이름 표시', () => provider.updateBox(cur.no, (x) => x.copy(mode: x.mode == 'full' ? 'initial' : x.mode == 'initial' ? 'hidden' : 'full'))),
-          ('話', '이야기 보기', () { Navigator.pop(ctx); cur.source.story == 'red-bell' ? ShrineNav.go(context, 'end', params: {'code': cur.source.ending}) : ShrineNav.go(context, 'tale-end', params: {'id': cur.source.story, 'code': cur.source.ending}); }),
         ]),
       ]));
   }));
