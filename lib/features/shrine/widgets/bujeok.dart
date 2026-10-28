@@ -366,6 +366,155 @@ List<List<List<double>>> _bjTailPaths(
           [cx + 7, e - 1, cx + 7, y0 + 9, cx + 5, y0 + 8],
         ],
       ];
+    // [20종 지시서 통합 — 2026-10-28] 재물부/학업부 등 20개 독립 부적 타입
+    // 전용 꼬리 12종. bujeok-20set.zip 이미지는 그대로 쓰지 않고, 지시서의
+    // 마감 이름(갈고리 실·뻗는 붓끝·둥근 물결 등)이 뜻하는 형태만 참고해
+    // 기존과 같은 베지어 획 방식으로 새로 그렸다.
+    case 'hookThread': // 재물부 — 갈고리 실
+      return [
+        [
+          [cx - 1, y0],
+          [cx - 2, y0 + 3, cx, y0 + 6, cx - 1, e - 3],
+        ],
+        [
+          [cx - 1, e - 3],
+          [cx - 1, e - 1, cx + 3, e, cx + 5, e - 2],
+        ],
+      ];
+    case 'brushTip': // 학업부 — 뻗는 붓끝(세필이 가늘어지며 뻗는 느낌)
+      return [
+        [
+          [cx - 1.5, y0],
+          [cx - 1, y0 + 3, cx, y0 + 6, cx + .5, y0 + 8],
+          [cx + 1.2, y0 + 9.5, cx + 2.2, e - 1, cx + 3.2, e],
+        ],
+      ];
+    case 'roundWave': // 건강부 — 둥근 물결(완만하고 둥글게 감기는 결말)
+      return [
+        [
+          [cx, y0],
+          [cx - 6, y0 + 3, cx - 6, y0 + 6, cx, y0 + 6.5],
+          [cx + 6, y0 + 7, cx + 6, y0 + 9.5, cx, e],
+        ],
+      ];
+    case 'dryWave': // 치유부 — 마르는 물결(폭이 점점 가늘어지며 사라짐)
+      return [
+        [
+          [cx, y0],
+          [cx - 7, y0 + 2, cx + 7, y0 + 4, cx - 4, y0 + 6],
+          [cx - 1, y0 + 7, cx + 2, y0 + 8, cx, y0 + 8.8],
+          [cx - .6, y0 + 9.4, cx + .6, y0 + 9.8, cx, e],
+        ],
+      ];
+    case 'bundle': // 안산부 — 둥근 보자기(아이를 감싸듯 둥근 매듭)
+      return [
+        [
+          [cx, y0],
+          [cx - 1, y0 + 2.5, cx + 1, y0 + 4.5, cx, y0 + 6],
+        ],
+        [
+          [cx - 7, y0 + 7],
+          [cx - 8, y0 + 9, cx - 6, y0 + 11.5, cx, y0 + 12],
+          [cx + 6, y0 + 11.5, cx + 8, y0 + 9, cx + 7, y0 + 7],
+          [cx + 4, y0 + 5.8, cx - 4, y0 + 5.8, cx - 7, y0 + 7],
+        ],
+      ];
+    case 'straightPath': // 행로부 — 직선 길(흔들림 없이 곧게 뻗는 길)
+      return [
+        [
+          [cx, y0],
+          [cx, y0 + 3, cx, y0 + 6, cx, y0 + 10],
+          [cx, y0 + 14, cx, e - 4, cx, e],
+        ],
+      ];
+    case 'officialExtend': // 관운부 — 관(冠) 뻗음(위로 솟았다 뻗는 획)
+      return [
+        [
+          [cx - 5, y0 + 1],
+          [cx - 2, y0 - 1.5, cx + 2, y0 - 1.5, cx + 5, y0 + 1],
+        ],
+        [
+          [cx, y0 + 1],
+          [cx, y0 + 4, cx + 1, y0 + 7, cx + 2, y0 + 10],
+          [cx + 3.2, y0 + 13.5, cx + 4.6, e - 2, cx + 6, e],
+        ],
+      ];
+    case 'sun': // 합격부 — 해(日) 마감(둥근 원 안에 십자 획)
+      return [
+        [
+          [cx, y0],
+          [cx - 1, y0 + 2, cx + 1, y0 + 4, cx, y0 + 5.5],
+        ],
+        [
+          [cx, y0 + 6],
+          [cx + 5.5, y0 + 6, cx + 5.5, y0 + 11.5, cx, y0 + 11.5],
+          [cx - 5.5, y0 + 11.5, cx - 5.5, y0 + 6, cx, y0 + 6],
+        ],
+        [
+          [cx, y0 + 6],
+          [cx, y0 + 7.5, cx, y0 + 10, cx, y0 + 11.5],
+        ],
+      ];
+    case 'pine': // 장수부 — 소나무(가지가 양옆으로 뻗는 결)
+      return [
+        [
+          [cx, y0],
+          [cx, y0 + 2.5, cx, y0 + 5, cx, y0 + 7.5],
+          [cx, y0 + 10, cx, e - 2, cx, e],
+        ],
+        [
+          [cx, y0 + 2.5],
+          [cx - 4, y0 + 1, cx - 7, y0 + 2.5, cx - 8, y0 + 4],
+        ],
+        [
+          [cx, y0 + 5],
+          [cx + 4, y0 + 3.5, cx + 7, y0 + 5, cx + 8, y0 + 6.5],
+        ],
+      ];
+    case 'grainEar': // 풍년부 — 이삭(낟알이 매달린 휘어진 줄기)
+      return [
+        [
+          [cx, y0],
+          [cx + 1, y0 + 3, cx - 1, y0 + 6, cx, y0 + 9],
+          [cx + 1, e - 1, cx + 1.5, e, cx + 1, e],
+        ],
+        _bjDot(cx - 4, y0 + 3),
+        _bjDot(cx + 4, y0 + 5),
+        _bjDot(cx - 4, y0 + 7),
+      ];
+    case 'roundCarry': // 호신원부 — 원형 휴대(동글게 말아 지니는 형태)
+      return [
+        [
+          [cx, y0],
+          [cx - 1, y0 + 2, cx + 1, y0 + 4, cx, y0 + 5.5],
+        ],
+        [
+          [cx, y0 + 5.5],
+          [cx + 6, y0 + 5.5, cx + 6, e, cx, e],
+          [cx - 6, e, cx - 6, y0 + 5.5, cx, y0 + 5.5],
+        ],
+        [
+          [cx, y0 + 5.5],
+          [cx + 2.5, y0 + 6.5, cx + 2.5, e - 1.5, cx, e - .5],
+        ],
+      ];
+    case 'lotus': // 왕생부 — 연꽃(좌우로 벌어지는 꽃잎)
+      return [
+        [
+          [cx, y0],
+          [cx - 1, y0 + 2.5, cx + 1, y0 + 4.5, cx, y0 + 6],
+        ],
+        [
+          [cx, y0 + 6],
+          [cx - 5, y0 + 7, cx - 7, y0 + 9.5, cx - 4, e],
+          [cx - 1, e - 1.5, cx, y0 + 8, cx, y0 + 6],
+        ],
+        [
+          [cx, y0 + 6],
+          [cx + 5, y0 + 7, cx + 7, y0 + 9.5, cx + 4, e],
+          [cx + 1, e - 1.5, cx, y0 + 8, cx, y0 + 6],
+        ],
+      ];
     default:
       return [
         [
@@ -444,6 +593,17 @@ BjComposeResult bjCompose({
   final tailNamePool = Map<String, String>.from(pool['tailName']);
   final roofNamePool = Map<String, String>.from(pool['roofName']);
   final elementsPool = List<String>.from(pool['elements']);
+  // [20종 지시서 통합 — 2026-10-28] 재물부/수호부 등 20개 독립 부적 타입은
+  // 기존 6종(fate/love/...)처럼 木火土金水 한 글자를 세 번 반복(el+el+el)하는
+  // 대신, 지시서가 정한 혼합 오행(예: 水水火·土土金)을 타입마다 고정으로 쓴다.
+  // elementSet/tailByType에 항목이 없는 기존 6종은 이전 로직(공용 풀에서
+  // 난수/ending 선택) 그대로 동작해 하위 호환을 깨지 않는다.
+  final elementSetPool = Map<String, String>.from(
+    pool['elementSet'] as Map? ?? const {},
+  );
+  final tailByTypePool = Map<String, String>.from(
+    pool['tailByType'] as Map? ?? const {},
+  );
   final simp = Map<String, String>.from(L['simp']);
 
   final resolvedType = headPool.containsKey(type) ? type : 'love';
@@ -478,16 +638,26 @@ BjComposeResult bjCompose({
   final roof2 = _bjPick(r, roofPool);
   final pillar = _bjPick(r, pillarPool);
   final spine = _bjPick(r, spinePool);
+  // 오행: elementSet[resolvedType]이 있으면(20종 지시서 타입) 그 타입의
+  // 고정 3자 오행(예: 金金水)을 그대로 쓰고, 없으면(기존 6종) 종전처럼 한
+  // 글자를 골라 3번 반복한다.
+  final fixedElement = elementSetPool[resolvedType];
   final el = elementsPool.contains(element)
       ? element!
       : _bjPick(r, elementsPool);
+  final elementRow = fixedElement ?? (el + el + el);
   final tailExtra = List<String>.from(tailPool['extra'] as List);
-  final tail =
-      (ending != null &&
-          tailPool.containsKey(ending) &&
-          (story == null || story == 'red-bell'))
-      ? tailPool[ending] as String
-      : _bjPick(r, tailExtra);
+  // 꼬리: tailByType[resolvedType]이 있으면(20종 지시서 타입) 해당 타입
+  // 전용 꼬리로 고정한다 — 신당 결말(ending) 변주보다 "이 부적만의 마감"이
+  // 우선. 없으면(기존 6종) 종전 ending/랜덤 로직 그대로 동작.
+  final fixedTail = tailByTypePool[resolvedType];
+  final String tail =
+      fixedTail ??
+      ((ending != null &&
+              tailPool.containsKey(ending) &&
+              (story == null || story == 'red-bell'))
+          ? tailPool[ending] as String
+          : _bjPick(r, tailExtra));
   final baseChar = base ?? '鬼';
   final cx = 46 + _bjJit(r, 1.5);
 
@@ -580,7 +750,7 @@ BjComposeResult bjCompose({
   g(ph[1], cx + 3, 56.6, 13.5, 2.0, .8);
   o++;
   // 8 오행 줄
-  row(el + el + el, 69.4, 6.6);
+  row(elementRow, 69.4, 6.6);
   o++;
   // 9 바닥 글자 — 가장 크게 눌러 씀
   g(baseChar, cx - 4, 75, 13, 2.0, .8);
@@ -627,7 +797,7 @@ BjComposeResult bjCompose({
     head: headChars.join(''),
     rows: rows,
     phrase: ph.join(''),
-    element: el + el + el,
+    element: elementRow,
     base: baseChar,
     tail: tail,
     tailName: tailNamePool[tail] ?? tail,
