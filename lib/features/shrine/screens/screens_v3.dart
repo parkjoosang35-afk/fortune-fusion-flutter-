@@ -768,6 +768,25 @@ enum RPh { give, unroll, name, keep, use }
 class ReceiveScreen extends StatefulWidget { const ReceiveScreen({super.key}); @override State<ReceiveScreen> createState() => _ReceiveState(); }
 class _ReceiveState extends State<ReceiveScreen> {
   RPh ph = RPh.give; String mode = 'full'; BoxItem? item; bool dup = false; bool keeping = false;
+  // [버그수정 — "다른 이야기 보기" 탭 시 Null check 크래시] 이 화면은
+  // Navigator 1.0 push 스택에 쌓인 채로 남아 있다가(이 프로젝트는 pop 대신
+  // push만 쓰는 "뒤로가기 금지" 정책, shrine_nav.dart 참고) leave()가
+  // s.copy(clearPending:true)로 pending을 null로 지우는 순간
+  // context.watch()가 이 위젯을 즉시 재build한다. build()가 매번
+  // `st.pending!`을 읽으면 그 시점에 pending이 이미 null이라
+  // "Null check operator used on a null value"로 크래시 — leave() 호출 →
+  // list 화면으로 전환되기 직전 프레임에 이 화면이 깨진 채 노출된 것이
+  // 사용자가 본 증상이다. initState에서 pending을 1회만 캐시해 두고
+  // build()는 이 캐시(_p/_sp)만 읽도록 해, pending이 이후 null이 되어도
+  // 이미 전환 애니메이션 중인 이 화면은 깨지지 않고 그대로 유지된다.
+  late Pending _p;
+  late TalismanSpec _sp;
+  @override
+  void initState() {
+    super.initState();
+    _p = context.read<ShrineSessionProvider>().state.pending!;
+    _sp = _p.spec;
+  }
   // [BUGFIX — 9426e2c와 동일 패턴 추가 발견분] 「간직하는 법」(RPh.use) 안내
   // 번호 표시용 한자숫자. 기존 3개 고정 배열([i]) 직접 인덱싱은
   // shrine.json의 talismans.copy.*.use가 현재 모두 정확히 3개 항목이라
@@ -864,7 +883,7 @@ class _ReceiveState extends State<ReceiveScreen> {
   }
   @override
   Widget build(BuildContext context) {
-    final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final p = st.pending!; final sp = p.spec;
+    final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final p = _p; final sp = _sp;
     final copy = shrine.talismans.copy[sp.type] as Map; final flavLabel = (shrine.talismans.flavors[p.flavor] as Map?)?['label'] ?? '';
     final shown = nameShown(st.name, ph == RPh.name ? mode : (item?.mode ?? mode));
     final serial = '神堂 · ${item?.no ?? 'N°${(st.issued + 1).toString().padLeft(4, '0')}'}';
