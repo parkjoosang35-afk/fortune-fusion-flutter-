@@ -142,7 +142,19 @@ Recommendation recommend(SajuResult? s) {
   final ranked = s.topics.entries.toList()..sort((a, b) => b.value.score.compareTo(a.value.score));
   final top = ranked.first.value;
   if (top.score < .6 || top.note == null) return Recommendation(null, null, ranked); // 근거 불충분 → 일반 목록
-  return Recommendation(ranked.first.key, top.note, ranked);
+
+  // [오늘의 기운 로테이션] 사주는 평생 고정이라 "점수 1위 토픽"만 추천하면
+  // 같은 사람에게는 영원히 같은 주제만 뜬다 — 소비자 체감상 "한 번 보면
+  // 끝"이 되어버려 확장성이 없다는 지적을 반영. 점수 .6 이상 + 근거(note)
+  // 있는 토픽(=사주가 실제로 뒷받침하는 토픽들, 날조 아님) 전부를 "오늘의
+  // 후보"로 삼고, 그 중 하나를 [사주 지문 × 오늘 날짜]로 결정론적으로 골라
+  // 1순위로 보여준다. 날짜가 바뀌면 같은 사람도 다른 주제가 추천되고,
+  // 근거 없는 토픽은 여전히 후보에 들지 않는다(엔진 경계 원칙 유지).
+  final eligible = ranked.where((e) => e.value.score >= .6 && e.value.note != null).toList();
+  final today = DateTime.now();
+  final seed = fnv('${sajuFingerprint(s)}|${today.year}-${today.month}-${today.day}');
+  final picked = eligible[seed % eligible.length];
+  return Recommendation(picked.key, picked.value.note, ranked);
 }
 
 // ═══════════ 선택 해석 · 부적 구성 (데이터는 shrine.json talismans) ═══════════
