@@ -1134,7 +1134,12 @@ class _BoxState extends State<BoxScreen> {
     final list = st.box.where((b) => flt == 'all' || topicOf(b.spec.type) == flt).toList().reversed.toList();
     // [U5 포팅] 제목 개수 = 보내지 않은(sentAt == null) 부적만 (UPDATE_LOG U5-3)
     final keptCount = st.box.where((b) => b.sentAt == null).length;
-    return Scaffold(body: Stack(children: [
+    // [버그수정 — 부적함(/box) 하단바 없음] ListScreenV3와 동일한 이유로
+    // (사용자 지적: "여기들어가면 빠져나올때가 없어") 부적함도 하단
+    // 내비게이션 바가 없으면 상단 ←(뒤로가기)만으로 빠져나가야 하는데,
+    // list('/list')에서 직접 들어온 경우 등 스택 상황에 따라 ←가 애매해질
+    // 수 있다 — 공용 MainBottomNavBar를 재사용해 항상 빠져나갈 통로를 둔다.
+    return Scaffold(bottomNavigationBar: const MainBottomNavBar(currentIndex: 0), body: Stack(children: [
       const DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(0, -1), radius: 1, colors: [Color(0xFF220B09), C.bg]))),
       ListView(padding: const EdgeInsets.fromLTRB(16, 104, 16, 40), children: [
         Text('持符 · 내 부적함', style: t.mono), const SizedBox(height: 10),
