@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../wishroom/application/wishroom_provider.dart';
 import '../../wishroom/features/compose/compose_screen.dart';
+import '../engine/shrine_engine.dart';
 import '../state/shrine_session_provider.dart';
 import '../theme/tokens.dart';
 import '../widgets/bujeok.dart';
@@ -39,6 +40,12 @@ const Map<String, String> kSealGlyph = {
   'guard': '守',
   'will': '決',
 };
+
+/// [20종 개인화 — 2026-10-28] item.spec.type에는 이제 wealth/ward 같은
+/// 20종 세부 타입이 들어올 수 있다. kSealGlyph는 기존 6종 키만 가지고
+/// 있으므로, 조회 전에 kDetailTalismanTopic으로 상위 토픽으로 되돌린다
+/// (6종 키는 역조회 맵에 없으므로 그대로 통과).
+String _sealGlyphOf(String type) => kSealGlyph[kDetailTalismanTopic[type] ?? type] ?? '願';
 
 /// [WR 포팅] 소원방 Midnight Temple 팔레트 — 원본 shrine-seal.jsx의 WR 상수.
 class _WR {
@@ -139,7 +146,7 @@ class _NoWishRoomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state;
     final t = T(st.ts);
-    final glyph = kSealGlyph[item.spec.type] ?? '願';
+    final glyph = _sealGlyphOf(item.spec.type);
     return SafeArea(
       child: Container(
         margin: const EdgeInsets.all(16),
@@ -197,8 +204,8 @@ class _ConfirmSealSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<ShrineSessionProvider>().state;
     final t = T(st.ts);
-    final glyph = kSealGlyph[item.spec.type] ?? '願';
-    final fit = kSealGlyph.containsKey(item.spec.type);
+    final glyph = _sealGlyphOf(item.spec.type);
+    final fit = kDetailTalismanTopic.containsKey(item.spec.type) || kSealGlyph.containsKey(item.spec.type);
     return SafeArea(
       child: Container(
         margin: const EdgeInsets.all(16),
@@ -381,7 +388,7 @@ class _SealScreenState extends State<SealScreen> {
       });
       return const Scaffold(backgroundColor: _WR.bg2, body: SizedBox.shrink());
     }
-    final glyph = kSealGlyph[item.spec.type] ?? '願';
+    final glyph = _sealGlyphOf(item.spec.type);
     final shownName = nameShown(st.name, item.mode);
     final room = ph != _SealPhase.road;
 

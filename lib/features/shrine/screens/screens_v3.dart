@@ -1105,8 +1105,14 @@ class _BoxState extends State<BoxScreen> {
   }
   @override
   Widget build(BuildContext context) {
-    final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts); final types = (shrine.talismans.types as Map).keys.cast<String>().toList();
-    final list = st.box.where((b) => flt == 'all' || b.spec.type == flt).toList().reversed.toList();
+    final st = context.watch<ShrineSessionProvider>().state; final t = T(st.ts);
+    // [20종 개인화 — 2026-10-28] spec.type에는 이제 20종 세부 타입(wealth,
+    // ward...)이 들어올 수 있다. 필터 칩이 26개로 늘어나면 가로 스크롤이
+    // 과도해지므로, 기존 6종 상위 토픽(fate/love/money/flow/guard/will)
+    // 으로만 필터링한다 — kDetailTalismanTopic으로 20종 → 상위 토픽 역조회.
+    final types = const ['fate', 'love', 'money', 'flow', 'guard', 'will'];
+    String topicOf(String t) => kDetailTalismanTopic[t] ?? t;
+    final list = st.box.where((b) => flt == 'all' || topicOf(b.spec.type) == flt).toList().reversed.toList();
     // [U5 포팅] 제목 개수 = 보내지 않은(sentAt == null) 부적만 (UPDATE_LOG U5-3)
     final keptCount = st.box.where((b) => b.sentAt == null).length;
     return Scaffold(body: Stack(children: [
@@ -1136,7 +1142,7 @@ class _BoxState extends State<BoxScreen> {
         }),
         SizedBox(height: 32, child: ListView(scrollDirection: Axis.horizontal, children: [
           _chip('전체 ${st.box.length}', flt == 'all', () => setState(() => flt = 'all')),
-          for (final ty in types) _chip('${(shrine.talismans.types as Map)[ty]['sig']} ${st.box.where((b) => b.spec.type == ty).length}', flt == ty, () => setState(() => flt = ty)),
+          for (final ty in types) _chip('${(shrine.talismans.types as Map)[ty]['sig']} ${st.box.where((b) => topicOf(b.spec.type) == ty).length}', flt == ty, () => setState(() => flt = ty)),
         ])),
         const SizedBox(height: 14),
         if (list.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 40), child: Column(children: [

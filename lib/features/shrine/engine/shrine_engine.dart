@@ -162,6 +162,45 @@ class TalismanSpec {
     designId: j['designId'], story: j['story'], ending: j['ending'], element: j['element']);
 }
 
+// ═══════════ 20종 지시서 통합 — 토픽별 세부 부적 그룹(사용자 승인) ═══════════
+// [2026-10-28] "신당은 사주→주제→이야기→결말→부적 흐름이니 20종도 주제에
+// 맞게 개인화해 달라"(사용자 요청)에 따라, 기존 6종(fate/love/money/flow/
+// guard/will) 각각에 속하는 20종 세부 타입을 묶어 둔다. 지시서 §2의
+// 오행→용도 매핑(金 재물·보호 / 火 액막이·합격 / 木 학업·건강·관운 /
+// 水 인연·악몽·왕생 / 土 가정·출산·가택)을 근거로 분류했다.
+// "수호 계열"(액막이·치유·태평·안산·구설·호신원)은 어느 토픽에도 깔끔히
+// 맞지 않는다는 지적(사용자)에 따라 억지로 fate/love/money/flow에 끼워
+// 넣지 않고, 기존 guard 분류 자체를 "확장된 풀"로 유지한다. 왕생은 will에.
+const Map<String, List<String>> kTopicTalismanGroups = {
+  'fate': ['study', 'health', 'career', 'exam', 'longevity'],
+  'love': ['bond', 'dream'],
+  'money': ['wealth', 'business', 'harvest'],
+  'flow': ['travel', 'home'],
+  'guard': ['ward', 'guardian', 'healing', 'peace', 'birth', 'gossip', 'amulet'],
+  'will': ['requiem'],
+};
+
+/// 20종 세부 타입 → 그 타입이 속한 상위 6종 토픽(역방향 조회).
+/// 부적함 필터처럼 "상위 6분류로만 걸러 보고 싶을 때" 사용한다.
+final Map<String, String> kDetailTalismanTopic = {
+  for (final e in kTopicTalismanGroups.entries)
+    for (final v in e.value) v: e.key,
+};
+
+/// 상위 토픽(fate/love/money/flow/guard/will) → 20종 중 하나.
+/// flavor·story·ending 조합의 결정론적 해시로 그룹 내 하나를 고른다 —
+/// 같은 사람·같은 조건 = 같은 세부 부적(U12 원칙 유지). 사주 오행은 쓰지
+/// 않는다 — compose()가 "미리보기 생성"과 "중복발급 확인 키 생성" 두
+/// 지점에서 호출되는데, 두 호출이 사주를 서로 다르게 전달할 위험이 있어
+/// (예: 한쪽은 st.saju?.dayElement, 다른 쪽은 element 생략) 키가 어긋나는
+/// 중복발급 버그를 피하기 위해 flavor+story+ending만 쓴다.
+String resolveDetailedTalisman(String topic, {required String flavor, String? story, String? ending}) {
+  final group = kTopicTalismanGroups[topic];
+  if (group == null || group.isEmpty) return topic;
+  final h = fnv([topic, flavor, story ?? '-', ending ?? '-'].join('|'));
+  return group[h % group.length];
+}
+
 class TalismanEngine {
   final Map types, phrases, flavors, motifs, copy; final List borders, seals; final Map<String, String> flagFlavor; final List<String> order;
   TalismanEngine.fromShrineJson(Map j)
@@ -181,16 +220,23 @@ class TalismanEngine {
   }
 
   /// 유형 × 성향 × 이야기 × 결말 → 부적. 문구는 검증 사전(phrases[type][flavor])에서만.
+  /// [20종 개인화 — 2026-10-28] type에 fate/love/money/flow/guard/will이
+  /// 들어오면, 여기서 먼저 resolveDetailedTalisman()으로 20종 중 하나로
+  /// 치환한 뒤(topic 그룹에 없는 값은 그대로 통과) 그 결과(resolvedType)를
+  /// TalismanSpec.type에 담는다 — bjCompose가 spec.type을 그대로 받으므로
+  /// 이후 그려지는 그림도 자동으로 그 20종 전용 디자인이 된다.
   TalismanSpec compose({required String type, required String flavor, String? story, String? ending, String? element}) {
-    final T = types[type] ?? types['love']; final F = flavors[flavor] ?? flavors['observe'];
-    final ph = ((phrases[type] ?? phrases['love'])[flavor] ?? (phrases[type] ?? phrases['love'])['observe']) as List;
-    final key = [type, flavor, story ?? '-', ending ?? '-'].join('|');
+    final resolvedType = resolveDetailedTalisman(type, flavor: flavor, story: story, ending: ending);
+    final T = types[resolvedType] ?? types[type] ?? types['love'];
+    final F = flavors[flavor] ?? flavors['observe'];
+    final ph = ((phrases[resolvedType] ?? phrases[type] ?? phrases['love'])[flavor] ?? (phrases[resolvedType] ?? phrases[type] ?? phrases['love'])['observe']) as List;
+    final key = [resolvedType, flavor, story ?? '-', ending ?? '-'].join('|');
     final h = fnv(key);
-    return TalismanSpec(key: key, type: type, flavor: flavor, story: story, ending: ending, element: element,
+    return TalismanSpec(key: key, type: resolvedType, flavor: flavor, story: story, ending: ending, element: element,
       sig: T['sig'], name: T['name'], head: T['head'], base: T['base'], paper: T['paper'],
       phrase: ph[0], phraseMeaning: ph[1], motif: motifs[F['motif']],
       border: borders[h % borders.length], seal: seals[(h >> 3) % seals.length],
-      designId: 'BJ-${type.toUpperCase()}-${F['k']}-${(h % 9973).toRadixString(36).toUpperCase()}');
+      designId: 'BJ-${resolvedType.toUpperCase()}-${F['k']}-${(h % 9973).toRadixString(36).toUpperCase()}');
   }
 }
 

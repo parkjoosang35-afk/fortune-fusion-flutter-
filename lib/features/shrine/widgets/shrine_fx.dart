@@ -841,7 +841,10 @@ class TalisBack extends StatelessWidget {
     final st = context.watch<ShrineSessionProvider>().state;
     final src = item?.source;
     final fl = shrine.talismans.flavors[spec.flavor] as Map?;
-    final note = st.saju?.topics[spec.type]?.note;
+    // [20종 개인화 — 2026-10-28] spec.type이 20종 세부 타입(wealth 등)일
+    // 수 있다. st.saju.topics는 기존 4개 토픽(fate/love/money/flow) 키만
+    // 가지므로, kDetailTalismanTopic으로 상위 토픽으로 되돌려 조회한다.
+    final note = st.saju?.topics[kDetailTalismanTopic[spec.type] ?? spec.type]?.note;
     final endingLabel = src == null
         ? '—'
         : src.story == 'red-bell'
