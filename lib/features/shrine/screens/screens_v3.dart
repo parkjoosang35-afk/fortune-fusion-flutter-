@@ -1348,7 +1348,11 @@ class ListScreenV3 extends StatelessWidget {
     final finished = ['room', 'night', 'other'].where((id) => done(id) > 0).length + (st.endings.isNotEmpty ? 1 : 0);
     final unlock = {'room': (true, ''), 'night': (st.endings.isNotEmpty, '「붉은 방울」 결말 1개'), 'other': (st.box.isNotEmpty, '부적 1장 간직하기'), 'secret': (finished >= 4, '이야기 4편 모두 마치기 · $finished/4')};
     final totalEnd = st.endings.length + st.taleEndings.values.fold<int>(0, (a, m) => a + m.length);
-    return Scaffold(body: Stack(children: [
+    // [U1-2 하단바 추가 — 2026-10-27 수정] "←"를 완전히 없앤 뒤에는 이야기
+    // 목록 화면에서도 신당을 빠져나갈 유일한 통로가 하단 내비게이션 바뿐이다
+    // (사용자 지적: "이야기목록 들어가면 하단바가 없어"). ReceiveScreen과
+    // 동일하게 공용 MainBottomNavBar를 재사용한다.
+    return Scaffold(bottomNavigationBar: const MainBottomNavBar(currentIndex: 0), body: Stack(children: [
       const DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(0, -1), radius: 1, colors: [Color(0xFF220B09), C.bg]))),
       ListView(padding: const EdgeInsets.fromLTRB(16, 104, 16, 40), children: [
         Text('STORIES · 神堂 記錄', style: t.mono), const SizedBox(height: 10),

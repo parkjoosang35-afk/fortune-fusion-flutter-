@@ -36,6 +36,7 @@ import 'screens_v3.dart' show CoachOverlay;
 import 'screens_v32.dart' show showTalisManual;
 import '../../../core/sound/sound_route_trigger.dart';
 import '../../../core/sound/sintong_sound_service.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 
 String _img(String n) => 'assets/shrine/img/$n.jpg';
 String _art(String n) => 'assets/shrine/art/$n.jpg';
@@ -2595,6 +2596,11 @@ class ResultScreen extends StatelessWidget {
         );
 
     return Scaffold(
+      // [U1-2 하단바 추가 — 2026-10-27 수정] "←"를 완전히 없앤 뒤에는 이
+      // 결과 화면에서 신당 전체를 빠져나갈 유일한 통로가 하단 내비게이션
+      // 바뿐이다(사용자 지적: "들어와서 나갈 수가 없잖아"). 다른 화면
+      // (ReceiveScreen)과 동일하게 공용 MainBottomNavBar를 재사용한다.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       body: Stack(
         children: [
           const DecoratedBox(
@@ -2933,12 +2939,18 @@ class ResultScreen extends StatelessWidget {
                           '공유하기',
                           () => shareEndingCard(context, e, name),
                         ),
-                        _act('↻', '다시보기', () {
-                          context.read<ShrineSessionProvider>().update(
-                            (s) => s.copy(clearPos: true),
-                          );
-                          ShrineNav.go(context, 'story');
-                        }),
+                        // [U1-2 결과 화면 탈출구 제거 — 2026-10-27 수정]
+                        // "다시보기"는 사용자가 원치 않는데도 다시 이야기
+                        // 진행 화면(story)으로 들여보내는 버튼이었다("눌렀는데
+                        // 왜 멈추지 않느냐"는 사용자 혼란의 원인). "←"를
+                        // 완전히 제거한 지금은 이 화면에서 바로 부적함으로
+                        // 넘어가는 길이 꼭 필요하므로, ReceiveScreen과 동일한
+                        // '持 · 부적함 보기' 버튼으로 교체한다.
+                        _act(
+                          '持',
+                          '부적함 보기',
+                          () => ShrineNav.go(context, 'box'),
+                        ),
                       ],
                     ),
                   ),
