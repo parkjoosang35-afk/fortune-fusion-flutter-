@@ -39,13 +39,39 @@ double wrCanvasScaleFor(Size size) =>
 /// 배율을 적용해(= `BoxFit.contain`과 동일한 원리) 캔버스가 잘리지 않고
 /// 항상 전체가 화면 안에 보이도록 한다(디자인 비율과 다른 화면에서는 대신
 /// 좌우 또는 하단에 균등한 여백이 생긴다).
+///
+/// [반응형 화면 규격 통일 — 꾸미기 미리보기 예외] 위 "전체가 잘리지 않게"
+/// 규칙은 전체화면(또는 전체화면에 준하는) 사용처에만 맞는 규칙이다. 꾸미기
+/// 화면의 고정 높이(400px) 미리보기 "뷰파인더"(decor_screen.dart)는 애초에
+/// 캔버스 전체를 다 보여주려는 게 아니라, `camTop`으로 특정 좌표를 센터로
+/// 당겨 "확대해서 일부만 보여주는" 의도된 카메라 연출이다. 여기에 min-scale
+/// 규칙을 그대로 적용하면 좁은 뷰파인더 안에 캔버스 전체가 축소되어 들어가
+/// 버려 당겨보기 효과 자체가 사라진다(골든 테스트로 회귀 확인:
+/// goldens/decor_clip_preview.png, 10.19% diff). 이런 "고정 비율이 아닌
+/// 작은 박스에서 일부만 확대해 보여주는" 특수 화면은 `legacyFitWidth: true`로
+/// 과거 동작(폭 기준 스케일 + OverflowBox 기본 center 정렬)을 그대로 쓴다 —
+/// 디자인·애니메이션은 전혀 바꾸지 않는다.
 class WrCanvasScaler extends StatelessWidget {
-  const WrCanvasScaler({super.key, required this.child});
+  const WrCanvasScaler({
+    super.key,
+    required this.child,
+    this.legacyFitWidth = false,
+  });
   final Widget child;
+  final bool legacyFitWidth;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, c) {
+      if (legacyFitWidth) {
+        final scale = c.maxWidth / wrCanvasW;
+        return ClipRect(
+          child: OverflowBox(
+            minWidth: wrCanvasW, maxWidth: wrCanvasW, minHeight: wrCanvasH, maxHeight: wrCanvasH,
+            child: Transform.scale(scale: scale, alignment: Alignment.topCenter, child: child),
+          ),
+        );
+      }
       final scale = wrCanvasScaleFor(Size(c.maxWidth, c.maxHeight));
       return ClipRect(
         child: OverflowBox(

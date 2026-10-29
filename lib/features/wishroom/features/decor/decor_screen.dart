@@ -219,7 +219,14 @@ class _DecorScreenState extends State<DecorScreen> {
                             children: [
                               Positioned.fill(
                                 child: ClipRect(
+                                  // [반응형 화면 규격 통일 — 꾸미기 미리보기 예외]
+                                  // 이 400px 고정 뷰파인더는 `camTop`으로 특정
+                                  // 좌표를 당겨 "일부만 확대해 보여주는" 의도된
+                                  // 카메라 연출이라 전체 잘림 방지용 min-scale
+                                  // 규칙이 맞지 않는다(wr_canvas.dart 참고).
+                                  // 기존 동작(폭 기준 스케일)을 그대로 유지한다.
                                   child: WrCanvasScaler(
+                                    legacyFitWidth: true,
                                     child: AnimatedContainer(
                                       duration: const Duration(
                                         milliseconds: 1000,
