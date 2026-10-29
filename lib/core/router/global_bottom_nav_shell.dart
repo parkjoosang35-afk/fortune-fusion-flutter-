@@ -15,6 +15,18 @@ import 'main_bottom_nav_bar.dart';
 /// 이름 없이 직접 MaterialPageRoute로 push되는 화면은 감싸지 않는다(기존
 /// 수동 하단바 유지 — 타로 결과·귀인지도 게스트 참여).
 ///
+/// [반응형 화면 규격 통일 — 잘림 현상 수정, 공통 원인 ②] 위 주석이 "타로
+/// 결과는 기존 수동 하단바를 유지한다"고 명시하고 있었음에도, 실제로는
+/// `/ai-fortune/tarot/result`가 named route(`_pageNamed`)로 등록되어 있어
+/// 제외 목록 누락으로 이 셸이 한 번 더 Scaffold+MainBottomNavBar(4탭)를
+/// 씌우고 있었다. tarot_result_screen.dart는 이미 자체
+/// `bottomNavigationBar`(저장·공유 등 5개 액션 버튼)를 가진 Scaffold이므로,
+/// 그 바깥을 다시 Scaffold로 감싸면 Flutter가 안쪽 바만 유효하게 쓰더라도
+/// 레이아웃 트리에 불필요한 이중 Scaffold가 남아 일부 기기에서 액션 버튼
+/// 영역이 가용 높이 계산에서 어긋나는 원인이 된다. 주석의 원래 의도대로
+/// 제외 목록에 추가해 기존 수동 하단바 하나만 남긴다(디자인·기능 변경 없음,
+/// 중복 레이어 제거).
+///
 /// [신당(神堂) 통합 — A안 확정 이후에도 유지] `/shrine`이 이 목록에서 누락되어 있어
 /// 신당 콘텐츠(ShrineScreenScaffold, 자체 어두운 전체화면 연출) 전체가
 /// 전역 하단바(MainBottomNavBar)로 다시 감싸지고 있었다. 신당은 소원방과
@@ -36,6 +48,7 @@ const Set<String> _bottomNavExcludedRoutes = {
   '/wish-room',
   '/wish-wall',
   '/shrine',
+  '/ai-fortune/tarot/result',
 };
 
 Widget wrapWithGlobalBottomNav(String? routeName, Widget child) {

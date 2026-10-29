@@ -501,14 +501,25 @@ class _HallState extends State<HallScreen> {
                 ],
               ),
             ),
+            // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 CTA는 같은 모듈의
+            // EntryScreen(bottom:26)·TalkScreen(bottom:26)·SajuInputScreen
+            // (bottom:40) 등 다른 모든 하단 고정 버튼과 달리 SafeArea 없이
+            // `bottom: 44` 절대값만으로 배치돼 있었다. 제스처 내비게이션
+            // 인셋이 큰 기기에서는 이 값이 시스템 바 영역과 겹쳐 버튼
+            // 하단이 가려지거나 터치가 씹힐 수 있다 — 디자인 여백(44)은
+            // 그대로 두고, 다른 화면과 동일하게 SafeArea(top:false)로만
+            // 감싸 기기별 하단 인셋을 추가로 더해준다.
             Positioned(
               left: 22,
               right: 22,
               bottom: 44,
-              child: AnimatedOpacity(
-                opacity: _done ? 1 : 0,
-                duration: const Duration(seconds: 1),
-                child: RedButton('제단 앞으로 다가가기', ts: st.ts, onTap: _enter),
+              child: SafeArea(
+                top: false,
+                child: AnimatedOpacity(
+                  opacity: _done ? 1 : 0,
+                  duration: const Duration(seconds: 1),
+                  child: RedButton('제단 앞으로 다가가기', ts: st.ts, onTap: _enter),
+                ),
               ),
             ),
             _top(context, back: () => ShrineNav.go(context, 'entry')),

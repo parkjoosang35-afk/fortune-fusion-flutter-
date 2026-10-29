@@ -2028,7 +2028,12 @@ class _PlaceModeViewState extends State<_PlaceModeView> {
             ),
             LayoutBuilder(
               builder: (context, c) {
-                final scale = c.maxWidth / wrCanvasW;
+                // [반응형 화면 규격 통일 — 잘림 현상 수정] WrCanvasScaler가
+                // min(scaleW, scaleH)로 바뀐 것과 동일한 배율을 써야 아이템
+                // 드래그 핸들이 실제로 그려지는 RoomScene(WrCanvasScaler로
+                // 감싸짐) 위에 정확히 겹친다. 폭만 쓰던 기존 식 그대로 두면
+                // 세로가 짧은 화면에서 핸들 위치가 실제 아이템과 어긋난다.
+                final scale = wrCanvasScaleFor(Size(c.maxWidth, c.maxHeight));
                 return Positioned(
                   left: (_x - _s * .6) * scale,
                   top: (_y - _s * 1.1) * scale,
@@ -2303,7 +2308,9 @@ class _GridPainter extends CustomPainter {
       ..color = const Color(0x0FFFFFFF)
       ..strokeWidth = 1;
     const step = 26.0;
-    final scale = size.width / wrCanvasW;
+    // [반응형 화면 규격 통일] 위 드래그 핸들 스케일과 동일한 기준(min(scaleW,
+    // scaleH))으로 맞춰 격자 간격이 실제 캔버스 배율과 일치하도록 한다.
+    final scale = wrCanvasScaleFor(size);
     for (double x = 0; x < size.width; x += step * scale) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
     }
