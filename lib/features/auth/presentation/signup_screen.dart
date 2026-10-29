@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
+import '../../../core/utils/email_validator.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
 import '../../guinji/presentation/guinji_input_screen.dart';
@@ -58,6 +59,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final _nicknameController = TextEditingController();
   bool _isSubmitting = false;
   String? _passwordError;
+  // [이메일 회원가입 오류 수정 지시서] `abc`, `abc123`, `abc@` 같은 잘못된
+  // 형식을 가입 직전에 선제 차단하고, 비밀번호 확인 필드(_passwordError)와
+  // 동일한 인라인 에러 표시 패턴(AuthFormField.errorText)을 그대로 재사용한다.
+  String? _emailError;
 
   // [6-7-4-B-4] 이용약관/개인정보처리방침 동의는 회원가입의 필수 요건이다.
   // 개별 동의 항목 + "전체 동의"를 함께 제공한다.
@@ -102,6 +107,14 @@ class _SignupScreenState extends State<SignupScreen> {
       AppToast.show(context, '필수 정보를 모두 입력해 주세요.', isError: true);
       return;
     }
+    // [이메일 회원가입 오류 수정 지시서] `abc`, `abc123`, `abc@` 등 잘못된
+    // 형식은 서버에 보내기 전에 여기서 차단한다. 비밀번호 확인 필드와 동일하게
+    // 인라인 에러(AuthFormField.errorText)로 표시하고 토스트는 띄우지 않는다
+    // (필드 바로 아래 안내가 더 명확한 기존 UX 패턴을 그대로 따름).
+    if (!EmailValidator.isValid(_emailController.text.trim())) {
+      setState(() => _emailError = EmailValidator.errorMessage);
+      return;
+    }
     if (_passwordController.text != _passwordConfirmController.text) {
       setState(() => _passwordError = '비밀번호가 일치하지 않습니다.');
       return;
@@ -116,6 +129,7 @@ class _SignupScreenState extends State<SignupScreen> {
     }
     setState(() {
       _passwordError = null;
+      _emailError = null;
       _isSubmitting = true;
     });
 
@@ -317,6 +331,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     hintText: 'example@fortunefusion.app',
                     hint: '로그인 시 사용됩니다',
                     keyboardType: TextInputType.emailAddress,
+                    // [이메일 회원가입 오류 수정 지시서] 잘못된 형식 제출 시
+                    // 비밀번호 확인 필드와 동일한 인라인 에러 표시.
+                    errorText: _emailError,
                   ),
                   AuthFormField(
                     controller: _passwordController,

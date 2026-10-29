@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
+import '../../../core/utils/email_validator.dart';
 import '../domain/user_model.dart';
 
 /// 06단계 §4.1 `/v1/auth`, `/v1/users` 대응 Repository
@@ -49,6 +50,12 @@ class AuthRepository {
   }) async {
     if (email.isEmpty || password.isEmpty || nickname.isEmpty) {
       return ApiResult.fail('필수 정보를 모두 입력해 주세요.');
+    }
+    // [이메일 회원가입 오류 수정 지시서] 서버 왕복 전에 선제적으로 형식을
+    // 차단한다(네트워크 왕복 낭비 방지 — age14Confirmed 체크와 동일 패턴).
+    // 최종 방어선은 서버(signup/route.ts)에도 동일하게 추가되어 있다.
+    if (!EmailValidator.isValid(email)) {
+      return ApiResult.fail(EmailValidator.errorMessage, code: 'INVALID_EMAIL');
     }
     if (password.length < 8) {
       return ApiResult.fail('비밀번호는 8자 이상이어야 합니다.');
