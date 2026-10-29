@@ -220,9 +220,12 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
           const SizedBox(height: 12),
           Text('소원이 이루어지는 그날까지\n소중하게 간직해 주세요.', textAlign: TextAlign.center, style: WrF.body(14, color: WrC.muted, height: 1.8)),
         ])),
-        Positioned(left: 20, right: 20, bottom: 44, child: SizedBox(width: double.infinity, height: WrSize.btnH, child: DecoratedBox(decoration: WrDeco.btnPink,
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 Scaffold는 SafeArea가 전혀
+        // 없어, 제스처 내비게이션 인셋이 큰 기기에서 CTA 버튼이 가려질 수
+        // 있었다. 디자인 여백(bottom:44)은 그대로 두고 버튼만 SafeArea로 감싼다.
+        Positioned(left: 20, right: 20, bottom: 44, child: SafeArea(top: false, child: SizedBox(width: double.infinity, height: WrSize.btnH, child: DecoratedBox(decoration: WrDeco.btnPink,
           child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(16), onTap: () => Navigator.of(context).pop(),
-            child: const Center(child: Text('🕯 소원방으로 돌아가기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)))))))),
+            child: const Center(child: Text('🕯 소원방으로 돌아가기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white))))))))),
       ])));
     }
 
@@ -279,7 +282,11 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
           gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF5A3418), Color(0xFF8A5A34)]))),
       ])),
       // 선택
-      if (_step == _CapStep.ask) Positioned(left: 20, right: 20, bottom: 40, child: Column(children: [
+      // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 Scaffold 전체에 SafeArea가
+      // 없어, 아래 두 하단 패널(선택지 3개 버튼 / 다시쓰기 입력+버튼)이
+      // 제스처 내비게이션 인셋이 큰 기기에서 가려질 수 있었다. 디자인
+      // 여백은 그대로 두고 SafeArea(top:false)로만 감싼다.
+      if (_step == _CapStep.ask) Positioned(left: 20, right: 20, bottom: 40, child: SafeArea(top: false, child: Column(children: [
         Text('이 소원은 어떻게 되었나요?', style: WrF.display(19), textAlign: TextAlign.center),
         const SizedBox(height: 14),
         _choiceBtn('😊', '소원이 이루어졌어요', WrDeco.btnGold, const Color(0xFF4A2A10), () => _choose(Outcome.FULFILLED)),
@@ -287,11 +294,11 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
         _choiceBtn('🙏', '아직 진행 중이에요', WrDeco.btnDark, Colors.white, () => _choose(Outcome.ONGOING)),
         const SizedBox(height: 8),
         _choiceBtn('🔄', '다시 소원을 빌어요', WrDeco.btnDark, Colors.white, () => _choose(Outcome.REWISH)),
-      ])),
+      ]))),
       if (_step == _CapStep.rewish) Positioned(left: 0, right: 0, bottom: 0, child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 34),
         decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xF50C0408)], stops: [0, .18])),
-        child: SingleChildScrollView(child: Column(children: [
+        child: SafeArea(top: false, child: SingleChildScrollView(child: Column(children: [
           Text('위 두루마리의 소원을 고쳐 써도 좋아요', style: WrF.body(12, color: WrC.muted), textAlign: TextAlign.center),
           const SizedBox(height: 12),
           WrSealDatePicker(value: _date, onChange: (d) => setState(() => _date = d)),
@@ -304,7 +311,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
           SizedBox(width: double.infinity, height: WrSize.btnH, child: DecoratedBox(decoration: WrDeco.btnDark,
             child: Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(16), onTap: () => setState(() => _step = _CapStep.ask),
               child: const Center(child: Text('돌아가기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white))))))),
-        ])),
+        ]))),
       )),
       if (_confirm) WrSealConfirm(date: _date!, busy: _busy, onCancel: () => setState(() => _confirm = false), onOk: _rewish),
     ])));

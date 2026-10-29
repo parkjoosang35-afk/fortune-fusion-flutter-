@@ -268,11 +268,15 @@ class _RewardBodyState extends State<_RewardBody> with SingleTickerProviderState
             isPublic ? '「소원이 이루어진 이야기」에 함께 보여요' : '나만 볼 수 있어요',
             style: WrF.body(12, color: const Color(0x99FFE6D2)))),
         ])),
-        Positioned(left: 20, right: 20, bottom: 40, child: Column(children: [
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 위젯(_RewardBody)을 담는
+        // Scaffold에 SafeArea가 없어, 제스처 내비게이션 인셋이 큰 기기에서
+        // 하단 CTA가 가려질 수 있었다. 디자인 여백(bottom:40)은 그대로 두고
+        // SafeArea(top:false)로만 감싼다.
+        Positioned(left: 20, right: 20, bottom: 40, child: SafeArea(top: false, child: Column(children: [
           if (isPublic) Padding(padding: const EdgeInsets.only(bottom: 8),
             child: _bigBtn('✨ 소원이 이루어진 이야기 보기', WrDeco.btnDark, Colors.white, () => widget.onDone('stories'))),
           _bigBtn('계속하기', WrDeco.btnPink, Colors.white, () => widget.onDone('next')),
-        ])),
+        ]))),
       ]),
     );
   }

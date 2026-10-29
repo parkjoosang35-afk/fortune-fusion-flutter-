@@ -134,7 +134,11 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
             },
           )),
           // CTA
-          Positioned(left: 20, right: 20, bottom: 44, child: AnimatedBuilder(
+          // [반응형 화면 규격 통일 — 잘림 현상 수정] 다른 신당/소원방 하단 CTA와
+          // 달리 이 화면은 Scaffold 전체에 SafeArea가 전혀 없어, 제스처 내비게이션
+          // 인셋이 큰 기기에서 "소원방 들어가기" 버튼이 가려질 수 있었다. 디자인
+          // 여백(bottom:44)은 그대로 두고 버튼만 SafeArea(top:false)로 감싼다.
+          Positioned(left: 20, right: 20, bottom: 44, child: SafeArea(top: false, child: AnimatedBuilder(
             animation: _c, builder: (_, __) {
               final raw = ((_c.value * 3600 - 3200) / 1000).clamp(0.0, 1.0);
               final op = Curves.easeOut.transform(raw);
@@ -143,7 +147,7 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
                   child: InkWell(borderRadius: BorderRadius.circular(16), onTap: widget.onGo,
                     child: Center(child: Text('소원방 들어가기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: WrSize.btnFont, color: Colors.white))))))));
             },
-          )),
+          ))),
         ]),
       ),
     ));
