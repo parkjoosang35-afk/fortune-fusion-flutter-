@@ -7,6 +7,7 @@ import '../../../../core/web_ads/widgets/web_ad_vignette.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../result_access/domain/result_access_model.dart';
 import '../../../result_access/presentation/result_access_gate_sheet.dart';
+import '../../shared/presentation/sensitive_photo_consent_dialog.dart';
 import '../../sintong/theme/sintong_colors.dart';
 import '../../sintong/theme/sintong_typography.dart';
 import '../../sintong/widgets/bangtong_coach_card.dart';
@@ -35,6 +36,27 @@ class PalmCaptureScreen extends StatefulWidget {
 class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isPicking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // [6-7-4-B-4 전면개정] 손금 기능 진입 시 1회성 민감정보(손바닥 사진)
+    // 처리 동의를 확인한다. 거부하면 해당 기능만 제한(이 화면을 벗어남).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureConsent());
+  }
+
+  Future<void> _ensureConsent() async {
+    if (!mounted) return;
+    final agreed = await SensitivePhotoConsentDialog.ensureConsent(
+      context,
+      feature: 'palm',
+      featureLabel: '손금',
+    );
+    if (!mounted) return;
+    if (!agreed) {
+      Navigator.of(context).maybePop();
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     if (_isPicking) return;

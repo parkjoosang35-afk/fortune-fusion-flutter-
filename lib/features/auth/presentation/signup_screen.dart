@@ -36,13 +36,14 @@ import 'widgets/auth_primary_button.dart';
 /// WalletProvider 연동·보상 토스트 처리·네비게이션은 전혀 손대지 않고
 /// `build()`(순수 UI)만 교체했다.
 ///
-/// [약관 항목 수 - 기존 확정사항 우선 적용] 핸드오프 원문은 4개 항목(만
-/// 14세 이상/이용약관/개인정보/마케팅)을 그리지만, 이 프로젝트는 이전
-/// 세션에서 "약관 2개(이용약관+개인정보) 유지"가 이미 확정된 사항이고
-/// `AuthProvider.signup()`도 `termsAgreed`/`privacyAgreed` 2개 파라미터만
-/// 받는다. 필드 구조를 함부로 4개로 늘리면 서버 계약(AuthRepository)까지
-/// 건드려야 해 이번 Phase B 범위를 벗어난다 — 시각 톤만 핸드오프 스타일로
-/// 바꾸고 약관 항목 수는 기존 2개(전체동의 포함 3행)를 유지한다.
+/// [6-7-4-B-4 전면개정 — 2026-10-29] 사용자가 제공한
+/// `신통방통_이용약관_개인정보처리방침_개정판.md`의 "A-1. 가입 화면 동의
+/// 항목 재구성" 지시에 따라 기존 2개(이용약관+개인정보) 구조를 4개로
+/// 확장했다: [필수] 만14세 이상 / [필수] 이용약관 / [필수] 개인정보처리방침 /
+/// [선택] 마케팅·광고성 정보 수신(기본값 해제). 필수 3개 미동의 시 가입
+/// 차단, 선택(마케팅)은 미동의해도 가입 가능하다. 이에 맞춰
+/// `AuthProvider.signup()`/`AuthRepository.emailSignup()` 시그니처에도
+/// `age14Confirmed`/`marketingAgreed` 파라미터를 추가했다.
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -62,13 +63,20 @@ class _SignupScreenState extends State<SignupScreen> {
   // 개별 동의 항목 + "전체 동의"를 함께 제공한다.
   bool _termsAgreed = false;
   bool _privacyAgreed = false;
+  // [6-7-4-B-4 전면개정] 만14세 확인은 필수, 마케팅 수신동의는 선택(기본값 false).
+  bool _age14Confirmed = false;
+  bool _marketingAgreed = false;
 
-  bool get _allAgreed => _termsAgreed && _privacyAgreed;
+  bool get _allRequiredAgreed =>
+      _age14Confirmed && _termsAgreed && _privacyAgreed;
+  bool get _allAgreed => _allRequiredAgreed && _marketingAgreed;
 
   void _setAllAgreed(bool value) {
     setState(() {
+      _age14Confirmed = value;
       _termsAgreed = value;
       _privacyAgreed = value;
+      _marketingAgreed = value;
     });
   }
 
@@ -98,6 +106,10 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _passwordError = '비밀번호가 일치하지 않습니다.');
       return;
     }
+    if (!_age14Confirmed) {
+      AppToast.show(context, '만 14세 이상만 가입할 수 있습니다.', isError: true);
+      return;
+    }
     if (!_termsAgreed || !_privacyAgreed) {
       AppToast.show(context, '이용약관 및 개인정보처리방침에 동의해 주세요.', isError: true);
       return;
@@ -113,6 +125,8 @@ class _SignupScreenState extends State<SignupScreen> {
       _nicknameController.text.trim(),
       termsAgreed: _termsAgreed,
       privacyAgreed: _privacyAgreed,
+      age14Confirmed: _age14Confirmed,
+      marketingAgreed: _marketingAgreed,
     );
 
     if (!mounted) return;
@@ -323,11 +337,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 6),
                   _TermsAgreementSection(
                     allAgreed: _allAgreed,
+                    age14Confirmed: _age14Confirmed,
                     termsAgreed: _termsAgreed,
                     privacyAgreed: _privacyAgreed,
+                    marketingAgreed: _marketingAgreed,
                     onAllChanged: _setAllAgreed,
+                    onAge14Changed: (v) => setState(() => _age14Confirmed = v),
                     onTermsChanged: (v) => setState(() => _termsAgreed = v),
                     onPrivacyChanged: (v) => setState(() => _privacyAgreed = v),
+                    onMarketingChanged: (v) =>
+                        setState(() => _marketingAgreed = v),
                     onOpenTerms: () => _openPolicyLink('/terms'),
                     onOpenPrivacy: () => _openPolicyLink('/privacy-policy'),
                   ),
@@ -375,25 +394,35 @@ class _SignupScreenState extends State<SignupScreen> {
 /// 외부 브라우저로 연다.
 ///
 /// [Phase B 핸드오프 반영] `.terms` 카드(라벤더 카드 배경 + border) + `.checkbox`
-/// (glow 체크) 스타일로 재구성. 항목 수(2개)와 콜백 시그니처는 기존 그대로.
+/// (glow 체크) 스타일.
+/// [6-7-4-B-4 전면개정] 만14세 확인(필수) + 마케팅 수신동의(선택)를 추가해
+/// 4개 항목으로 확장했다.
 class _TermsAgreementSection extends StatelessWidget {
   const _TermsAgreementSection({
     required this.allAgreed,
+    required this.age14Confirmed,
     required this.termsAgreed,
     required this.privacyAgreed,
+    required this.marketingAgreed,
     required this.onAllChanged,
+    required this.onAge14Changed,
     required this.onTermsChanged,
     required this.onPrivacyChanged,
+    required this.onMarketingChanged,
     required this.onOpenTerms,
     required this.onOpenPrivacy,
   });
 
   final bool allAgreed;
+  final bool age14Confirmed;
   final bool termsAgreed;
   final bool privacyAgreed;
+  final bool marketingAgreed;
   final ValueChanged<bool> onAllChanged;
+  final ValueChanged<bool> onAge14Changed;
   final ValueChanged<bool> onTermsChanged;
   final ValueChanged<bool> onPrivacyChanged;
+  final ValueChanged<bool> onMarketingChanged;
   final VoidCallback onOpenTerms;
   final VoidCallback onOpenPrivacy;
 
@@ -416,6 +445,12 @@ class _TermsAgreementSection extends StatelessWidget {
           ),
           const Divider(height: 20, color: IntroPalette.cardBorder),
           _AgreementRow(
+            value: age14Confirmed,
+            label: '만 14세 이상입니다',
+            requiredMark: true,
+            onChanged: onAge14Changed,
+          ),
+          _AgreementRow(
             value: termsAgreed,
             label: '이용약관 동의',
             requiredMark: true,
@@ -428,6 +463,12 @@ class _TermsAgreementSection extends StatelessWidget {
             requiredMark: true,
             onChanged: onPrivacyChanged,
             onViewDetail: onOpenPrivacy,
+          ),
+          _AgreementRow(
+            value: marketingAgreed,
+            label: '마케팅·광고성 정보 수신',
+            requiredMark: false,
+            onChanged: onMarketingChanged,
           ),
         ],
       ),
@@ -473,6 +514,17 @@ class _AgreementRow extends StatelessWidget {
                         style: IntroTextStyles.termsLabel(
                           color: IntroPalette.primary,
                           fontSize: emphasize ? 13 : 12,
+                          weight: FontWeight.w700,
+                        ),
+                      )
+                    else if (!emphasize)
+                      // [6-7-4-B-4 전면개정] 선택 항목(마케팅 수신동의)에는
+                      // "[선택]" prefix를 붙여 필수 항목과 구분한다.
+                      TextSpan(
+                        text: '[선택] ',
+                        style: IntroTextStyles.termsLabel(
+                          color: IntroPalette.textSecondary,
+                          fontSize: 12,
                           weight: FontWeight.w700,
                         ),
                       ),

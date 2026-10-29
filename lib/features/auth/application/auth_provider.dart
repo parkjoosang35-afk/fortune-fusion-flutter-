@@ -124,12 +124,16 @@ class AuthProvider extends ChangeNotifier {
   /// Phase2-2: 이메일 회원가입(로그인과 분리된 절차)
   /// [6-7-4-B-4] 이용약관/개인정보처리방침 동의는 회원가입의 필수 요건이므로
   /// SignupScreen의 체크박스 상태를 그대로 전달받아 Repository로 넘긴다.
+  /// [6-7-4-B-4 전면개정] 만14세 확인(필수)/마케팅 수신동의(선택)도 동일한
+  /// 패턴으로 그대로 전달한다.
   Future<bool> signup(
     String email,
     String password,
     String nickname, {
     required bool termsAgreed,
     required bool privacyAgreed,
+    required bool age14Confirmed,
+    bool marketingAgreed = false,
   }) async {
     _state = const LoadState.loading();
     notifyListeners();
@@ -139,6 +143,8 @@ class AuthProvider extends ChangeNotifier {
       nickname,
       termsAgreed: termsAgreed,
       privacyAgreed: privacyAgreed,
+      age14Confirmed: age14Confirmed,
+      marketingAgreed: marketingAgreed,
     );
     if (result.success && result.data != null) {
       await _loadGrade(result.data!);

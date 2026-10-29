@@ -35,12 +35,17 @@ class AuthRepository {
   /// 동의를 필수 요건으로 검증하도록 변경됨에 따라(미동의 시 400/TERMS_NOT_AGREED),
   /// 클라이언트도 이 두 값을 함께 전송한다. 상위 레이어(AuthProvider/SignupScreen)가
   /// 체크박스 상태를 그대로 전달하므로 여기서는 값 검증만 하고 통과시킨다.
+  /// [6-7-4-B-4 전면개정] 만14세 확인(필수)과 마케팅 수신동의(선택, 기본값 false)도
+  /// 같은 패턴으로 추가했다. 만14세 미확인 시 서버와 동일한 AGE14_NOT_CONFIRMED 코드로
+  /// 클라이언트에서도 선제 차단한다(네트워크 왕더 방지).
   Future<ApiResult<UserModel>> emailSignup(
     String email,
     String password,
     String nickname, {
     required bool termsAgreed,
     required bool privacyAgreed,
+    required bool age14Confirmed,
+    bool marketingAgreed = false,
   }) async {
     if (email.isEmpty || password.isEmpty || nickname.isEmpty) {
       return ApiResult.fail('필수 정보를 모두 입력해 주세요.');
@@ -52,6 +57,12 @@ class AuthRepository {
       return ApiResult.fail(
         '이용약관 및 개인정보처리방침에 동의해야 가입할 수 있습니다.',
         code: 'TERMS_NOT_AGREED',
+      );
+    }
+    if (!age14Confirmed) {
+      return ApiResult.fail(
+        '만 14세 이상만 가입할 수 있습니다.',
+        code: 'AGE14_NOT_CONFIRMED',
       );
     }
     final uri = Uri.parse('$_base/signup');
@@ -66,6 +77,8 @@ class AuthRepository {
               'nickname': nickname,
               'termsAgreed': termsAgreed,
               'privacyAgreed': privacyAgreed,
+              'age14Confirmed': age14Confirmed,
+              'marketingAgreed': marketingAgreed,
             }),
           )
           .timeout(const Duration(seconds: 10));
