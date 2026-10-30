@@ -2033,77 +2033,96 @@ class _PlaceModeViewState extends State<_PlaceModeView> {
             Positioned.fill(
               child: IgnorePointer(child: CustomPaint(painter: _GridPainter())),
             ),
-            LayoutBuilder(
-              builder: (context, c) {
-                // [반응형 화면 규격 통일 — 잘림 현상 수정] WrCanvasScaler가
-                // min(scaleW, scaleH)로 바뀐 것과 동일한 배율을 써야 아이템
-                // 드래그 핸들이 실제로 그려지는 RoomScene(WrCanvasScaler로
-                // 감싸짐) 위에 정확히 겹친다. 폭만 쓰던 기존 식 그대로 두면
-                // 세로가 짧은 화면에서 핸들 위치가 실제 아이템과 어긋난다.
-                final scale = wrCanvasScaleFor(Size(c.maxWidth, c.maxHeight));
-                return Positioned(
-                  left: (_x - _s * .6) * scale,
-                  top: (_y - _s * 1.1) * scale,
-                  width: _s * 1.2 * scale,
-                  height: _s * 1.2 * scale,
-                  child: GestureDetector(
-                    onPanUpdate: (d) => setState(() {
-                      _x = (_x + d.delta.dx / scale).clamp(14.0, 376.0);
-                      _y = (_y + d.delta.dy / scale).clamp(70.0, 640.0);
-                    }),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFFFE08A),
-                          width: 2,
-                          style: BorderStyle.solid,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x40FFE08A),
-                            blurRadius: 24,
-                            spreadRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            top: -26,
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFE08A),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: const Text(
-                                  '✥ 끌어서 옮기기',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 10.5,
-                                    color: Color(0xFF3A1A14),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+            // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견]
+            // 기존엔 LayoutBuilder가 Stack의 직계 자식이고, 그 builder가
+            // Positioned를 그대로 반환했다. Positioned는 반드시 Stack의
+            // "직계" 자식이어야 하는데, 실제 부모는 LayoutBuilder가 되어
+            // "여기에 두기/자리 옮기기" 진입 즉시
+            // `Incorrect use of ParentDataWidget`(StackParentData를
+            // BoxParentData 대상에 적용 시도) FlutterError가 발생해 배치모드
+            // 화면 자체가 죽는 치명적 버그였다(디자인과 무관, 위젯 트리 구조
+            // 결함). Positioned가 실제로 Stack 밑에 오도록 LayoutBuilder를
+            // Positioned.fill로 감싸고 builder가 Stack(Positioned(...))를
+            // 반환하도록 구조만 바로잡았다 — 좌표 계산식·시각 요소는 그대로.
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  // WrCanvasScaler가 min(scaleW, scaleH)로 바뀐 것과 동일한
+                  // 배율을 써야 아이템 드래그 핸들이 실제로 그려지는
+                  // RoomScene(WrCanvasScaler로 감싸짐) 위에 정확히 겹친다.
+                  // 폭만 쓰던 기존 식 그대로 두면 세로가 짧은 화면에서 핸들
+                  // 위치가 실제 아이템과 어긋난다.
+                  final scale = wrCanvasScaleFor(Size(c.maxWidth, c.maxHeight));
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: (_x - _s * .6) * scale,
+                        top: (_y - _s * 1.1) * scale,
+                        width: _s * 1.2 * scale,
+                        height: _s * 1.2 * scale,
+                        child: GestureDetector(
+                          onPanUpdate: (d) => setState(() {
+                            _x = (_x + d.delta.dx / scale).clamp(14.0, 376.0);
+                            _y = (_y + d.delta.dy / scale).clamp(70.0, 640.0);
+                          }),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFFFE08A),
+                                width: 2,
+                                style: BorderStyle.solid,
                               ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x40FFE08A),
+                                  blurRadius: 24,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: -26,
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFE08A),
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        '✥ 끌어서 옮기기',
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 10.5,
+                                          color: Color(0xFF3A1A14),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
             Positioned(
               top: 56,
