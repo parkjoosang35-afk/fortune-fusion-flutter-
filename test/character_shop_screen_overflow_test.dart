@@ -21,6 +21,22 @@
 // 80%로 제한하고, 넘치는 내용은 시트 "안"에서 스크롤로 보게 했다. 드래그
 // 핸들(상단 작은 바)만 고정 헤더로 남기고 나머지 전체를 스크롤 영역으로
 // 묶었다.
+//
+// [추가 조사 — 복주머니 부족 시트(_shortageSheet)] _infoSheet와 정확히 동일한
+// 구조적 결함(`Positioned(bottom:22)` + 상단 제약 없는 `Column(mainAxisSize:
+// min)`, 내부 스크롤 없음)이 _shortageSheet에도 있었다. 캐릭터 구매 시도 시
+// 복주머니가 부족하면 뜨는 시트로, 현실적인 콘텐츠(캐릭터 1명 정보 기준)만으로도
+// 재현됐다.
+//
+// [실측 결과 — 수정 전]
+//   390x844@1.0 → top=311 (정상)
+//   360x640@1.3 → top=-46 (화면 밖으로 밀려남)
+//   320x568@1.5 → top=-259 (화면 밖으로 밀려남)
+//
+// _infoSheet와 동일한 패턴으로 수정(드래그 핸들만 고정, 나머지는
+// maxHeight*.8 + Flexible+SingleChildScrollView)했고, 수정 후 재측정 결과
+// 모든 조건에서 top>=0이며, 하단 '다른 방법으로 모으기' 버튼도 스크롤 후
+// 정상적으로 탭 가능함을 확인했다.
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -36,7 +52,7 @@ class _FakeWrRepository implements WrRepository {
   Future<List<WrCharacter>> characters() async => [
     WrCharacter.fromJson({
       'id': 'F00', 'name': '하린', 'title': '소원을 지키는 수호자', 'grade': 'rare', 'gender': 'F', 'emblem': '🌸',
-      'price': 150, 'owned': false,
+      'price': 200, 'owned': false,
       'behaviors': ['gaze', 'pray', 'flower'],
       'job': '정원사', 'type': '다정함',
       // 실제 데이터에 가까운 2문장짜리 성격 설명 — 극단치가 아닌 "현실적인"
@@ -49,6 +65,22 @@ class _FakeWrRepository implements WrRepository {
   Future<List<WrItem>> items() async => [];
   @override
   Future<List<OutfitOffer>> outfits(String char) async => [];
+  // _shortageSheet 테스트를 위해 구매 시도 시 항상 복주머니 부족 에러를 던진다.
+  // price(200) > pouch(50)로 사전에 수치가 맞춰져 있어 실제 '부족' 흐름과 일치한다.
+  @override
+  Future<Me> buyCharacter(String id) async =>
+      throw ApiError(409, 'INSUFFICIENT', '복주머니가 조금 부족해요', {'need': 200, 'have': 50});
+  @override
+  Future<MyRoomResponse> myRoom() async => MyRoomResponse.fromJson({
+    'room': null,
+    'me': {
+      'id': 'u1', 'nick': '테스트', 'repChar': 'F00', 'pouch': 50,
+      'accountAgeDays': 10, 'giftToday': 0, 'unread': 0,
+      'ownedChars': <String>[], 'ownedItems': <String>[], 'ownedOutfits': <String>[],
+      'settings': {'skipIntro': true}, 'earnToday': {'ad': 0},
+    },
+    'introMode': 'none',
+  });
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnsupportedError('${invocation.memberName}');
@@ -105,6 +137,46 @@ void main() {
           reason: '정보 시트 상단 라벨(top=${topRect.top})이 화면 밖으로 밀려나면 안 됨'
               ' — maxHeight+스크롤 미적용 시 재발하는 회귀 버그',
         );
+      });
+    }
+  });
+
+  group('CharacterShopScreen 복주머니 부족 시트(_shortageSheet) — 화면 밖으로 밀려나지 않음', () {
+    for (final (size, textScale) in conditions) {
+      testWidgets('${size.width.toInt()}x${size.height.toInt()}@$textScale', (tester) async {
+        await _pump(tester, size, textScale);
+
+        final ctaFinder = find.textContaining('함께하기');
+        expect(ctaFinder, findsOneWidget);
+        await tester.tap(ctaFinder);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(tester.takeException(), isNull);
+
+        // 'NEED MORE'는 부족 시트 안에만 존재하는 유일한 텍스트.
+        final topFinder = find.text('NEED MORE');
+        expect(topFinder, findsOneWidget);
+        final topRect = tester.getRect(topFinder);
+        expect(
+          topRect.top >= 0,
+          isTrue,
+          reason: '복주머니 부족 시트 상단 라벨(top=${topRect.top})이 화면 밖으로'
+              ' 밀려나면 안 됨 — maxHeight+스크롤 미적용 시 재발하는 회귀 버그',
+        );
+
+        // 하단 '다른 방법으로 모으기' 버튼은 내부 스크롤 후에도 항상 탭
+        // 가능해야 한다(시트가 화면을 벗어나 버튼까지 함께 밀려나지 않는지 확인).
+        final otherBtn = find.text('다른 방법으로 모으기');
+        expect(otherBtn, findsOneWidget);
+        await tester.scrollUntilVisible(
+          otherBtn,
+          50,
+          scrollable: find.byType(Scrollable).last,
+        );
+        await tester.pump();
+        await tester.tap(otherBtn, warnIfMissed: false);
+        await tester.pump();
+        expect(tester.takeException(), isNull);
       });
     }
   });
