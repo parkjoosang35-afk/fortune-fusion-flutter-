@@ -1097,7 +1097,20 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           left: 10,
           right: 10,
           bottom: 22,
+          // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 정보 시트는 Positioned
+          // (bottom:22)로만 배치되고 상단 제약이 전혀 없는 Column(mainAxisSize:
+          // min)이라, 콘텐츠(직업·성향·성격 설명·동작 칩 등)가 길어지면 시트
+          // 전체가 위로 그대로 자라나 화면 상단 밖으로 밀려날 수 있었다.
+          // RenderFlex 오버플로 예외는 안 뜨지만(세로 제약이 없어 예외 자체가
+          // 없음) flutter test로 실측한 결과, 현실적인 길이의 성격 설명
+          // 2문장만으로도 360x640·320x568 화면에서 상단 "GUARDIAN · id" 라벨이
+          // 화면 밖(y<0)으로 올라가는 조용한 버그를 확인했다. other_room_screen
+          // .dart·guide_sheet.dart가 이미 쓰는 공통 패턴(Container에 maxHeight를
+          // 화면 비율로 제한 + 내부를 Flexible+SingleChildScrollView로 스크롤)을
+          // 적용해, 시트 높이를 화면의 80%로 제한하고 넘치는 내용은 시트
+          // "안"에서 스크롤로 보게 한다(디자인·문구·색상 변경 없음).
           child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .8),
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             decoration: WrDeco.sheet,
             child: Column(
@@ -1114,6 +1127,11 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                 Text('GUARDIAN · ${c.id}', style: WrF.mono(size: 10.5)),
                 const SizedBox(height: 4),
                 Text(
@@ -1233,6 +1251,10 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                         fontSize: 14,
                         color: Color(0xFFFFE6D0),
                       ),
+                    ),
+                  ),
+                ),
+                      ],
                     ),
                   ),
                 ),
