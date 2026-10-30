@@ -105,132 +105,149 @@ class _SendBokSuccessDialogState extends State<SendBokSuccessDialog>
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          final scaleValue = scale.value.clamp(0.0, 1.3);
-          final sweepValue = sweep.value.clamp(0.0, 1.0);
-          final fadeValue = fade.value.clamp(0.0, 1.0);
-          final refundShown = (widget.refundAmount * countUp.value).round();
+      // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일] 받는
+      // 사람 닉네임이 길거나(줄바꿈 2줄) 글자확대(1.3배) 조건이 겹치면
+      // 220px 고정 스파클 영역 + 텍스트 블록 합이 작은 화면 높이를
+      // 넘어 바닥 오버플로가 실측됐다(320×568@1.3, 46px). 애니메이션/
+      // 레이아웃은 그대로 두고 SafeArea+SingleChildScrollView로만
+      // 감싸 "들어가면 그대로, 넘칠 때만 스크롤"되게 한다.
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final scaleValue = scale.value.clamp(0.0, 1.3);
+              final sweepValue = sweep.value.clamp(0.0, 1.0);
+              final fadeValue = fade.value.clamp(0.0, 1.0);
+              final refundShown = (widget.refundAmount * countUp.value)
+                  .round();
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 220,
-                height: 220,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // 방사형 스파클 파티클
-                    ..._sparkles.map((s) {
-                      final t = ((_controller.value - s.delay) / (1 - s.delay))
-                          .clamp(0.0, 1.0);
-                      final eased = Curves.easeOut.transform(t);
-                      final opacity = (sparkleFade.value * (1 - eased)).clamp(
-                        0.0,
-                        1.0,
-                      );
-                      final dx = cos(s.angle) * s.distance * eased;
-                      final dy = sin(s.angle) * s.distance * eased;
-                      return Transform.translate(
-                        offset: Offset(dx, dy),
-                        child: Opacity(
-                          opacity: opacity,
-                          child: Container(
-                            width: s.size,
-                            height: s.size,
-                            decoration: const BoxDecoration(
-                              color: AppColors.secondaryLight,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.secondary,
-                                  blurRadius: 6,
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // 방사형 스파클 파티클
+                        ..._sparkles.map((s) {
+                          final t =
+                              ((_controller.value - s.delay) / (1 - s.delay))
+                                  .clamp(0.0, 1.0);
+                          final eased = Curves.easeOut.transform(t);
+                          final opacity = (sparkleFade.value * (1 - eased))
+                              .clamp(0.0, 1.0);
+                          final dx = cos(s.angle) * s.distance * eased;
+                          final dy = sin(s.angle) * s.distance * eased;
+                          return Transform.translate(
+                            offset: Offset(dx, dy),
+                            child: Opacity(
+                              opacity: opacity,
+                              child: Container(
+                                width: s.size,
+                                height: s.size,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.secondaryLight,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.secondary,
+                                      blurRadius: 6,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
+                            ),
+                          );
+                        }),
+                        // 골드 원형 배경 + 복주머니 아이콘
+                        Transform.scale(
+                          scale: scaleValue,
+                          child: ClipOval(
+                            child: SizedBox(
+                              width: 120,
+                              height: 120,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  const DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: AppColors.goldGradient,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Transform.translate(
+                                    offset: Offset(
+                                      -160 + sweepValue * 280,
+                                      0,
+                                    ),
+                                    child: Transform.rotate(
+                                      angle: -0.5,
+                                      child: Container(
+                                        width: 36,
+                                        height: 220,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.55,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const Text(
+                                    '🧧',
+                                    style: TextStyle(fontSize: 48),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      );
-                    }),
-                    // 골드 원형 배경 + 복주머니 아이콘
-                    Transform.scale(
-                      scale: scaleValue,
-                      child: ClipOval(
-                        child: SizedBox(
-                          width: 120,
-                          height: 120,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.goldGradient,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Transform.translate(
-                                offset: Offset(-160 + sweepValue * 280, 0),
-                                child: Transform.rotate(
-                                  angle: -0.5,
-                                  child: Container(
-                                    width: 36,
-                                    height: 220,
-                                    color: Colors.white.withValues(alpha: 0.55),
-                                  ),
-                                ),
-                              ),
-                              const Text('🧧', style: TextStyle(fontSize: 48)),
-                            ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Opacity(
+                    opacity: fadeValue,
+                    child: Column(
+                      children: [
+                        Text(
+                          '${widget.recipientNickname} 님에게\n복을 나눴어요',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(color: Colors.white),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          '-${widget.sentAmount}복',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '+$refundShown복 환급 🍀',
+                          style: const TextStyle(
+                            color: AppColors.secondaryLight,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        AppButton(
+                          label: '확인',
+                          fullWidth: false,
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Opacity(
-                opacity: fadeValue,
-                child: Column(
-                  children: [
-                    Text(
-                      '${widget.recipientNickname} 님에게\n복을 나눴어요',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      '-${widget.sentAmount}복',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '+$refundShown복 환급 🍀',
-                      style: const TextStyle(
-                        color: AppColors.secondaryLight,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    AppButton(
-                      label: '확인',
-                      fullWidth: false,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }

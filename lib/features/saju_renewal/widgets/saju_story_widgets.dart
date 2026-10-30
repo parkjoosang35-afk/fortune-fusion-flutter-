@@ -371,37 +371,45 @@ Future<void> showSajuTermSheet(
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: SajuText.line,
-                    borderRadius: BorderRadius.circular(2),
+          // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일] 용어
+          // 설명 문장이 길거나(예: "정인(正印)" 풀이) 글자확대(1.3배)
+          // 조건이 겹치면 isScrollControlled만으로는 막히지 않는 바닥
+          // 오버플로가 실측됐다(320×568@1.3, 42px). 내용을
+          // SingleChildScrollView로 감싸 "들어가면 그대로, 넘칠 때만
+          // 스크롤"되게 한다 — 레이아웃/디자인은 그대로다.
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: SajuText.line,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              Text('쉬운 설명', style: SajuType.mono9),
-              const SizedBox(height: 8),
-              Text(termLabel, style: SajuType.h2),
-              const SizedBox(height: 10),
-              Text(
-                definition,
-                style: SajuType.body14.copyWith(color: SajuText.fg2),
-              ),
-              const SizedBox(height: 18),
-              SajuButton(
-                label: '확인',
-                variant: SajuButtonVariant.secondary,
-                height: 46,
-                onTap: () => Navigator.of(context).pop(),
-              ),
-            ],
+                Text('쉬운 설명', style: SajuType.mono9),
+                const SizedBox(height: 8),
+                Text(termLabel, style: SajuType.h2),
+                const SizedBox(height: 10),
+                Text(
+                  definition,
+                  style: SajuType.body14.copyWith(color: SajuText.fg2),
+                ),
+                const SizedBox(height: 18),
+                SajuButton(
+                  label: '확인',
+                  variant: SajuButtonVariant.secondary,
+                  height: 46,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
           ),
         ),
       );
