@@ -8,6 +8,7 @@ import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
+import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
 import '../explore/other_room_screen.dart';
 
@@ -41,7 +42,17 @@ class _LinkInviteScreenState extends State<LinkInviteScreen> {
   @override
   Widget build(BuildContext context) {
     final cat = WrCatalog.I;
-    return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: Stack(children: [
+    // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 화면은 초대장 카드(top:230,
+    // 내부 콘텐츠 가변 높이)와 "소원방에 들어가기" 버튼(bottom:44)을 모두
+    // 390×844 디자인 기준 고정 픽셀 좌표로 배치하는데, 소원방 패키지의 다른
+    // 모든 화면(_WelcomeScreen 등)과 달리 공용 WrCanvasScaler로 감싸지 않고
+    // 있었다. 그 결과 디자인 기준(390×844)보다 화면비가 짧은 기기(예:
+    // 360×640, 320×568)에서는 두 좌표가 실제로 겹쳐(테스트로 실측: 소원
+    // 텍스트가 2줄 이상일 때 카드 하단이 버튼 상단보다 아래로 내려감) 버튼이
+    // 가려지거나 탭하기 어려워졌다. WrCanvasScaler로 감싸 다른 화면들과
+    // 동일하게 화면에 맞춰 축소 배치되도록 한다(디자인·좌표·애니메이션은
+    // 그대로, "화면에 맞추는 비율 계산"만 공통 규칙에 맞춘다).
+    return Theme(data: wrThemeData(), child: Scaffold(backgroundColor: const Color(0xFF0C0408), body: WrCanvasScaler(child: Stack(children: [
       Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.2), radius: 1.1, colors: [Color(0xFF4A2040), Color(0xFF0C0408)], stops: [0, .78]))),
       const WrPetalRain(n: 10, dur: (8, 12), spread: 8),
       if (_err != null) Positioned(left: 24, right: 24, top: 300, child: Column(children: [
@@ -52,7 +63,7 @@ class _LinkInviteScreenState extends State<LinkInviteScreen> {
         _backButton(context),
       ])),
       if (_room != null) _buildInvite(context, _room!, cat),
-    ])));
+    ]))));
   }
 
   Widget _backButton(BuildContext context) {
