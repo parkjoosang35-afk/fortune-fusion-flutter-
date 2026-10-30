@@ -258,15 +258,25 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   /// 피커가 없었으므로, 기존 바텀시트 톤(SajuDarkBase 계열 다크 배경)에
   /// 맞춘 최소 목록 선택 시트를 새로 만든다.
   Future<void> _changeBirthPlace() async {
+    // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일] 17개 지역
+    // Wrap 목록이 isScrollControlled 없이 showModalBottomSheet로 열려
+    // Flutter 기본 동작으로 높이가 화면 절반 고정됐다. 글자 확대(1.3배)
+    // 조건에서 320×568·360×640 두 폭 모두 바닥 오버플로가 실측됐다
+    // (최대 131px). 다른 시트들과 동일한 표준 패턴 — isScrollControlled:
+    // true + SingleChildScrollView — 로 "내용이 들어가면 그대로, 넘칠
+    // 때만 스크롤"되게 한다. 디자인(배경색·모서리·목록 레이아웃)은
+    // 그대로다.
     final selected = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: SajuInk.i900,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) {
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
+            child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -321,6 +331,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                   }).toList(),
                 ),
               ],
+            ),
             ),
           ),
         );

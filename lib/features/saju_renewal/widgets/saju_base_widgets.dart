@@ -461,17 +461,30 @@ class _SajuButtonState extends State<SajuButton> {
                         widget.leading!,
                         const SizedBox(width: 10),
                       ],
-                      Text(
-                        widget.label,
-                        style: TextStyle(
-                          fontFamily: labelFontFamily,
-                          fontWeight: labelFontWeight,
-                          fontSize: labelFontSize,
-                          letterSpacing:
-                              widget.variant == SajuButtonVariant.ghost
-                              ? 0
-                              : -0.16, // T-cta 자간 −0.01em(16px 기준)
-                          color: fg,
+                      // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격
+                      // 통일] 버튼 라벨이 긴 경우(예: "오늘의 프리패스
+                      // 2회 받기") 작은 화면 + 글자확대(1.3배) 조건에서
+                      // Row 가로 폭을 초과해 RenderFlex 오버플로가
+                      // 실측됐다(320×568@1.3, 41px). 이 버튼은 여러
+                      // 화면이 공유하는 공용 컴포넌트이므로 여기 한
+                      // 곳만 고치면 전체에 적용된다 — Flexible +
+                      // ellipsis로 넘칠 때만 줄여 보이게 하고, 평소
+                      // 짧은 라벨의 모양은 그대로 유지한다.
+                      Flexible(
+                        child: Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: labelFontFamily,
+                            fontWeight: labelFontWeight,
+                            fontSize: labelFontSize,
+                            letterSpacing:
+                                widget.variant == SajuButtonVariant.ghost
+                                ? 0
+                                : -0.16, // T-cta 자간 −0.01em(16px 기준)
+                            color: fg,
+                          ),
                         ),
                       ),
                     ],

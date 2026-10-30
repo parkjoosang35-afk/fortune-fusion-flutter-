@@ -248,6 +248,14 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ResultAccessProvider>();
+    // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일] 이 시트는
+    // 호출부(showSajuResultAccessGateSheet)가 isScrollControlled: true로
+    // 열지만, 본문 Column 자체에는 스크롤이 없어 쿠팡 프리패스 클레임
+    // 안내 블록까지 모두 보여야 하는 상태(프리패스 미보유)에서 작은
+    // 화면/글자확대 조건에 RenderFlex 바닥 오버플로가 실측됐다(320×568
+    // @1.3배 widget test로 확인). 내용을 SingleChildScrollView로 감싸
+    // "들어가면 그대로, 넘칠 때만 스크롤"되게 한다 — 그랩바·그라데이션·
+    // 옵션 레이아웃은 그대로다.
     return Stack(
       children: [
         SafeArea(
@@ -274,7 +282,8 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
                 ),
               ],
             ),
-            child: Column(
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // 1. 그랩바.
@@ -328,6 +337,7 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
                 else
                   _buildOptions(provider.quote!),
               ],
+              ),
             ),
           ),
         ),
