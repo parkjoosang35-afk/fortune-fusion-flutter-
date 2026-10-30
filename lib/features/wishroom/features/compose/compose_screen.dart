@@ -751,16 +751,23 @@ class _ComposeScreenState extends State<ComposeScreen> {
                             ]
                           : null,
                     ),
+                    // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                    // 이미지 높이가 104px로 고정돼 있어, 글자 확대(1.3배) 시 아래
+                    // 이름 Text의 실제 줄 높이가 남은 공간(128-104-4=20px)보다
+                    // 커져 Column이 세로로 5px 오버플로했다. 이미지를 Expanded로
+                    // 바꿔 카드의 남은 세로 공간을 텍스트 실제 필요 높이만큼 먼저
+                    // 내어주고, 이미지가 나머지를 채우도록 한다(카드 전체 높이·
+                    // 디자인·이미지 비율은 그대로 유지).
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
-                          height: 104,
-                          width: double.infinity,
-                          child: Image.asset(
-                            cat.charImage(ch.id, _theme),
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
+                        Expanded(
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Image.asset(
+                              cat.charImage(ch.id, _theme),
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1051,14 +1058,30 @@ class _BobGlyph extends StatefulWidget {
 
 class _BobGlyphState extends State<_BobGlyph>
     with SingleTickerProviderStateMixin {
-  late final _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2600),
-  )..repeat(reverse: true);
+  // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견] 기존에는
+  // `late final _ctrl = AnimationController(...)`로 선언돼 있었다. 선택되지
+  // 않은(animate:false) 테마 카드는 build()에서 _ctrl을 한 번도 쓰지 않으므로
+  // 이 필드가 초기화되지 않은 채로 남아 있다가, 화면을 벗어나 dispose()가
+  // `_ctrl.dispose()`를 호출하는 순간 처음으로 지연 초기화가 실행됐다. 이때
+  // AnimationController 생성자가 vsync(this)를 통해 TickerMode를 조회하려고
+  // BuildContext의 조상 위젯을 찾는데, 이미 비활성화 중인 위젯에서는 이 조회가
+  // 안전하지 않아 "Looking up a deactivated widget's ancestor is unsafe"로
+  // 크래시했다(선택되지 않은 테마 카드가 하나라도 있으면 소원 작성 화면을
+  // 나갈 때마다 재현 — 실기기에서도 동일하게 발생하는 실제 버그).
+  // nullable 지연 생성으로 바꿔 "animate가 한 번도 true였던 적이 없으면
+  // 컨트롤러를 아예 만들지 않는다"는 기존 의도(불필요한 애니메이션 자원 절약)는
+  // 그대로 유지하면서, dispose()에서 처음 생성되는 경우를 없앤다.
+  AnimationController? _ctrl;
+
+  AnimationController _controllerFor(BuildContext context) =>
+      _ctrl ??= AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2600),
+      )..repeat(reverse: true);
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _ctrl?.dispose();
     super.dispose();
   }
 
@@ -1066,10 +1089,11 @@ class _BobGlyphState extends State<_BobGlyph>
   Widget build(BuildContext context) {
     final text = Text(widget.glyph, style: const TextStyle(fontSize: 24));
     if (!widget.animate) return text;
+    final ctrl = _controllerFor(context);
     return AnimatedBuilder(
-      animation: _ctrl,
+      animation: ctrl,
       builder: (_, child) => Transform.translate(
-        offset: Offset(0, -3 * _ctrl.value),
+        offset: Offset(0, -3 * ctrl.value),
         child: child,
       ),
       child: text,
@@ -1124,10 +1148,16 @@ class WrGuardianOutfitLauncher extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     behavior: HitTestBehavior.opaque,
     onTap: onTap,
+    // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견] 글자 확대
+    // (1.3배) + 좁은 화면(320px) 조합에서 고정 문구 "함께할 수호자 및
+    // 자유의상 입어요"가 Row(mainAxisSize:min) 안에서 가로로 다 들어가지
+    // 못해 RenderFlex overflow가 발생했다. 문구를 Flexible로 감싸 공간이
+    // 부족하면 줄바꿈되도록 한다(문구·아이콘·스타일은 그대로 유지).
     child: Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Text('함께할 수호자 및 자유의상 입어요', style: WrF.display(16)),
+        Flexible(
+          child: Text('함께할 수호자 및 자유의상 입어요', style: WrF.display(16)),
+        ),
         const SizedBox(width: 2),
         const Icon(Icons.chevron_right, size: 18, color: WrC.muted),
       ],
