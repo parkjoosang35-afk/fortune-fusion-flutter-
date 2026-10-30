@@ -306,7 +306,11 @@ class _ReplayOverlay extends StatelessWidget {
               decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
               child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))),
             const SizedBox(width: 10),
-            Text('${_d(room.createdAt)} → ${_d(room.completedAt)} · ${room.daysLit}일', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11.5, color: Color(0xA65A321E))),
+            // [반응형 화면 규격 통일 — 잘림 현상 수정] 좁은 화면(320px대)+글자
+            // 확대(1.3배) 조합에서 이 날짜 문구가 Row 폭을 넘어 가로로
+            // 14px 오버플로되던 버그 수정. Expanded로 감싸 넘치면 줄바꿈되게
+            // 한다(디자인·문구·색상 변경 없음, 레이아웃 제약만 추가).
+            Expanded(child: Text('${_d(room.createdAt)} → ${_d(room.completedAt)} · ${room.daysLit}일', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11.5, color: Color(0xA65A321E)))),
           ]),
           const SizedBox(height: 10),
           Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, color: WrC.hanjiInk, height: 1.5)),
