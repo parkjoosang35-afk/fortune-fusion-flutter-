@@ -75,12 +75,24 @@ class ReadingCiteCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                cite.srcKo != null ? '${cite.src} · ${cite.srcKo}' : cite.src,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFFC94A3B),
+              // [반응형 화면 규격 통일 — 잘림 현상 수정] 출전명(cite.src/srcKo)이
+              // 여러 문헌을 이어붙여 길어지면(예: 통합 출전 표기), 고정폭
+              // "(요지)" 뱃지와 나란한 이 Row에서 가로로 최대 600px 이상
+              // 오버플로되던 버그 수정(실측: 390px 화면에서 606px 초과).
+              // Expanded+ellipsis로 넘치면 줄여 보이게 한다(디자인·색상·문구
+              // 변경 없음, 레이아웃 제약만 추가).
+              Expanded(
+                child: Text(
+                  cite.srcKo != null
+                      ? '${cite.src} · ${cite.srcKo}'
+                      : cite.src,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFC94A3B),
+                  ),
                 ),
               ),
               const SizedBox(width: 6),
