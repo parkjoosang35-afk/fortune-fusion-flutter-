@@ -1002,14 +1002,29 @@ class _DecorScreenState extends State<DecorScreen> {
                   ? const [BoxShadow(color: Color(0x40F2628F), blurRadius: 16)]
                   : const [],
             ),
+            // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 카드는
+            // `childAspectRatio: .8`로 셀 "높이"가 화면 "폭"에 비례해 정해지는
+            // 그리드 안에 있는데, 내용물(아이콘+이름+등급+기운뱃지+가격)은
+            // 화면 폭과 무관하게 항상 같은 고정 높이(최소 126px)를 요구했다.
+            // 그 결과 390 너비(셀 높이 123px)에서도 아슬아슬하게,
+            // 360·320처럼 더 좁은 화면(셀 높이 111·94px)에서는 확실하게
+            // `RenderFlex overflowed` 경고가 떴다(실측 결과, 카탈로그
+            // 아이템 대부분이 effect를 갖고 있어 거의 모든 슬롯에서
+            // 재현). 아이콘 영역만 Expanded+FittedBox로 "남는 공간만큼
+            // 줄어들게" 바꿔 — 텍스트·뱃지·가격처럼 꼭 보여야 하는 줄들은
+            // 그대로 두고 아이콘만 셀이 좁을 때 유연하게 작아지도록 — 다른
+            // 디자인·문구·색상 변경 없이 바로잡았다.
             child: Stack(
               children: [
                 Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      height: 56,
-                      child: Center(child: WrItemIcon(it: it, size: 48)),
+                    Expanded(
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: WrItemIcon(it: it, size: 48),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -1123,44 +1138,60 @@ class _DecorScreenState extends State<DecorScreen> {
     final color = C != null
         ? _hex(C['color'] as String)
         : const Color(0xFFFFE08A);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: big ? 10 : 6,
-        vertical: big ? 4 : 1,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: match ? null : const Color(0x59000000),
-        gradient: match
-            ? const LinearGradient(
-                colors: [Color(0xFFFFE08A), Color(0xFFFFB0C8)],
-              )
-            : null,
-        border: Border.all(color: color.withValues(alpha: .6)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: big ? 7 : 5,
-            height: big ? 7 : 5,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-              boxShadow: [BoxShadow(color: color, blurRadius: 6)],
+    // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 뱃지는
+    // 좁은 그리드 카드(big:false) 안에서 쓰일 때, `v`값이 큰 효과
+    // (예: "불빛 60%↑", "정성 +30%" 등 — 실제 카탈로그에 다수 존재)의
+    // 라벨 길이가 카드 안쪽 가용 폭(320 화면 기준 약 67px)보다 넓어
+    // `RenderFlex overflowed ... on the right`가 발생했다(이전 Column
+    // 바닥 잘림 수정과는 무관하게 원래부터 있던 별개의 버그 — git
+    // stash로 수정 전/후 동일하게 재현되는 것을 확인함). `FittedBox
+    // (fit: scaleDown)`로 감싸면 — 공간이 충분한 기존 상세 시트
+    // (big:true)에서는 1.0 이상으로 확대하지 않으므로 기존 디자인에
+    // 전혀 영향이 없고, 카드처럼 폭이 좁을 때만 뱃지 전체가 비율대로
+    // 살짝 작아져 잘리지 않는다.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: big ? 10 : 6,
+          vertical: big ? 4 : 1,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: match ? null : const Color(0x59000000),
+          gradient: match
+              ? const LinearGradient(
+                  colors: [Color(0xFFFFE08A), Color(0xFFFFB0C8)],
+                )
+              : null,
+          border: Border.all(color: color.withValues(alpha: .6)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: big ? 7 : 5,
+              height: big ? 7 : 5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                boxShadow: [BoxShadow(color: color, blurRadius: 6)],
+              ),
             ),
-          ),
-          const SizedBox(width: 3),
-          Text(
-            '$label${match && big ? ' · 궁합 ×1.5' : ''}',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w800,
-              fontSize: big ? 12 : 9.5,
-              color: match ? const Color(0xFF3A1A14) : const Color(0xFFFFE6C8),
+            const SizedBox(width: 3),
+            Text(
+              '$label${match && big ? ' · 궁합 ×1.5' : ''}',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w800,
+                fontSize: big ? 12 : 9.5,
+                color: match
+                    ? const Color(0xFF3A1A14)
+                    : const Color(0xFFFFE6C8),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
