@@ -270,8 +270,28 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
                 maxLength: 100, maxLines: 4, onChanged: (v) => setState(() => _text = v),
                 style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, height: 1.65, color: Color(0xFF4A2A1C)),
                 decoration: const InputDecoration(border: InputBorder.none, counterText: ''))
+            // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 두루마리(top:150)는
+            // 소원 글자 수(최대 100자)에 따라 높이가 그대로 늘어나는 구조라,
+            // 좁은 화면(360x640)+글자 확대(1.3배) 조합에서 'ask' 단계 하단
+            // 선택지 패널(bottom:40)과 실제로 겹치는 것을 tester.getRect()로
+            // 실측 확인했다(360x640@1.3·320x568@1.5 모두 겹침). 소원 텍스트를
+            // main_room_screen.dart에서 이미 쓰는 공통 패턴(ConstrainedBox
+            // (maxHeight) + SingleChildScrollView)으로 감싸 두루마리 높이를
+            // 제한하고, 넘치는 글은 두루마리 안에서 스크롤로 보게 한다
+            // (디자인·폰트·여백은 그대로 유지). maxHeight는 가장 가혹한 조건
+            // (320x568@1.5)까지 포함해 실측으로 역산한 값(60)을 사용한다 —
+            // 150은 360x640@1.3까지만 겹침을 해소했고 320x568@1.5에서는
+            // 여전히 겹쳐, tester.getRect()로 재측정하며 60까지 낮춰 3개
+            // 조건 모두에서 겹침이 사라지는 것을 확인했다.
             : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.75, color: Color(0xFF4A2A1C))),
+                ConstrainedBox(constraints: const BoxConstraints(maxHeight: 60), child: SingleChildScrollView(
+                  // key: 화면에 실제로 보이는 영역(스크롤 뷰포트, maxHeight로 제한된
+                  // 박스)을 테스트에서 측정하기 위한 식별자. 내부 Text 자체는
+                  // 스크롤 콘텐츠라 전체 텍스트 높이 그대로 레이아웃되므로,
+                  // 겹침 여부는 Text가 아니라 이 뷰포트 기준으로 확인해야 한다.
+                  key: const Key('wr_capsule_wish_scroll'),
+                  child: Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.75, color: Color(0xFF4A2A1C))),
+                )),
                 const SizedBox(height: 8),
                 Align(alignment: Alignment.centerRight, child: Container(width: 30, height: 30, alignment: Alignment.center,
                   decoration: BoxDecoration(color: deep.withValues(alpha: .85), borderRadius: BorderRadius.circular(6)),
