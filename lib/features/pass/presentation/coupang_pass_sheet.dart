@@ -257,31 +257,35 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     }();
 
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: UnifiedTokens.spaceXl,
-          right: UnifiedTokens.spaceXl,
-          top: UnifiedTokens.spaceMd,
-          bottom:
-              UnifiedTokens.spaceXl + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _buildHandle(),
-            _buildHeaderRow(policy),
-            const SizedBox(height: UnifiedTokens.spaceXs),
-            if (policy == null)
-              _buildEmptyState(pass.isLoading)
-            else if (_phase == _Phase.success)
-              _SuccessCelebration(
-                durationLabel: _passAmountLabel(policy),
-                isCountBased: policy.grantCount != null,
-              )
-            else
-              _buildContent(policy),
-          ],
+      top: false,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: UnifiedTokens.spaceXl,
+            right: UnifiedTokens.spaceXl,
+            top: UnifiedTokens.spaceMd,
+            bottom:
+                UnifiedTokens.spaceXl +
+                MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildHandle(),
+              _buildHeaderRow(policy),
+              const SizedBox(height: UnifiedTokens.spaceXs),
+              if (policy == null)
+                _buildEmptyState(pass.isLoading)
+              else if (_phase == _Phase.success)
+                _SuccessCelebration(
+                  durationLabel: _passAmountLabel(policy),
+                  isCountBased: policy.grantCount != null,
+                )
+              else
+                _buildContent(policy),
+            ],
+          ),
         ),
       ),
     );
