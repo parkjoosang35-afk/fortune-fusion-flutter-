@@ -1172,49 +1172,70 @@ class _BoxState extends State<BoxScreen> {
         if (list.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 40), child: Column(children: [
           Text('封', style: t.display(48, w: FontWeight.w900, c: const Color(0x1AEFE4D2))), const SizedBox(height: 10),
           Text('아직 간직한 부적이 없습니다.\n이야기를 마치면 민세레나가 부적을 써 드립니다.', textAlign: TextAlign.center, style: t.body(13, c: C.faint))])),
-        GridView.count(crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 16, crossAxisSpacing: 10, childAspectRatio: 96 / 252, children: [
-          for (final b in list) Builder(builder: (_) {
-            final life = lifeOf(b);
-            return GestureDetector(onTap: () => showTalisManual(context, spec: b.spec, item: b, actions: [
-                ('名', '이름 표시', () => context.read<ShrineSessionProvider>().updateBox(b.no, (x) => x.copy(mode: x.mode == 'full' ? 'initial' : x.mode == 'initial' ? 'hidden' : 'full'))),
-                ('詳', '상세 · 저장', () { Navigator.pop(context); _detail(b); }),
-              ]), child: Column(children: [
-              Builder(builder: (_) {
-                // [U9-4 포팅] 誠 정성 테두리 — 7일 연속 향: 금테+글로우,
-                // 21일 연속: 붉은 테+금 인셋+글로우(원본 .bcell.dev1/.dev2).
-                final dv = devotionOf(b, nowMs());
-                final devBorder = dv.rank == 2
-                    ? Border.all(color: const Color(0xFFE0412F), width: 2)
-                    : dv.rank == 1
-                        ? Border.all(color: const Color(0xFFF8C900), width: 2)
-                        : null;
-                final devShadow = dv.rank == 2
-                    ? [BoxShadow(color: const Color(0x99F8C900), blurRadius: 0, spreadRadius: 4), BoxShadow(color: const Color(0x8CE0412F), blurRadius: 20)]
-                    : dv.rank == 1
-                        ? [const BoxShadow(color: Color(0x73F8C900), blurRadius: 16)]
-                        : null;
-                return Container(
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), border: devBorder, boxShadow: devShadow),
-                  child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Stack(children: [
-                    BujeokSheet(w: 96, name: nameShown(st.name, b.mode), spec: b.spec),
-                    Positioned.fill(child: LifeVeil(life: life)),
-                    DevotionMark(dv: dv),
-                    // [U13 포팅] 소원방에 봉인된 부적 — 좌상단 「封」 뱃지.
-                    if (b.sealedTo != null) Positioned(top: 4, left: 4, child: Container(
-                      width: 22, height: 22, alignment: Alignment.center,
-                      decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(5), boxShadow: Glow.gold(8)),
-                      child: Text('封', style: t.display(12, w: FontWeight.w900, c: const Color(0xFFF8F2E6))),
-                    )),
-                  ])),
-                );
-              }), const SizedBox(height: 8),
-              Text(b.spec.name, style: t.body(13, w: FontWeight.w700, h: 1.2)),
-              Text(b.spec.phrase, style: t.display(11, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 3)),
-              Text(b.no, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),
-              if (life.st != 'sent') Padding(padding: const EdgeInsets.only(top: 4), child: LifeBar(life: life, small: true)),
-            ]));
-          }),
-        ]),
+        // [반응형 화면 규격 통일 — 부적함 카드 세로 오버플로 수정]
+        // 기존 GridView.count(childAspectRatio: 96/252)는 셀 높이를
+        // "셀 너비에 비례"해서 계산하지만, 카드 내용의 실제 높이는
+        // BujeokSheet(w: 96)가 화면 폭과 무관하게 항상 고정 픽셀
+        // (96×220.8)로 그려지는 탓에 셀 너비가 줄어도 거의 줄어들지
+        // 않는다 — 그 결과 좁은 화면(360·320px 폭)에서 평범한(=특별히
+        // 긴 텍스트가 아닌) 데이터로도 Column이 RenderFlex 오버플로를
+        // 일으킨다(360px: 24px, 320px: 59px 측정 확인). 또한 320px
+        // 폭에서는 고정 96px 이미지가 좁아진 셀(89.3px)보다 넓어 좌우로
+        // 잘리는 문제도 함께 있었다.
+        // 해결: GridView의 "너비로부터 고정비율 높이 역산" 가정을 버리고,
+        // 실제 사용 가능한 폭을 LayoutBuilder로 측정해 셀 너비를 셈한
+        // 뒤, 그 폭을 BujeokSheet에 그대로 전달(이미지가 셀 폭에 맞춰
+        // 자기 비율대로 그려짐 → 잘림 없음)하고, 카드 높이는 Wrap이
+        // 내용물의 실제 필요 높이를 그대로 반영하도록 한다(강제로 줄이지
+        // 않음 → 세로 오버플로 없음). 디자인·배치 순서·개수(3열)·색상·
+        // 애니메이션은 전혀 바꾸지 않았다.
+        LayoutBuilder(builder: (context, constraints) {
+          const cols = 3, gap = 10.0;
+          final cellW = (constraints.maxWidth - gap * (cols - 1)) / cols;
+          return Wrap(spacing: gap, runSpacing: 16, children: [
+            for (final b in list) SizedBox(width: cellW, child: Builder(builder: (_) {
+              final life = lifeOf(b);
+              return GestureDetector(onTap: () => showTalisManual(context, spec: b.spec, item: b, actions: [
+                  ('名', '이름 표시', () => context.read<ShrineSessionProvider>().updateBox(b.no, (x) => x.copy(mode: x.mode == 'full' ? 'initial' : x.mode == 'initial' ? 'hidden' : 'full'))),
+                  ('詳', '상세 · 저장', () { Navigator.pop(context); _detail(b); }),
+                ]), child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Builder(builder: (_) {
+                  // [U9-4 포팅] 誠 정성 테두리 — 7일 연속 향: 금테+글로우,
+                  // 21일 연속: 붉은 테+금 인셋+글로우(원본 .bcell.dev1/.dev2).
+                  final dv = devotionOf(b, nowMs());
+                  final devBorder = dv.rank == 2
+                      ? Border.all(color: const Color(0xFFE0412F), width: 2)
+                      : dv.rank == 1
+                          ? Border.all(color: const Color(0xFFF8C900), width: 2)
+                          : null;
+                  final devShadow = dv.rank == 2
+                      ? [BoxShadow(color: const Color(0x99F8C900), blurRadius: 0, spreadRadius: 4), BoxShadow(color: const Color(0x8CE0412F), blurRadius: 20)]
+                      : dv.rank == 1
+                          ? [const BoxShadow(color: Color(0x73F8C900), blurRadius: 16)]
+                          : null;
+                  return Container(
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), border: devBorder, boxShadow: devShadow),
+                    child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Stack(children: [
+                      BujeokSheet(w: cellW, name: nameShown(st.name, b.mode), spec: b.spec),
+                      Positioned.fill(child: LifeVeil(life: life)),
+                      DevotionMark(dv: dv),
+                      // [U13 포팅] 소원방에 봉인된 부적 — 좌상단 「封」 뱃지.
+                      if (b.sealedTo != null) Positioned(top: 4, left: 4, child: Container(
+                        width: 22, height: 22, alignment: Alignment.center,
+                        decoration: BoxDecoration(color: const Color(0xFFC94A3B), borderRadius: BorderRadius.circular(5), boxShadow: Glow.gold(8)),
+                        child: Text('封', style: t.display(12, w: FontWeight.w900, c: const Color(0xFFF8F2E6))),
+                      )),
+                    ])),
+                  );
+                }), const SizedBox(height: 8),
+                Text(b.spec.name, style: t.body(13, w: FontWeight.w700, h: 1.2)),
+                Text(b.spec.phrase, style: t.display(11, w: FontWeight.w900, c: C.gold).copyWith(letterSpacing: 3)),
+                Text(b.no, style: t.mono.copyWith(fontSize: 9, letterSpacing: 1)),
+                if (life.st != 'sent') Padding(padding: const EdgeInsets.only(top: 4), child: LifeBar(life: life, small: true)),
+              ]));
+            })),
+          ]);
+        }),
       ]),
       _top(context, back: () => ShrineNav.canPop(context) ? ShrineNav.pop(context) : ShrineNav.go(context, 'list')),
     ]));
