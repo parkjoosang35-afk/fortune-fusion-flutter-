@@ -289,102 +289,116 @@ class PurchaseConfirmSheet extends StatelessWidget {
     return showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
+      // [반응형 화면 규격 통일 — 잘림 현상 수정] 기본(isScrollControlled:
+      // false) 바텀시트는 화면 절반 높이로 고정돼, 작은 화면+글자확대
+      // 조합(320x568@1.3배)에서 "구매하기"/"취소" 버튼까지 61px 잘리는
+      // 게 실측 확인됐다. isScrollControlled: true로 내용 높이만큼
+      // 커지게 하고, 모자랄 때만 스크롤되도록 아래에서 추가로 감싼다.
+      isScrollControlled: true,
       builder: (_) => PurchaseConfirmSheet(item: item),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-      decoration: const BoxDecoration(
-        color: WishRoomColors.backgroundSoft,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: WishRoomColors.surfaceCardBorder),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: WishRoomColors.surfaceCardBorder,
-              borderRadius: BorderRadius.circular(2),
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          decoration: const BoxDecoration(
+            color: WishRoomColors.backgroundSoft,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: WishRoomColors.surfaceCardBorder),
             ),
           ),
-          const SizedBox(height: 20),
-          Text(item.nameKo, style: WishRoomTextStyles.sectionTitle),
-          const SizedBox(height: 6),
-          Text(
-            item.descriptionKo,
-            style: WishRoomTextStyles.bodySm,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: WishRoomColors.glowShadow,
-              border: Border.all(color: WishRoomColors.glow),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🎁', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 6),
-                Text(
-                  '${item.price}',
-                  style: const TextStyle(
-                    fontFamily: 'IBMPlexMono',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: WishRoomColors.glow,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: WishRoomColors.surfaceCardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(item.nameKo, style: WishRoomTextStyles.sectionTitle),
+              const SizedBox(height: 6),
+              Text(
+                item.descriptionKo,
+                style: WishRoomTextStyles.bodySm,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: WishRoomColors.glowShadow,
+                  border: Border.all(color: WishRoomColors.glow),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🎁', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${item.price}',
+                      style: const TextStyle(
+                        fontFamily: 'IBMPlexMono',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: WishRoomColors.glow,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(
+                    backgroundColor: WishRoomColors.glow,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    '구매하기',
+                    style: TextStyle(
+                      fontFamily: 'GowunBatang',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Color(0xFF2A1A3A),
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(
-                backgroundColor: WishRoomColors.glow,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(
+                    '취소',
+                    style: WishRoomTextStyles.bodySm.copyWith(
+                      color: WishRoomColors.textSecondary,
+                    ),
+                  ),
                 ),
               ),
-              child: const Text(
-                '구매하기',
-                style: TextStyle(
-                  fontFamily: 'GowunBatang',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: Color(0xFF2A1A3A),
-                ),
-              ),
-            ),
+            ],
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                '취소',
-                style: WishRoomTextStyles.bodySm.copyWith(
-                  color: WishRoomColors.textSecondary,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -519,11 +533,7 @@ class ShopGuideDialog extends StatelessWidget {
         return (
           headline: '촛불은 이렇게 사용해요',
           steps: const [
-            _ShopGuideStep(
-              '🎁',
-              '1. 복주머니로 구매하기',
-              '모은 복주머니로 원하는 촛불을 구매해요.',
-            ),
+            _ShopGuideStep('🎁', '1. 복주머니로 구매하기', '모은 복주머니로 원하는 촛불을 구매해요.'),
             _ShopGuideStep(
               '🕯️',
               '2. 소원 하나에 하나씩 밝히기',
@@ -540,11 +550,7 @@ class ShopGuideDialog extends StatelessWidget {
         return (
           headline: '부적은 이렇게 사용해요',
           steps: const [
-            _ShopGuideStep(
-              '🎁',
-              '1. 복주머니로 구매하기',
-              '모은 복주머니로 원하는 부적을 구매해요.',
-            ),
+            _ShopGuideStep('🎁', '1. 복주머니로 구매하기', '모은 복주머니로 원하는 부적을 구매해요.'),
             _ShopGuideStep(
               '🧿',
               '2. 소원에 부적의 기운 더하기',
@@ -584,83 +590,97 @@ class ShopGuideDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = _content;
+    // [반응형 화면 규격 통일 — 잘림 현상 수정] 안내 단계가 3개(각각
+    // 제목+본문 2줄)라 작은 화면+글자확대(320x568@1.3배) 조합에서는
+    // 다이얼로그 내용이 화면 높이를 초과해 맨 아래 "알겠어요" 버튼까지
+    // 최대 170px 잘리는 게 실측 확인됐다. Dialog는 화면 높이를 넘는
+    // 내용을 그대로 Column에 전달해 RenderFlex 오버플로가 났으므로,
+    // 화면 높이의 85%로 제한하고 넘칠 때만 스크롤되게 감싼다 — 들어가면
+    // 지금처럼 그대로, 문구/레이아웃은 그대로다.
     return Dialog(
       backgroundColor: WishRoomColors.backgroundSoft,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: WishRoomColors.surfaceCardBorder),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              content.headline,
-              style: WishRoomTextStyles.sectionTitle,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 18),
-            ...content.steps.map(
-              (step) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(step.emoji, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            step.title,
-                            style: const TextStyle(
-                              fontFamily: 'GowunBatang',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              color: WishRoomColors.textPrimary,
-                            ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  content.headline,
+                  style: WishRoomTextStyles.sectionTitle,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                ...content.steps.map(
+                  (step) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(step.emoji, style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                step.title,
+                                style: const TextStyle(
+                                  fontFamily: 'GowunBatang',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: WishRoomColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                step.body,
+                                style: WishRoomTextStyles.bodySm.copyWith(
+                                  fontSize: 11.5,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            step.body,
-                            style: WishRoomTextStyles.bodySm.copyWith(
-                              fontSize: 11.5,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: WishRoomColors.glow,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: TextButton.styleFrom(
-                  backgroundColor: WishRoomColors.glow,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    child: const Text(
+                      '알겠어요',
+                      style: TextStyle(
+                        fontFamily: 'GowunBatang',
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2A1A3A),
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  '알겠어요',
-                  style: TextStyle(
-                    fontFamily: 'GowunBatang',
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2A1A3A),
-                  ),
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

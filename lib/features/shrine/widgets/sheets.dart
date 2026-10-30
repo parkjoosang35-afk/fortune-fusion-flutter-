@@ -27,6 +27,17 @@ void showSettingsSheet(BuildContext context) {
     context: context,
     backgroundColor: Colors.transparent,
     barrierColor: const Color(0x99000000),
+    // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 시트는 소리/움직임/
+    // 진동/타이머/글자크기/연결끊기/안내다시보기/기록지우기까지
+    // 항목이 8개나 되는데, 기본(isScrollControlled: false) 바텀시트는
+    // 내용 높이와 무관하게 "화면의 절반"으로 높이가 고정돼 버려 실제
+    // 기기(390x844, 확대 없음)에서도 78px, 좁은 화면/글자확대 조합에서는
+    // 최대 365px까지 하단이 통째로 잘리는 게 실측으로 확인됐다(바닥
+    // 2개 버튼이 아예 눌리지 않음). isScrollControlled: true로 내용
+    // 높이만큼 시트가 커지게 하고, 화면보다 내용이 큰 경우에만 아래
+    // SingleChildScrollView가 스크롤을 허용한다 — 레이아웃/문구/수치는
+    // 그대로다.
+    isScrollControlled: true,
     builder: (_) => Consumer<ShrineSessionProvider>(
       builder: (ctx, provider, __) {
         final st = provider.state;
@@ -60,118 +71,131 @@ void showSettingsSheet(BuildContext context) {
           activeTrackColor: C.red,
           inactiveTrackColor: const Color(0x1FEFE4D2),
         );
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 30),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF1B0D0B), Color(0xFF0A0505)],
-            ),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(R.sheet)),
-            border: Border(top: BorderSide(color: C.goldLine)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('SETTINGS · 設定', style: t.mono),
-              const SizedBox(height: 6),
-              Text('신당의 결을 맞추세요', style: t.display(18)),
-              const SizedBox(height: 14),
-              row(
-                '소리',
-                '저음 · 방울 · 문 · 속삭임 · 심장 박동',
-                sw(st.sound, () {
-                  provider.update((s) => s.copy(sound: !s.sound));
-                  // [사운드 토글 단절 수정] 설정 시트의 이 스위치도
-                  // 실제 음악 재생(SintongSoundService)을 호출하도록 연결한다.
-                  try {
-                    ctx.read<SintongSoundService>().toggleMute();
-                  } catch (_) {}
-                }),
-              ),
-              row(
-                '움직임 줄이기',
-                '연출 생략, 흔들림·입자 끄기',
-                sw(
-                  st.reduce,
-                  () => provider.update((s) => s.copy(reduce: !s.reduce)),
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] isScrollControlled:
+        // true만으로는 시트가 화면 전체 높이까지 커질 수 있다는 뜻일 뿐,
+        // 내용이 그보다 더 길면(예: 글자 확대 + 작은 화면) 여전히
+        // Column이 넘칠 수 있다. SafeArea로 하단 시스템 UI를 피하고,
+        // SingleChildScrollView로 감싸 "보통은 그대로, 넘칠 때만
+        // 스크롤"되게 한다 — 디자인·패딩·색상은 그대로다.
+        return SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 30),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF1B0D0B), Color(0xFF0A0505)],
                 ),
-              ),
-              // [U8-4 포팅] 진동 — 원본 shrine-app.jsx
-              // <Sw on={app.haptic} k={() => app.setPref({ haptic: !app.haptic })} label="진동" />
-              row(
-                '진동',
-                '선택·인장·클라이맥스 등에 가볍게 울림',
-                sw(
-                  st.haptic,
-                  () => provider.update((s) => s.copy(haptic: !s.haptic)),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(R.sheet),
                 ),
+                border: Border(top: BorderSide(color: C.goldLine)),
               ),
-              row(
-                '클라이맥스 제한 시간',
-                '향이 다 타기 전에 선택',
-                sw(
-                  st.timer,
-                  () => provider.update((s) => s.copy(timer: !s.timer)),
-                ),
-              ),
-              row(
-                '글자 크기',
-                '',
-                SegmentedButton<double>(
-                  segments: const [
-                    ButtonSegment(value: .92, label: Text('작게')),
-                    ButtonSegment(value: 1, label: Text('보통')),
-                    ButtonSegment(value: 1.12, label: Text('크게')),
-                  ],
-                  selected: {st.ts},
-                  onSelectionChanged: (v) =>
-                      provider.update((s) => s.copy(ts: v.first)),
-                  showSelectedIcon: false,
-                ),
-              ),
-              if (st.memberId != null)
-                row(
-                  '신통방통 연결 끊기',
-                  '프로필 · 사주 캐시 삭제 (부적·결말 기록은 유지)',
-                  OutlinedButton(
-                    onPressed: () {
-                      provider.unlinkMember();
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('끊기'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('SETTINGS · 設定', style: t.mono),
+                  const SizedBox(height: 6),
+                  Text('신당의 결을 맞추세요', style: t.display(18)),
+                  const SizedBox(height: 14),
+                  row(
+                    '소리',
+                    '저음 · 방울 · 문 · 속삭임 · 심장 박동',
+                    sw(st.sound, () {
+                      provider.update((s) => s.copy(sound: !s.sound));
+                      // [사운드 토글 단절 수정] 설정 시트의 이 스위치도
+                      // 실제 음악 재생(SintongSoundService)을 호출하도록 연결한다.
+                      try {
+                        ctx.read<SintongSoundService>().toggleMute();
+                      } catch (_) {}
+                    }),
                   ),
-                ),
-              row(
-                '처음 오신 분께 안내',
-                '조작 안내 카드를 다시 봅니다',
-                OutlinedButton(
-                  onPressed: () {
-                    provider.update((s) => s.copy(coached: false));
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('다시 보기'),
-                ),
+                  row(
+                    '움직임 줄이기',
+                    '연출 생략, 흔들림·입자 끄기',
+                    sw(
+                      st.reduce,
+                      () => provider.update((s) => s.copy(reduce: !s.reduce)),
+                    ),
+                  ),
+                  // [U8-4 포팅] 진동 — 원본 shrine-app.jsx
+                  // <Sw on={app.haptic} k={() => app.setPref({ haptic: !app.haptic })} label="진동" />
+                  row(
+                    '진동',
+                    '선택·인장·클라이맥스 등에 가볍게 울림',
+                    sw(
+                      st.haptic,
+                      () => provider.update((s) => s.copy(haptic: !s.haptic)),
+                    ),
+                  ),
+                  row(
+                    '클라이맥스 제한 시간',
+                    '향이 다 타기 전에 선택',
+                    sw(
+                      st.timer,
+                      () => provider.update((s) => s.copy(timer: !s.timer)),
+                    ),
+                  ),
+                  row(
+                    '글자 크기',
+                    '',
+                    SegmentedButton<double>(
+                      segments: const [
+                        ButtonSegment(value: .92, label: Text('작게')),
+                        ButtonSegment(value: 1, label: Text('보통')),
+                        ButtonSegment(value: 1.12, label: Text('크게')),
+                      ],
+                      selected: {st.ts},
+                      onSelectionChanged: (v) =>
+                          provider.update((s) => s.copy(ts: v.first)),
+                      showSelectedIcon: false,
+                    ),
+                  ),
+                  if (st.memberId != null)
+                    row(
+                      '신통방통 연결 끊기',
+                      '프로필 · 사주 캐시 삭제 (부적·결말 기록은 유지)',
+                      OutlinedButton(
+                        onPressed: () {
+                          provider.unlinkMember();
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('끊기'),
+                      ),
+                    ),
+                  row(
+                    '처음 오신 분께 안내',
+                    '조작 안내 카드를 다시 봅니다',
+                    OutlinedButton(
+                      onPressed: () {
+                        provider.update((s) => s.copy(coached: false));
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('다시 보기'),
+                    ),
+                  ),
+                  row(
+                    '기록 지우기',
+                    '이름 · 진행 · 모은 결말 · 부적함',
+                    OutlinedButton(
+                      onPressed: () {
+                        provider.resetData();
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('지우기'),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    '이 이야기는 허구의 창작물입니다. 실제 무속 상담이나 초자연적 능력을 주장하지 않습니다.',
+                    style: t.ui(11, c: C.faint),
+                  ),
+                ],
               ),
-              row(
-                '기록 지우기',
-                '이름 · 진행 · 모은 결말 · 부적함',
-                OutlinedButton(
-                  onPressed: () {
-                    provider.resetData();
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('지우기'),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                '이 이야기는 허구의 창작물입니다. 실제 무속 상담이나 초자연적 능력을 주장하지 않습니다.',
-                style: t.ui(11, c: C.faint),
-              ),
-            ],
+            ),
           ),
         );
       },
