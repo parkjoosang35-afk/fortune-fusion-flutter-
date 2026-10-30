@@ -203,6 +203,14 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // 1) 메타 태그 행 — 한 줄 고정(nowrap)
+                  // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일]
+                  // "INVITATION" + dateTag(최대 "2026 · 10 · 15 · 木") 두
+                  // 텍스트 폭 합이 좁은 화면(360dp 이하)이나 시스템 글자
+                  // 확대 설정에서 한 줄 가용폭을 넘어 RenderFlex 오버플로가
+                  // 발생했다(표준 390×844 폭 기준 실측 22px 초과). 좌측
+                  // 라벨은 고정 유지하고, 우측 날짜만 Flexible로 감싸
+                  // 공간이 부족할 때 말줄임(ellipsis)되도록 한다 — 디자인
+                  // (좌:라벨/우:날짜 양끝 정렬)과 폰트/색상은 그대로다.
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -215,6 +223,7 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                           color: GiColors.hanjiMeta,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       // [한글 깨짐 버그 수정 — 2026-10 운영 배포 검증] dateTag는
                       // "2026 · 10 · 15 · 木" 형태로 끝에 한자 요일이 섞여
                       // 들어간다. IBMPlexMono는 영문 전용 모노스페이스
@@ -224,14 +233,19 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                       // 추가해 모노 폰트에 없는 글리프만 자동으로 대체
                       // 렌더링되게 한다 — 영문 숫자 부분의 모노스페이스
                       // 스타일은 그대로 유지된다.
-                      Text(
-                        dateTag,
-                        style: const TextStyle(
-                          fontFamily: GiFonts.mono,
-                          fontFamilyFallback: [GiFonts.body],
-                          fontSize: 9,
-                          letterSpacing: 9 * 0.2,
-                          color: GiColors.hanjiMeta,
+                      Flexible(
+                        child: Text(
+                          dateTag,
+                          textAlign: TextAlign.right,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                          style: const TextStyle(
+                            fontFamily: GiFonts.mono,
+                            fontFamilyFallback: [GiFonts.body],
+                            fontSize: 9,
+                            letterSpacing: 9 * 0.2,
+                            color: GiColors.hanjiMeta,
+                          ),
                         ),
                       ),
                     ],

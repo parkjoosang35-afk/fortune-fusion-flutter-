@@ -227,11 +227,23 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   }
 
   void _showTermsSheet() {
+    // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일] 이 시트는
+    // isScrollControlled 없이 showModalBottomSheet를 호출해 Flutter 기본
+    // 동작으로 높이가 화면의 절반으로 강제 고정됐다. 시스템 글자 확대
+    // (1.3배) 조건에서 제목+본문 문단+버튼이 그 절반 높이를 넘어 55px
+    // 바닥 오버플로가 실측됐다(360×640@1.3 widget test로 확인). 다른
+    // 시트들(shrine/widgets/sheets.dart, shop/widgets/shop_widgets.dart)과
+    // 동일한 표준 패턴 — isScrollControlled: true + SafeArea(top: false) +
+    // SingleChildScrollView — 으로 "내용이 들어가면 그대로, 넘칠 때만
+    // 스크롤"되게 한다. 디자인(그라데이션·보더·패딩·텍스트)은 그대로다.
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
-        return ClipRRect(
+        return SafeArea(
+          top: false,
+          child: ClipRRect(
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(GiRadius.sheet),
           ),
@@ -247,7 +259,8 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                 top: BorderSide(color: Color(0x40F5CF6A)),
               ),
             ),
-            child: Column(
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -296,7 +309,9 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                   ),
                 ),
               ],
+              ),
             ),
+          ),
           ),
         );
       },
