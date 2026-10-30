@@ -793,7 +793,16 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                 colors: isDim || _armed ? const [Color(0xFFFFE9A8), Color(0xFFF5C052)] : (busy || done ? const [Color(0xFF4A2238), Color(0xFF2A1020)] : const [Color(0xFFFF9CBC), Color(0xFFF2628F)])),
             ),
             alignment: Alignment.center,
-            child: isDim
+            // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+            // 둥근 정성 버튼은 지름 66px(안쪽 패딩 4px 제외 시 58x58) 고정
+            // 원형이라, 내부 아이콘+라벨 2줄 Column이 시스템 글자 확대
+            // 1.3배 조합에서 6px 세로로 넘쳐(RenderFlex overflowed) 라벨이
+            // 잘렸다. 이 버튼은 "소원방 메인화면의 핵심 버튼"으로 지시서가
+            // 지목한 기기별 버튼 잘림의 전형적 사례다. FittedBox로 감싸
+            // 공간이 부족할 때만 내용을 비율대로 축소해(scaleDown) 항상
+            // 원 안에 들어오게 한다(아이콘·라벨·색상·레이아웃은 그대로 유지,
+            // 평소 크기에는 전혀 영향 없음).
+            child: FittedBox(fit: BoxFit.scaleDown, child: isDim
               ? Column(mainAxisSize: MainAxisSize.min, children: [
                   const Text('🕯', style: TextStyle(fontSize: 20, height: 1)),
                   Text('다시 밝히기', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w800, fontSize: 9.5, color: const Color(0xFF4A2A10))),
@@ -812,6 +821,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                       Text(ritual['icon'] as String? ?? '🙏', style: const TextStyle(fontSize: 20, height: 1)),
                       Text('${ritual['verb']} $used/$lim', style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w800, fontSize: 10, color: Colors.white)),
                     ]),
+            ),
           ),
         ),
       ),
