@@ -155,18 +155,37 @@ class _WelcomeRewardModalState extends State<WelcomeRewardModal>
             ),
           ),
           // `.modal` — 캐릭터+말풍선꼬리+카드.
-          Center(
-            child: FadeTransition(
-              opacity: _entry,
-              child: ScaleTransition(
-                scale: riseScale,
-                child: _ModalCard(
-                  amount: widget.amount,
-                  sparkle: _sparkle,
-                  onClaim: _handleClaim,
+          // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 카드는 고정 높이
+          // 제약 없이 내용 그대로(Column mainAxisSize.min)를 Center로만
+          // 보여줬다. 작은 화면(iPhone SE급) + 글자 확대(130%) 조합에서는
+          // 카드 내용이 화면보다 커져 하단이 잘리는 오버플로가 실제로
+          // 재현됐다(위젯 테스트로 171px 초과 확인). 디자인·애니메이션은
+          // 전혀 바꾸지 않고, 내용이 화면에 들어가면 지금처럼 그대로
+          // 중앙정렬되고(ConstrainedBox의 minHeight가 바닥값일 뿐이라
+          // 짧은 내용에는 영향이 없다) 내용이 넘칠 때만 스크롤 가능하게
+          // 하는 표준 패턴(SingleChildScrollView + minHeight 센터)으로
+          // 감싼다.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: FadeTransition(
+                      opacity: _entry,
+                      child: ScaleTransition(
+                        scale: riseScale,
+                        child: _ModalCard(
+                          amount: widget.amount,
+                          sparkle: _sparkle,
+                          onClaim: _handleClaim,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),
@@ -274,31 +293,41 @@ class _ModalCardState extends State<_ModalCard> {
   }
 
   Widget _buildEyebrow() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 20,
-          height: 1,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.transparent, IntroPalette.primary],
+    // [반응형 화면 규격 통일 — 잘림 현상 수정] 장식용 고정폭 선(20px×2) +
+    // 텍스트로 구성된 줄이, 카드 최대폭(320)이 그대로 적용되는 360px
+    // 내외의 좁은 화면에서 실측 테스트로 7px 가로 오버플로가 확인됐다
+    // (일반적인 글자 배율에서도 재현되는 실제 결함). 디자인/폰트/간격은
+    // 전혀 바꾸지 않고, 꽉 찰 때만(즉 지금처럼 들어가면 scale 1로
+    // 아무 변화 없음) 아주 살짝 축소해 확실히 잘리지 않게 FittedBox로
+    // 감싼다.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 20,
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.transparent, IntroPalette.primary],
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 6),
-        Text('WELCOME · GIFT', style: IntroTextStyles.modalEyebrow()),
-        const SizedBox(width: 6),
-        Container(
-          width: 20,
-          height: 1,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [IntroPalette.primary, Colors.transparent],
+          const SizedBox(width: 6),
+          Text('WELCOME · GIFT', style: IntroTextStyles.modalEyebrow()),
+          const SizedBox(width: 6),
+          Container(
+            width: 20,
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [IntroPalette.primary, Colors.transparent],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -310,32 +339,38 @@ class _ModalCardState extends State<_ModalCard> {
         border: Border.all(color: IntroPalette.gold.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Text(
-            '+',
-            style: GoogleFonts.nanumMyeongjo(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: IntroPalette.gold,
+      // [반응형 화면 규격 통일 — 잘림 현상 수정] 위 eyebrow와 동일한 이유로
+      // (좁은 화면에서 실측 7px 가로 오버플로 확인) FittedBox로 감싸
+      // 디자인 변경 없이 넘칠 때만 미세 축소되게 한다.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              '+',
+              style: GoogleFonts.nanumMyeongjo(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: IntroPalette.gold,
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          IntroGradientText(
-            '${widget.amount}',
-            style: GoogleFonts.nanumMyeongjo(
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.64,
+            const SizedBox(width: 6),
+            IntroGradientText(
+              '${widget.amount}',
+              style: GoogleFonts.nanumMyeongjo(
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.64,
+              ),
+              colors: const [IntroPalette.gold, IntroPalette.primary],
             ),
-            colors: const [IntroPalette.gold, IntroPalette.primary],
-          ),
-          const SizedBox(width: 6),
-          Text('복주머니', style: IntroTextStyles.rewardUnit()),
-        ],
+            const SizedBox(width: 6),
+            Text('복주머니', style: IntroTextStyles.rewardUnit()),
+          ],
+        ),
       ),
     );
   }

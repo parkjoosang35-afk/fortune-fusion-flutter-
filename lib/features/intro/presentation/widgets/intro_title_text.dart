@@ -40,14 +40,24 @@ class IntroTitleText extends StatelessWidget {
     final idx = line.indexOf(h);
     final before = line.substring(0, idx);
     final after = line.substring(idx + h.length);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (before.isNotEmpty) Text(before, style: style),
-        IntroGradientText(h, style: style, colors: highlightColors),
-        if (after.isNotEmpty) Text(after, style: style),
-      ],
+    // [반응형 화면 규격 통일 — 잘림 현상 수정] 하이라이트가 포함된 줄은
+    // before/highlight/after 세 조각의 Text를 한 줄(Row)로 이어 붙여
+    // 부분 그라디언트를 재현한다. 이 줄 전체가 하나의 "단어"처럼 항상
+    // 한 줄로 유지돼야 디자인(하이라이트 위치)이 깨지지 않는데, 좁은
+    // 화면(360px 내외) + 긴 문구 조합에서 가로 오버플로가 실측 확인됐다.
+    // 폰트·줄바꿈 구조는 그대로 두고, 꽉 찰 때만 미세 축소되도록
+    // FittedBox로 감싼다(들어가면 scale 1로 기존과 동일).
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (before.isNotEmpty) Text(before, style: style),
+          IntroGradientText(h, style: style, colors: highlightColors),
+          if (after.isNotEmpty) Text(after, style: style),
+        ],
+      ),
     );
   }
 }
