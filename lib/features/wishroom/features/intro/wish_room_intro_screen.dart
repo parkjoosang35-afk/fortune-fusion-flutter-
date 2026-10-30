@@ -393,8 +393,18 @@ class _SplashStage extends StatefulWidget {
   State<_SplashStage> createState() => _SplashStageState();
 }
 
+// [버그수정 — 전수조사 중 발견, 화면 규격과 무관한 별도 크래시] 이 State는
+// `_cam`(항상 생성)과 `_loading`(showLoading=true가 되는 순간, 즉 full 인트로
+// 모드 1.1초 지점에 추가로 생성) 두 개의 AnimationController를 만든다.
+// `SingleTickerProviderStateMixin`은 State당 Ticker를 1개만 허용하므로,
+// 두 번째 컨트롤러 생성 시 `FlutterError`가 던져진다(assert가 아니라 항상
+// 던지는 에러라 릴리즈 빌드에서도 재현됨 — ticker_provider.dart 확인). 즉
+// 신규 소원방을 만든 뒤 보는 "full" 인트로 연출이 로딩바가 뜨는 순간
+// 항상 크래시했다. 여러 Ticker를 쓸 수 있는 `TickerProviderStateMixin`
+// (복수형)으로 바꾸기만 하면 된다 — 애니메이션 값·타이밍·디자인은 전혀
+// 바뀌지 않는다(바로 아래 `_GateStageState`도 이미 이 복수형을 쓰고 있음).
 class _SplashStageState extends State<_SplashStage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // cam-in 2s cubic-bezier(.22,1,.36,1): scale 1.18→1, brightness .25→1, blur 4→0.
   late final AnimationController _cam = AnimationController(
     vsync: this,
