@@ -45,6 +45,19 @@
 //   320x568@1.0 → RenderFlex overflowed ... on the bottom (36px) +
 //                 RenderFlex overflowed ... on the right (8.9px, _fxBadge)
 // [실측 결과 — 수정 후] 위 모든 조건 + 320x568@1.3에서 exception=null.
+//
+// === 추가 발견: textScale 1.5 이상에서 재발하는 미세 바닥 잘림 ===
+// 버그1을 아이콘 영역(Expanded+FittedBox)만 수정한 1차 버전은 390/360/320
+// 폭 기준 textScale 1.0에서는 해결됐지만, 텍스트가 커지는 조건(실측
+// 320x568@1.5)에서 "RenderFlex overflowed by 0.639 pixels on the bottom"이
+// 새로 재현됐다(카드 Column 전체, decor_screen.dart:1019). 원인은 텍스트
+// 블록(이름+등급+뱃지+가격)이 여전히 고정 크기였기 때문 — 아이콘만 줄어드는
+// 걸로는 textScale이 커질 때의 여유분이 부족했다.
+// [수정] 텍스트 블록 전체를 `Expanded(flex:4, child: FittedBox(fit:
+// scaleDown, child: Column(mainAxisSize:min, ...기존 내용 그대로...)))`로
+// 묶어 — 아이콘(flex:3)과 함께 전체 카드가 셀 높이에 맞춰 비율대로 줄어들게
+// 했다. 텍스트 내용·문구·색상 변경 없음, 단지 레이아웃 컨테이너만 교체.
+// [실측 결과 — 수정 후] 320x568@1.5에서도 exception=null 확인.
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -151,6 +164,7 @@ void main() {
       (const Size(360, 640), 1.0),
       (const Size(320, 568), 1.0),
       (const Size(320, 568), 1.3),
+      (const Size(320, 568), 1.5),
     ];
 
     for (final (size, textScale) in conditions) {

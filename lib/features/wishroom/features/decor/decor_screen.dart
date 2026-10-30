@@ -1010,15 +1010,18 @@ class _DecorScreenState extends State<DecorScreen> {
             // 360·320처럼 더 좁은 화면(셀 높이 111·94px)에서는 확실하게
             // `RenderFlex overflowed` 경고가 떴다(실측 결과, 카탈로그
             // 아이템 대부분이 effect를 갖고 있어 거의 모든 슬롯에서
-            // 재현). 아이콘 영역만 Expanded+FittedBox로 "남는 공간만큼
-            // 줄어들게" 바꿔 — 텍스트·뱃지·가격처럼 꼭 보여야 하는 줄들은
-            // 그대로 두고 아이콘만 셀이 좁을 때 유연하게 작아지도록 — 다른
-            // 디자인·문구·색상 변경 없이 바로잡았다.
+            // 재현). 아이콘 영역은 Expanded+FittedBox로, 텍스트·등급·뱃지·
+            // 가격 줄 전체는 또 다른 Expanded+FittedBox(scaleDown)로 묶어
+            // "남는 공간만큼 비율대로 줄어들게" 했다 — 글자가 커지는
+            // textScale(1.5 이상)에서도 0.6px 수준의 미세한 바닥 잘림까지
+            // 재현을 확인해, 아이콘뿐 아니라 텍스트 블록도 함께 유연해지게
+            // 수정 범위를 넓혔다. 다른 디자인·문구·색상 변경 없음.
             child: Stack(
               children: [
                 Column(
                   children: [
                     Expanded(
+                      flex: 3,
                       child: Center(
                         child: FittedBox(
                           fit: BoxFit.contain,
@@ -1026,73 +1029,89 @@ class _DecorScreenState extends State<DecorScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      it.name,
-                      style: WrF.body(12, w: FontWeight.w700, color: WrC.fg),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (it.tier != null)
-                      Text(
-                        _tierLabel(it.tier),
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 9.5,
-                          color: _tierColor(it.tier),
+                    Expanded(
+                      flex: 4,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              it.name,
+                              style: WrF.body(
+                                12,
+                                w: FontWeight.w700,
+                                color: WrC.fg,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (it.tier != null)
+                              Text(
+                                _tierLabel(it.tier),
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9.5,
+                                  color: _tierColor(it.tier),
+                                ),
+                              ),
+                            if (it.effect != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: _fxBadge(it, room, big: false),
+                              ),
+                            const SizedBox(height: 2),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (!it.owned && it.price == null)
+                                  Text(
+                                    '❤ 응원 ${it.reward}회',
+                                    style: const TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      color: WrC.glow,
+                                    ),
+                                  )
+                                else if (!it.owned) ...[
+                                  Image.asset(
+                                    'assets/wishroom/items/pouch.png',
+                                    width: 13,
+                                    height: 13,
+                                    errorBuilder: (_, __, ___) => const Text(
+                                      '💰',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '${it.price}',
+                                    style: const TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      color: WrC.glow,
+                                    ),
+                                  ),
+                                ] else
+                                  Text(
+                                    on
+                                        ? '놓여 있음'
+                                        : (it.reward != null ? '응원 보상' : '보유'),
+                                    style: const TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      color: WrC.muted,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                    if (it.effect != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: _fxBadge(it, room, big: false),
-                      ),
-                    const SizedBox(height: 2),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (!it.owned && it.price == null)
-                          Text(
-                            '❤ 응원 ${it.reward}회',
-                            style: const TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                              color: WrC.glow,
-                            ),
-                          )
-                        else if (!it.owned) ...[
-                          Image.asset(
-                            'assets/wishroom/items/pouch.png',
-                            width: 13,
-                            height: 13,
-                            errorBuilder: (_, __, ___) => const Text(
-                              '💰',
-                              style: TextStyle(fontSize: 11),
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${it.price}',
-                            style: const TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                              color: WrC.glow,
-                            ),
-                          ),
-                        ] else
-                          Text(
-                            on ? '놓여 있음' : (it.reward != null ? '응원 보상' : '보유'),
-                            style: const TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                              color: WrC.muted,
-                            ),
-                          ),
-                      ],
                     ),
                   ],
                 ),
