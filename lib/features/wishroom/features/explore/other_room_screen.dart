@@ -425,15 +425,17 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
         const SizedBox(height: 14),
         Image.asset('assets/wishroom/items/pouch.png', width: 110),
         const SizedBox(height: 14),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          for (final v in [5, 10, 30, 50]) Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: GestureDetector(onTap: () => setSheetState(() => amt = v), child: Container(
-              padding: WrSize.chipPad,
-              decoration: amt == v ? WrDeco.chipOn : WrDeco.chip,
-              child: Text('$v개', style: WrF.body(12, w: FontWeight.w700, color: amt == v ? Colors.white : WrC.fg)),
-            )),
-          ),
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] 금액 칩 4개를 고정 Row로 배치하면
+        // 좁은 화면(320px) + 글자 확대(1.3배) 조합에서 칩 폭의 합이 화면 폭을 넘어
+        // 오른쪽으로 38px 오버플로가 발생했다(RenderFlex overflowed). main_room_screen.dart/
+        // wallpaper_screen.dart에서 이미 쓰고 있는 공통 패턴대로 Wrap으로 바꿔 공간이
+        // 부족하면 다음 줄로 자연스럽게 넘어가게 한다(칩 모양·간격·동작은 그대로 유지).
+        Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
+          for (final v in [5, 10, 30, 50]) GestureDetector(onTap: () => setSheetState(() => amt = v), child: Container(
+            padding: WrSize.chipPad,
+            decoration: amt == v ? WrDeco.chipOn : WrDeco.chip,
+            child: Text('$v개', style: WrF.body(12, w: FontWeight.w700, color: amt == v ? Colors.white : WrC.fg)),
+          )),
         ]),
         const SizedBox(height: 12),
         Text(

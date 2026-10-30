@@ -87,7 +87,13 @@ Future<void> _pump(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
-  await WrCatalog.load();
+  // [버그수정 — 실제 검증으로 발견] WrCatalog.load()는 rootBundle.loadString()으로
+  // 실제 비동기 파일 I/O를 수행한다. testWidgets()의 fake-async 환경에서 이를
+  // 직접 await하면 가짜 타이머가 실제 I/O 완료를 기다리지 못해 테스트가 영원히
+  // 멈춘다(RoomScene 자체의 버그가 아니라 이 테스트 작성 방식의 문제였음 — 기존
+  // decor_clip_regression_test.dart가 이미 쓰고 있던 tester.runAsync() 패턴을
+  // 따라야 한다).
+  await tester.runAsync(() => WrCatalog.load());
   final provider = WishRoomProvider(_FakeWrRepository(_buildRoom(), _buildComments()));
 
   await tester.pumpWidget(
