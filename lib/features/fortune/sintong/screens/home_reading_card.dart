@@ -90,7 +90,20 @@ class HomeReadingCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text('PHYSIOGNOMY · PALMISTRY', style: SintongType.monoSm),
+                    // [반응형 화면 규격 통일 — 잘림 현상 수정] 홈 그리드 셀처럼
+                    // 폭이 좁아지는 자리 + 글자 확대 조합에서 이 영문 라벨이
+                    // Row 폭을 넘어 가로로 오버플로될 수 있다(동일 구조의
+                    // home_reading_sheet.dart _ChoiceCard에서 실측으로 확인된
+                    // 버그와 같은 패턴). Expanded+ellipsis로 넘치면 잘라
+                    // 보이게 한다(디자인·문구·색상 변경 없음).
+                    Expanded(
+                      child: Text(
+                        'PHYSIOGNOMY · PALMISTRY',
+                        style: SintongType.monoSm,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),

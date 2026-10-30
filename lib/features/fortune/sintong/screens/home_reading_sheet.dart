@@ -184,7 +184,20 @@ class _ChoiceCard extends StatelessWidget {
                             rotation: stampRotation,
                           ),
                           const SizedBox(width: 8),
-                          Text(eyebrow, style: SintongType.monoSm),
+                          // [반응형 화면 규격 통일 — 잘림 현상 수정] 좁은 화면
+                          // (360px대 이하)+글자 확대(1.3배) 조합에서 영문
+                          // eyebrow 라벨("PHYSIOGNOMY"/"PALMISTRY")이 Row 폭을
+                          // 넘어 가로로 최대 50px 오버플로되던 버그 수정.
+                          // Expanded+ellipsis로 넘치면 잘라 보이게 한다
+                          // (디자인·문구·색상 변경 없음, 레이아웃 제약만 추가).
+                          Expanded(
+                            child: Text(
+                              eyebrow,
+                              style: SintongType.monoSm,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
