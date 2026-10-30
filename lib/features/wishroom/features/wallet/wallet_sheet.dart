@@ -164,9 +164,14 @@ class _WalletSheetState extends State<WalletSheet> {
               ]),
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
+                // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                // "내 복주머니" 라벨 + "신통방통 공용" 배지가 고정 Row로 배치돼
+                // 글자 확대(1.3배)+좁은 화면(320~360px) 조합에서 가로 폭을
+                // 넘어 11px RenderFlex overflow가 발생했다. Wrap으로 바꿔
+                // 공간이 부족하면 배지가 다음 줄로 자연스럽게 내려가게 한다
+                // (라벨·배지 모양·간격은 그대로 유지).
+                Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 6, runSpacing: 4, children: [
                   Text('내 복주머니', style: WrF.body(11.5, color: WrC.muted)),
-                  const SizedBox(width: 6),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
                     decoration: BoxDecoration(color: const Color(0x26F5CF6A), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x66F5CF6A))),
                     child: Text('신통방통 공용', style: WrF.body(10, color: const Color(0xFFFFE7A0)))),
@@ -200,7 +205,14 @@ class _WalletSheetState extends State<WalletSheet> {
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('짧은 영상 보고 복주머니 받기', style: WrF.body(14, w: FontWeight.w700, color: WrC.fg)),
                     const SizedBox(height: 5),
-                    Row(children: [
+                    // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                    // 일일 한도만큼(최대 10개) 그려지는 진행도 점(dot)들과 "오늘
+                    // N/M" 텍스트가 고정 Row로 배치돼, 좁은 화면(360px 이하)에서
+                    // 점 10개 폭(120px)만으로도 Expanded 칼럼 폭을 넘어 87px
+                    // RenderFlex overflow가 발생했다. Wrap으로 바꿔 점들이
+                    // 줄바꿈될 수 있게 한다(점 모양·간격·색상·텍스트는 그대로
+                    // 유지).
+                    Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 0, runSpacing: 4, children: [
                       for (var i = 0; i < adLim; i++)
                         Container(width: 9, height: 4, margin: const EdgeInsets.only(right: 3),
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), color: i < adN ? const Color(0xFFB89AFF) : Colors.white24)),
@@ -227,15 +239,25 @@ class _WalletSheetState extends State<WalletSheet> {
                 child: Opacity(opacity: done ? .5 : 1, child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
+                  // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                  // 라벨(Expanded)과 보상 뱃지("+N ›")가 한 Row에 있어, 라벨이
+                  // 길고 글자 확대(1.3배)+좁은 화면 조합일 때 ellipsis 없이
+                  // 보상 뱃지가 오른쪽으로 최대 47px까지 밀려나가 overflow가
+                  // 발생했다. 라벨에 maxLines:1+ellipsis를 주고 보상 뱃지는
+                  // Flexible로 감싸 전체 폭을 넘지 않게 한다(레이아웃·디자인은
+                  // 그대로 유지, 긴 라벨만 "…"으로 줄어든다).
                   child: Row(children: [
                     Container(width: 30, height: 30, alignment: Alignment.center,
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(9), color: done ? Colors.white10 : const Color(0x40F2628F)),
                       child: Text(done ? '✓' : (_kEarnIcon[id] ?? '•'), style: const TextStyle(fontSize: 13))),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(src['label'] as String? ?? '', style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)
+                    Expanded(child: Text(src['label'] as String? ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)
                       .copyWith(decoration: done ? TextDecoration.lineThrough : null))),
-                    Text(done ? '받음' : '+$amount${_kEarnGo[id] != null ? ' ›' : ''}',
-                      style: WrF.body(12, w: FontWeight.w700, color: done ? WrC.muted : WrC.glow)),
+                    const SizedBox(width: 6),
+                    Flexible(child: Text(done ? '받음' : '+$amount${_kEarnGo[id] != null ? ' ›' : ''}',
+                      textAlign: TextAlign.right,
+                      style: WrF.body(12, w: FontWeight.w700, color: done ? WrC.muted : WrC.glow))),
                   ]),
                 )),
               ));
