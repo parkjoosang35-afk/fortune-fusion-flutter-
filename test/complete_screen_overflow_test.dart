@@ -1,33 +1,46 @@
 // [반응형 화면 규격 통일 — 잘림 현상 수정] 소원 완료·봉인 화면(CompleteScreen)
-// 전수조사.
+// 전수조사 — 실제 버그 2건 발견 및 수정.
 //
 // 이 화면은 이미 디자인 캔버스(390x844) 레이어를 공용 `WrCanvasScaler`로
 // 감싸고 있어(line 259 부근) 지시서 ③ "공통 구조"는 준수된 상태였다. 다만
-// 1) 완료 연출 6단계 완료 후 뜨는 "축하합니다" 캡션(SafeArea+Column, 캔버스
-//    밖 레이어)과 그 아래 `Positioned(bottom:34)`로 배치되는 `_BottomCard`
-//    (되돌리기/💌후기/봉인하기 버튼, 저장/공유 텍스트버튼)가 WrCanvasScaler
-//    "밖"에서 화면 실좌표로 배치되고,
-// 2) 봉인 완료 후의 `_SealedBody`(+새 소원방 만들기/소원 기록관 보기 버튼)는
-//    WrCanvasScaler를 전혀 쓰지 않고 SafeArea+Padding+Column(결과를 화면
-//    크기에 맞춰 직접 배치)만 사용한다
-// 는 점에서, 글자 확대(textScaler)·좁은 화면에서 버튼이 화면 밖으로 밀려나거나
-// 잘리지 않는지 별도로 실측이 필요하다.
+// 1) 완료 연출 6단계 완료 후 뜨는 "축하합니다" 캡션 아래 `Positioned(bottom:34)`
+//    로 배치되는 `_BottomCard`의 저장/공유 텍스트버튼 Row와,
+// 2) 봉인 완료 후의 `_SealedBody`(+새 소원방 만들기/소원 기록관 보기 버튼)
+// 가 WrCanvasScaler "밖"에서 화면 실좌표/실제 Flex로 배치되고 있어, 글자
+// 확대(textScaler)·좁은 화면 조합에서 실제 오버플로가 발생하는지 실측이
+// 필요했다.
 //
-// [조사 결과]
-// - 완료 연출 축하 캡션+_BottomCard: SafeArea 내부라 시스템 UI와는 안전하게
-//   분리되고, `_BottomCard`는 Column(기본 mainAxisSize=max이지만 자식이
-//   SizedBox+Row 뿐이라 실제 차지 높이는 content-driven) 구조다. 버튼은
-//   Expanded+SizedBox(height: WrSize.btnSmH, 고정)라서 textScaler가 커져도
-//   버튼 "높이"는 늘지 않고, 내부 Text는 maxLines:1 + overflow:ellipsis로
-//   가로로만 축약된다 — 세로 잘림/겹침 위험이 구조적으로 없음.
-// - `_SealedBody`: SafeArea(Padding(Column(mainAxisAlignment:center,...)))
-// 구조. 세로 공간이 모자라면(좁은 화면 + 글자 확대) Column이 콘텐츠 전체
-// 높이로 overflow할 수 있는 위험 구조이므로, 실측 필요.
+// [발견된 실제 버그 1] `_BottomCard`의 "이미지로 저장 · 기념 이미지 공유하기"
+// 텍스트버튼 Row(구 line 684, `Row(mainAxisAlignment: MainAxisAlignment.center)`):
+// 390x844@1.0 기준에서는 안전하지만, 360x640@1.3에서 29px, 320x568@1.5에서
+// 107px 오른쪽으로 오버플로(RenderFlex overflowed) — 두 버튼의 실제 폭 합이
+// 좁은 화면+확대된 글자에서 Row 폭을 넘어섬.
+//
+// [발견된 실제 버그 2] `_SealedBody`의 콘텐츠 Column(구 line 787,
+// `Column(mainAxisAlignment: MainAxisAlignment.center)`)과 그 안의 동일한
+// 저장/공유 Row(구 line 887): 390x844@1.0은 안전하지만 360x640@1.3에서
+// Row 88px/Column 52px, 320x568@1.5에서 Row 172px/Column 256px 오버플로.
+// Column 쪽은 "화면보다 콘텐츠가 커지면 중앙정렬된 채로 그냥 넘친다"는
+// 전형적인 패턴 — `lib/features/home/presentation/widgets/
+// welcome_reward_modal.dart`에서 동일 버그 클래스에 이미 적용된 표준 수정
+// 패턴(LayoutBuilder + SingleChildScrollView + ConstrainedBox(minHeight))을
+// 그대로 재사용했다.
+//
+// [수정 내용] (디자인·문구·아이콘·애니메이션 변경 없음)
+// - 저장/공유 Row 2곳 모두 `Row(mainAxisAlignment:center)` →
+//   `Wrap(alignment: WrapAlignment.center, spacing: 4, runSpacing: 4)`로 교체
+//   (`other_room_screen.dart`에 이미 쓰는 공통 패턴 재사용) — 공간이 부족하면
+//   다음 줄로 자연스럽게 넘어간다.
+// - `_SealedBody`의 콘텐츠 Column을 `LayoutBuilder` +
+//   `SingleChildScrollView(child: ConstrainedBox(minHeight: constraints.maxHeight, ...))`
+//   로 감쌌다 — 내용이 화면에 다 들어가면 지금처럼 그대로 중앙정렬되고
+//   (ConstrainedBox의 minHeight는 바닥값일 뿐이라 짧은 내용엔 영향 없음),
+//   넘칠 때만 스크롤로 모든 버튼에 닿을 수 있다.
 //
 // 아래 테스트는 완료 연출 마지막 단계(_st=6, already:true 경로로 연출 타이머
 // 없이 즉시 진입)와 봉인 완료 상태(status=SEALED → `_seal=3`, `_SealedBody`)
-// 두 경로 모두를 320x568@1.5 등 가혹 조건에서 렌더링해 오버플로 예외 유무를
-// 확인한다.
+// 두 경로 모두를 320x568@1.5 등 가혹 조건에서 렌더링해 수정 후 예외 없이
+// 렌더링되는지(=오버플로 재발하지 않는지) 회귀 테스트로 고정한다.
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -88,7 +101,10 @@ Future<void> _pump(
     ),
   );
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 300));
+  // _LotusPop(index*140ms) 등 완료 연출 내부 Future.delayed 타이머를 모두
+  // 흘려보내 "Timer still pending" 테스트 위생 이슈 없이 최종 레이아웃을
+  // 검사한다(실제 레이아웃 버그와 무관한 잡음 제거 목적).
+  await tester.pump(const Duration(seconds: 3));
 }
 
 void main() {

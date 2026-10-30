@@ -681,8 +681,17 @@ class _BottomCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] 저장/공유 두 텍스트버튼을 고정
+        // Row(mainAxisAlignment.center)로 배치하면 좁은 화면(360px)+글자 확대
+        // (1.3배) 조합에서 두 버튼 폭의 합이 화면 폭을 넘어 오른쪽으로 29~107px
+        // 오버플로가 발생했다(실측 확인, _SealedBody의 동일 버그와 같은 원인).
+        // other_room_screen.dart에서 이미 쓰는 공통 패턴대로 Wrap으로 바꿔
+        // 공간이 부족하면 다음 줄로 자연스럽게 넘어가게 한다(문구·아이콘·동작은
+        // 그대로 유지).
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 4,
+          runSpacing: 4,
           children: [
             // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기기
             // 저장 버튼 문구/아이콘을 전 화면 공통 "이미지로 저장" +
@@ -781,126 +790,151 @@ class _SealedBody extends StatelessWidget {
             ),
           ),
         ),
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 Column은 Stack의
+        // StackFit.loose 자식이라 "화면 높이만큼 제약은 되지만(최대 516 등)
+        // 내용 그대로 중앙정렬"만 하고 있었는데, 좁은 화면(360x640)+글자
+        // 확대(1.3배) 조합에서 콘텐츠 실제 높이가 그 제약을 넘어 아래쪽으로
+        // 52~256px 잘리는 오버플로가 실측됐다. welcome_reward_modal.dart에서
+        // 이미 쓰는 동일 버그 클래스의 표준 수정 패턴(LayoutBuilder +
+        // SingleChildScrollView + ConstrainedBox(minHeight))을 그대로
+        // 재사용 — 내용이 화면에 다 들어가면 지금처럼 그대로 중앙정렬되고
+        // (ConstrainedBox의 minHeight는 바닥값일 뿐이라 짧은 내용엔 영향 없음),
+        // 넘칠 때만 스크롤로 모든 버튼에 닿을 수 있게 한다.
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(26),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 170,
-                  height: 210,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
+                      SizedBox(
                         width: 170,
                         height: 210,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: WrC.glow, width: 2),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x80F5CF6A), blurRadius: 40),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 170,
+                              height: 210,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: WrC.glow, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(color: Color(0x80F5CF6A), blurRadius: 40),
+                                ],
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              // [버그수정 — 전수감사] app2/screens-c2.jsx › Sealed(): `<RoomThumb room={{...r,
+                              // brightness:1}} w={170} h={210} focus={.44}/>` — G-4 공용 썸네일(RoomThumb,
+                              // focus=.44)이어야 하는데 raw RoomScene(focus 없음, items 빈 배열 — 장식이
+                              // 전혀 안 보임, brightness 미보정)을 그대로 쓰고 있었다.
+                              child: RoomThumb(
+                                room: room,
+                                items: items,
+                                w: 170,
+                                h: 210,
+                                focus: .44,
+                                brightnessOverride: 1,
+                              ),
+                            ),
+                            Positioned(
+                              right: -10,
+                              bottom: -10,
+                              child: Container(
+                                width: 46,
+                                height: 46,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  color: WrC.accent,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x80C94A3B),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: const Text(
+                                  '成',
+                                  style: TextStyle(
+                                    fontFamily: 'NotoSerifKR',
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 24,
+                                    color: Color(0xFFFFF9E8),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        // [버그수정 — 전수감사] app2/screens-c2.jsx › Sealed(): `<RoomThumb room={{...r,
-                        // brightness:1}} w={170} h={210} focus={.44}/>` — G-4 공용 썸네일(RoomThumb,
-                        // focus=.44)이어야 하는데 raw RoomScene(focus 없음, items 빈 배열 — 장식이
-                        // 전혀 안 보임, brightness 미보정)을 그대로 쓰고 있었다.
-                        child: RoomThumb(
-                          room: room,
-                          items: items,
-                          w: 170,
-                          h: 210,
-                          focus: .44,
-                          brightnessOverride: 1,
+                      ),
+                      const SizedBox(height: 34),
+                      Text(
+                        '소원 기록관에\n영원히 머뭅니다',
+                        textAlign: TextAlign.center,
+                        style: WrF.display(26, color: Colors.white, height: 1.35),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        '완성된 소원은 보관하고,\n이제 새로운 소원을 시작할 수 있어요',
+                        textAlign: TextAlign.center,
+                        style: WrF.body(13.5, color: WrC.muted, height: 1.7),
+                      ),
+                      const SizedBox(height: 28),
+                      _sealedBtn(
+                        '+ 새로운 소원방 만들기',
+                        WrDeco.btnPink,
+                        Colors.white,
+                        () => Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const WishRoomShell()),
+                          (r) => false,
                         ),
                       ),
-                      Positioned(
-                        right: -10,
-                        bottom: -10,
-                        child: Container(
-                          width: 46,
-                          height: 46,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: WrC.accent,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0x80C94A3B),
-                                blurRadius: 8,
-                              ),
-                            ],
+                      const SizedBox(height: 10),
+                      _sealedBtn(
+                        '소원 기록관 보기',
+                        WrDeco.btnDark,
+                        Colors.white,
+                        () => Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (_) => const WishRoomShell(initialIndex: 4),
                           ),
-                          child: const Text(
-                            '成',
-                            style: TextStyle(
-                              fontFamily: 'NotoSerifKR',
-                              fontWeight: FontWeight.w900,
-                              fontSize: 24,
-                              color: Color(0xFFFFF9E8),
-                            ),
-                          ),
+                          (r) => false,
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      // [반응형 화면 규격 통일 — 잘림 현상 수정] 저장/공유 두 텍스트버튼을
+                      // 고정 Row(mainAxisAlignment.center)로 배치하면 좁은 화면(360px)+
+                      // 글자 확대(1.3배) 조합에서 두 버튼 폭의 합이 화면 폭을 넘어 오른쪽
+                      // 으로 88~172px 오버플로가 발생했다(실측 확인). other_room_screen.dart
+                      // 에서 이미 쓰는 공통 패턴대로 Wrap으로 바꿔 공간이 부족하면 다음
+                      // 줄로 자연스럽게 넘어가게 한다(문구·아이콘·동작은 그대로 유지).
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면 공통
+                          // "이미지로 저장" + download_rounded로 통일.
+                          TextButton.icon(
+                            onPressed: onSave,
+                            icon: const Icon(Icons.download_rounded, size: 16),
+                            label: const Text('이미지로 저장'),
+                          ),
+                          TextButton(
+                            onPressed: onShare,
+                            child: const Text('기념 이미지 공유하기'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 34),
-                Text(
-                  '소원 기록관에\n영원히 머뭅니다',
-                  textAlign: TextAlign.center,
-                  style: WrF.display(26, color: Colors.white, height: 1.35),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '완성된 소원은 보관하고,\n이제 새로운 소원을 시작할 수 있어요',
-                  textAlign: TextAlign.center,
-                  style: WrF.body(13.5, color: WrC.muted, height: 1.7),
-                ),
-                const SizedBox(height: 28),
-                _sealedBtn(
-                  '+ 새로운 소원방 만들기',
-                  WrDeco.btnPink,
-                  Colors.white,
-                  () => Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const WishRoomShell()),
-                    (r) => false,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _sealedBtn(
-                  '소원 기록관 보기',
-                  WrDeco.btnDark,
-                  Colors.white,
-                  () => Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (_) => const WishRoomShell(initialIndex: 4),
-                    ),
-                    (r) => false,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면 공통
-                    // "이미지로 저장" + download_rounded로 통일.
-                    TextButton.icon(
-                      onPressed: onSave,
-                      icon: const Icon(Icons.download_rounded, size: 16),
-                      label: const Text('이미지로 저장'),
-                    ),
-                    TextButton(
-                      onPressed: onShare,
-                      child: const Text('기념 이미지 공유하기'),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),
