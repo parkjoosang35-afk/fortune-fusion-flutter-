@@ -1561,6 +1561,18 @@ class WrSealConfirm extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 28),
             padding: const EdgeInsets.fromLTRB(20, 26, 20, 18),
+            // [버그수정 — 전수조사 중 실제 테스트로 발견] 좁고 짧은 화면
+            // (320x568) + 글자 확대 1.8배 이상(Android 접근성 배율 범위 안)
+            // 조합에서 바깥 Column(mainAxisSize:min) 전체 높이가 화면
+            // 높이를 넘어서 RenderFlex가 세로로 오버플로했다(1.8배에서
+            // 7px, 2.0배에서 259px). 높이에 상한을 두고, 버튼 2개는 항상
+            // 탭 가능하도록 고정한 채 제목·설명·날짜 안내 영역만 내부
+            // 스크롤되도록 한다(character_shop_screen.dart _infoSheet/
+            // _shortageSheet와 동일한 공통 패턴) — 디자인·문구·버튼 동작은
+            // 그대로 유지.
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * .9,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: const Color(0x4DFFC8AA)),
@@ -1581,32 +1593,41 @@ class WrSealConfirm extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🔐', style: TextStyle(fontSize: 34)),
-                const SizedBox(height: 10),
-                Text(
-                  '이 소원을 봉인할까요?',
-                  style: WrF.display(19),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '봉인 날짜가 되면\n다시 소원을 확인할 수 있습니다.',
-                  textAlign: TextAlign.center,
-                  style: WrF.body(13, color: WrC.muted, height: 1.65),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '${date.year}년 ${date.month}월 ${date.day}일 · D-$left',
-                  style: WrF.body(
-                    12.5,
-                    w: FontWeight.w700,
-                    color: const Color(0xFFFFE08A),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔐', style: TextStyle(fontSize: 34)),
+                        const SizedBox(height: 10),
+                        Text(
+                          '이 소원을 봉인할까요?',
+                          style: WrF.display(19),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          '봉인 날짜가 되면\n다시 소원을 확인할 수 있습니다.',
+                          textAlign: TextAlign.center,
+                          style: WrF.body(13, color: WrC.muted, height: 1.65),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '${date.year}년 ${date.month}월 ${date.day}일 · D-$left',
+                          style: WrF.body(
+                            12.5,
+                            w: FontWeight.w700,
+                            color: const Color(0xFFFFE08A),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '봉인 날짜는 나중에 바꿀 수 없어요',
+                          style: WrF.body(11, color: WrC.muted),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '봉인 날짜는 나중에 바꿀 수 없어요',
-                  style: WrF.body(11, color: WrC.muted),
                 ),
                 const SizedBox(height: 18),
                 Row(
