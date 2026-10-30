@@ -84,6 +84,17 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
             },
           )),
           // 말린 두루마리 + 끈 (1.5s 지연 등장)
+          // [버그수정 — 전수조사(회귀 테스트 작성) 중 발견, 클리핑과는 별개 카테고리의
+          // 크래시 버그] 가운데 "묶음끈"이 가로 띠(height:26)보다 위아래로 4px씩 더
+          // 튀어나와 보이도록 기존 코드는 `Container(margin: EdgeInsets.symmetric(
+          // vertical: -4))` — 즉 음수 margin을 썼다. Flutter의 `Container` 생성자는
+          // `assert(margin == null || margin.isNonNegative)`로 음수 margin을 공식적으로
+          // 금지하므로, 이 화면을 빌드하는 즉시(연출 1.5초 지점) debug 모드에서
+          // AssertionError로 크래시했다(release 빌드는 assert가 제거돼 당장 크래시하진
+          // 않지만, 비공식 동작에 의존하는 기술 부채라 flutter test/디버그 실행이
+          // 전부 불가능했다). 동일한 시각 효과(자식이 부모 박스보다 더 크게 튀어나오는
+          // 것)를 공식적으로 지원하는 `OverflowBox`로 교체 — 튀어나오는 폭(4px씩,
+          // 합계 8px)과 끈의 가로폭(18)·색상·그림자는 전혀 바뀌지 않는다.
           Positioned(left: 70, right: 70, top: 232, child: AnimatedBuilder(
             animation: _c, builder: (_, __) {
               final raw = ((_c.value * 3600 - 1500) / 600).clamp(0.0, 1.0);
@@ -92,8 +103,8 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
                 height: 26, decoration: BoxDecoration(borderRadius: BorderRadius.circular(13),
                   gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFF5E6C6), Color(0xFFD8BF8E), Color(0xFFB8986A)], stops: [0, .6, 1]),
                   boxShadow: const [BoxShadow(color: Color(0x80000000), blurRadius: 20, offset: Offset(0, 8))]),
-                child: Center(child: Container(width: 18, margin: const EdgeInsets.symmetric(vertical: -4),
-                  decoration: BoxDecoration(color: deep, boxShadow: [BoxShadow(color: color, blurRadius: 10)]))),
+                child: Center(child: OverflowBox(maxHeight: 26 + 8, child: Container(width: 18, height: 26 + 8,
+                  decoration: BoxDecoration(color: deep, boxShadow: [BoxShadow(color: color, blurRadius: 10)])))),
               )));
             },
           )),
