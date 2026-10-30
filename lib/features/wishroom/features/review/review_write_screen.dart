@@ -131,14 +131,34 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                     TextField(controller: _ctrl, maxLength: 500, maxLines: 6, minLines: 6, onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(border: InputBorder.none, counterText: '', hintText: '소원이 이루어진 이야기를 자유롭게 적어주세요.', hintStyle: TextStyle(color: Color(0x994A2A1C))),
                       style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 15, height: 1.7, color: Color(0xFF4A2A1C))),
+                    // [반응형 화면 규격 통일 — 잘림 현상 수정] 왼쪽 안내 문구
+                    // ('N자 더 적어주세요')와 오른쪽 글자 수 카운터가 모두
+                    // 고정 크기 Text라서, 좁은 화면(360x640)+글자 확대(1.3배
+                    // 이상)에서 오른쪽으로 가로 오버플로가 발생하는 것을
+                    // flutter test로 실측 확인했다(360x640@1.3: 10px,
+                    // 320x568@1.5: 88px). 왼쪽 안내 문구를 main_room_screen.dart
+                    // 공통 패턴(Flexible + maxLines:1 + ellipsis)으로 감싼다 —
+                    // 길어질 수 있는 쪽은 안내 문구고, 글자 수 카운터는 항상
+                    // 짧고 고정된 폭이 필요하므로 그대로 둔다(폰트·색상 변경 없음).
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text(_ok ? '✓ 좋아요' : '${20 - _len}자 더 적어주세요', style: WrF.mono(size: 10.5, color: _ok ? const Color(0xD92F7A52) : const Color(0x8C5A321E))),
+                      Flexible(child: Text(_ok ? '✓ 좋아요' : '${20 - _len}자 더 적어주세요', maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: WrF.mono(size: 10.5, color: _ok ? const Color(0xD92F7A52) : const Color(0x8C5A321E)))),
                       Text('${_ctrl.text.length} / 500', style: WrF.mono(size: 10.5, color: const Color(0x8C5A321E))),
                     ]),
                   ]),
                 ),
                 const SizedBox(height: 16),
-                Row(children: [Text('사진 ', style: WrF.display(14, color: Colors.white)), Text('선택 · 첨부하면 복주머니 +20', style: WrF.body(11, color: WrC.muted))]),
+                // [반응형 화면 규격 통일 — 잘림 현상 수정] 두 Text 모두 고정 크기
+                // Row 안에 있어, 좁은 화면(360x640)+글자 확대(1.3배 이상)에서
+                // 오른쪽으로 가로 오버플로가 발생하는 것을 flutter test로 실측
+                // 확인했다(360x640@1.3: 10px, 320x568@1.5: 88px). 설명문 쪽을
+                // main_room_screen.dart가 이미 쓰는 공통 패턴(Flexible +
+                // maxLines:1 + TextOverflow.ellipsis)으로 감싸, 공간이 부족하면
+                // 말줄임표로 줄어들게 한다(폰트·색상·문구 변경 없음).
+                Row(children: [
+                  Text('사진 ', style: WrF.display(14, color: Colors.white)),
+                  Flexible(child: Text('선택 · 첨부하면 복주머니 +20', maxLines: 1, overflow: TextOverflow.ellipsis, style: WrF.body(11, color: WrC.muted))),
+                ]),
                 const SizedBox(height: 8),
                 _photoBase64 != null
                   ? Stack(children: [
