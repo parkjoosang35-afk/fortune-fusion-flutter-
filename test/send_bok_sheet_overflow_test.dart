@@ -22,9 +22,10 @@ class _FakeWalletProvider extends WalletProvider {
 void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -64,7 +65,7 @@ void main() {
         );
         await tester.tap(find.text('열기'));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
 
         // 금액 입력 필드를 탭해 키보드가 열리는 상황을 시뮬레이션한다 —
         // 작은 화면에서 입력창+프리셋칩+버튼이 가려지는 조건 재현.
@@ -76,7 +77,7 @@ void main() {
         addTearDown(tester.view.resetViewInsets);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
       },
     );
   }
