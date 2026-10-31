@@ -41,7 +41,19 @@ class AuthFormHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(eyebrow, style: IntroTextStyles.formEyebrow()),
+          // [반응형 화면 규격 통일 지시서] eyebrow 라벨이 Expanded/Flexible
+          // 없이 배치돼 있어 텍스트스케일이 커지거나 화면 폭이 좁아지면
+          // (예: 320x568@2.0+) RenderFlex 오버플로가 발생했다. 기존
+          // 디자인(모노 폰트, letter-spacing)은 그대로 두고 Flexible +
+          // ellipsis로 넘치는 부분만 "..."로 자연스럽게 축약한다.
+          Flexible(
+            child: Text(
+              eyebrow,
+              style: IntroTextStyles.formEyebrow(),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
     );

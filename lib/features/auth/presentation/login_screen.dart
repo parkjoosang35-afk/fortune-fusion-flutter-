@@ -280,72 +280,91 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: true,
                   ),
                   // Remember + forgot
+                  // [반응형 화면 규격 통일 지시서] 바깥 Row(spaceBetween)의
+                  // 양쪽 자식("로그인 상태 유지" 체크박스 그룹 /
+                  // "아이디 찾기 | 비밀번호 찾기" 그룹)이 모두
+                  // Row(mainAxisSize: min)로만 구성되어 있어 Flexible/
+                  // Expanded 보호가 전혀 없었다. 좁은 화면(320px)과 큰
+                  // 텍스트스케일(1.5x~2.5x)이 겹치면 두 그룹의 자연폭 합이
+                  // 가용폭을 초과해 RenderFlex 오버플로가 발생했다
+                  // (debugDumpRenderTree로 RenderFlex#23210/#954a3 확인).
+                  // Row를 explore_screen.dart에서 검증된 패턴과 동일하게
+                  // Wrap(spaceBetween) + SizedBox(width: double.infinity)로
+                  // 교체해, 공간이 부족하면 두 번째 줄로 자연스럽게
+                  // 줄바꿈되도록 한다(기존 정렬/간격/디자인은 그대로 유지).
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        InkWell(
-                          onTap: () =>
-                              setState(() => _rememberMe = !_rememberMe),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 2,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                AuthCheckbox(value: _rememberMe),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '로그인 상태 유지',
-                                  style: IntroTextStyles.bottomLink(
-                                    color: IntroPalette.textPrimary,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        runSpacing: 4,
+                        children: [
+                          InkWell(
+                            onTap: () =>
+                                setState(() => _rememberMe = !_rememberMe),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 2,
+                              ),
+                              child: Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                children: [
+                                  AuthCheckbox(value: _rememberMe),
+                                  Text(
+                                    '로그인 상태 유지',
+                                    style: IntroTextStyles.bottomLink(
+                                      color: IntroPalette.textPrimary,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: _findEmail,
-                              child: Text(
-                                '아이디 찾기',
-                                style: IntroTextStyles.bottomLink().copyWith(
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: IntroPalette.textSecondary,
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: _findEmail,
+                                child: Text(
+                                  '아이디 찾기',
+                                  style: IntroTextStyles.bottomLink().copyWith(
+                                    decoration: TextDecoration.underline,
+                                    decorationColor:
+                                        IntroPalette.textSecondary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                              ),
-                              child: Text(
-                                '|',
-                                style: IntroTextStyles.bottomLink(
-                                  color: IntroPalette.textSecondary,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                                child: Text(
+                                  '|',
+                                  style: IntroTextStyles.bottomLink(
+                                    color: IntroPalette.textSecondary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            GestureDetector(
-                              onTap: _forgotPassword,
-                              child: Text(
-                                '비밀번호 찾기',
-                                style: IntroTextStyles.bottomLink().copyWith(
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: IntroPalette.textSecondary,
+                              GestureDetector(
+                                onTap: _forgotPassword,
+                                child: Text(
+                                  '비밀번호 찾기',
+                                  style: IntroTextStyles.bottomLink().copyWith(
+                                    decoration: TextDecoration.underline,
+                                    decorationColor:
+                                        IntroPalette.textSecondary,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
