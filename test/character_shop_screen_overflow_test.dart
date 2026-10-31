@@ -116,6 +116,8 @@ void main() {
     (const Size(390, 844), 1.0),
     (const Size(360, 640), 1.3),
     (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   group('CharacterShopScreen 정보 시트(_infoSheet) — 화면 밖으로 밀려나지 않음', () {
@@ -124,7 +126,7 @@ void main() {
         await _pump(tester, size, textScale);
         await tester.tap(find.text('ⓘ 기본 정보 보기'));
         await tester.pump();
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
 
         // "GUARDIAN · id" 라벨은 정보 시트 안에만 존재하는 유일한 텍스트라
         // 파인더가 모호해지지 않는다(무대 쪽엔 같은 문구가 없음).
@@ -151,7 +153,7 @@ void main() {
         await tester.tap(ctaFinder);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
 
         // 'NEED MORE'는 부족 시트 안에만 존재하는 유일한 텍스트.
         final topFinder = find.text('NEED MORE');
@@ -176,7 +178,7 @@ void main() {
         await tester.pump();
         await tester.tap(otherBtn, warnIfMissed: false);
         await tester.pump();
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
       });
     }
   });
