@@ -32,7 +32,14 @@ class _GuideBookState extends State<GuideBook> {
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .86),
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       decoration: WrDeco.sheet,
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // [오버플로 수정] 헤더(아이콘+제목/부제)·힌트토글·(선택)둘러보기
+      // 버튼 등 비유동 콘텐츠가 큰 textScale에서 커지면서, 카드
+      // 목록만 감싸던 기존 Flexible+SingleChildScrollView로는
+      // 320x568@2.5에서 외곽 Column이 202px 오버플로됨을 확인.
+      // 전체 Column을 SingleChildScrollView로 감싸 시트 전체가
+      // 함께 스크롤되도록 수정(디자인/기능/색상 변경 없음).
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16), alignment: Alignment.center,
           decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -71,10 +78,14 @@ class _GuideBookState extends State<GuideBook> {
               child: const Center(child: Text('✦ 소원방 한 바퀴 둘러보기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white))))))),
         ),
         const SizedBox(height: 12),
-        Flexible(child: SingleChildScrollView(child: Column(children: [
+        // 외곽 SingleChildScrollView가 전체를 스크롤 처리하므로
+        // 더 이상 Flexible로 감쌀 필요가 없다(Flexible은 바깥쪽이
+        // bounded Column/Row일 때만 유효).
+        Column(children: [
           for (final id in kGuideOrder) _guideCard(id),
-        ]))),
-      ]),
+        ]),
+        ]),
+      ),
     );
   }
 
