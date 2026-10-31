@@ -1,24 +1,40 @@
 // [신통방통 반응형 화면 규격 통일 지시서] 복주머니 광고 시청 팝업
 // (FortuneAdWatchDialog) 오버플로 회귀 테스트.
 //
-// 배경: 이 다이얼로그는 다른 화면들과 달리 Dialog 본문 전체가
-// `SizedBox(height: 420)`로 고정되어 있고 내부에 SingleChildScrollView가
-// 없다 — 지금까지 이 지시서에서 고친 버그들은 모두 "가로(Row) 오버플로"
-// 였지만, 이 다이얼로그는 구조상 "세로(Column) 오버플로" 위험이 있는
-// 첫 사례라 별도로 점검했다.
+// [확인된 실제 버그 2건 - debugDumpRenderTree로 근본원인 확정]
 //
-// 실측 결과: watching 단계(_WatchingView)의 광고 제목(ad.title, 1줄
-// 가정하고 만든 레이아웃)이 아주 긴 문자열 + textScale 2.5배로 3줄 이상
-// 길어지는 worst-case와, error 단계(_ErrorView)의 긴 에러 메시지
-// worst-case를 모두 5개 기기폭×텍스트스케일 조합에서 실측했으나,
-// RenderFlex 오버플로는 재현되지 않았다 — `_WatchingView`는 Expanded(광고
-// 콘텐츠 영역)가 남는 공간을 모두 흡수하고 하단 텍스트 블록만 고정 크기로
-// 차지하는 구조라 420px 안에서도 자연스럽게 수축되고, `_ErrorView`/
-// `_GrantedView`는 `Center` + `mainAxisSize: min`이라 Dialog의
-// `insetPadding`/바깥 여백 덕에 420px보다 작은 실제 기기 높이에서도 아직은
-// 여유가 있었다. 따라서 프로덕션 코드는 수정하지 않고, 이 구조적 위험을
-// 영구적으로 감시하는 회귀 테스트만 추가한다(문구가 더 길어지거나 420px
-// 가정이 깨지는 변경이 생기면 이 테스트가 즉시 잡아낸다).
+// 배경: 이 다이얼로그는 Dialog 본문 전체가 `SizedBox(height: 420)`로
+// 고정되어 있었다 — 지금까지 이 지시서에서 고친 버그들은 대부분
+// "가로(Row) 오버플로"였지만, 이 다이얼로그는 구조상 "세로(Column)
+// 오버플로" 위험이 있는 첫 사례였다.
+//
+// 버그 1) watching 단계(_WatchingView): 광고 제목(ad.title)에 maxLines
+// 제한이 없어, 아주 긴 제목(관리자가 임의로 입력 가능) + textScale
+// 1.5배 이상 조합에서 하단 고정 텍스트 블록(Padding+Column, Expanded가
+// 아님)이 여러 줄로 늘어나 Stack의 고정 420px 영역을 넘어 세로
+// RenderFlex 오버플로가 발생했다(320x568@2.0에서 실측 35px,
+// debugDumpRenderTree로 `Column ← Stack ← _WatchingView ← SizedBox`
+// 체인에서 OVERFLOWING 확인). 수정: 제목/안내문구 Text에
+// `maxLines: 2, overflow: TextOverflow.ellipsis` 추가 — 길이가 넘치면
+// 말줄임표로 축약되고, 기존처럼 짧은 제목은 한 줄로 그대로 보인다.
+//
+// 버그 2) error 단계(_ErrorView): 긴 에러 메시지(네트워크 오류 등 서버가
+// 내려줄 수 있는 문자열 길이가 가변적) + textScale 1.5배 이상 조합에서
+// `Center > Padding > Column(mainAxisSize: min)`이 420px보다 커져
+// 세로 오버플로가 발생했다(320x568@1.5/2.0/2.5에서 실측 76px/316px/
+// 666px). 수정: watching 단계를 제외한 나머지 단계(starting/verifying/
+// granted/error)는 `SizedBox(height:420)` 대신
+// `ConstrainedBox(maxHeight:420) + SingleChildScrollView`로 감싸,
+// 내용이 420px보다 커지면 스크롤되게 했다 — 420px보다 작을 때는 기존과
+// 시각적으로 완전히 동일하다. watching 단계는 Expanded 기반 레이아웃이라
+// 고정 420px가 필요하므로 그대로 유지했다.
+//
+// [테스트 인프라 참고] watching 단계 테스트는 `_tick()`이 매초 재귀적으로
+// `Future.delayed`를 예약하므로, 테스트가 끝나기 전에 그 카운트다운
+// 체인을 끝까지 흘려보내지 않으면 flutter_test의
+// "Timer is still pending" 어서션에 걸린다 — 프로덕션 버그가 아니라
+// 테스트 자체의 문제라, 아래에서 `watchSeconds`만큼 pump해 카운트다운을
+// 완전히 소진시킨 뒤 테스트를 종료한다.
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -154,6 +170,16 @@ void main() {
       );
       // watching 단계의 광고 제목이 실제로 렌더링됐는지 확인(단계 진입 검증).
       expect(find.text(_longTitle), findsOneWidget);
+
+      // [테스트 인프라] `_tick()`의 재귀 Future.delayed 카운트다운
+      // (watchSeconds초)을 끝까지 흘려보내 watching -> verifying -> granted
+      // 로 자연히 전환시킨다 — 그래야 테스트 종료 시점에 남은 타이머가
+      // 없어 flutter_test의 "Timer is still pending" 어서션에 걸리지
+      // 않는다(프로덕션 코드가 아니라 테스트 자체의 타이머 처리 문제).
+      for (var i = 0; i < ad.watchSeconds + 2; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      await tester.pumpAndSettle();
     });
 
     testWidgets('FortuneAdWatchDialog error 단계 $label overflow 없어야 함', (

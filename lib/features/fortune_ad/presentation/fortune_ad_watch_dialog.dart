@@ -288,6 +288,26 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // [반응형 화면 규격 통일 지시서] Dialog 본문은 원래 항상
+    // `SizedBox(height: 420)`로 고정되어 있었다 — watching 단계는 Stack +
+    // Expanded 구조라 레이아웃이 성립하려면 부모가 반드시 "유한한 높이"를
+    // 줘야 하므로 이 420px 고정은 그대로 유지한다(watching 단계 쪽은 아래
+    // _WatchingView에서 제목/안내문구에 maxLines 상한을 둬서 420px 안에서도
+    // 항상 들어가도록 고쳤다).
+    // 반면 starting/verifying/granted/error 단계는 Expanded 없이
+    // `Center + Column(mainAxisSize: min)`만 쓰는 구조라 스크롤이 가능하다 —
+    // 실제로 error 단계의 긴 에러 메시지가 textScale 1.5배 이상에서 420px를
+    // 넘는 실제 세로(Column) 오버플로가 확인됐다(최대 666px). 이 단계들만
+    // `SingleChildScrollView`로 감싸 내용이 420px보다 커지면 스크롤되게
+    // 하고, 기존처럼 내용이 짧으면 지금과 완전히 동일하게 보인다(크기가
+    // 420px보다 작을 때는 SingleChildScrollView가 시각적으로 아무 변화도
+    // 주지 않는다).
+    final body = _stage == _Stage.watching
+        ? SizedBox(height: 420, child: _buildBody())
+        : ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420),
+            child: SingleChildScrollView(child: _buildBody()),
+          );
     return PopScope(
       canPop: false,
       child: Dialog(
@@ -296,7 +316,7 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         ),
-        child: SizedBox(height: 420, child: _buildBody()),
+        child: body,
       ),
     );
   }
@@ -380,10 +400,21 @@ class _WatchingView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // [반응형 화면 규격 통일 지시서] 광고 제목(ad.title)은
+                  // 관리자가 입력하는 값이라 길이가 보장되지 않는다. 기존에는
+                  // maxLines 제한이 없어, 아주 긴 제목 + 큰 textScale
+                  // 조합에서 줄 수가 한없이 늘어나 Stack의 고정 420px
+                  // 영역 안에서 세로(Column) RenderFlex 오버플로를 일으켰다
+                  // (실측 최대 35px). 다이얼로그 공간이 한정적이므로 2줄까지만
+                  // 보여주고 넘치면 말줄임표로 축약한다 — 짧은 제목은 지금과
+                  // 완전히 동일하게 한 줄로 보인다.
                   Text(
                     ad.title,
                     textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: UnifiedText.bodyStrong(color: Colors.white),
                   ),
                   const SizedBox(height: UnifiedTokens.spaceSm),
@@ -402,6 +433,8 @@ class _WatchingView extends StatelessWidget {
                   Text(
                     '$remaining초 후 +${ad.rewardAmount}개 지급 (끝까지 시청해야 지급돼요)',
                     textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: UnifiedText.caption(color: UnifiedColors.neon),
                   ),
                 ],

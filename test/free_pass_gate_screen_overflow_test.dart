@@ -5,6 +5,8 @@
 // 상단 doc comment 2026-10-11 기록)이지만, 지시서의 "전체 화면 점검" 범위에
 // 포함되어 있고 라우트/파일 자체는 삭제하지 않고 유지되므로 그대로 실측한다.
 //
+// [확인된 실제 버그 3건 - debugDumpRenderTree로 근본원인 확정]
+//
 // `_StatusCard` 위젯 안에 Flexible/Expanded 보호가 없는 Row 2개가 있어
 // 코드 리딩 단계에서 후보로 지목되었고, 아래 worst-case 데이터(레거시
 // 시간제 겸용 remainingLabel "기존 시간제 이용권 보유 · 999999회 남음" +
@@ -17,7 +19,22 @@
 // 패턴으로 수정했다 — 바깥을 SizedBox(width: double.infinity) + Wrap으로
 // 감싸(또는 그냥 Wrap으로), 공간이 충분하면 기존과 완전히 동일하게 한 줄로
 // 보이고 부족할 때만 자연스럽게 다음 줄로 줄바꿈되도록 했다. 디자인/색상/
-// 간격/기능은 전혀 바꾸지 않았다.
+// 간격/기능은 전혀 바꾸지 않았다. 다만 Wrap만으로는 각 클러스터 "내부"
+// Row의 Text 자체가 보호되지 않아 320x568@1.5~2.5에서 잔여 오버플로
+// (33px/123px/213px)가 남아, 두 Row 안의 상태라벨/remainingLabel/
+// 지갑잔액/구독배지 Text 4곳에도 Flexible+ellipsis를 추가했다.
+//
+//  3) [공용 위젯 파급 버그] 위 수정 후에도 320x568@1.5~2.5에서 오버플로가
+// 남아 debugDumpRenderTree로 추적한 결과, 실제 원인은 `_StatusCard`가
+// 아니라 하단 "지금 프리패스 열어보기" 버튼이 쓰는 공용 위젯
+// `PremiumButton`(lib/core/widgets/premium_button.dart) 내부 Row였다 —
+// 라벨 Text에 Flexible 보호가 없어 버튼이 fullWidth여도 내부 Row는
+// 콘텐츠 고유 크기로 레이아웃되는 구조적 문제. `PremiumButton`은 2개
+// 파일에서 직접 생성자로, 6개 파일에서 named 생성자(.black/.secondary)로
+// 쓰이는 공용 위젯이라, 다른 화면들의 실제 라벨 길이를 모두 확인한 뒤
+// Flexible+ellipsis로 수정했다(기존 라벨은 전부 한 줄에 들어가는 짧은
+// 문구라 시각적으로 전혀 달라지지 않음 — 전체 테스트 스위트
+// `flutter test`로 회귀 없음 확인).
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
