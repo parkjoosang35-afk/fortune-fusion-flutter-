@@ -1,5 +1,8 @@
 // [반응형 화면 규격 통일 — 잘림 현상 수정] 소원 완료·봉인 화면(CompleteScreen)
-// 전수조사 — 실제 버그 2건 발견 및 수정.
+// 전수조사 — 실제 버그 3건 발견 및 수정(최근 1건은 매트릭스를 표준 5종
+// (390,844)@1.0 / (360,640)@1.3 / (320,568)@1.5 / (320,568)@2.0 /
+// (320,568)@2.5 로 확장하며 추가로 발견됨 — 구 매트릭스는 2.0x/2.5x가
+// 없어 이 버그를 못 잡고 있었다).
 //
 // 이 화면은 이미 디자인 캔버스(390x844) 레이어를 공용 `WrCanvasScaler`로
 // 감싸고 있어(line 259 부근) 지시서 ③ "공통 구조"는 준수된 상태였다. 다만
@@ -37,10 +40,21 @@
 //   (ConstrainedBox의 minHeight는 바닥값일 뿐이라 짧은 내용엔 영향 없음),
 //   넘칠 때만 스크롤로 모든 버튼에 닿을 수 있다.
 //
+// [발견된 실제 버그 3 — 매트릭스 확장 중 신규 발견] 완료 연출(_st>=6,
+// _seal==0)에서 뜨는 "축하합니다" 캡션 블록(닫기 버튼 Row + 제목/부제
+// Column + 기존 Spacer())은 320x568@1.5까지는 안전했지만, 2.0x/2.5x에서
+// 닫기 버튼(56px)+제목/부제 블록(2.5배에서 529px)=585px로 Stack이 주는
+// 568px 제약을 17px 초과해 아래쪽이 잘렸다(`debugDumpRenderTree()`로
+// 각 자식 높이 실측 확인). `_SealedBody`와 같은 버그 클래스이므로 동일
+// 표준 패턴(`SingleChildScrollView`)을 재사용해 감쌌다 — 내용이 화면에
+// 다 들어가면 지금처럼 그대로 위쪽에 붙어 보이고, 넘칠 때만 스크롤된다.
+// 더 이상 의미 없던 기존 Spacer()(스크롤 영역 안에서는 밀어낼 형제가
+// 없음)는 제거 — 시각적 변화 없음.
+//
 // 아래 테스트는 완료 연출 마지막 단계(_st=6, already:true 경로로 연출 타이머
 // 없이 즉시 진입)와 봉인 완료 상태(status=SEALED → `_seal=3`, `_SealedBody`)
-// 두 경로 모두를 320x568@1.5 등 가혹 조건에서 렌더링해 수정 후 예외 없이
-// 렌더링되는지(=오버플로 재발하지 않는지) 회귀 테스트로 고정한다.
+// 두 경로 모두를 표준 5종 매트릭스(아래 `conditions`)에서 렌더링해 수정 후
+// 예외 없이 렌더링되는지(=오버플로 재발하지 않는지) 회귀 테스트로 고정한다.
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -114,13 +128,15 @@ void main() {
     (const Size(390, 844), 1.0),
     (const Size(360, 640), 1.3),
     (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   group('CompleteScreen 완료 연출 완료 상태(_st=6) — 축하 캡션 + _BottomCard', () {
     for (final (size, textScale) in conditions) {
       testWidgets('${size.width.toInt()}x${size.height.toInt()}@$textScale', (tester) async {
         await _pump(tester, size, textScale, status: 'COMPLETED');
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
 
         expect(find.text('축하합니다'), findsOneWidget);
         expect(find.text('成 소원방 봉인하기'), findsOneWidget);
@@ -134,7 +150,7 @@ void main() {
     for (final (size, textScale) in conditions) {
       testWidgets('${size.width.toInt()}x${size.height.toInt()}@$textScale', (tester) async {
         await _pump(tester, size, textScale, status: 'SEALED');
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
 
         expect(find.text('+ 새로운 소원방 만들기'), findsOneWidget);
         expect(find.text('소원 기록관 보기'), findsOneWidget);

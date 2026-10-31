@@ -304,67 +304,84 @@ class _CompleteScreenState extends State<CompleteScreen> {
                     ),
                   ),
                   if (_seal > 0 && _seal < 3) _SealingOverlay(sealing: _seal),
+                  // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 Column(닫기
+                  // 버튼 Row + 제목/부제 블록 + 기존 Spacer())은 Stack이
+                  // 부여하는 568px 높이 제약 안에 있었는데, 좁은 화면
+                  // (320x568)+글자 확대(2.0~2.5배) 조합에서 실제 콘텐츠 높이가
+                  // 닫기 버튼(56px)+제목/부제 블록(2.5배에서 529px)=585px로
+                  // 568px를 넘어 아래쪽 17px가 잘리는 오버플로가 실측됐다
+                  // (mainAxisSize는 이 문제와 무관 — Spacer가 있든 없든
+                  // 자식 합계가 제약을 넘으면 그대로 오버플로된다).
+                  // _SealedBody에서 이미 쓰는 동일 버그 클래스의 표준 수정
+                  // 패턴(SingleChildScrollView)을 재사용 — 내용이 화면에 다
+                  // 들어가면 지금처럼 그대로 위쪽에 붙어 보이고, 넘칠 때만
+                  // 스크롤되게 한다. 기존에 있던 끝의 Spacer()는 스크롤
+                  // 영역 안에서는 더 이상 의미가 없으므로(아래로 밀어낼
+                  // 형제가 없다) 제거했다 — 시각적 변화 없음.
                   if (st >= 6 && _seal == 0)
                     SafeArea(
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).maybePop(),
-                                  icon: const Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Column(
-                              children: [
-                                ShaderMask(
-                                  shaderCallback: (b) => const LinearGradient(
-                                    colors: [
-                                      Color(0xFFFFF6D8),
-                                      Color(0xFFF5CF6A),
-                                      Color(0xFFFF8FB1),
-                                    ],
-                                  ).createShader(b),
-                                  child: const Text(
-                                    '축하합니다',
-                                    style: TextStyle(
-                                      fontFamily: 'NotoSerifKR',
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 34,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).maybePop(),
+                                    icon: const Icon(
+                                      Icons.close,
                                       color: Colors.white,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                  ),
-                                  child: Text(
-                                    '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      height: 1.5,
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Column(
+                                children: [
+                                  ShaderMask(
+                                    shaderCallback: (b) =>
+                                        const LinearGradient(
+                                          colors: [
+                                            Color(0xFFFFF6D8),
+                                            Color(0xFFF5CF6A),
+                                            Color(0xFFFF8FB1),
+                                          ],
+                                        ).createShader(b),
+                                    child: const Text(
+                                      '축하합니다',
+                                      style: TextStyle(
+                                        fontFamily: 'NotoSerifKR',
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 34,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 32,
+                                    ),
+                                    child: Text(
+                                      '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   if (st >= 6 && _seal == 0)
