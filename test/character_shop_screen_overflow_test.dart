@@ -37,6 +37,27 @@
 // maxHeight*.8 + Flexible+SingleChildScrollView)했고, 수정 후 재측정 결과
 // 모든 조건에서 top>=0이며, 하단 '다른 방법으로 모으기' 버튼도 스크롤 후
 // 정상적으로 탭 가능함을 확인했다.
+//
+// [발견된 실제 버그 3 — 매트릭스를 표준 5종(390x844@1.0 / 360x640@1.3 /
+// 320x568@1.5 / 320x568@2.0 / 320x568@2.5)으로 확장하며 신규 발견]
+// 이 화면의 bottomNavigationBar(5개 탭 라벨, fontSize:10)는
+// wishroom_shell.dart가 소원방 모듈 전체(IndexedStack 안 탭 5종)에 이미
+// 적용 중인 공통 정책("텍스트 스케일 1.3배까지 레이아웃 유지" — textScaler를
+// 1.3배로 clamp하는 MediaQuery 오버라이드) 서브트리 "밖"에서
+// Navigator.push로 열려 그 보호를 받지 못하고 있었다. 그 결과 글자 확대
+// (2.0~2.5배)에서 bottomNavigationBar 실제 높이가 56px→109px로 커지면서
+// body의 "목록 패널"(Expanded) 가용 높이를 짓눌러, 안쪽 탭 Row(56px 고정)+
+// CTA 버튼(52px+패딩, 고정)의 합이 남은 공간을 넘어 320x568@2.0/2.5에서
+// 14px 하단 오버플로가 실측됐다(debugDumpRenderTree()로 확인. _infoSheet·
+// _shortageSheet는 이 버그와 무관하게 같은 조건에서 함께 실패했는데,
+// 원인은 시트 자체가 아니라 뒤에 깔린 바디 레이아웃이 오버플로를
+// 일으키면 테스트의 예외 체크가 먼저 걸리기 때문).
+//
+// [수정 내용] 새 패딩을 추가하는 대신, 같은 모듈에 이미 승인된 공통 정책
+// (textScaler 1.3배 상한)을 이 화면의 build() 최상단에도 동일하게 적용해
+// 근본 원인을 없앴다 — 1.3배까지는 완전히 동일하게 보이고, 그 이상만
+// 시각적으로 더 커지지 않는다(축소<1.0은 그대로 허용). 디자인·문구·색상
+// 변경 없음.
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

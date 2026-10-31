@@ -1,6 +1,7 @@
 // SCR-05 캐릭터 선택/상점 `/vault/guardians` — app2/screens-b2.jsx › CharShop() 1:1 이식
 // 무대(흉상 + 방사광선 + 등급칩 + 대사) + 탭(여자/남자/👕 의상) + 5열 그리드(캐릭터) / 2열 그리드(의상)
 // + 정보 시트(직업·성향·좋아하는 것·수호 기운·등급·성격·동작) + 복주머니 부족 시트
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
@@ -203,7 +204,23 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   @override
   Widget build(BuildContext context) {
     final cat = WrCatalog.I;
-    return Theme(
+    // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 화면의 bottomNavigationBar
+    // (5개 탭 라벨, fontSize:10)는 wishroom_shell.dart의 소원방 모듈 공통
+    // textScaler 1.3배 상한 정책(IndexedStack 안 탭 5종에만 적용) 서브트리
+    // "밖"에서 Navigator.push로 열려 그 보호를 받지 못했다. 그 결과 글자
+    // 확대(2.0~2.5배)에서 bottomNavigationBar 실제 높이가 56px→109px로
+    // 커지면서 body의 "목록 패널"(Expanded) 가용 높이를 짓눌러, 안쪽 탭
+    // Row(56px 고정)+CTA 버튼(52px+패딩, 고정)의 합이 남은 공간을 넘어
+    // 320x568@2.0에서 14px 하단 오버플로가 실측됐다(debugDumpRenderTree()로
+    // 확인). 새 패딩을 더하는 대신, 같은 모듈에 이미 있는 공통 정책
+    // (textScaler 1.3배 상한)을 이 화면에도 동일하게 적용해 근본 원인을
+    // 없앤다 — 1.3배까지는 완전히 동일하게 보이고, 그 이상만 시각적으로
+    // 더 커지지 않는다(축소<1.0은 그대로 허용).
+    final mq = MediaQuery.of(context);
+    final clampedScale = math.min(mq.textScaler.scale(1.0), 1.3);
+    return MediaQuery(
+      data: mq.copyWith(textScaler: TextScaler.linear(clampedScale)),
+      child: Theme(
       data: wrThemeData(),
       child: Scaffold(
         backgroundColor: WrC.bg2,
@@ -616,6 +633,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }
