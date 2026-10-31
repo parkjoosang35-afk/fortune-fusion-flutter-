@@ -101,7 +101,12 @@ class _AttachToExistingWishSheet extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: const Color(0x1FFFEBC8)),
         ),
-        child: Column(
+        // [반응형 화면 규격 통일 지시서] Column(mainAxisSize: min)만 쓰면
+        // 좁은 화면(320x568)에서 textScale을 올릴 때 긴 소원 문구 +
+        // 안내 텍스트 + 버튼이 시트 높이를 넘어서면서 바닥이 잘린다.
+        // 실측 @2.0 195px, @2.5 399px 세로 오버플로 확인
+        // (test/seal_reading_flow_overflow_test.dart 참고).
+        child: SingleChildScrollView(child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -207,7 +212,7 @@ class _AttachToExistingWishSheet extends StatelessWidget {
               ],
             ),
           ],
-        ),
+        )),
       ),
     );
   }

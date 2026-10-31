@@ -1,3 +1,12 @@
+// [반응형 화면 규격 통일 지시서] _AttachToExistingWishSheet가 좁은 화면 +
+// 글자 확대 조합에서 오버플로 없이 뜨는지 실측한다.
+//
+// [조사 결과 — 신규 확인 버그] 기존 매트릭스는 textScale 1.3까지만
+// 검증했으나, 320x568 기준 textScale을 2.0/2.5까지 올리면 Column
+// (mainAxisSize: min)이 긴 소원 문구 + 안내 텍스트 + 버튼을 감당하지
+// 못해 세로 오버플로가 발생함을 확인(실측 @2.0 195px, @2.5 399px).
+// → seal_reading_flow.dart의 Column을 SingleChildScrollView로 감싸 수정.
+// 아래 매트릭스를 2.0/2.5까지 확장해 회귀 검증한다.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -24,9 +33,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -98,7 +108,11 @@ void main() {
         await tester.tap(find.text('열기'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        expect(tester.takeException(), isNull);
+        final ex = tester.takeException();
+        if (ex != null) {
+          debugDumpRenderTree();
+        }
+        expect(ex, isNull);
         expect(find.text('얹어서 봉인'), findsOneWidget);
       },
     );

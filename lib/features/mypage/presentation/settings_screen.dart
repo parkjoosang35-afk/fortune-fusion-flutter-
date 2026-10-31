@@ -493,25 +493,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         ),
         title: Text('실명 등록', style: UnifiedText.title()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '신당(THE SHRINE)에서 발급하는 부적에 새길 이름입니다.\n'
-              '닉네임과는 별도로 실명을 입력해 주세요.',
-              style: UnifiedText.caption(),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: '예) 홍길동',
-                border: OutlineInputBorder(),
+        // [반응형 화면 규격 통일 지시서] AlertDialog의 content가
+        // Column(mainAxisSize: min)만 쓰면 화면이 작고 글자 확대 배율이
+        // 높을 때(세로 568px·textScale 2.0~2.5) 안내 문구 2줄+TextField가
+        // 다이얼로그의 암묵적 세로 제약을 넘어서면서 바닥이 잘린다.
+        // 실측(320x568): @2.0 184px, @2.5 370px 세로 오버플로 확인
+        // (test/settings_screen_overflow_test.dart 참고). SingleChildScrollView로
+        // 감싸 내용이 길어지면 스크롤되도록 한다.
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '신당(THE SHRINE)에서 발급하는 부적에 새길 이름입니다.\n'
+                '닉네임과는 별도로 실명을 입력해 주세요.',
+                style: UnifiedText.caption(),
               ),
-            ),
-          ],
+              const SizedBox(height: UnifiedTokens.spaceMd),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: '예) 홍길동',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(
           AppSpacing.lg,

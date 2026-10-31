@@ -819,7 +819,12 @@ class WPWebInstallGuide extends StatelessWidget {
       Center(child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 32), padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
         decoration: WrDeco.sheet,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // [반응형 화면 규격 통일 지시서] Column(mainAxisSize: min)만 쓰면
+        // 좁은 화면(320x568)에서 textScale을 올릴 때 안내 문구 3줄 + 버튼
+        // 2개가 Center의 암묵적 세로 제약을 넘어서면서 바닥이 잘린다.
+        // 실측 @2.0 226px, @2.5 698px 세로 오버플로 확인
+        // (test/wallpaper_screen_overflow_test.dart 참고).
+        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('앱 연결이 필요해요', style: WrF.display(18)),
           const SizedBox(height: 8),
           Text(
@@ -840,7 +845,7 @@ class WPWebInstallGuide extends StatelessWidget {
             style: OutlinedButton.styleFrom(side: BorderSide(color: WrC.line)),
             child: const Text('나중에 하기'),
           )),
-        ]),
+        ])),
       )),
     ]);
   }
