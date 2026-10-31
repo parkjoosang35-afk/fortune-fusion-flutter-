@@ -749,7 +749,18 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             decoration: BoxDecoration(shape: BoxShape.circle, color: W != null ? _hex(W['deep'] as String) : WrC.accent),
             child: Text(W != null ? (W['hanja'] as String) : '願', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFFFFF4E0)))),
           const SizedBox(width: 9),
-          Expanded(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+          // 소원 도크는 높이 58px 고정 슬림 바(Container(height: 58))라,
+          // 라벨 줄(기운 칩 포함)+소원 한 줄 2줄 텍스트가 시스템 글자 확대
+          // 2.0배 조합에서 12px, 2.5배 조합에서 28px씩 세로로 넘쳐
+          // (RenderFlex overflowed) 아래 글자가 잘렸다. 바로 옆 원형 정성
+          // 버튼과 동일하게 FittedBox로 감싸 공간이 부족할 때만 내용을
+          // 비율대로 축소해(scaleDown) 58px 안에 항상 들어오게 한다
+          // (텍스트·칩·색상·좌측 정렬은 그대로 유지, 평소 크기에는 영향 없음).
+          Expanded(child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisSize: MainAxisSize.min, children: [
               Flexible(child: Text(labelText, maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 10, color: isDim ? const Color(0xFFB8442F) : subColor))),
@@ -770,7 +781,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             const SizedBox(height: 2),
             Text(room.text, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 13.5, color: inkColor)),
-          ])),
+          ]))),
           Icon(Icons.keyboard_arrow_up, size: 16, color: inkColor.withValues(alpha: .5)),
         ]),
       ))),
