@@ -318,69 +318,99 @@ class _CompleteScreenState extends State<CompleteScreen> {
                   // 스크롤되게 한다. 기존에 있던 끝의 Spacer()는 스크롤
                   // 영역 안에서는 더 이상 의미가 없으므로(아래로 밀어낼
                   // 형제가 없다) 제거했다 — 시각적 변화 없음.
+                  //
+                  // [회귀 수정 — original_result_capture_test.dart 발견]
+                  // 위 수정 직후 '소원 완료 실제 장면' 캡처 테스트가
+                  // RenderRepaintBoundary 크기를 Size(390, 844) 대신
+                  // Size(390, 167)로 깨뜨렸다. 원인: 이 Column은 이
+                  // Stack의 "non-positioned child" 중 하나라, 원래
+                  // mainAxisSize가 기본값(max)이었을 때는 부모가 준 844px
+                  // 제약을 그대로 채워 Stack 전체 크기(390x844, 캡처
+                  // 경계 크기의 기준)를 유지하는 데 기여하고 있었다.
+                  // mainAxisSize: min으로 바꾸면서 이 child가 내용물
+                  // 높이(~167px)만 차지하게 됐고, Stack은 non-positioned
+                  // children 중 가장 큰 쪽에 맞춰 크기를 정하므로(다른
+                  // non-positioned child인 AnimatedScale/WrCanvasScaler는
+                  // SizedBox(390,844) 내부에 있어 Stack 크기 결정에 기여하지
+                  // 않음 — Positioned.fill 안에 있지 않은 일반 Align 류가
+                  // 아니라 실제로는 전자가 Positioned.fill로 래핑돼있어야
+                  // 했는데 그렇지 않았다) Stack 전체가 167px로 줄어 캡처가
+                  // 깨졌다. Positioned.fill로 감싸 Stack 크기 결정에는
+                  // 관여하지 않게 하고, 내부에서 Align(top)+필요시 스크롤로
+                  // 오버플로 수정 효과는 그대로 유지한다.
                   if (st >= 6 && _seal == 0)
-                    SafeArea(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                              child: Row(
-                                children: [
-                                  IconButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).maybePop(),
-                                    icon: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                    ),
+                    Positioned.fill(
+                      child: SafeArea(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    8,
+                                    16,
+                                    0,
                                   ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Column(
-                                children: [
-                                  ShaderMask(
-                                    shaderCallback: (b) =>
-                                        const LinearGradient(
-                                          colors: [
-                                            Color(0xFFFFF6D8),
-                                            Color(0xFFF5CF6A),
-                                            Color(0xFFFF8FB1),
-                                          ],
-                                        ).createShader(b),
-                                    child: const Text(
-                                      '축하합니다',
-                                      style: TextStyle(
-                                        fontFamily: 'NotoSerifKR',
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 34,
-                                        color: Colors.white,
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).maybePop(),
+                                        icon: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 32,
-                                    ),
-                                    child: Text(
-                                      '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        height: 1.5,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Column(
+                                    children: [
+                                      ShaderMask(
+                                        shaderCallback: (b) =>
+                                            const LinearGradient(
+                                              colors: [
+                                                Color(0xFFFFF6D8),
+                                                Color(0xFFF5CF6A),
+                                                Color(0xFFFF8FB1),
+                                              ],
+                                            ).createShader(b),
+                                        child: const Text(
+                                          '축하합니다',
+                                          style: TextStyle(
+                                            fontFamily: 'NotoSerifKR',
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 34,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(height: 8),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                        ),
+                                        child: Text(
+                                          '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
