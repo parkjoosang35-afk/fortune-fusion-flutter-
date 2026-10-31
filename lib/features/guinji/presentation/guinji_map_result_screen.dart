@@ -176,48 +176,55 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                '축하 이벤트 달성',
-                style: TextStyle(
-                  fontFamily: GmText.display,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: GmColors.fg,
+          // [오버플로 수정] 320x568@2.5 textScale에서 제목+본문+버튼으로
+          // 구성된 Column이 Dialog 높이를 142px 초과하는 RenderFlex
+          // 오버플로 발생을 확인. 커스텀 Dialog(AlertDialog 아님)라 내장
+          // scrollable 옵션이 없으므로 SingleChildScrollView로 감싸
+          // 해결 (디자인/색상/애니메이션 변경 없음).
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '축하 이벤트 달성',
+                  style: TextStyle(
+                    fontFamily: GmText.display,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: GmColors.fg,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}개를 보내드려요.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: GmColors.muted,
+                const SizedBox(height: 8),
+                Text(
+                  '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}개를 보내드려요.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: GmColors.muted,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: GmColors.gold,
-                    foregroundColor: GmColors.onFg,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GmColors.gold,
+                      foregroundColor: GmColors.onFg,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text(
+                      '좋아요',
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text(
-                    '좋아요',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

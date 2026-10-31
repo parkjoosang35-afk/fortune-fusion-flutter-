@@ -6,6 +6,26 @@ import 'package:flutter_test/flutter_test.dart';
 // private 메서드 내부(또는 provider/네트워크 흐름 뒤)에 있어 직접
 // import해 호출하기 어려우므로, force_update_dialog_overflow_test.dart
 // 와 동일한 접근 방식(동일 구조 재현)을 사용한다.
+//
+// [조사 결과 — 5개 다이얼로그 전체 (390x844@1.0 ~ 320x568@2.5 매트릭스)]
+// ✅ 발견 & 수정 (실제 버그):
+//   1) 귀인지도 랭킹 삭제 확인 (guinji_map_ranking_screen.dart _confirmDelete):
+//      320x568@2.0에서 8px, @2.5에서 282px RenderFlex 오버플로 확인.
+//      원인: 긴 이름(p.name) 보간 제목 + 본문 + 액션 2개가 다이얼로그
+//      높이를 초과. 수정: AlertDialog(scrollable: true) 적용(제목+본문만
+//      스크롤, 액션 버튼은 고정 유지하는 Flutter 기본 동작).
+//   2) 귀인지도 마일스톤 축하 (guinji_map_result_screen.dart
+//      _maybeShowMilestoneCelebration): 320x568@2.5에서 142px 오버플로
+//      확인. 원인: 커스텀 Dialog(AlertDialog 아님)의 Column이 스크롤
+//      래퍼 없이 고정 높이 초과. 수정: Column을 SingleChildScrollView로
+//      감쌈.
+// ⬜ 조사 & 안전 확인 (버그 없음, 수정 불필요):
+//   3) 귀인지도 참여완료 (guinji_join_screen.dart) — 5개 조건 전체 통과.
+//   4) 귀인지도 링크 재발급 확인 (guinji_map_share_screen.dart
+//      _confirmReissue) — 5개 조건 전체 통과.
+//   5) 귀인지도 링크 중단 확인 (guinji_map_share_screen.dart
+//      _confirmRevoke) — 5개 조건 전체 통과.
+// (디자인/색상/문구/애니메이션 변경 없음 — 레이아웃 구조만 수정)
 
 // 1) guinji_join_screen.dart _handleSubmit() 내부 "참여 완료" AlertDialog.
 Future<void> showJoinCompleteDialogLike(
@@ -38,6 +58,8 @@ Future<void> showJoinCompleteDialogLike(
 }
 
 // 2) guinji_map_ranking_screen.dart _confirmDelete() 삭제 확인 다이얼로그.
+// [수정] scrollable: true — 긴 이름 제목 + 큰 textScale에서 발생한
+// 8px(@2.0)/282px(@2.5) 오버플로를 해결 (실제 소스와 동기화).
 Future<bool?> showRankingDeleteDialogLike(
   BuildContext context, {
   required String name,
@@ -46,6 +68,7 @@ Future<bool?> showRankingDeleteDialogLike(
     context: context,
     builder: (dialogContext) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      scrollable: true,
       title: Text('$name님을 지도에서 뺄까요'),
       content: const Text('관계 결과와 열어 둔 풀이도 함께 사라져요'),
       actions: [
@@ -63,6 +86,8 @@ Future<bool?> showRankingDeleteDialogLike(
 }
 
 // 3) guinji_map_result_screen.dart _maybeShowMilestoneCelebration() 축하 다이얼로그.
+// [수정] Column을 SingleChildScrollView로 감쌈 — 320x568@2.5에서
+// 발생한 142px 오버플로를 해결 (실제 소스와 동기화).
 Future<void> showMilestoneDialogLike(
   BuildContext context, {
   required int rewardPoint,
@@ -79,28 +104,30 @@ Future<void> showMilestoneDialogLike(
           color: const Color(0xFF231A3C),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '축하 이벤트 달성',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}개를 보내드려요.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, height: 1.5),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('좋아요'),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '축하 이벤트 달성',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                '친구 3명이 귀인지도에 모였어요.\n고마운 마음을 담아 복주머니 ${rewardPoint > 0 ? rewardPoint : 30}개를 보내드려요.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('좋아요'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -158,9 +185,10 @@ Future<bool?> showRevokeDialogLike(BuildContext context) {
 void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -199,7 +227,9 @@ void main() {
       );
       await tester.tap(find.text('열기'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      var ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
     });
 
     testWidgets('귀인지도 랭킹 삭제 확인 다이얼로그가 $suffix에서 오버플로 없이 뜬다', (tester) async {
@@ -231,10 +261,14 @@ void main() {
       );
       await tester.tap(find.text('열기'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      var ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
       await tester.tap(find.text('취소'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
     });
 
     testWidgets('귀인지도 마일스톤 축하 다이얼로그가 $suffix에서 오버플로 없이 뜬다', (tester) async {
@@ -264,7 +298,9 @@ void main() {
       );
       await tester.tap(find.text('열기'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      var ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
     });
 
     testWidgets('귀인지도 링크 재발급 확인 다이얼로그가 $suffix에서 오버플로 없이 뜬다', (tester) async {
@@ -293,10 +329,14 @@ void main() {
       );
       await tester.tap(find.text('열기'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      var ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
       await tester.tap(find.text('취소'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
     });
 
     testWidgets('귀인지도 링크 중단 확인 다이얼로그가 $suffix에서 오버플로 없이 뜬다', (tester) async {
@@ -325,10 +365,14 @@ void main() {
       );
       await tester.tap(find.text('열기'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      var ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
       await tester.tap(find.text('취소'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
     });
   }
 }

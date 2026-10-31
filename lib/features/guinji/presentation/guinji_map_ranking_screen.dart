@@ -71,6 +71,12 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: GmColors.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        // [오버플로 수정] 긴 이름(p.name) + 큰 textScale 환경에서 제목+본문+
+        // 액션이 다이얼로그 높이를 넘겨 320x568@2.0에서 8px, @2.5에서
+        // 282px RenderFlex 오버플로 발생을 확인. AlertDialog의 내장
+        // scrollable 옵션으로 title+content만 스크롤 가능하게 하여 해결
+        // (디자인/색상/문구 변경 없음).
+        scrollable: true,
         title: Text(
           '${p.name}님을 지도에서 뺄까요',
           style: const TextStyle(
