@@ -54,9 +54,10 @@ class _FakeLuckyBagProvider extends LuckyBagProvider {
 void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -102,7 +103,9 @@ void main() {
         await provider.loadProbabilities(product.id);
         await tester.tap(find.text('열기'));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+        final ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
       },
     );
   }
