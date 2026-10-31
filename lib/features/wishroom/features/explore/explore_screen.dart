@@ -147,19 +147,46 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                    child: Row(
+                    // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 탭 2개
+                    // ("소원방"/"✨ 이루어진 이야기") + Spacer + 정렬 칩 2개("인기순"/
+                    // "최신순")가 Flexible/Expanded 없이 고정폭 Row에 바로 들어있어,
+                    // textScale이 커지면 네 칩의 합산 자연폭이 Row 가용폭(화면폭-32)을
+                    // 초과해 가로로 넘쳤다(실측 360x640@1.3, 65px 초과). Row를
+                    // Wrap(alignment:spaceBetween)으로 교체했다 — 두 그룹(탭 묶음/정렬
+                    // 칩 묶음)이 한 줄에 다 들어가는 평소 케이스엔 Spacer와 동일하게
+                    // 좌측 탭·우측 정렬칩으로 보이고(디자인·배치 변경 없음), 공간이
+                    // 부족할 때만 정렬 칩 묶음이 다음 줄로 자동 줄바꿈되어 잘리거나
+                    // 숨겨지지 않고 항상 탭 가능하게 유지된다.
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: 8,
                       children: [
-                        _tab('소원방', 'rooms'),
-                        const SizedBox(width: 8),
-                        _tab('✨ 이루어진 이야기', 'stories'),
+                        // 탭 묶음 자체도 긴 라벨("✨ 이루어진 이야기")이 textScale
+                        // 2.0+에서 288px 가용폭을 넘길 수 있어(실측 320x568@2.0,
+                        // 55px 초과) 가로 스크롤로 감싼다 — 평소엔 그대로 보임.
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _tab('소원방', 'rooms'),
+                              const SizedBox(width: 8),
+                              _tab('✨ 이루어진 이야기', 'stories'),
+                            ],
+                          ),
+                        ),
                         // [정렬칩 재배치 — 사용자 지시 2026-10-14] 인기순·최신순은 최상단 헤더가
                         // 아니라 '✨ 이루어진 이야기' 탭 옆(탭 행 우측)에 놓는다.
-                        const Spacer(),
-                        if (_etab == 'rooms') ...[
-                          _sortChip('인기순', true),
-                          const SizedBox(width: 6),
-                          _sortChip('최신순', false),
-                        ],
+                        if (_etab == 'rooms')
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _sortChip('인기순', true),
+                              const SizedBox(width: 6),
+                              _sortChip('최신순', false),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -404,12 +431,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Row(
-            children: [
-              _storyTabBtn('모두의 이야기', 'all'),
-              const SizedBox(width: 8),
-              _storyTabBtn('나의 이야기', 'mine'),
-            ],
+          // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 두 탭
+          // 버튼이 고정폭 Row에 바로 들어있어, textScale 2.0+에서 합산
+          // 자연폭이 가용폭을 넘겨 가로로 넘쳤다(실측 320x568@2.0 55px,
+          // @2.5 123px). 가로 스크롤 가능한 SingleChildScrollView로 감싸
+          // 평소엔 그대로 보이고 넘칠 때만 스크롤되게 했다. 디자인 변경 없음.
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _storyTabBtn('모두의 이야기', 'all'),
+                const SizedBox(width: 8),
+                _storyTabBtn('나의 이야기', 'mine'),
+              ],
+            ),
           ),
         ),
       ),
@@ -752,23 +787,42 @@ class _FeedCardState extends State<_FeedCard> {
                             ),
                           ),
                           const SizedBox(height: 8),
+                          // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견]
+                          // ❤응원수/💬댓글수/Lv.레벨 세 Text + Spacer + "응원하기"
+                          // 버튼이 Flexible/스크롤 없이 고정폭으로 Row에 들어있어,
+                          // 응원수·댓글수가 큰 값(최대 6·5자리)이면서 textScale도
+                          // 커지면 Row 가용폭을 초과해 가로로 넘쳤다(실측
+                          // 360x640@1.3, 77px 초과). 통계 묶음을 Expanded+가로
+                          // SingleChildScrollView로 감싸 공간이 부족할 때만 옆으로
+                          // 스크롤되게 하고, "응원하기" 버튼은 고정폭 그대로 유지해
+                          // 항상 탭 가능하게 했다 — 평소(공간 충분)엔 기존 모습
+                          // 그대로. 디자인·문구·색상 변경 없음.
                           Row(
                             children: [
-                              Text(
-                                '❤ ${room.supportCount}',
-                                style: WrF.body(11.5, color: WrC.blossom2),
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        '❤ ${room.supportCount}',
+                                        style: WrF.body(11.5, color: WrC.blossom2),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        '💬 ${room.commentCount}',
+                                        style: WrF.body(11.5, color: WrC.muted),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Lv.${room.level}',
+                                        style: WrF.body(11.5, color: WrC.muted),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                '💬 ${room.commentCount}',
-                                style: WrF.body(11.5, color: WrC.muted),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Lv.${room.level}',
-                                style: WrF.body(11.5, color: WrC.muted),
-                              ),
-                              const Spacer(),
+                              const SizedBox(width: 8),
                               GestureDetector(
                                 onTap: room.supportedToday ? null : _cheer,
                                 child: Container(
@@ -1003,11 +1057,23 @@ class _StoryCardState extends State<_StoryCard> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 작성자
+                  // 닉네임(Text)과 축하 버튼("축하해요 N")이 둘 다 Flexible/Expanded
+                  // 없이 고정 자연폭으로 Row에 들어있어, 닉네임이 길거나 축하 수(N)가
+                  // 커지면 Row 가용폭을 초과해 가로로 넘쳤다(실측 390x844@1.0 긴
+                  // 닉네임+큰 N 조합에서 54px, 320x568@1.5에서 282px 초과). 닉네임을
+                  // Flexible+ellipsis로 감싸 길 때 말줄임표로 줄어들게 하고, 축하
+                  // 버튼 전체를 Flexible+FittedBox(scaleDown)로 감싸 N이 아주 커도
+                  // 비율대로 작아지게 했다 — 평소(짧은 닉네임·작은 N)엔 기존 모습
+                  // 그대로. 디자인·문구·색상 변경 없음.
                   Row(
                     children: [
-                      Text(
-                        '${_v.author}${_v.mine ? ' · 나' : ''}',
-                        style: WrF.body(11.5, color: WrC.muted),
+                      Flexible(
+                        child: Text(
+                          '${_v.author}${_v.mine ? ' · 나' : ''}',
+                          style: WrF.body(11.5, color: WrC.muted),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       // app2/review2.jsx › StoryCard() `v.mine && <span className="chip">{공개/나만 보기}</span>` 1:1.
                       if (_v.mine) ...[
@@ -1025,68 +1091,74 @@ class _StoryCardState extends State<_StoryCard> {
                         ),
                       ],
                       const Spacer(),
-                      GestureDetector(
-                        onTap: _v.mine ? null : _congrats,
-                        child: Opacity(
-                          opacity: _v.mine ? .6 : 1,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                key: _congratsBtnKey,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  gradient: _v.congratsByMe
-                                      ? const LinearGradient(
-                                          colors: [
-                                            Color(0xFFFF9CBC),
-                                            Color(0xFFF2628F),
-                                          ],
-                                        )
-                                      : null,
-                                  color: _v.congratsByMe
-                                      ? null
-                                      : const Color(0x14FFFFFF),
-                                  border: _v.congratsByMe
-                                      ? null
-                                      : Border.all(
-                                          color: const Color(0x73FF8FB1),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: _v.mine ? null : _congrats,
+                            child: Opacity(
+                              opacity: _v.mine ? .6 : 1,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Container(
+                                    key: _congratsBtnKey,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(999),
+                                      gradient: _v.congratsByMe
+                                          ? const LinearGradient(
+                                              colors: [
+                                                Color(0xFFFF9CBC),
+                                                Color(0xFFF2628F),
+                                              ],
+                                            )
+                                          : null,
+                                      color: _v.congratsByMe
+                                          ? null
+                                          : const Color(0x14FFFFFF),
+                                      border: _v.congratsByMe
+                                          ? null
+                                          : Border.all(
+                                              color: const Color(0x73FF8FB1),
+                                            ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          '❤',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                          ),
                                         ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      '❤',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                      ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          '축하해요 ${_v.congrats}',
+                                          style: WrF.body(
+                                            12,
+                                            w: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      '축하해요 ${_v.congrats}',
-                                      style: WrF.body(
-                                        12,
-                                        w: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
+                                  ),
+                                  if (_pop > 0)
+                                    WrHearts(
+                                      key: ValueKey(_pop),
+                                      x: _congratsBtnWidth,
+                                      y: 0,
+                                      n: 6,
                                     ),
-                                  ],
-                                ),
+                                ],
                               ),
-                              if (_pop > 0)
-                                WrHearts(
-                                  key: ValueKey(_pop),
-                                  x: _congratsBtnWidth,
-                                  y: 0,
-                                  n: 6,
-                                ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
