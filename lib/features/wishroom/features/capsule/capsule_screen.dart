@@ -306,15 +306,31 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
       // 없어, 아래 두 하단 패널(선택지 3개 버튼 / 다시쓰기 입력+버튼)이
       // 제스처 내비게이션 인셋이 큰 기기에서 가려질 수 있었다. 디자인
       // 여백은 그대로 두고 SafeArea(top:false)로만 감싼다.
-      if (_step == _CapStep.ask) Positioned(left: 20, right: 20, bottom: 40, child: SafeArea(top: false, child: Column(children: [
-        Text('이 소원은 어떻게 되었나요?', style: WrF.display(19), textAlign: TextAlign.center),
-        const SizedBox(height: 14),
-        _choiceBtn('😊', '소원이 이루어졌어요', WrDeco.btnGold, const Color(0xFF4A2A10), () => _choose(Outcome.FULFILLED)),
-        const SizedBox(height: 8),
-        _choiceBtn('🙏', '아직 진행 중이에요', WrDeco.btnDark, Colors.white, () => _choose(Outcome.ONGOING)),
-        const SizedBox(height: 8),
-        _choiceBtn('🔄', '다시 소원을 빌어요', WrDeco.btnDark, Colors.white, () => _choose(Outcome.REWISH)),
-      ]))),
+      //
+      // [반응형 화면 규격 통일 — 잘림 현상 수정 2차] 기존엔 bottom:40만
+      // 고정(top 없음)이라, 글자 확대(2.0x/2.5x)로 "이 소원은 어떻게
+      // 되었나요?" 타이틀이 2~3줄로 늘어나면 패널 전체 높이가 위로
+      // 커지면서 위쪽 두루마리 영역(항상 bottom=246 고정)과 실제로 겹치는
+      // 것을 tester.getRect()로 실측 확인했다(320x568@2.0: wishBottom=246
+      // > askTop=180, 320x568@2.5: wishBottom=246 > askTop=138). 텍스트를
+      // 자르거나(maxLines) 임의 패딩으로 가리는 대신, 두루마리 영역
+      // 바로 아래(top:256)로 패널의 상한선을 명시해 공간을 침범할 수
+      // 없게 하고, 내용이 그 공간보다 커지면 SingleChildScrollView로
+      // 스크롤되게 한다(main_room_screen.dart 등에서 이미 쓰는 공통
+      // 패턴과 동일). 내용이 짧을 때는 Align(bottomCenter)로 기존과
+      // 동일하게 하단에 붙어 보이도록 유지해 디자인 변경이 없다.
+      if (_step == _CapStep.ask) Positioned(left: 20, right: 20, top: 256, bottom: 40, child: SafeArea(top: false, child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('이 소원은 어떻게 되었나요?', style: WrF.display(19), textAlign: TextAlign.center),
+          const SizedBox(height: 14),
+          _choiceBtn('😊', '소원이 이루어졌어요', WrDeco.btnGold, const Color(0xFF4A2A10), () => _choose(Outcome.FULFILLED)),
+          const SizedBox(height: 8),
+          _choiceBtn('🙏', '아직 진행 중이에요', WrDeco.btnDark, Colors.white, () => _choose(Outcome.ONGOING)),
+          const SizedBox(height: 8),
+          _choiceBtn('🔄', '다시 소원을 빌어요', WrDeco.btnDark, Colors.white, () => _choose(Outcome.REWISH)),
+        ])),
+      ))),
       if (_step == _CapStep.rewish) Positioned(left: 0, right: 0, bottom: 0, child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 34),
         decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xF50C0408)], stops: [0, .18])),
