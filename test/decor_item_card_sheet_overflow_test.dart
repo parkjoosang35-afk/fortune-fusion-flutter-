@@ -129,6 +129,7 @@ void main() {
     (const Size(360, 640), 1.3),
     (const Size(320, 568), 1.5),
     (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   group('DecorScreen 아이템 상세 시트(_itemCardSheet) — 화면 밖으로 밀려나지 않음', () {
@@ -144,7 +145,7 @@ void main() {
         final tabListView = find.byWidgetPredicate(
           (w) => w is ListView && w.scrollDirection == Axis.horizontal,
         );
-        for (var i = 0; i < 5; i++) {
+        for (var i = 0; i < 10; i++) {
           if (find.text('장식 0/5').hitTestable().evaluate().isNotEmpty) break;
           await tester.drag(tabListView, const Offset(-80, 0));
           await tester.pump();
