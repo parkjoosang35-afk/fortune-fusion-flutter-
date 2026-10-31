@@ -10,6 +10,13 @@ import 'package:flutter_app/features/fortune/shared/presentation/attached_readin
 /// 소원방 "담겨온 풀이" 패널 — 칩 목록 + 상세 바텀시트(DraggableScrollableSheet).
 /// ReadingCiteCard의 출전명 Row(Text+뱃지)가 Expanded 없이 구성되어 있어
 /// 출전명(cite.src/srcKo)이 길 때 오버플로 가능성을 실제 시트 진입으로 검증한다.
+///
+/// [반응형 화면 규격 통일 — 재조사] 기존 매트릭스는 textScale 1.3까지만
+/// 검증했다. ReadingCiteCard의 출전명 Row는 이미 Expanded+ellipsis로
+/// 보호되어 있고(커밋 f498e9d), 상세 시트는 DraggableScrollableSheet+
+/// ListView로 세로 스크롤이 이미 보장되는 구조라, 320x568 기준 textScale을
+/// 2.0/2.5까지 올려 재검증해도 오버플로가 재현되지 않음을 확인했다
+/// (5/5 통과). 회귀 방지를 위해 매트릭스를 5종 조합으로 확장해 유지한다.
 void main() {
   const wishRoomId = 'wr_test_1';
   const longCiteSrc = '麻衣相法·神相全編·柳莊相法(여러 문헌 통합 출전 표기 테스트)';
@@ -50,9 +57,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -83,13 +91,17 @@ void main() {
         );
         // _load()가 비동기로 끝난 뒤 칩이 그려질 때까지 대기.
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+        var ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
 
         final chip = find.textContaining('관상 ·');
         expect(chip, findsOneWidget);
         await tester.tap(chip);
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+        ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
       },
     );
   }

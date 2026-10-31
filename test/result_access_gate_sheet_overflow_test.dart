@@ -11,6 +11,13 @@ import 'package:flutter_app/features/result_access/application/result_access_pro
 import 'package:flutter_app/features/result_access/data/result_access_repository.dart';
 import 'package:flutter_app/features/result_access/presentation/result_access_gate_sheet.dart';
 
+// [반응형 화면 규격 통일 — 신규 확인 버그] 기존 매트릭스는 textScale 1.3까지만
+// 검증했으나, _GateOptionButton(복주머니 옵션)의 subLabel('보유 N개')이
+// Flexible 없이 고정 폭으로 Row에 추가되어 있어, label이 줄어들어도
+// 320x568 기준 textScale 2.5에서 Row 폭을 초과해 가로 오버플로가 발생함을
+// 확인했다(실측 28px, debugDumpRenderTree로 RenderFlex#5b2b8 확인).
+// → result_access_gate_sheet.dart의 subLabel Text를 Flexible+ellipsis로
+// 감싸 수정. 아래 매트릭스를 2.0/2.5까지 확장해 회귀 검증한다.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -54,9 +61,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -108,7 +116,9 @@ void main() {
           await tester.tap(find.text('열기'));
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
-          expect(tester.takeException(), isNull);
+          final ex = tester.takeException();
+          if (ex != null) debugDumpRenderTree();
+          expect(ex, isNull);
           // 쿠팡 클레임 버튼 문구까지 실제로 그려지는지 확인(가장 아래 요소).
           expect(find.text('오늘의 프리패스 2회 받기 (쿠팡 방문)'), findsOneWidget);
         });

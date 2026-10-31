@@ -691,7 +691,20 @@ class _GateOptionButton extends StatelessWidget {
                   ),
                   if (subLabel != null) ...[
                     SizedBox(width: UnifiedTokens.spaceXs),
-                    Text('($subLabel)', style: UnifiedText.caption(color: fg)),
+                    // [반응형 화면 규격 통일 지시서] subLabel이 Flexible 없이
+                    // 고정 크기로 추가되어 있어, label(이미 Flexible)이 최대로
+                    // 줄어도 textScale이 높을 때(2.5) subLabel 자체 폭이 Row
+                    // 전체 폭을 넘어 가로 오버플로가 발생했다(실측 320x568
+                    // 기준 28px, test/result_access_gate_sheet_overflow_test.dart
+                    // 참고). Flexible+ellipsis로 감싸 다른 버튼 라벨과 동일하게
+                    // 필요시 줄어들도록 한다.
+                    Flexible(
+                      child: Text(
+                        '($subLabel)',
+                        style: UnifiedText.caption(color: fg),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ],
               ),
