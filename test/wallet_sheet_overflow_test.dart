@@ -3,6 +3,15 @@
 // 구성: 잔액 표시, 광고 카드, 일일 미션 5종, 사용처 바로가기 카드 3개(가로 Row),
 // 전체 내역 버튼. 사용처 카드 3개가 고정 폭 Row 안에서 짧은 라벨만 쓰므로 설계상
 // 안전해 보이지만 실측으로 확인한다.
+//
+// [반응형 화면 규격 통일 — 재조사] 기존 매트릭스는 textScale 1.3까지만
+// 검증했다(이미 Wrap/Flexible로 3건의 실제 버그가 수정된 이력이 있음). 320x568
+// 기준 textScale을 2.0/2.5까지 올려 재검증한 결과 RenderFlex 가로 오버플로는
+// 재현되지 않았다. textScale이 높을수록 시트 상단 콘텐츠 높이가 늘어나 "짧은 영상
+// 보고..."와 "수호자"가 초기 뷰포트 밖으로 더 깊이 밀릴 뿐이라(ListView의 Sliver 지연
+// 빌드 특성상 find.text()가 찾지 못함), 각 단계마다 scrollUntilVisible로 실제
+// 사용자처럼 스크롤해 확인해야 한다(실제 버그가 아니라 테스트 자체의 한계).
+// 매트릭스를 5종 조합으로 확장해 회귀 방지한다.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -84,9 +93,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -95,8 +105,20 @@ void main() {
       (tester) async {
         await _pump(tester, size: size, textScale: textScale);
 
-        expect(tester.takeException(), isNull);
+        var ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         expect(find.text('내 복주머니'), findsOneWidget);
+        // [반응형 화면 규격 통일 — 재조사] textScale이 높을수록 위의 잔액
+        // 표시 영역 높이가 늘어나 이 요소가 초기 뷰포트 밖에 있을 수 있다.
+        await tester.scrollUntilVisible(
+          find.text('짧은 영상 보고 복주머니 받기'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         expect(find.text('짧은 영상 보고 복주머니 받기'), findsOneWidget);
 
         // [버그수정 아님 — 테스트 보정] 시트 내부 ListView는 Sliver 지연
@@ -111,7 +133,21 @@ void main() {
           200,
           scrollable: find.byType(Scrollable).first,
         );
+        ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         expect(find.text('소원방에서 쓰는 곳'), findsOneWidget);
+        // [반응형 화면 규격 통일 — 재조사] 2.0/2.5에서는 "소원방에서 쓰는 곳"
+        // 타이틀이 보여도 그 아래 카드(_UseCard)는 여전히 뷰포트 밖일 수
+        // 있어 추가로 스크롤해 확인한다.
+        await tester.scrollUntilVisible(
+          find.text('수호자'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         expect(find.text('수호자'), findsOneWidget);
         expect(find.text('꾸미기'), findsOneWidget);
         expect(find.text('선물하기'), findsOneWidget);
