@@ -78,9 +78,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -91,7 +92,7 @@ void main() {
         await _pump(tester, size: size, textScale: textScale, room: _buildCompletedRoom());
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('새 소원은 조금 뒤에 봉인할 수 있어요'), findsOneWidget);
         expect(find.text('알겠어요'), findsOneWidget);
 
@@ -100,7 +101,7 @@ void main() {
         await tester.tap(find.text('알겠어요'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('알겠어요'), findsNothing);
       },
     );
@@ -112,7 +113,7 @@ void main() {
       '@$textScale에서 오버플로 없이 뜬다',
       (tester) async {
         await _pump(tester, size: size, textScale: textScale, room: null);
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
       },
     );
   }

@@ -1434,6 +1434,14 @@ class WrSealDatePicker extends StatelessWidget {
                     color: const Color(0x14FFDC96),
                   )
                 : WrDeco.card,
+            // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+            // trailing 안내 텍스트("날짜 직접 선택")가 Flexible/ellipsis 없이
+            // 고정 크기를 요구해, 시스템 글자 확대 2.5배 조합에서 아이콘+
+            // trailing 텍스트의 고정폭 합이 컨테이너 폭(250px)을 넘어
+            // Expanded 중앙 텍스트가 있어도 Row 전체가 오른쪽으로 28px
+            // 넘쳤다(RenderFlex overflowed). trailing 텍스트를 Flexible로
+            // 감싸 공간이 부족하면 줄임표(ellipsis)로 축약되게 한다(문구·
+            // 아이콘·날짜 표시·레이아웃은 그대로 유지).
             child: Row(
               children: [
                 const Text('📅', style: TextStyle(fontSize: 18)),
@@ -1448,9 +1456,12 @@ class WrSealDatePicker extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  value != null ? '바꾸기' : '날짜 직접 선택',
-                  style: WrF.mono(size: 10, color: WrC.muted),
+                Flexible(
+                  child: Text(
+                    value != null ? '바꾸기' : '날짜 직접 선택',
+                    style: WrF.mono(size: 10, color: WrC.muted),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
