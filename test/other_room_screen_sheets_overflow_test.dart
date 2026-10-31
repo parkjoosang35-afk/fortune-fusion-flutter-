@@ -116,9 +116,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -136,7 +137,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('❤ 응원하기'), findsOneWidget);
       },
     );
@@ -152,7 +153,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('응원 한 마디'), findsOneWidget);
         expect(find.text('도착한 마음 2'), findsOneWidget);
       },
@@ -169,12 +170,12 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('복주머니 보내기'), findsOneWidget);
         // 금액 칩 탭 → setSheetState 반영도 오버플로 없이 동작하는지 확인.
         await tester.tap(find.text('50개'));
         await tester.pump();
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('복주머니 50개 보내기'), findsOneWidget);
       },
     );
@@ -190,7 +191,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('이 소원방'), findsOneWidget);
         expect(find.text('소원방 신고하기'), findsOneWidget);
         expect(find.text('이 분 차단하기'), findsOneWidget);

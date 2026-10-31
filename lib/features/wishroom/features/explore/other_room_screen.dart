@@ -186,22 +186,39 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
                 child: Container(width: 38, height: 38, decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle),
                   child: const Icon(Icons.more_horiz, color: Colors.white)))),
               // 상단 칩: 응원·메시지·복 + 방만 보기
+              // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+              // 기존엔 통계 뱃지(❤·💬·福)를 고정 크기로 두고 Spacer()가 남는
+              // 공간을 모두 흡수해 "방만 보기" 버튼을 오른쪽 끝에 붙였는데,
+              // 시스템 글자 확대 2.0배 조합에서 뱃지 자체 폭이 좁은 화면
+              // 가용폭(362px)의 83%(299.8px)까지 불어나 Row 전체가 오른쪽으로
+              // 121px 넘쳤다(RenderFlex overflowed). Spacer를 지우는 대신
+              // 뱃지를 Expanded(=Spacer가 차지하던 "남는 공간" 영역 그대로)
+              // 로 감싸고 그 안에서 Align(좌측 정렬)+FittedBox(scaleDown)로
+              // 배치하면, 평소(뱃지가 영역보다 작을 때)엔 기존과 완전히
+              // 동일한 위치로 렌더되고, 넘칠 때만 비율대로 축소돼 더 이상
+              // 넘치지 않는다("방만 보기" 버튼은 항상 오른쪽 끝 고정).
               Positioned(left: 14, right: 14, top: 104, child: Row(children: [
                 if (room.visibility == Visibility.LINK) Container(
                   margin: const EdgeInsets.only(right: 6),
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                   decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999)),
                   child: Text('🔗 초대받은 방', style: WrF.body(11, w: FontWeight.w700, color: const Color(0xFFFFE08A)))),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-                  decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text('❤ ${room.supportCount}', style: WrF.body(11.5, w: FontWeight.w700, color: WrC.blossom2)),
-                    const SizedBox(width: 10),
-                    Text('💬 ${comments.length}', style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg)),
-                    const SizedBox(width: 10),
-                    Text('福 ${room.pouchReceived}', style: WrF.body(11.5, w: FontWeight.w700, color: WrC.glow)),
-                  ])),
-                const Spacer(),
+                Expanded(child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                      decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text('❤ ${room.supportCount}', style: WrF.body(11.5, w: FontWeight.w700, color: WrC.blossom2)),
+                        const SizedBox(width: 10),
+                        Text('💬 ${comments.length}', style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg)),
+                        const SizedBox(width: 10),
+                        Text('福 ${room.pouchReceived}', style: WrF.body(11.5, w: FontWeight.w700, color: WrC.glow)),
+                      ])),
+                  ),
+                )),
                 GestureDetector(onTap: () => setState(() => _peek = true), child: Container(
                   padding: const EdgeInsets.fromLTRB(11, 5, 7, 5),
                   decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
@@ -220,8 +237,14 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
                 ),
               )),
               // 하단 도크
+              // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+              // 복주머니/응원 메시지 두 알약 버튼 Row가 고정 크기 Row(children:[...])
+              // 라 시스템 글자 확대 2.5배 조합에서 가로 366px 폭을 넘겨 오른쪽으로
+              // 넘쳤다(RenderFlex overflowed). SingleChildScrollView로 감싸
+              // 넘칠 때만 가로 스크롤이 가능하게 한다(두 버튼의 탭 영역·간격·
+              // 디자인은 그대로 유지, 평소 폭에는 영향 없음).
               Positioned(left: 12, right: 12, bottom: 30, child: Column(children: [
-                Row(children: [
+                SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
                   GestureDetector(onTap: () => _openGiftSheet(room), child: Container(
                     padding: const EdgeInsets.fromLTRB(7, 6, 12, 6),
                     decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x80F5CF6A))),
@@ -235,7 +258,7 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
                     child: Text('💬 응원 메시지', style: WrF.body(12, w: FontWeight.w700, color: WrC.fg)))),
-                ]),
+                ])),
                 const SizedBox(height: 10),
                 Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                   Expanded(child: GestureDetector(
@@ -257,12 +280,22 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
                             borderRadius: BorderRadius.circular(6)),
                           child: Text(W != null ? W['hanja'] as String : '願', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFFFF9E8)))),
                         const SizedBox(width: 9),
-                        Expanded(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                        // 소원 도크는 높이 58px 고정 슬림 바라, 라벨+소원 한 줄
+                        // 2줄 텍스트가 시스템 글자 확대 2.0배 조합에서 9px씩
+                        // 세로로 넘쳤다(RenderFlex overflowed). main_room_screen.dart
+                        // 동일 도크의 기존 수정과 같은 패턴으로 FittedBox로 감싸
+                        // 공간이 부족할 때만 내용을 비율대로 축소한다(평소 크기엔
+                        // 영향 없음).
+                        Expanded(child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text('${room.region} · ${room.daysLit}일째 밝히는 중${W != null ? ' · ${W['label']}' : ''}',
                             style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 10, color: _paperInk(paper).withValues(alpha: .6)), maxLines: 1, overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 2),
                           Text(room.text, style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 13.5, color: _paperInk(paper), height: 1.35), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ])),
+                        ]))),
                         Text('▲', style: TextStyle(fontSize: 10, color: _paperInk(paper).withValues(alpha: .5))),
                       ]),
                     ),
@@ -280,11 +313,18 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
                       decoration: BoxDecoration(shape: BoxShape.circle,
                         gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
                           colors: room.supportedToday ? const [Color(0xFF4A2238), Color(0xFF2A1020)] : const [Color(0xFFFF9CBC), Color(0xFFF2628F)])),
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                    // 지름 66px(안쪽 패딩 4px 제외 시 58x58) 고정 원형 버튼인데
+                    // 내부 아이콘+라벨 2줄 Column이 시스템 글자 확대 2.0배 조합에서
+                    // 39px씩 세로로 넘쳤다(RenderFlex overflowed). main_room_screen.dart의
+                    // 동일한 정성/응원 버튼에 이미 적용된 FittedBox 패턴을 그대로
+                    // 적용해 공간이 부족할 때만 내용을 비율대로 축소한다(평소
+                    // 크기·아이콘·라벨·색상에는 영향 없음).
+                    child: FittedBox(fit: BoxFit.scaleDown, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Text('❤', style: TextStyle(fontSize: 20, height: 1, color: room.supportedToday ? const Color(0xFFFF8FB1) : Colors.white)),
                         const SizedBox(height: 3),
                         Text(room.supportedToday ? '응원함' : '응원하기', style: WrF.body(9.5, w: FontWeight.w800, color: Colors.white)),
-                      ]),
+                      ])),
                     ),
                   )),
                 ]),
