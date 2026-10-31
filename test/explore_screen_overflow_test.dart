@@ -1,3 +1,23 @@
+// 탐색(explore) 화면(ExploreScreen) "소원방"/"✨ 이루어진 이야기" 두 탭
+// 회귀 테스트.
+//
+// [발견한 버그 4건] (모두 textScale이 커지면서 고정폭 Row가 가용폭을
+// 초과해 `RenderFlex overflowed`가 나는 가로 오버플로 패턴)
+// 1) 탐색 헤더 탭 Row("소원방"/"✨ 이루어진 이야기" + Spacer + 정렬칩):
+//    실측 360x640@1.3 65px 초과. Wrap(spaceBetween)으로 교체해 평소엔
+//    기존과 동일하게 보이고, 공간이 부족할 때만 정렬칩 묶음이 다음
+//    줄로 자동 줄바꿈되고, 탭 묶음 자체도 가로 스크롤로 감싸(320x568@2.0
+//    55px/@2.5 123px 추가 초과 해결).
+// 2) _StoryCard 하단 작성자 Row(닉네임 + "축하해요 N" 버튼): 실측
+//    390x844@1.0에서도 54px, 320x568@1.5에서 282px 초과. 닉네임을
+//    Flexible+ellipsis로, 축하 버튼 전체를 Flexible+FittedBox(scaleDown)로 감쌌.
+// 3) _FeedCard ❤/💬/Lv/응원하기 Row: 실측 360x640@1.3에서 77px 초과.
+//    통계 묶음을 Expanded+가로 SingleChildScrollView로 감싸 응원하기 버튼은
+//    항상 탭 가능하게 유지.
+// 4) 이야기(stories) 탭 버튼 Row("모두의 이야기"/"나의 이야기"): 가로
+//    스크롤로 감싸 해결.
+// 네 건 모두 디자인·문구·색상·배치 순서 변경 없이 Flexible/Expanded/스크롤로만
+// 대응했다.
 import 'dart:io';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart';
@@ -95,16 +115,15 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      final ex1 = tester.takeException();
-      debugPrint('${size.width.toInt()}x${size.height.toInt()}@$scale [rooms tab]: exception=$ex1');
-      if (ex1 != null) debugDumpRenderTree();
+      expect(tester.takeException(), isNull,
+          reason: '${size.width.toInt()}x${size.height.toInt()}@$scale [rooms tab] overflow 없어야 함');
 
       // 피드 리스트까지 스크롤.
       await tester.drag(find.byType(CustomScrollView).first, const Offset(0, -600));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      final ex1b = tester.takeException();
-      debugPrint('${size.width.toInt()}x${size.height.toInt()}@$scale [rooms tab scrolled]: exception=$ex1b');
+      expect(tester.takeException(), isNull,
+          reason: '${size.width.toInt()}x${size.height.toInt()}@$scale [rooms tab scrolled] overflow 없어야 함');
     });
 
     testWidgets('explore screen stories tab ${size.width.toInt()}x${size.height.toInt()}@$scale', (tester) async {
@@ -136,9 +155,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      final ex2 = tester.takeException();
-      debugPrint('${size.width.toInt()}x${size.height.toInt()}@$scale [stories tab]: exception=$ex2');
-      if (ex2 != null) debugDumpRenderTree();
+      expect(tester.takeException(), isNull,
+          reason: '${size.width.toInt()}x${size.height.toInt()}@$scale [stories tab] overflow 없어야 함');
     });
   }
 }

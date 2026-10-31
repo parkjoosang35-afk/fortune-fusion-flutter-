@@ -157,37 +157,47 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     // 좌측 탭·우측 정렬칩으로 보이고(디자인·배치 변경 없음), 공간이
                     // 부족할 때만 정렬 칩 묶음이 다음 줄로 자동 줄바꿈되어 잘리거나
                     // 숨겨지지 않고 항상 탭 가능하게 유지된다.
-                    child: Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      runSpacing: 8,
-                      children: [
-                        // 탭 묶음 자체도 긴 라벨("✨ 이루어진 이야기")이 textScale
-                        // 2.0+에서 288px 가용폭을 넘길 수 있어(실측 320x568@2.0,
-                        // 55px 초과) 가로 스크롤로 감싼다 — 평소엔 그대로 보임.
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _tab('소원방', 'rooms'),
-                              const SizedBox(width: 8),
-                              _tab('✨ 이루어진 이야기', 'stories'),
-                            ],
+                    // [골든 회귀 수정] Wrap은 Row와 달리 부모 가로폭으로 자동으로
+                    // 늘어나지 않고 자식들의 자연폭만큼만 차지한다 — 그 상태로
+                    // alignment:spaceBetween을 줘도 "벌릴 공간" 자체가 없어 두 그룹이
+                    // 좌측에 붙어버리고(정렬칩이 탭 바로 옆으로 이동), 골든 이미지가
+                    // 깨졌다(explore_golden_preview_test, diff 2.35%). SizedBox(width:
+                    // double.infinity)로 Wrap을 감싸 Row처럼 전체 가용폭을 차지하게
+                    // 해야 spaceBetween이 의도대로 "좌측 탭/우측 정렬칩"을 만든다.
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        runSpacing: 8,
+                        children: [
+                          // 탭 묶음 자체도 긴 라벨("✨ 이루어진 이야기")이 textScale
+                          // 2.0+에서 288px 가용폭을 넘길 수 있어(실측 320x568@2.0,
+                          // 55px 초과) 가로 스크롤로 감싼다 — 평소엔 그대로 보임.
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _tab('소원방', 'rooms'),
+                                const SizedBox(width: 8),
+                                _tab('✨ 이루어진 이야기', 'stories'),
+                              ],
+                            ),
                           ),
-                        ),
-                        // [정렬칩 재배치 — 사용자 지시 2026-10-14] 인기순·최신순은 최상단 헤더가
-                        // 아니라 '✨ 이루어진 이야기' 탭 옆(탭 행 우측)에 놓는다.
-                        if (_etab == 'rooms')
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _sortChip('인기순', true),
-                              const SizedBox(width: 6),
-                              _sortChip('최신순', false),
-                            ],
-                          ),
-                      ],
+                          // [정렬칩 재배치 — 사용자 지시 2026-10-14] 인기순·최신순은 최상단
+                          // 헤더가 아니라 '✨ 이루어진 이야기' 탭 옆(탭 행 우측)에 놓는다.
+                          if (_etab == 'rooms')
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _sortChip('인기순', true),
+                                const SizedBox(width: 6),
+                                _sortChip('최신순', false),
+                              ],
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   Expanded(
