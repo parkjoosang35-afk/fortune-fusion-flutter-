@@ -57,31 +57,64 @@ void _showExitAskSheet(BuildContext context, {String? message}) {
     builder: (sheetCtx) => Container(
       decoration: WrDeco.sheet,
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('🕯', style: TextStyle(fontSize: 48)),
-        const SizedBox(height: 10),
-        Text('신통방통 홈으로 갈까요', style: WrF.display(18)),
-        const SizedBox(height: 6),
-        Text(message ?? '촛불은 계속 켜져 있어요. 언제든 다시 오세요.',
-            textAlign: TextAlign.center, style: WrF.body(13, color: WrC.muted, height: 1.6)),
-        const SizedBox(height: 16),
-        Row(children: [
-          Expanded(child: OutlinedButton(
-            onPressed: () => Navigator.of(sheetCtx).pop(),
-            style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
-            child: Text('머무를게요', style: WrF.body(13, color: WrC.fg)),
-          )),
-          const SizedBox(width: 8),
-          Expanded(child: ElevatedButton(
-            onPressed: () {
-              Navigator.of(sheetCtx).pop();
-              wrExitHome(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
-            child: const Text('홈으로', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          )),
-        ]),
-      ]),
+      // [반응형 화면 규격 통일 지시서] 이 시트는 소원방 탭 루트 화면들
+      // (complete/decor/explore/notifications/main_room/vault)의 공용
+      // 뒤로가기(wrBackOrAskExit)에서 공통으로 뜨는데, 기존 고정
+      // Column(mainAxisSize: min)에 SingleChildScrollView 보호가 없어
+      // 작은 화면(320px대) + 큰 textScale(1.5배 이상) 조합에서 세로
+      // RenderFlex 오버플로가 발생했다(실측 56px/204px/365px, textScale
+      // 1.5/2.0/2.5). 내용이 화면보다 작을 때는 기존과 시각적으로 동일하고,
+      // 넘칠 때만 스크롤되도록 SingleChildScrollView로 감싼다 — 디자인/
+      // 문구/버튼 변경 없음.
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🕯', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 10),
+            Text('신통방통 홈으로 갈까요', style: WrF.display(18)),
+            const SizedBox(height: 6),
+            Text(
+              message ?? '촛불은 계속 켜져 있어요. 언제든 다시 오세요.',
+              textAlign: TextAlign.center,
+              style: WrF.body(13, color: WrC.muted, height: 1.6),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(sheetCtx).pop(),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: WrC.line),
+                    ),
+                    child: Text('머무를게요', style: WrF.body(13, color: WrC.fg)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(sheetCtx).pop();
+                      wrExitHome(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: WrC.blossom,
+                    ),
+                    child: const Text(
+                      '홈으로',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }

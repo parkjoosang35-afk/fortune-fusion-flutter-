@@ -194,67 +194,78 @@ Future<void> showLoginRequiredSheet(
           top: UnifiedTokens.spaceLg,
           bottom: UnifiedTokens.spaceXl + MediaQuery.of(ctx).viewInsets.bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
-                decoration: BoxDecoration(
-                  color: UnifiedColors.border,
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                ),
-              ),
-            ),
-            const Text('🔥', style: TextStyle(fontSize: 32)),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            Text(
-              '프리패스를 이용하려면\n로그인이 필요합니다',
-              style: UnifiedText.title(),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: UnifiedTokens.spaceSm),
-            Text(
-              '"$categoryTitle" 운세는 로그인 후 프리패스로\n이용할 수 있어요. 로그인하면 자동으로\n이어서 진행됩니다.',
-              style: UnifiedText.body(),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXl),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pushNamed('/login');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: UnifiedColors.black,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
+        // [반응형 화면 규격 통일 지시서] categoryTitle은 관리자 카테고리
+        // 목록의 entry.title을 그대로 받아 길이가 보장되지 않는다 — 긴
+        // 카테고리명 + 작은 화면(320px대) + textScale 2.0배 이상 조합에서
+        // 고정 Column(SingleChildScrollView 없음)이 세로 RenderFlex
+        // 오버플로를 일으켰다(실측 223px/522px). SingleChildScrollView로
+        // 감싸 내용이 화면보다 작을 때는 기존과 동일, 넘칠 때만
+        // 스크롤되게 한다 — 디자인/문구/버튼 변경 없음.
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
+                  decoration: BoxDecoration(
+                    color: UnifiedColors.border,
                     borderRadius: BorderRadius.circular(
                       UnifiedTokens.radiusPill,
                     ),
                   ),
                 ),
-                child: const Text(
-                  '로그인 / 회원가입',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              const Text('🔥', style: TextStyle(fontSize: 32)),
+              const SizedBox(height: UnifiedTokens.spaceMd),
+              Text(
+                '프리패스를 이용하려면\n로그인이 필요합니다',
+                style: UnifiedText.title(),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: UnifiedTokens.spaceSm),
+              Text(
+                '"$categoryTitle" 운세는 로그인 후 프리패스로\n이용할 수 있어요. 로그인하면 자동으로\n이어서 진행됩니다.',
+                style: UnifiedText.body(),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: UnifiedTokens.spaceXl),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).pushNamed('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UnifiedColors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
+                    ),
+                  ),
+                  child: const Text(
+                    '로그인 / 회원가입',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceSm),
-            TextButton(
-              onPressed: () {
-                PendingPassRequestStore.clear();
-                Navigator.of(ctx).pop();
-              },
-              child: Text('나중에 할게요', style: UnifiedText.caption()),
-            ),
-          ],
+              const SizedBox(height: UnifiedTokens.spaceSm),
+              TextButton(
+                onPressed: () {
+                  PendingPassRequestStore.clear();
+                  Navigator.of(ctx).pop();
+                },
+                child: Text('나중에 할게요', style: UnifiedText.caption()),
+              ),
+            ],
+          ),
         ),
       ),
     ),
