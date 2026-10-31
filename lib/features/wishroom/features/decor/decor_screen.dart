@@ -312,42 +312,70 @@ class _DecorScreenState extends State<DecorScreen> {
                                   ),
                                 ),
                               // 지금 켜진 기운
+                              // [반응형 화면 규격 통일] 기존엔 top:318 고정 +
+                              // 높이 제한 없는 Wrap이라, 동시에 켜진 기운이
+                              // 많거나(최대 6개) textScale이 커지면 아래로
+                              // 자라 400px 뷰파인더의 ClipRect 경계에 실제로
+                              // 잘렸다(카메라 연출과 무관한 UI 요소라 그
+                              // 예외 규칙이 적용되지 않음). bottom:8 로 남은
+                              // 영역을 명시적으로 제한하고, 그 안에서만
+                              // FittedBox(scaleDown)으로 전체를 축소해 항상
+                              // 보이게 한다. 평소(1~2개) 케이스는 공간에
+                              // 여유가 있어 scale=1로 기존 모습 그대로다.
                               if (_fxList(room.effects).isNotEmpty)
                                 Positioned(
                                   left: 12,
                                   right: 12,
                                   top: 318,
-                                  child: Wrap(
-                                    spacing: 4,
-                                    runSpacing: 4,
-                                    alignment: WrapAlignment.center,
-                                    children: _fxList(room.effects)
-                                        .map(
-                                          (t) => Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 3,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xB3140810),
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
-                                              border: Border.all(
-                                                color: const Color(0x59FFDCA0),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              t,
-                                              style: const TextStyle(
-                                                fontFamily: 'Pretendard',
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 10.5,
-                                                color: Color(0xFFFFE6B8),
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
+                                  bottom: 8,
+                                  child: LayoutBuilder(
+                                    builder: (context, c) => FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.topCenter,
+                                      child: SizedBox(
+                                        width: c.maxWidth,
+                                        child: Wrap(
+                                          spacing: 4,
+                                          runSpacing: 4,
+                                          alignment: WrapAlignment.center,
+                                          children: _fxList(room.effects)
+                                              .map(
+                                                (t) => Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xB3140810,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          999,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0x59FFDCA0,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    t,
+                                                    style: const TextStyle(
+                                                      fontFamily: 'Pretendard',
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 10.5,
+                                                      color: Color(0xFFFFE6B8),
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               SafeArea(
