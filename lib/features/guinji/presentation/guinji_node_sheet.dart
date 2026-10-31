@@ -200,32 +200,41 @@ class GuinjiNodeSheet extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            '$score',
-                            style: TextStyle(
-                              fontFamily: GmText.display,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w600,
-                              color: color,
-                              height: 1,
+                      // [반응형 화면 규격 통일 지시서] 점수 Row(mainAxisSize:
+                      // max, 글자 크기 34)가 좁은 화면(320x568)에서 textScale을
+                      // 올리면 부모 폭(약 252px)을 넘어선다. 실측 @2.0 20px,
+                      // @2.5 86px 가로 오버플로 확인
+                      // (test/guinji_node_sheet_overflow_test.dart 참고).
+                      // FittedBox로 감싸 필요시 축소되도록 한다.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '$score',
+                              style: TextStyle(
+                                fontFamily: GmText.display,
+                                fontSize: 34,
+                                fontWeight: FontWeight.w600,
+                                color: color,
+                                height: 1,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            '/ 100',
-                            style: TextStyle(
-                              fontFamily: GmText.ui,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: GmColors.muted,
+                            const SizedBox(width: 4),
+                            const Text(
+                              '/ 100',
+                              style: TextStyle(
+                                fontFamily: GmText.ui,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: GmColors.muted,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Container(
