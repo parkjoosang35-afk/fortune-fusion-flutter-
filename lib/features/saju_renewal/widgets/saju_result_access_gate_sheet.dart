@@ -723,13 +723,22 @@ class _GateOptionState extends State<_GateOption> {
                     ),
                   )
                 else if (widget.trailing != null)
-                  Text(
-                    widget.trailing!,
-                    style: TextStyle(
-                      fontFamily: SajuType.ui,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: disabled ? SajuText.faint : SajuGold.g300,
+                  // [오버플로 수정] 복주머니 보유량이 많이 쌓인 사용자(큰
+                  // 숫자) + 큰 textScale에서 "보유 N개" trailing 텍스트가
+                  // 320x568@2.0에서 25px, @2.5에서 91px RenderFlex
+                  // 오버플로를 일으킴을 확인. Flexible+ellipsis로 감싸
+                  // result_access_gate_sheet.dart의 동일 구조 수정과
+                  // 같은 패턴 적용 (디자인/색상/문구 변경 없음).
+                  Flexible(
+                    child: Text(
+                      widget.trailing!,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: SajuType.ui,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: disabled ? SajuText.faint : SajuGold.g300,
+                      ),
                     ),
                   ),
               ],

@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/saju_renewal/widgets/saju_story_widgets.dart';
 
+// [조사 결과 — 매트릭스 1.3 → 전체 5-콤보(390x844@1.0 ~ 320x568@2.5)로
+// 확장 재검증] 이 시트는 이미 SingleChildScrollView 패턴이 적용되어
+// 있어(소스 코드 주석 참고), 2.0·2.5의 더 큰 textScale에서도 추가
+// 버그 없음을 확인 — 수정 불필요.
 void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -48,7 +53,9 @@ void main() {
         );
         await tester.tap(find.text('열기'));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+        final ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         expect(find.text('쉬운 설명'), findsOneWidget);
       },
     );

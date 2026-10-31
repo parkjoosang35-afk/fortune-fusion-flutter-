@@ -2,6 +2,11 @@
 // birth_input_screen.dart의 _changeBirthPlace()가 isScrollControlled
 // 없이 showModalBottomSheet를 호출하는 것을 확인, 17개 지역 Wrap 목록이
 // 작은 화면/글자확대 조건에서 오버플로를 내는지 widget test로 실측한다.
+//
+// [조사 결과 — 매트릭스 1.3 → 전체 5-콤보(390x844@1.0 ~ 320x568@2.5)로
+// 확장 재검증] 이 화면은 이미 isScrollControlled: true +
+// SingleChildScrollView 패턴이 적용되어 있어(소스 코드 주석 참고), 2.0·
+// 2.5의 더 큰 textScale에서도 추가 버그 없음을 확인 — 수정 불필요.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -26,7 +31,9 @@ void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -48,7 +55,9 @@ void main() {
           ),
         );
         await tester.pump();
-        expect(tester.takeException(), isNull);
+        var ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
 
         final changeFinder = find.text('변경');
         expect(changeFinder, findsWidgets);
@@ -58,7 +67,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(tester.takeException(), isNull);
+        ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         // 시트 목록의 마지막 항목(제주)까지 실제로 그려지는지 확인.
         expect(find.text('제주'), findsOneWidget);
       },
