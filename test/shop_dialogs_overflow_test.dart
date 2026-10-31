@@ -9,10 +9,19 @@
 // - ShopGuideDialog(안내 3단계 다이얼로그, 4개 타입 공용): Dialog 내부
 //   Column이 화면 높이를 넘는 내용을 그대로 받아 최대 170px 잘림
 //   → 화면 높이의 85%로 제한 + SingleChildScrollView로 해결.
-// - ShortageDialog: 이번 조건에서는 오버플로가 없었지만(짧은 내용),
+// - ShortageDialog: 1.3배 조건에서는 오버플로가 없었지만(짧은 내용),
 //   회귀 방지 차원에서 같이 검증한다.
 //
 // 디자인·문구·색상·버튼 동작은 전혀 바꾸지 않았다.
+//
+// [조사 결과 — 매트릭스 1.3 → 전체 5-콤보(390x844@1.0 ~ 320x568@2.5)로
+// 확장 재검증] PurchaseConfirmSheet/ShopGuideDialog는 2.0·2.5의 더 큰
+// textScale에서도 추가 버그 없음을 확인 — 수정 불필요. 반면
+// ShortageDialog는 이 확장된 매트릭스에서 비로소 320x568@2.0에서
+// 90px, @2.5에서 318px RenderFlex 오버플로가 드러났다(본문 2줄
+// 텍스트가 확대되며 Dialog 기본 Column이 화면 높이를 초과). 다른
+// 두 다이얼로그와 동일한 ConstrainedBox(maxHeight: 85%)+
+// SingleChildScrollView 패턴으로 수정.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -53,8 +62,11 @@ Future<void> _openAndCheck(
 
 void main() {
   final configs = <(Size, double)>[
-    (const Size(360, 640), 1.0),
-    (const Size(320, 568), 1.3), // 과거 ShopGuideDialog 170px, PurchaseConfirmSheet 61px 오버플로 재현 조건
+    (const Size(390, 844), 1.0),
+    (const Size(360, 640), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5), // 과거 ShopGuideDialog 170px, PurchaseConfirmSheet 61px 오버플로 재현 조건 + 확장
   ];
 
   for (final (size, scale) in configs) {
@@ -71,7 +83,9 @@ void main() {
           child: const Text('open'),
         ),
       );
-      expect(tester.takeException(), isNull);
+      final ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
     });
 
     testWidgets('PurchaseConfirmSheet $label 에서 오버플로 없이 렌더링된다', (tester) async {
@@ -84,7 +98,9 @@ void main() {
           child: const Text('open'),
         ),
       );
-      expect(tester.takeException(), isNull);
+      final ex = tester.takeException();
+      if (ex != null) debugDumpRenderTree();
+      expect(ex, isNull);
       expect(find.text('취소'), findsOneWidget, reason: '맨 아래 버튼까지 실제로 그려져야 한다');
     });
 
@@ -99,7 +115,9 @@ void main() {
             child: const Text('open'),
           ),
         );
-        expect(tester.takeException(), isNull);
+        final ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         expect(find.text('알겠어요'), findsOneWidget, reason: '맨 아래 버튼까지 실제로 그려져야 한다');
       });
     }

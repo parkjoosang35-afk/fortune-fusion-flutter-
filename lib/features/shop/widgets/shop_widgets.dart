@@ -223,53 +223,66 @@ class ShortageDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // [반응형 화면 규격 통일 — 잘림 현상 수정] 글자 확대가 큰 조합
+    // (320x568@2.0배, @2.5배)에서 본문 2줄 텍스트가 커지며 다이얼로그
+    // 높이가 화면을 넘어 "확인" 버튼까지 각각 90px/318px 잘리는 게
+    // 실측 확인됐다. 같은 파일의 ShopGuideDialog와 동일하게 화면
+    // 높이의 85%로 제한하고 넘칠 때만 스크롤되게 감싼다 — 들어가면
+    // 지금처럼 그대로, 문구/레이아웃/색상은 그대로다.
     return Dialog(
       backgroundColor: WishRoomColors.backgroundSoft,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: WishRoomColors.surfaceCardBorder),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🎁', style: TextStyle(fontSize: 32)),
-            const SizedBox(height: 12),
-            Text(
-              '복주머니가 부족해요',
-              style: WishRoomTextStyles.sectionTitle,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${item.nameKo}은(는) $need개가 필요해요.\n지금 잔액은 $have개예요.',
-              style: WishRoomTextStyles.bodySm,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: TextButton.styleFrom(
-                  backgroundColor: WishRoomColors.glow,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎁', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 12),
+                Text(
+                  '복주머니가 부족해요',
+                  style: WishRoomTextStyles.sectionTitle,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${item.nameKo}은(는) $need개가 필요해요.\n지금 잔액은 $have개예요.',
+                  style: WishRoomTextStyles.bodySm,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: WishRoomColors.glow,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      '확인',
+                      style: TextStyle(
+                        fontFamily: 'GowunBatang',
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2A1A3A),
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  '확인',
-                  style: TextStyle(
-                    fontFamily: 'GowunBatang',
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2A1A3A),
-                  ),
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
