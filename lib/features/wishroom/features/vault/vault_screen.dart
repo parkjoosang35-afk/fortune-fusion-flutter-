@@ -211,18 +211,27 @@ class _CurrentRoomCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.blossom2)),
         clipBehavior: Clip.antiAlias,
+        // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 카드는
+        // childAspectRatio:.74 그리드 셀(화면 폭에 비례해 전체 높이가 정해짐)
+        // 안에 있는데, 썸네일이 고정 150px + 그 아래 텍스트 블록까지 항상
+        // 자연 높이를 그대로 요구해, 320x568 화면에서 textScale 2.0부터
+        // 91~117px까지 `RenderFlex overflowed`가 났다(실측). 썸네일을
+        // Expanded로 바꿔 셀이 좁을 때 유연하게 줄어들게 하고, 텍스트
+        // 블록은 Flexible+FittedBox(scaleDown)로 감싸 공간이 부족할 때만
+        // 비율대로 살짝 작아지게 했다 — 평소(textScale 1.0 등 공간 충분)
+        // 케이스는 기존 모습 그대로다. 디자인·문구·색상 변경 없음.
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // [버그수정 — 전수감사] app2/screens-c2.jsx › Archive(): `<RoomThumb room={app.room}
           // w={164} h={150} focus={.42}/>` — G-4 공용 썸네일(RoomThumb)이어야 하는데
           // WrCanvasScaler+RoomScene(focus 없이 상단 고정 크롭)을 그대로 쓰고 있었다.
           // 같은 파일의 _ArchiveCard는 이미 RoomThumb로 교체됐는데 이 카드만 누락된 것.
-          SizedBox(height: 150, child: LayoutBuilder(builder: (context, c) =>
+          Expanded(child: LayoutBuilder(builder: (context, c) =>
             RoomThumb(room: room, items: items, w: c.maxWidth, h: c.maxHeight, focus: .42))),
-          Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Text('현재 소원방', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.fg)),
             const SizedBox(height: 2),
             Text(room.text, style: WrF.body(11.5, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
-          ])),
+          ])))),
         ]),
       ),
     );
@@ -238,6 +247,12 @@ class _ArchiveCard extends StatelessWidget {
     return GestureDetector(onTap: onTap, child: Container(
       decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0x66F5CF6A))),
       padding: const EdgeInsets.all(10),
+      // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] childAspectRatio:.74
+      // 그리드 셀 안, 썸네일(Expanded) 아래 "완성"+소원 텍스트+날짜 3줄 블록이
+      // 항상 고정 자연 높이를 요구해 320x568@2.5에서 46px `RenderFlex
+      // overflowed`가 났다(실측). 이 블록을 Flexible+FittedBox(scaleDown)로
+      // 감싸 공간이 부족할 때만 비율대로 작아지게 했다 — 평소엔 기존 모습
+      // 그대로. 디자인·문구·색상 변경 없음.
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // G-4 RoomThumb 공용 썸네일 — [버그수정 — 전수감사] 기존 더미 아이콘 교체.
         // [버그수정 — 전수감사] app2/screens-c2.jsx › Archive(): `<RoomThumb room={{...r,
@@ -253,11 +268,13 @@ class _ArchiveCard extends StatelessWidget {
             child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))))),
         ])),
         const SizedBox(height: 6),
-        Text('완성', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.glow)),
-        const SizedBox(height: 2),
-        Text(room.text, style: WrF.body(11.5, color: WrC.fg), maxLines: 1, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 2),
-        Text('${_d(room.completedAt)} · ${room.daysLit}일', style: WrF.body(10.5, color: WrC.muted)),
+        Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          Text('완성', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.glow)),
+          const SizedBox(height: 2),
+          Text(room.text, style: WrF.body(11.5, color: WrC.fg), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text('${_d(room.completedAt)} · ${room.daysLit}일', style: WrF.body(10.5, color: WrC.muted)),
+        ]))),
       ]),
     ));
   }
@@ -266,16 +283,21 @@ class _ArchiveCard extends StatelessWidget {
 class DottedBox extends StatelessWidget {
   const DottedBox({super.key});
   @override
+  // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] childAspectRatio:.74
+  // 그리드 셀 안에서 이 Column(mainAxisSize:min)도 셀이 좁아지면 자연 높이가
+  // 가용 높이를 넘어 320x568@2.5에서 3.3px `RenderFlex overflowed`가 났다
+  // (실측). FittedBox(scaleDown)로 전체를 감싸 공간이 부족할 때만 비율대로
+  // 작아지게 했다 — 평소엔 기존 모습 그대로. 디자인·문구·색상 변경 없음.
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.line, width: 1.4)),
         alignment: Alignment.center,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        child: FittedBox(fit: BoxFit.scaleDown, child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 44, height: 44, alignment: Alignment.center,
             decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x33F2628F), border: Border.all(color: WrC.blossom2)),
             child: const Text('+', style: TextStyle(fontSize: 20, color: WrC.blossom2))),
           const SizedBox(height: 8),
           Text('새로운 소원방\n만들기', textAlign: TextAlign.center, style: WrF.body(12.5, color: WrC.fg, w: FontWeight.w700)),
-        ]),
+        ])),
       );
 }
 
