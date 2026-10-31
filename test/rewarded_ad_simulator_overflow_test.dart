@@ -3,10 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/pass/data/rewarded_ad_simulator.dart';
 import 'package:flutter_app/features/pass/domain/open_pass_models.dart';
 
-/// [반응형 화면 규격 통일 — 잘림 현상 수정]
+/// [반응형 화면 규격 통일 지시서]
 /// RewardedAdSimulator는 Dialog 내부를 고정 height:380으로 구성한다.
-/// 작은 화면(세로 568) + 글자 확대(1.3배) 조합에서 Column(아이콘+2줄 텍스트+
-/// 진행바+결과라벨)이 그 고정 높이를 넘어 세로로 넘칠 가능성을 검증한다.
+///
+/// [확인된 실제 버그 1건 - debugDumpRenderTree로 근본원인 확정]
+/// 관리자가 등록한 광고소스의 networkName/sourceName을 그대로 보여줘
+/// 길이가 보장되지 않는데, 가운데 Column(아이콘+2줄 텍스트+진행바+
+/// 결과라벨)에 스크롤 보호가 없어 작은 화면(320px대) + textScale 2.5배
+/// 조합에서 세로 RenderFlex 오버플로가 발생했다(실측 62px). 우상단 닫기
+/// 버튼 등 Positioned 자식의 기준 높이(SizedBox height:380)는 유지한 채
+/// 가운데 콘텐츠만 SingleChildScrollView로 감싸 해결 — 디자인/문구/버튼
+/// 변경 없음. 기존 테스트는 textScale 1.3까지만 검증해 누락했다 — 표준
+/// 5개 기기폭×텍스트스케일 조합(최대 2.5배)으로 범위를 확장한다.
 void main() {
   const source = OpenPassAdSourceBindingModel(
     bindingId: 1,
@@ -25,9 +33,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -49,10 +58,8 @@ void main() {
               home: Scaffold(
                 body: Builder(
                   builder: (context) => ElevatedButton(
-                    onPressed: () => RewardedAdSimulator.show(
-                      context,
-                      source: source,
-                    ),
+                    onPressed: () =>
+                        RewardedAdSimulator.show(context, source: source),
                     child: const Text('열기'),
                   ),
                 ),
