@@ -144,6 +144,12 @@ class ShareService {
       final approved = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
+          // [반응형 화면 규격 통일 — 잘림 현상 수정] 좁은 화면+글자 확대
+          // 조합(320x568@2.5배)에서 content 텍스트가 길어 AlertDialog
+          // 기본 레이아웃이 62px RenderFlex 오버플로를 일으킴을 확인.
+          // scrollable: true로 content가 넘치면 스크롤되게 한다
+          // (문구/버튼/디자인 변경 없음).
+          scrollable: true,
           title: const Text('이 결과 그대로 공개할까요?'),
           content: const Text(
             '공유 링크를 가진 사람은 결과 화면에 보이는 이름·질문·사진·본문을 모두 볼 수 있어요. 공개하고 싶지 않은 내용이 있다면 취소해주세요.',
