@@ -9,9 +9,10 @@ import 'package:flutter_app/core/widgets/face_palm_select_sheet.dart';
 void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -47,7 +48,9 @@ void main() {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
 
-        expect(tester.takeException(), isNull);
+        final ex = tester.takeException();
+        if (ex != null) debugDumpRenderTree();
+        expect(ex, isNull);
         expect(find.text('관상 보기'), findsOneWidget);
         expect(find.text('손금 보기'), findsOneWidget);
       },
