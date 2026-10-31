@@ -138,11 +138,21 @@ class _ArchiveTabState extends State<_ArchiveTab> {
       final cur = p.room; // 현재 소원방(진행 중)은 provider.room, 보관함 리스트는 완성/봉인분
       final done = rooms.where((r) => r.status == RoomStatus.SEALED || r.status == RoomStatus.ARCHIVED).toList();
       return RefreshIndicator(onRefresh: () => p.loadArchive(), child: CustomScrollView(slivers: [
-        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 10), child: Row(children: [
-          _chip('진행 중 (${cur != null ? 1 : 0})', true),
-          const SizedBox(width: 8),
-          _chip('이루어진 소원 (${done.length})', false),
-        ]))),
+        // [반응형 화면 규격 통일] 기존엔 두 칩이 Expanded/Flexible 없이 고정폭으로
+        // Row에 바로 들어있어, textScale이 커지면("진행 중 (N)"/"이루어진 소원 (N)"
+        // 문자열이 늘어나) Row 가용폭(화면폭-32)을 초과해 가로로 넘쳤다(실측
+        // 320x568@2.0, 62px 초과 — TabBarView가 탭들을 모두 유지해 빌드하는
+        // 특성상 보관함의 다른 탭("응원 보상" 등)으로 전환만 해도 발생). 가로
+        // 스크롤이 가능한 SingleChildScrollView로 감싸, 평소(짧은 라벨)엔 그대로
+        // 보이고 넘칠 때만 옆으로 스크롤되게 해 가로 오버플로를 방지한다.
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 10), child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            _chip('진행 중 (${cur != null ? 1 : 0})', true),
+            const SizedBox(width: 8),
+            _chip('이루어진 소원 (${done.length})', false),
+          ]),
+        ))),
         if (_ongoing)
           SliverPadding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: .74),

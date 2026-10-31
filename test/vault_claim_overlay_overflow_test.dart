@@ -21,11 +21,16 @@
 // 조건(390x844@1.0, 360x640@1.3, 320x568@1.5)에서 "닫기" 버튼이 스크롤 후
 // 항상 화면 안에 존재하고 탭 가능해야 한다.
 //
-// [미해결 — 다음 작업으로 이월] 320x568@2.0 조건에서는 _ClaimOverlay 진입
-// *이전* 단계인 "다음 보상" 진행률 헤더 Row 부근에서 별도의 가로 62px
-// RenderFlex 오버플로가 발생해 _ClaimOverlay 자체의 검증까지 도달하지 못했다.
-// 이 잔여 이슈는 범위를 좁혀 별도로 재조사 후 수정이 필요하다 — 이번 커밋에는
-// 포함하지 않는다(확인되지 않은 수정을 성급히 적용하지 않기 위함).
+// [추가 확인 — 이어서 수정] 320x568@2.0 조건에서는 처음엔 _ClaimOverlay 진입
+// 자체가 불가능했다(별도의 가로 62px RenderFlex 오버플로). 추적 결과 원인은
+// _ClaimOverlay나 _RewardTab이 아니라, 같은 VaultScreen의 TabBarView 안에
+// 함께 떠 있는 _ArchiveTab(첫 번째 탭) 상단의 "진행 중 (N)"/"이루어진 소원 (N)"
+// 칩 Row였다 — TabBarView는 비활성 탭도 AutomaticKeepAlive로 계속
+// 빌드/레이아웃하므로, "응원 보상" 탭으로 전환만 해도 _ArchiveTab의 고정폭
+// 칩 Row가 textScale 2.0에서 넘쳤다(확대된 "진행 중 (0)"/"이루어진 소원 (0)"
+// 라벨이 Row 가용폭을 초과). _ArchiveTab의 칩 Row를 가로
+// SingleChildScrollView로 감싸 수정했으며, 아래 320x568@2.0 테스트 조건으로
+// 함께 검증한다.
 import 'dart:io';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart';
@@ -111,11 +116,12 @@ Future<void> _pumpAndClaim(WidgetTester tester, Size size, double textScale) asy
   await tester.pump(const Duration(milliseconds: 400));
 
   final claimBtn = find.text('🎁 받기');
-  if (claimBtn.evaluate().isEmpty) {
-    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+  for (int i = 0; i < 6 && claimBtn.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(ListView).first, const Offset(0, -300));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 100));
   }
+  await tester.pump(const Duration(milliseconds: 300));
   expect(claimBtn, findsOneWidget, reason: '응원 100회 보상의 "🎁 받기" 버튼을 찾을 수 없음');
   await tester.tap(claimBtn.first, warnIfMissed: false);
   await tester.pump();
@@ -129,6 +135,7 @@ void main() {
     (const Size(390, 844), 1.0),
     (const Size(360, 640), 1.3),
     (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
   ]) {
     testWidgets(
       '응원 보상 받기 연출(_ClaimOverlay) — ${size.width.toInt()}x${size.height.toInt()}@$scale에서 '
