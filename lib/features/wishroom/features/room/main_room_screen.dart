@@ -1363,8 +1363,16 @@ class _CareSheetState extends State<_CareSheet> {
           child: Container(
             width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: WrDeco.card,
+            // [반응형 화면 규격 통일 — 잘림 현상 수정] 라벨 Text에 Flexible
+            // 보호가 없어, 글자 확대(2.0~2.5배)에서 토글 스위치(44px 고정)를
+            // 밀어내 320x568@2.0에서 40px, @2.5에서 101px 오른쪽 오버플로가
+            // 실측됐다(debugDumpRenderTree()로 확인). Flexible로 감싸 공간이
+            // 부족하면 라벨이 자연스럽게 2줄로 줄바꿈되게 한다 — 평소
+            // 크기에선 한 줄로 기존과 동일하게 보이고, 토글 스위치는 항상
+            // 제자리에 고정폭으로 보인다.
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('입장 인트로 항상 생략', style: WrF.body(13.5, color: Colors.white)),
+              Flexible(child: Text('입장 인트로 항상 생략', style: WrF.body(13.5, color: Colors.white))),
+              const SizedBox(width: 10),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 400), width: 44, height: 26,
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(13), color: skipIntro ? WrC.blossom : Colors.white24),

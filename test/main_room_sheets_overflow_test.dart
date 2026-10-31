@@ -7,9 +7,29 @@
 // SingleChildScrollView(Column(mainAxisSize: MainAxisSize.min)) 구조라서,
 // 내용이 화면보다 길어지면(글자 확대·긴 레벨명·긴 소원 텍스트 등) 시트 전체가
 // 세로로 스크롤되어 맨 아래 버튼까지 항상 탭할 수 있다 — 지시서 D항("팝업/안내창은
-// 내부 스크롤, 버튼 항상 탭 가능")을 이미 만족하는 구조로 확인됨(실제 버그 아님,
-// 수정 불요). 아래 테스트로 320x568@1.5라는 가장 가혹한 조건에서도 스크롤을 통해
-// 모든 버튼에 닿을 수 있음을 회귀 테스트로 고정한다.
+// 내부 스크롤, 버튼 항상 탭 가능")을 이미 만족하는 구조로 확인됨(세로 스크롤
+// 관점에서는 실제 버그 아님, 수정 불요).
+//
+// [발견된 실제 버그 — 매트릭스를 표준 5종(390x844@1.0 / 360x640@1.3 /
+// 320x568@1.5 / 320x568@2.0 / 320x568@2.5)으로 확장하며 신규 발견]
+// CareSheet 안의 "입장 인트로 항상 생략" 토글 카드 Row(라벨 Text + 44x26
+// AnimatedContainer 토글 스위치, mainAxisAlignment: spaceBetween)는 라벨에
+// Flexible 보호가 전혀 없어, 글자 확대(2.0~2.5배)에서 라벨이 토글 스위치를
+// 가로로 밀어내 320x568@2.0에서 40px, @2.5에서 101px 오른쪽 오버플로가
+// 실측됐다(debugDumpRenderTree()로 확인). 이 Row는 CareSheet가
+// `showModalBottomSheet()`로 열리는데, 이는 Navigator 루트 Overlay를
+// 쓰므로 wishroom_shell.dart의 소원방 모듈 공통 textScaler 1.3배 상한
+// (IndexedStack 안 탭 5종에만 적용) 서브트리 "밖"에서 렌더링돼 그 보호도
+// 받지 못한다 — 테스트가 shell 없이 MainRoomScreen을 직접 여는 것과
+// 무관하게, 실제 앱에서도 동일하게 재현 가능한 진짜 버그다.
+//
+// [수정 내용] (디자인·문구·색상 변경 없음) 라벨 Text를 Flexible로 감싸
+// 공간이 부족하면 자연스럽게 2줄로 줄바꿈되게 했다 — 평소 크기에선 한 줄로
+// 기존과 동일하게 보이고, 토글 스위치는 항상 고정폭으로 제자리에 보인다.
+//
+// 아래 테스트로 표준 5종 매트릭스 전 조건에서 CareSheet·ShareSheet 모두
+// 오버플로 없이 뜨고, 스크롤을 통해 모든 버튼에 닿을 수 있음을 회귀
+// 테스트로 고정한다.
 import 'dart:io';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart';
@@ -105,6 +125,8 @@ void main() {
     (const Size(390, 844), 1.0),
     (const Size(360, 640), 1.3),
     (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -118,7 +140,7 @@ void main() {
         await tester.tap(find.textContaining('일째 밝히는 중'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        expect(tester.takeException(), isNull, reason: 'wishFullCard open');
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull, reason: 'wishFullCard open');}
 
         // 2) 공유 버튼 탭 -> ShareSheet (wishFullCard 안의 버튼이 나중에
         // 추가돼 트리상 뒤에 위치하므로 .last).
@@ -126,7 +148,7 @@ void main() {
         await tester.tap(find.text('⤴ 공유').last);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        expect(tester.takeException(), isNull, reason: 'ShareSheet open');
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull, reason: 'ShareSheet open');}
 
         // ShareSheet 모달 라우트를 닫는다. [참고] 버튼 onPressed가 실제 앱에서도
         // _wishOpen=false를 먼저 호출하므로 wishFullCard는 이미 닫혀 있다(정상).
@@ -142,7 +164,7 @@ void main() {
         await tester.tap(find.text('소원방 돌보기'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        expect(tester.takeException(), isNull, reason: 'CareSheet open');
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull, reason: 'CareSheet open');}
 
         // CareSheet 맨 아래 "완료" 버튼까지 스크롤로 닿는지 확인 — 버튼이
         // 화면보다 아래에 있어도(320x568@1.5) 시트 내부 스크롤로 항상 탭 가능해야
@@ -153,7 +175,7 @@ void main() {
           scrollable: find.byType(Scrollable).first,
         );
         expect(find.text('✿ 소원이 이루어졌어요'), findsOneWidget);
-        expect(tester.takeException(), isNull, reason: 'CareSheet scroll to bottom button');
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull, reason: 'CareSheet scroll to bottom button');}
 
         // CareSheet -> ShareSheet(공개범위가 비공개가 아닐 때만 노출되는
         // "소원방 공유하기" 버튼)도 스크롤 후 탭 가능한지 확인.
@@ -166,7 +188,7 @@ void main() {
           await tester.tap(find.text('⤴ 소원방 공유하기 · 링크 보내기'));
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
-          expect(tester.takeException(), isNull, reason: 'CareSheet -> ShareSheet open');
+          {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull, reason: 'CareSheet -> ShareSheet open');}
         }
       },
     );
