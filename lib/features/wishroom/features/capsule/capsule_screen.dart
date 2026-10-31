@@ -337,14 +337,19 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
     ])));
   }
 
+  // [반응형 화면 규격 통일 — 잘림 현상 수정] label Text가 고정폭 Row 안에서
+  // overflow 보호 없이 배치돼 있어, 텍스트 배율이 큰 기기(2.5x)에서
+  // 오른쪽으로 최대 151px까지 넘쳤다(RenderFlex overflow). 디자인/정렬은
+  // 그대로 두고 label만 Flexible + ellipsis로 감싸 넘침을 방지한다.
   Widget _choiceBtn(String emoji, String label, BoxDecoration deco, Color color, VoidCallback onTap) => SizedBox(
     width: double.infinity, height: 52,
     child: DecoratedBox(decoration: deco, child: Material(color: Colors.transparent,
       child: InkWell(borderRadius: BorderRadius.circular(16), onTap: _busy ? null : onTap,
-        child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+        child: Center(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(mainAxisSize: MainAxisSize.min, children: [
           Text(emoji, style: const TextStyle(fontSize: 18)), const SizedBox(width: 8),
-          Text(label, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 15, color: color)),
-        ]))))));
+          Flexible(child: Text(label, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 15, color: color),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+        ])))))));
 }
 
 // ============================================================
