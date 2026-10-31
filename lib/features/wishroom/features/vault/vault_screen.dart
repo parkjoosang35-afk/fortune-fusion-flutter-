@@ -492,10 +492,17 @@ class _PouchTabState extends State<_PouchTab> {
           ]),
         ),
         const SizedBox(height: 18),
+        // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 두 Text가
+        // Flexible/Expanded 없이 고정폭으로 Row에 바로 들어있어, textScale이
+        // 커지면(큰 글꼴의 "복주머니 모으기" 제목 + "매일 자정 초기화" 부제)
+        // Row 가용폭(화면폭-32)을 초과해 가로로 넘쳤다(실측 320x568@2.0,
+        // 81px 초과). 부제 쪽을 Flexible+ellipsis로 감싸, 평소(공간 충분)엔
+        // 그대로 보이고 넘칠 때만 말줄임표로 줄어들게 해 가로 오버플로를
+        // 방지한다. 디자인·문구·색상 변경 없음.
         Row(children: [
           Text('복주머니 모으기', style: WrF.display(16)),
           const SizedBox(width: 6),
-          Text('매일 자정 초기화', style: WrF.body(11, color: WrC.muted)),
+          Flexible(child: Text('매일 자정 초기화', style: WrF.body(11, color: WrC.muted), overflow: TextOverflow.ellipsis)),
         ]),
         const SizedBox(height: 10),
         // 오늘 진행 요약
