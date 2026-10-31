@@ -45,12 +45,26 @@ class AuthPrimaryButton extends StatelessWidget {
                   strokeWidth: 2,
                 ),
               )
+            // [반응형 화면 규격 통일 지시서] welcome_reward_modal.dart의
+            // '복주머니 받기' 버튼(카드 maxWidth 320 제약 하위)에서
+            // 320x568@2.5 조합으로 실측 42px 가로 RenderFlex 오버플로가
+            // 확인됐다 — 라벨 Text에 overflow 보호가 없어 textScale
+            // 확대분을 그대로 받았기 때문. Flexible+ellipsis로 감싸
+            // 해결(로그인/회원가입 등 기존 짧은 라벨에는 시각적 변화 없음).
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('✧', style: IntroTextStyles.btnPrimary()),
                   const SizedBox(width: 8),
-                  Text(label, style: IntroTextStyles.btnPrimary()),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: IntroTextStyles.btnPrimary(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 ],
               ),
       ),

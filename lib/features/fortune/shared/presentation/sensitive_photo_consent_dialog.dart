@@ -77,6 +77,12 @@ class _ConsentSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // [반응형 화면 규격 통일 지시서] 이 시트는 고정 Column(mainAxisSize: min)에
+    // SingleChildScrollView 보호가 없어, 작은 화면(320px대) + 큰 textScale
+    // (1.5배 이상) 조합에서 안내문구가 길어지며 세로 RenderFlex 오버플로가
+    // 발생했다(실측 320x568@1.5 65px, @2.0 430px, @2.5 882px). 내용이
+    // 화면보다 작을 때는 기존과 시각적으로 동일하고, 넘칠 때만 스크롤되도록
+    // SingleChildScrollView로 감싼다 — 디자인/문구/버튼 변경 없음.
     return SafeArea(
       child: Container(
         margin: const EdgeInsets.all(16),
@@ -86,52 +92,54 @@ class _ConsentSheet extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: SintongColors.line),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.privacy_tip_outlined,
-                  color: SintongColors.accent,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '$featureLabel 분석을 위한 사진 처리 동의',
-                    style: SintongType.cardTitle,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.privacy_tip_outlined,
+                    color: SintongColors.accent,
+                    size: 22,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '사진은 분석에만 사용되며 저장되지 않습니다.',
-              style: SintongType.bodySmall.copyWith(
-                fontWeight: FontWeight.w700,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '$featureLabel 분석을 위한 사진 처리 동의',
+                      style: SintongType.cardTitle,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '촬영 또는 선택한 사진은 얼굴·손금 분석 응답을 생성하는 목적으로만 '
-              'AI 모델에 일시적으로 전송되며, 분석이 끝나면 즉시 파기되고 회사 '
-              '서버에 별도로 저장되지 않습니다. 동의하지 않으셔도 다른 기능은 '
-              '계속 이용하실 수 있으며, 이 경우 $featureLabel 기능만 제한됩니다.',
-              style: SintongType.caption,
-            ),
-            const SizedBox(height: 18),
-            SintongPrimaryButton(
-              label: '동의하고 계속하기',
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-            const SizedBox(height: 8),
-            SintongGhostButton(
-              label: '거부하기',
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                '사진은 분석에만 사용되며 저장되지 않습니다.',
+                style: SintongType.bodySmall.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '촬영 또는 선택한 사진은 얼굴·손금 분석 응답을 생성하는 목적으로만 '
+                'AI 모델에 일시적으로 전송되며, 분석이 끝나면 즉시 파기되고 회사 '
+                '서버에 별도로 저장되지 않습니다. 동의하지 않으셔도 다른 기능은 '
+                '계속 이용하실 수 있으며, 이 경우 $featureLabel 기능만 제한됩니다.',
+                style: SintongType.caption,
+              ),
+              const SizedBox(height: 18),
+              SintongPrimaryButton(
+                label: '동의하고 계속하기',
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+              const SizedBox(height: 8),
+              SintongGhostButton(
+                label: '거부하기',
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+            ],
+          ),
         ),
       ),
     );
