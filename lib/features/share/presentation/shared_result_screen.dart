@@ -209,26 +209,36 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '$score',
-                    style: TextStyle(
-                      fontSize: 44,
-                      fontWeight: FontWeight.w700,
-                      color: color,
-                      height: 1,
+              // [반응형 화면 규격 통일 지시서] "98 / 100" 점수 Row가
+              // fontSize: 44 고정값 + Flexible/FittedBox 보호 없이
+              // 배치되어, 큰 텍스트스케일(320x568@2.0 이상)에서 두 Text의
+              // 자연폭 합이 카드 가용폭을 초과해 RenderFlex 오버플로가
+              // 발생했다(실측: 최대 150px). FittedBox(scaleDown)로 감싸
+              // 공간이 부족할 때만 전체를 비율 유지한 채 축소한다 — 일반
+              // 크기에서는 기존과 완전히 동일하게 렌더링된다.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '$score',
+                      style: TextStyle(
+                        fontSize: 44,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                        height: 1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Text(
-                    '/ 100',
-                    style: TextStyle(fontSize: 13, color: GmColors.muted),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    const Text(
+                      '/ 100',
+                      style: TextStyle(fontSize: 13, color: GmColors.muted),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 2),
               const Text(
