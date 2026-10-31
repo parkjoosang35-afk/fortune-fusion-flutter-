@@ -347,13 +347,17 @@ class _ReplayOverlay extends StatelessWidget {
           const SizedBox(height: 10),
           Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, color: WrC.hanjiInk, height: 1.5)),
           const SizedBox(height: 10),
-          Row(children: [
+          // [반응형 화면 규격 통일 — 잘림 현상 수정] 레벨/정성/응원/福 4개
+          // 고정폭 항목이 Flexible·스크롤 보호 없는 Row에 그대로 들어있어,
+          // 320x568@2.5 배율에서 오른쪽으로 37px 오버플로되는 것을 실측
+          // 확인했다. 디자인·문구·간격은 그대로 두고 Row를 Wrap으로
+          // 교체해, 넘칠 때만 다음 줄로 자연스럽게 내려가게 한다(내용이
+          // 좁은 화면에서도 전부 보이고, 평소(1.0~1.5배)에는 기존과
+          // 동일하게 한 줄로 표시됨).
+          Wrap(spacing: 14, runSpacing: 4, children: [
             Text('Lv.${room.level}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF8A4A3A))),
-            const SizedBox(width: 14),
             Text('🙏 ${room.devotionCount}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF8A4A3A))),
-            const SizedBox(width: 14),
             Text('❤ ${room.supportCount}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF8A4A3A))),
-            const SizedBox(width: 14),
             Text('福 ${room.pouchReceived}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF8A4A3A))),
           ]),
         ]),

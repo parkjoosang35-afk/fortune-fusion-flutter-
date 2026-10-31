@@ -8,6 +8,15 @@
 // 배치되고 위쪽으로는 자유롭게 늘어날 수 있는 구조라, 소원 문구가 길고
 // 화면이 작을 때 카드 상단이 화면 밖(상태바/타이틀 영역과 겹침)으로
 // 넘어가거나 Stack 안에서 잘릴 가능성이 있다. 실측으로 확인한다.
+//
+// [실제 버그 발견 — 매트릭스를 표준 5종(1.0/1.3/1.5/2.0/2.5)으로 확장하며
+// 추가 발견] 카드 하단의 "Lv./🙏 정성/❤ 응원/福 복주머니" 통계 4개 항목이
+// Flexible·스크롤 보호 없는 Row에 고정폭으로 나열돼 있어, 320x568@2.5
+// 배율에서 오른쪽으로 37px RenderFlex 오버플로가 발생하는 것을 실측
+// 확인했다. 수정: 디자인·문구·간격(SizedBox(width:14) 대신 Wrap의
+// spacing:14)은 그대로 두고 Row를 Wrap(runSpacing:4)으로 교체해, 평소
+// (1.0~1.5배)에는 기존처럼 한 줄로 보이고 글자가 커져 넘칠 때만 자연스럽게
+// 다음 줄로 내려가게 했다(vault_screen.dart `_ReplayOverlay`).
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,9 +49,10 @@ void main() {
 
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -121,7 +131,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('이루어진 소원방'), findsOneWidget);
       },
     );
