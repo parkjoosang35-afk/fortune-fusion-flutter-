@@ -5,6 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 // 서버가 내려주는 policy.notice가 길 때 다이얼로그가 세로로 잘리는지 확인한다.
 // (StatefulWidget 내부 private 메서드라 직접 import가 어려워 동일 위젯
 // 트리를 구성해 검증한다.)
+//
+// [반응형 화면 규격 통일 — 재조사] 기존 매트릭스는 textScale 1.3까지만
+// 검증했다. AlertDialog(content: Text(...))는 내부적으로 스크롤 가능한
+// 레이아웃(SingleChildScrollView 포함)을 기본 제공하므로, 320x568 기준
+// textScale을 2.0/2.5까지 올려 재검증해도 오버플로가 재현되지 않음을
+// 확인했다(5/5 통과). 즉 이 파일은 "실제 버그를 수정"한 사례가 아니라
+// "재조사 결과 이미 안전함을 확인"한 사례이며, 회귀 방지를 위해 매트릭스를
+// 5종 조합(1.0/1.3/1.5/2.0/2.5)으로 확장해 유지한다.
 void showDialogLike(BuildContext context, String notice) {
   showDialog<void>(
     context: context,
@@ -28,9 +36,10 @@ void showDialogLike(BuildContext context, String notice) {
 void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   const longNotice =
@@ -73,7 +82,11 @@ void main() {
         );
         await tester.tap(find.text('열기'));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+        final ex = tester.takeException();
+        if (ex != null) {
+          debugDumpRenderTree();
+        }
+        expect(ex, isNull);
       },
     );
   }
