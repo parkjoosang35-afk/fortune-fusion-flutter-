@@ -708,12 +708,17 @@ class _RewardTabState extends State<_RewardTab> {
                 TextSpan(text: '❤ $n', style: const TextStyle(color: Color(0xFFFF8FB1), fontSize: 15, fontWeight: FontWeight.w700)),
               ])),
               if (next != null) Padding(padding: const EdgeInsets.only(top: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // [반응형 화면 규격 통일] 우측 "N회 남음" 텍스트가 Flexible 없이
+                // 고정폭으로 들어있어, textScale 2.0에서 폭이 커지면 왼쪽 Expanded가
+                // 0까지 줄어도 Row 전체가 가로로 넘쳤다(실측 320x568@2.0, 62px 초과 —
+                // 응원 보상 탭 최상단에서 발생해 그 아래 _ClaimOverlay 접근 자체를 막음).
+                // 우측 텍스트도 Flexible로 감싸 필요시 줄어들게 한다.
                 Row(children: [
                   Expanded(child: Text.rich(TextSpan(style: WrF.body(11.5, color: WrC.muted), children: [
                     const TextSpan(text: '다음 보상 · '),
                     TextSpan(text: '${next['reward']}', style: const TextStyle(color: WrC.fg)),
                   ]))),
-                  Text('${(next['at'] as int) - n}회 남음', style: WrF.body(11.5, color: WrC.muted)),
+                  Flexible(child: Text('${(next['at'] as int) - n}회 남음', textAlign: TextAlign.right, overflow: TextOverflow.ellipsis, style: WrF.body(11.5, color: WrC.muted))),
                 ]),
                 const SizedBox(height: 6),
                 ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(
@@ -758,22 +763,29 @@ class _RewardTabState extends State<_RewardTab> {
                   const SizedBox(height: 2),
                   Text('응원 $at회 · ${r['desc']}', style: WrF.body(11, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ])),
+                // [반응형 화면 규격 통일] 기존엔 이 액션 영역(버튼/칩)이 Flexible 없이
+                // Row에 바로 들어있어, textScale이 커지면("✓ 받음 · 꾸미기 ›" 칩이
+                // 특히 긴 문자열이라 textScale 2.0에서 62px 초과) 왼쪽 Expanded 텍스트
+                // 컬럼이 0까지 줄어들어도 Row 전체가 가로로 넘쳐흘렀다(실측 320x568@2.0
+                // "RenderFlex overflowed by 62 pixels"). Flexible로 감싸 필요시 칩/버튼
+                // 자체도 줄어들 수 있게 하여(平소 1-2줄 내용일 땐 그대로 보이고, 공간이
+                // 부족할 때만 줄바꿈되거나 폭이 줄어듦) 항상 Row 폭 안에 들어오게 한다.
                 if (statusReady)
-                  GestureDetector(onTap: _busy ? null : () => _claim(p, room.id, r), child: Container(
+                  Flexible(child: GestureDetector(onTap: _busy ? null : () => _claim(p, room.id, r), child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
                       gradient: const LinearGradient(colors: [Color(0xFFFFE7A0), WrC.glow, Color(0xFFD9A53A)])),
-                    child: const Text('🎁 받기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF4A2A10)))))
+                    child: const Text('🎁 받기', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF4A2A10))))))
                 // app2/screens-c2.jsx › RewardTab() st==='claimed' 칩 onClick={() => app.go('decor')} 1:1.
                 // [버그수정 — 전수감사] 기존엔 탭 핸들러 없는 정적 Container + "✓ 받음"만
                 // 표시했다(원본은 "✓ 받음 · 꾸미기 ›" + 꾸미기 탭(탭3)으로 이동).
                 else if (claimed)
-                  GestureDetector(onTap: () => context.read<WishRoomProvider>().requestTab(3), child: Container(
+                  Flexible(child: GestureDetector(onTap: () => context.read<WishRoomProvider>().requestTab(3), child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: WrC.glow, borderRadius: BorderRadius.circular(999)),
-                    child: const Text('✓ 받음 · 꾸미기 ›', style: TextStyle(color: Color(0xFF4A2A10), fontSize: 11, fontWeight: FontWeight.w700))))
+                    child: const Text('✓ 받음 · 꾸미기 ›', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF4A2A10), fontSize: 11, fontWeight: FontWeight.w700)))))
                 else
-                  Text('${at - n}회 남음', style: WrF.body(11, color: WrC.muted)),
+                  Flexible(child: Text('${at - n}회 남음', textAlign: TextAlign.right, style: WrF.body(11, color: WrC.muted))),
               ]),
             ));
           }),
@@ -806,9 +818,24 @@ class _ClaimOverlayState extends State<_ClaimOverlay> with SingleTickerProviderS
     final bonus = widget.data['bonus'] as int?;
     final itemName = item?['name'] as String?;
     final itemImg = item?['img'] as String?;
-    return Positioned.fill(child: Stack(children: [
+    // [반응형 화면 규격 통일] 기존엔 top:150 고정 + 아래쪽(bottom) 제한이 전혀 없는
+    // Positioned라, 받은 아이템 이름이 길거나(예: 한정판 장식 이름 2줄) textScale이
+    // 커지면 카드 내용 전체 높이가 늘어나 화면 바닥 밖으로 밀려났다(실측:
+    // 360x640@1.3 "닫기" 버튼 23px 잘림, 320x568@1.5 168px 잘림, 320x568@2.0
+    // 완전 붕괴/오버플로). 이 오버레이는 _RewardTab의 Stack(=TabBarView 영역,
+    // 즉 상단바+탭바 높이만큼 화면 전체보다 작음) 기준 Positioned.fill이라
+    // MediaQuery의 화면 전체 높이가 아니라 LayoutBuilder로 실제 부모 Stack의
+    // 가용 높이를 받아야 한다. top 앵커(150)와 좌우 여백(24)은 그대로 두고,
+    // 카드 전체를 "남은 가용 높이"로 maxHeight 제한한 뒤 SingleChildScrollView로
+    // 감싸 — 평소(짧은 내용)엔 그대로 내용 크기만큼만 차지하고(시각적 변화 없음),
+    // 넘칠 때만 카드 내부가 스크롤되어 버튼이 항상 눌리도록 한다.
+    return Positioned.fill(child: LayoutBuilder(builder: (context, constraints) {
+      final maxCardHeight = (constraints.maxHeight - 150 - 24).clamp(0.0, double.infinity);
+      return Stack(children: [
       GestureDetector(onTap: widget.onClose, child: Container(color: const Color(0xB3000000))),
-      Positioned(left: 24, right: 24, top: 150, child: Container(
+      Positioned(left: 24, right: 24, top: 150, child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxCardHeight),
+        child: SingleChildScrollView(child: Container(
         padding: const EdgeInsets.fromLTRB(18, 26, 18, 18),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(24),
           gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xF7461E38), Color(0xFA1A0812)]),
@@ -860,7 +887,8 @@ class _ClaimOverlayState extends State<_ClaimOverlay> with SingleTickerProviderS
             ],
           ]),
         ]),
-      )),
-    ]));
+      )))),
+      ]);
+    }));
   }
 }
