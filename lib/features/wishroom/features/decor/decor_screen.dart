@@ -1281,7 +1281,21 @@ class _DecorScreenState extends State<DecorScreen> {
           left: 10,
           right: 10,
           bottom: 22,
+          // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 시트는
+          // character_shop_screen.dart의 _infoSheet/_shortageSheet와 정확히
+          // 동일한 구조적 결함(Positioned(bottom:22)로만 배치되고 상단 제약이
+          // 전혀 없는 Column(mainAxisSize:min), 내부 스크롤 없음)을 갖고
+          // 있었다. 실측 결과(아이템 설명 43자 기준) 320x568 화면에서
+          // textScale 1.5 → 상단 "ITEM · ..." 라벨 top=-54.7px, 2.0 →
+          // top=-276.4px로 화면 밖까지 밀려났다(하단 CTA는 화면 안에 남아
+          // 있어 더 눈치채기 어려운 조용한 버그). _infoSheet와 동일한 패턴
+          // (maxHeight를 화면의 80%로 제한 + 드래그 핸들만 고정 헤더로 남기고
+          // 나머지를 Flexible+SingleChildScrollView로 스크롤)으로 수정했다.
+          // 디자인·문구·색상 변경 없음.
           child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * .8,
+            ),
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
             decoration: WrDeco.sheet,
             child: Column(
@@ -1298,210 +1312,236 @@ class _DecorScreenState extends State<DecorScreen> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                Text(
-                  'ITEM · ${_slotLabel(it.slot, room).split(' ').first}',
-                  style: WrF.mono(size: 10.5),
-                ),
-                const SizedBox(height: 4),
-                Text(it.name, style: WrF.display(19, color: Colors.white)),
-                const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 84,
-                      height: 84,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: WrC.line),
-                        gradient: RadialGradient(
-                          colors: [
-                            (C != null
-                                ? _hex(
-                                    C['color'] as String,
-                                  ).withValues(alpha: .25)
-                                : const Color(0x40FFDCA0)),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                      child: WrItemIcon(it: it, size: 60),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            C != null
-                                ? '${C['hanja']} · ${C['label']}의 기운'
-                                : '✦ 모든 소원의 기운',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                              color: C != null
-                                  ? _hex(C['color'] as String)
-                                  : WrC.glow,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            it.desc ?? '',
-                            style: WrF.body(
-                              13.5,
-                              color: Colors.white,
-                              height: 1.6,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (it.effect != null)
-                  Container(
-                    margin: const EdgeInsets.only(top: 14),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: match ? const Color(0x14FFDC82) : WrC.card,
-                      border: Border.all(
-                        color: match ? const Color(0x99FFDC82) : WrC.cardBorder,
-                      ),
-                    ),
+                Flexible(
+                  child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '방에 두면',
-                          style: WrF.mono(size: 10, color: WrC.blossom2),
+                          'ITEM · ${_slotLabel(it.slot, room).split(' ').first}',
+                          style: WrF.mono(size: 10.5),
                         ),
-                        const SizedBox(height: 8),
-                        _fxBadge(it, room, big: true),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Text(
-                          match
-                              ? '내 소원(${my.isNotEmpty ? my.first['label'] : ''})과 같은 기운이라 효과가 1.5배예요.'
-                              : it.aura == 'all'
-                              ? '어떤 소원에도 같은 힘을 내요.'
-                              : '${C != null ? C['label'] : ''} 소원이라면 효과가 1.5배가 돼요.',
-                          style: WrF.body(12, color: WrC.muted, height: 1.6),
+                          it.name,
+                          style: WrF.display(19, color: Colors.white),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 84,
+                              height: 84,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: WrC.line),
+                                gradient: RadialGradient(
+                                  colors: [
+                                    (C != null
+                                        ? _hex(
+                                            C['color'] as String,
+                                          ).withValues(alpha: .25)
+                                        : const Color(0x40FFDCA0)),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                              child: WrItemIcon(it: it, size: 60),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    C != null
+                                        ? '${C['hanja']} · ${C['label']}의 기운'
+                                        : '✦ 모든 소원의 기운',
+                                    style: TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      color: C != null
+                                          ? _hex(C['color'] as String)
+                                          : WrC.glow,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    it.desc ?? '',
+                                    style: WrF.body(
+                                      13.5,
+                                      color: Colors.white,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (it.effect != null)
+                          Container(
+                            margin: const EdgeInsets.only(top: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: match ? const Color(0x14FFDC82) : WrC.card,
+                              border: Border.all(
+                                color: match
+                                    ? const Color(0x99FFDC82)
+                                    : WrC.cardBorder,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '방에 두면',
+                                  style: WrF.mono(
+                                    size: 10,
+                                    color: WrC.blossom2,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                _fxBadge(it, room, big: true),
+                                const SizedBox(height: 8),
+                                Text(
+                                  match
+                                      ? '내 소원(${my.isNotEmpty ? my.first['label'] : ''})과 같은 기운이라 효과가 1.5배예요.'
+                                      : it.aura == 'all'
+                                      ? '어떤 소원에도 같은 힘을 내요.'
+                                      : '${C != null ? C['label'] : ''} 소원이라면 효과가 1.5배가 돼요.',
+                                  style: WrF.body(
+                                    12,
+                                    color: WrC.muted,
+                                    height: 1.6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            if (!it.owned && it.price == null)
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: null,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WrC.darkBtn,
+                                    ),
+                                    child: Text(
+                                      '❤ 응원 ${it.reward}회를 받으면 열려요',
+                                      style: WrF.body(
+                                        13,
+                                        color: Colors.white54,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else if (!it.owned)
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _buy(it, room),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WrC.blossom,
+                                    ),
+                                    child: Text(
+                                      '💰 ${it.price} · 방에 들이기',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else if (on) ...[
+                              if (canPlace)
+                                Expanded(
+                                  flex: 2,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: SizedBox(
+                                      height: 50,
+                                      child: ElevatedButton(
+                                        onPressed: () => setState(() {
+                                          _moving = it;
+                                          _card = null;
+                                        }),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: WrC.glow,
+                                        ),
+                                        child: const Text(
+                                          '✥ 자리 옮기기',
+                                          style: TextStyle(
+                                            color: Color(0xFF4A2A10),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () => _equip(it, room),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WrC.darkBtn,
+                                    ),
+                                    child: Text(
+                                      [
+                                            Slot.FLOWER,
+                                            Slot.SPECIAL,
+                                            Slot.CANDLE,
+                                            Slot.BACKGROUND,
+                                          ].contains(it.slot)
+                                          ? '놓여 있어요'
+                                          : '치우기',
+                                      style: WrF.body(13, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () => _equip(it, room),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WrC.blossom,
+                                    ),
+                                    child: const Text(
+                                      '방에 두기',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    if (!it.owned && it.price == null)
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: WrC.darkBtn,
-                            ),
-                            child: Text(
-                              '❤ 응원 ${it.reward}회를 받으면 열려요',
-                              style: WrF.body(13, color: Colors.white54),
-                            ),
-                          ),
-                        ),
-                      )
-                    else if (!it.owned)
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: _busy ? null : () => _buy(it, room),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: WrC.blossom,
-                            ),
-                            child: Text(
-                              '💰 ${it.price} · 방에 들이기',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    else if (on) ...[
-                      if (canPlace)
-                        Expanded(
-                          flex: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: SizedBox(
-                              height: 50,
-                              child: ElevatedButton(
-                                onPressed: () => setState(() {
-                                  _moving = it;
-                                  _card = null;
-                                }),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: WrC.glow,
-                                ),
-                                child: const Text(
-                                  '✥ 자리 옮기기',
-                                  style: TextStyle(
-                                    color: Color(0xFF4A2A10),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () => _equip(it, room),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: WrC.darkBtn,
-                            ),
-                            child: Text(
-                              [
-                                    Slot.FLOWER,
-                                    Slot.SPECIAL,
-                                    Slot.CANDLE,
-                                    Slot.BACKGROUND,
-                                  ].contains(it.slot)
-                                  ? '놓여 있어요'
-                                  : '치우기',
-                              style: WrF.body(13, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ] else
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () => _equip(it, room),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: WrC.blossom,
-                            ),
-                            child: const Text(
-                              '방에 두기',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
                 ),
               ],
             ),
