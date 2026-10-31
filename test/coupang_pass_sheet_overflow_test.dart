@@ -51,9 +51,10 @@ class _FakeWalletProvider extends WalletProvider {
 void main() {
   final conditions = <(Size, double)>[
     (const Size(390, 844), 1.0),
-    (const Size(360, 640), 1.0),
     (const Size(360, 640), 1.3),
-    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 1.5),
+    (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ];
 
   for (final (size, textScale) in conditions) {
@@ -95,7 +96,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 50));
         await tester.pump(const Duration(milliseconds: 300));
-        expect(tester.takeException(), isNull);
+        {final ex = tester.takeException(); if (ex != null) debugDumpRenderTree(); expect(ex, isNull);}
         expect(find.text('쿠팡 방문하기'), findsOneWidget);
       },
     );

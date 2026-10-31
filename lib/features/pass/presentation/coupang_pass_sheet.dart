@@ -582,6 +582,14 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         color: UnifiedColors.cardAllMenu,
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
       ),
+      // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+      // 이 뱃지는 시트 폭에 맞춘 Row(mainAxisSize: min)인데, 안의 Text가
+      // Flexible 없이 고정 폭을 요구해 시스템 글자 확대 2.0배 조합에서
+      // 40px, 2.5배 조합에서 112px씩 "오른쪽"으로 넘쳤다(RenderFlex
+      // overflowed on the right) — 다른 세로 오버플로와 달리 가로 오버플로라
+      // SingleChildScrollView로는 고칠 수 없다. Text를 Flexible로 감싸
+      // 공간이 부족하면 줄임표(ellipsis)로 축약되게 한다(평소 폭에는
+      // 영향 없음, 문구·아이콘·색상·배경은 그대로 유지).
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -591,11 +599,14 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
             color: UnifiedColors.textSecondary,
           ),
           const SizedBox(width: 4),
-          Text(
-            isCountBased
-                ? '프리패스 지급 · $durationLabel'
-                : '프리패스 이용시간 · $durationLabel',
-            style: UnifiedText.chipLabel(color: UnifiedColors.textSecondary),
+          Flexible(
+            child: Text(
+              isCountBased
+                  ? '프리패스 지급 · $durationLabel'
+                  : '프리패스 이용시간 · $durationLabel',
+              style: UnifiedText.chipLabel(color: UnifiedColors.textSecondary),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
