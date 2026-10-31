@@ -136,6 +136,7 @@ void main() {
     (const Size(360, 640), 1.3),
     (const Size(320, 568), 1.5),
     (const Size(320, 568), 2.0),
+    (const Size(320, 568), 2.5),
   ]) {
     testWidgets(
       '응원 보상 받기 연출(_ClaimOverlay) — ${size.width.toInt()}x${size.height.toInt()}@$scale에서 '
