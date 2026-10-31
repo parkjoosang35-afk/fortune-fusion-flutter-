@@ -450,7 +450,17 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
   void _openGiftSheet(WishRoom room) {
     final me = context.read<WishRoomProvider>().me;
     int amt = 10;
-    _openSheet((sheetCtx) => StatefulBuilder(builder: (sheetCtx, setSheetState) => Container(
+    // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+    // 이 시트는 isScrollControlled:true로 열리지만 내부 Container가
+    // ConstrainedBox/SingleChildScrollView 없이 Column(mainAxisSize:min)만
+    // 써서, 좁은 화면 + 가입 7일 이내 안내문구(2줄)까지 더해지는 조합에서
+    // 시트가 화면 전체 높이(568px)까지 커져도 내용이 다 안 들어가 세로로
+    // 19px(@2.0)~94px(@2.5) 넘쳤다(RenderFlex overflowed). 다른 시트들과
+    // 동일한 패턴으로 ConstrainedBox(85%)+SingleChildScrollView로 감싸
+    // 공간이 부족할 때만 스크롤되게 한다(디자인·문구·버튼은 그대로 유지).
+    _openSheet((sheetCtx) => StatefulBuilder(builder: (sheetCtx, setSheetState) => ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(sheetCtx).size.height * .85),
+      child: SingleChildScrollView(child: Container(
       decoration: WrDeco.sheet,
       padding: WrSize.sheetHeaderPad,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -490,6 +500,7 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
           child: Text('복주머니 $amt개 보내기', style: const TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700)),
         )),
       ]),
+    )),
     )));
   }
 
