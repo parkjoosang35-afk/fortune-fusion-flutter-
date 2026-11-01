@@ -26,7 +26,16 @@ class GuinjiIntroCinematic extends StatefulWidget {
   const GuinjiIntroCinematic({super.key, required this.onStart});
 
   /// CTA 탭 → 워프 전환(1.1초) 완료 후 호출(정보입력 화면으로 이동).
-  final VoidCallback onStart;
+  ///
+  /// [사용자 버그 리포트 — "내지도 만들기 누른 후 뒤로가기 누르면 내지도
+  /// 만들기 클릭 안됨"] 기존에는 `VoidCallback`이라 `Navigator.push`가
+  /// 반환하는 Future를 받을 방법이 없었다. 이 위젯(State)은 push된 다음
+  /// 화면 아래에 그대로 유지되므로, 사용자가 02(정보입력)에서 뒤로가기로
+  /// 복귀해도 `_go()`에서 true로 바꾼 `_warping`이 그대로 남아있었고,
+  /// 다시 CTA를 눌러도 `if (_warping) return;`에 걸려 아무 반응이 없었다.
+  /// `Future<void> Function()`으로 바꿔 push 완료(= 복귀) 시점을 알 수
+  /// 있게 하면, 돌아왔을 때 `_warping`을 원래대로 되돌릴 수 있다.
+  final Future<void> Function() onStart;
 
   @override
   State<GuinjiIntroCinematic> createState() => _GuinjiIntroCinematicState();
@@ -124,10 +133,18 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
   // 화이트아웃 레이어도 함께 제거 — 아래 build() 참고). 다음 화면 전환은
   // guinjiPageRoute()의 다크 배경 슬라이드 전환이 그대로 담당하므로
   // 흰/빈 화면 노출이 없다. `_warping`은 중복 탭 방지 용도로만 유지.
-  void _go() {
+  void _go() async {
     if (_warping) return;
     setState(() => _warping = true);
-    widget.onStart();
+    // [사용자 버그 리포트 수정] push된 화면이 다시 pop되어 이 위젯으로
+    // 돌아온 뒤에는 `_warping`을 반드시 false로 되돌려 CTA를 다시 누를
+    // 수 있게 한다. `widget.onStart()`가 반환하는 Future는 해당
+    // Navigator.push 호출의 반환값이므로, 그 화면이 pop될 때 비로소
+    // 완료된다(정상적으로 다음 단계까지 진행해 이 위젯이 dispose되는
+    // 경우에는 아래 `if (!mounted) return;`에서 안전하게 종료).
+    await widget.onStart();
+    if (!mounted) return;
+    setState(() => _warping = false);
   }
 
   @override

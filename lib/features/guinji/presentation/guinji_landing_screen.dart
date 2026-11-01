@@ -90,6 +90,11 @@ class _GuinjiLandingScreenState extends State<GuinjiLandingScreen> {
     }
 
     return GuinjiIntroCinematic(
+      // [사용자 버그 리포트 — "내지도 만들기 누른 후 뒤로가기 누르면
+      // 내지도 만들기 클릭 안됨" 수정] `pushNamed`가 반환하는 Future를
+      // 그대로 돌려준다. 이 Future는 해당 라우트가 pop될 때 완료되므로,
+      // GuinjiIntroCinematic이 `_warping`을 되돌릴 시점을 정확히 알 수
+      // 있다(디자인/전환 효과/기존 동작은 전혀 변경하지 않음).
       onStart: () => Navigator.of(context).pushNamed('/guinji-map/new'),
     );
   }
