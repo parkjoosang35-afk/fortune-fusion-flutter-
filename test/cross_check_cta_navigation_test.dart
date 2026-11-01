@@ -577,7 +577,11 @@ void main() {
         question: '지금 새로운 일을 시작해도 좋을까요?',
         spreadType: 'one_card',
         positions: const [
-          TarotSpreadPosition(label: '현재', card: cardPast, interpretation: '지금이 좋은 때입니다'),
+          TarotSpreadPosition(
+            label: '현재',
+            card: cardPast,
+            interpretation: '지금이 좋은 때입니다',
+          ),
         ],
         summary: '지금은 기회를 잡고 순조로운 흐름을 따라 지금 시작하기 좋은 적기입니다',
         createdAt: DateTime(2024, 6, 1),
@@ -667,7 +671,11 @@ void main() {
           reason: 'Task 5 위반: 타로↔사주(TarotSajuTimingRule) 판정이 결과에 없음',
         );
       }, () => mockClient);
-    });
+    }, skip: true); // [버그수정 — 하단바 버튼 축소] 사용자 요청으로 타로 결과
+    // 화면 하단바에서 "운세비교" 버튼 자체를 제거했다(tarot_result_screen.dart).
+    // UI 진입점이 없어졌으므로 이 테스트는 더 이상 유효하지 않다 — 타로→
+    // 교차검증 기능/엔진 자체는 무수정이며, 다른 4개(관상/손금/궁합/사주)
+    // 서브테스트는 전혀 영향 없다.
 
     testWidgets('[사주] "다른 운세와 비교해보기" 탭 -> 교차검증 화면 도달(최소 미판정 정직 표시 확인)', (
       tester,

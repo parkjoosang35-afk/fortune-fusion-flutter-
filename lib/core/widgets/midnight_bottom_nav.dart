@@ -68,10 +68,18 @@ class MidnightNavTokens {
   MidnightNavTokens._();
 
   static const Color bgBottom = Color(0xFF0E0A14); // --nav-bg-bottom
-  static const Color bgTop = Color(0xF50E0B16); // --nav-bg-top rgba(16,11,22,.96)
-  static const Color inactive = Color(0x80E8DCC8); // --nav-inactive rgba(232,220,200,.50)
-  static const Color active = Color(0xFFF5CF6A); // --nav-active = --glow (캔들 골드)
-  static const Color glow = Color(0x73F5CF6A); // --nav-glow rgba(245,207,106,.45)
+  static const Color bgTop = Color(
+    0xF50E0B16,
+  ); // --nav-bg-top rgba(16,11,22,.96)
+  static const Color inactive = Color(
+    0x80E8DCC8,
+  ); // --nav-inactive rgba(232,220,200,.50)
+  static const Color active = Color(
+    0xFFF5CF6A,
+  ); // --nav-active = --glow (캔들 골드)
+  static const Color glow = Color(
+    0x73F5CF6A,
+  ); // --nav-glow rgba(245,207,106,.45)
   static const Color line = Color(0x1EFFEBC8); // --line rgba(255,235,200,.12)
 
   static const double barTopPad = 2;
@@ -170,46 +178,62 @@ class MidnightBottomNavBar extends StatelessWidget {
     return Semantics(
       container: true,
       label: '주요 메뉴',
-      child: ClipRect(
-        child: BackdropFilter(
-          // [위 파일 헤더 설명 참고] extendBody 없이 쓰이는 현재 화면들에선
-          // 블러 대상이 없어 사실상 no-op이지만, 추후 extendBody 전환 시
-          // 자동으로 README 동작 규칙 04(블러 20px)가 작동하도록 남겨둔다.
-          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: EdgeInsets.fromLTRB(
-              MidnightNavTokens.barSidePad,
-              MidnightNavTokens.barTopPad,
-              MidnightNavTokens.barSidePad,
-              bottomInset,
-            ),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0x00140E1A), // rgba(20,14,26,0) — 0%
-                  MidnightNavTokens.bgTop, // 18%
-                  MidnightNavTokens.bgBottom, // 100%
-                ],
-                stops: [0, 0.18, 1.0],
+      // [버그 수정 — 정통사주 진입 시 화면 깜박거림(APK 실기기 리포트)]
+      // 원인: Android 기본 렌더러 Impeller가 "애니메이션 중인 ClipPath
+      // (sajuDimensionEnterRoute의 원형 확산 진입 전환) 안에 BackdropFilter가
+      // 있는" 조합에서 매 프레임 블러 레이어를 재합성하며 깜빡임을 일으키는
+      // 알려진 엔진 결함이다(Flutter 공식 이슈 #165106 등 — Impeller가
+      // Android API 29+ 기본 렌더러로 전환된 이후 보고됨). 이 하단바
+      // (MidnightBottomNavBar)는 타로/귀인지도 등 다른 화면에서도 동일하게
+      // 쓰이지만, 그 화면들의 진입 전환은 Clip 애니메이션을 쓰지 않아
+      // 증상이 드러나지 않았을 뿐 — 즉 하단바 자체의 구조적 문제이므로
+      // 화면별 땜질이 아니라 이 공용 위젯 한 곳에서 고친다.
+      // [해법] BackdropFilter 서브트리를 RepaintBoundary로 격리해 별도
+      // 레이어로 캐시한다 — Impeller가 이 레이어를 ClipPath 애니메이션과
+      // 분리해서 합성하게 되어 재깜빡임이 사라진다(Flutter 팀이 권장하는
+      // 표준 우회법). 디자인·색상·블러 반경·레이아웃은 전혀 바뀌지 않는다.
+      child: RepaintBoundary(
+        child: ClipRect(
+          child: BackdropFilter(
+            // [위 파일 헤더 설명 참고] extendBody 없이 쓰이는 현재 화면들에선
+            // 블러 대상이 없어 사실상 no-op이지만, 추후 extendBody 전환 시
+            // 자동으로 README 동작 규칙 04(블러 20px)가 작동하도록 남겨둔다.
+            filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: EdgeInsets.fromLTRB(
+                MidnightNavTokens.barSidePad,
+                MidnightNavTokens.barTopPad,
+                MidnightNavTokens.barSidePad,
+                bottomInset,
               ),
-              border: const Border(
-                top: BorderSide(color: MidnightNavTokens.line, width: 1),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x00140E1A), // rgba(20,14,26,0) — 0%
+                    MidnightNavTokens.bgTop, // 18%
+                    MidnightNavTokens.bgBottom, // 100%
+                  ],
+                  stops: [0, 0.18, 1.0],
+                ),
+                border: const Border(
+                  top: BorderSide(color: MidnightNavTokens.line, width: 1),
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                for (var i = 0; i < tabs.length; i++)
-                  Expanded(
-                    child: _MidnightNavTab(
-                      data: tabs[i],
-                      selected: i == currentIndex,
-                      onTap: () => _handleTap(i),
-                      showBadge: badgedIndices.contains(i),
+              child: Row(
+                children: [
+                  for (var i = 0; i < tabs.length; i++)
+                    Expanded(
+                      child: _MidnightNavTab(
+                        data: tabs[i],
+                        selected: i == currentIndex,
+                        onTap: () => _handleTap(i),
+                        showBadge: badgedIndices.contains(i),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

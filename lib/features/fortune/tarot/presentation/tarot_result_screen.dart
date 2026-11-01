@@ -507,7 +507,18 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                     border: Border(top: BorderSide(color: OzColors.borderSoft)),
                   ),
                   child: Row(
+                    // [버그 수정 — 하단바 버튼 축소 요청] "다시 뽑기"/"운세비교"
+                    // 두 버튼을 하단바에서 제거한다(사용자 요청). enum 값과
+                    // _handleAction()의 분기 로직 자체는 그대로 둔다 —
+                    // 다른 곳(cross_check_cta_navigation_test.dart 등)에서
+                    // 참조할 수 있어 범위를 벗어난 추가 변경을 피하기 위함.
+                    // 여기서는 "화면에 그릴 버튼 목록"만 필터링한다.
                     children: TarotResultAction.values
+                        .where(
+                          (action) =>
+                              action != TarotResultAction.redraw &&
+                              action != TarotResultAction.compare,
+                        )
                         .map(
                           (action) => Expanded(
                             child: _ResultActionButton(
