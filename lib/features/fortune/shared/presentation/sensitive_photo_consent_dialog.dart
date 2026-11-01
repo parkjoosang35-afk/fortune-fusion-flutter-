@@ -83,12 +83,24 @@ class _ConsentSheet extends StatelessWidget {
     // 발생했다(실측 320x568@1.5 65px, @2.0 430px, @2.5 882px). 내용이
     // 화면보다 작을 때는 기존과 시각적으로 동일하고, 넘칠 때만 스크롤되도록
     // SingleChildScrollView로 감싼다 — 디자인/문구/버튼 변경 없음.
+    //
+    // [버그 수정 — 2026-11] SintongColors.card(불투명도 6%의 거의 투명한
+    // 색)는 원래 Sintong 화면의 불투명 배경(SintongScreenBg) '위'에 얹히는
+    // 카드/칩 배경으로만 쓰도록 설계된 색이다. 이 시트는 showModalBottomSheet
+    // 로 별도 컴포지팅되어 "그 화면 배경 위"가 아니라 "완전히 다른 화면(관상/
+    // 손금 캡처 화면) 위"에 바로 떠서, 6% 불투명도로는 뒤 배경이 거의 그대로
+    // 비쳐 보여 시트 글자와 뒤 화면 글자가 겹쳐 보이는 버그가 있었다(사용자
+    // 제보 스크린샷으로 확인). 이 테마의 실제 바텀시트 디자인 의도는
+    // sintong_theme.dart의 bottomSheetTheme.backgroundColor와 동일하게
+    // 완전 불투명한 SintongColors.bg1(크림색)이므로 그 값으로 교체한다 —
+    // 디자인/문구/레이아웃 변경 없음, 배경색만 기존 테마의 바텀시트 전용
+    // 색상으로 바로잡음.
     return SafeArea(
       child: Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
         decoration: BoxDecoration(
-          color: SintongColors.card,
+          color: SintongColors.bg1,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: SintongColors.line),
         ),
