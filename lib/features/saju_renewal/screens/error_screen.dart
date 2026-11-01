@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../state/saju_renewal_provider.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_base_widgets.dart';
@@ -195,6 +196,11 @@ class _ErrorScreenState extends State<ErrorScreen> {
           ),
         ),
       ),
+      // [버그 수정 — "정통사주에도 하단바 다넣어"] push 화면이라 이름 있는
+      // 라우트 전용 전역 래퍼(wrapWithGlobalBottomNav)를 거치지 않는다.
+      // 다른 공용 화면과 동일한 MainBottomNavBar를 그대로 재사용한다
+      // (디자인/기능 변경 없음, 탭 0=홈 고정).
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/data/my_fortune_record_store.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../data/models/interpret_result.dart';
@@ -673,6 +674,13 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
           ),
         ),
       ),
+      // [버그 수정 — "정통사주에도 하단바 다넣어"] push 화면이라 이름 있는
+      // 라우트 전용 전역 래퍼(wrapWithGlobalBottomNav)를 거치지 않는다.
+      // 다른 공용 화면과 동일한 MainBottomNavBar를 그대로 재사용한다
+      // (디자인/기능 변경 없음, 탭 0=홈 고정). 로딩·에러·성공 세 분기
+      // 모두 이 바깥쪽 Scaffold 하나를 공유하므로 분기마다 따로 추가할
+      // 필요가 없다.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
     );
   }
 

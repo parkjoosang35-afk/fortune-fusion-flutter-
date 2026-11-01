@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/router/app_navigator_key.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
@@ -893,6 +894,12 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
           ),
         ),
       ),
+      // [버그 수정 — "정통사주에도 하단바 다넣어"] 이 화면은
+      // `Navigator.push(MaterialPageRoute(...))`로 진입하는 push 화면이라
+      // 이름 있는 라우트 전용 전역 하단바 래퍼(`wrapWithGlobalBottomNav`)를
+      // 거치지 않는다. 다른 공용 화면들과 동일한 MainBottomNavBar를 그대로
+      // 재사용한다(디자인/기능 변경 없음, 탭 0=홈 고정).
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
     );
   }
 }

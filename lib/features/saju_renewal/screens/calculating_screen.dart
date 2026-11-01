@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../auth/domain/user_model.dart';
 import '../data/saju_visual_adapter.dart';
@@ -636,6 +637,14 @@ class _CalculatingScreenState extends State<CalculatingScreen>
             ),
           ),
         ),
+        // [버그 수정 — "정통사주에도 하단바 다넣어"] 이 화면은 하드웨어
+        // 뒤로가기만 `PopScope(canPop: false)`로 막아 "스킵 불가"
+        // 세레모니를 지킨다 — 하단바 탭(`MainBottomNavBar`)은 pop이 아니라
+        // `pushNamedAndRemoveUntil('/home', ...)`이므로 이 제약과 무관하게
+        // 별도의 명시적 "나가기" 경로를 제공한다(global_bottom_nav_shell.dart
+        // 주석의 "결과페이지든 어디든 중간에 나오기가 힘들다" 요구와 동일한
+        // 취지). push 화면이라 전역 래퍼를 거치지 않으므로 직접 재사용한다.
+        bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       ),
     );
   }

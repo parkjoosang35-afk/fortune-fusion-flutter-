@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_vignette.dart';
 import '../../auth/application/auth_provider.dart';
@@ -375,6 +376,17 @@ class _SajuRenewalHomeScreenState extends State<SajuRenewalHomeScreen> {
             ),
           ),
         ),
+        // [버그 수정 — "정통사주에도 하단바 다넣어"] `/saju-renewal` 진입
+        // 라우트는 `sajuDimensionEnterRoute()`(원형 리빌 전환용 커스텀
+        // PageRouteBuilder)를 쓰기 때문에, 이름 있는 라우트에만 적용되는
+        // `wrapWithGlobalBottomNav()` 전역 래퍼를 전혀 거치지 않는다
+        // (legacy redirect인 `/saju/v3` 등은 `_pageNamed`를 써서 래퍼를
+        // 받지만, 실제 메인 진입 경로는 받지 못했던 불일치). 타로 결과
+        // 화면(tarot_result_screen.dart)처럼 push로 진입하는 화면은 각자
+        // 자신의 Scaffold에 직접 달아줘야 하므로, 다른 화면들과 동일한
+        // 공용 위젯 MainBottomNavBar를 그대로 재사용한다(디자인/색/기능
+        // 변경 없음, 탭 0=홈 고정).
+        bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       ),
       ),
     );
