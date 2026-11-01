@@ -129,12 +129,26 @@ Future<void> shareGuinjiMapInvite(
               debugPrint('[GuinjiShare] 카카오톡 미설치/공유 불가 — 공통 폴백으로 전환');
             }
           } else {
-            await ShareClient.instance.shareDefault(
+            // [2026-12 카카오톡 공유 버튼 무반응 버그 — 근본 원인 수정]
+            // `ShareClient.shareDefault()`는 카카오톡 SDK 공식 문서/예제가
+            // 분명히 보여주듯 카카오톡을 직접 실행하지 않고, 카카오톡 앱
+            // 실행용 `Uri`만 "생성해서 반환"하는 함수다(SDK 소스
+            // `share_client.dart`의 `_talkWithResponse()`가 Uri를 만들어
+            // return만 하고 끝 — 내부에서 아무 것도 실행하지 않음). 실제로
+            // 카카오톡 앱을 여는 것은 그 Uri를 받아 별도로 호출하는
+            // `ShareClient.instance.launchKakaoTalk(uri)` 몫이다. 이전
+            // 코드는 `shareDefault()`가 반환한 Uri를 그냥 버리고 바로
+            // `return`해버려 카카오톡이 전혀 실행되지 않았다 — 예외도 나지
+            // 않으므로(Uri 생성 자체는 성공) catch 폴백도 타지 않고, 버튼을
+            // 눌러도 조용히 아무 반응이 없는 증상으로 나타났다(사용자
+            // 리포트: "카카오톡 공유도 좀 봐줘 공유가 안돼").
+            final shareUri = await ShareClient.instance.shareDefault(
               template: guinjiInviteTemplate(
                 host: hostName ?? '친구',
                 token: token,
               ),
             );
+            await ShareClient.instance.launchKakaoTalk(shareUri);
             return;
           }
         } catch (e) {
