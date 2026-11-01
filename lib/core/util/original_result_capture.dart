@@ -27,12 +27,38 @@ Future<Uint8List> captureOriginalResult(
   // 채로 남지 않게 한다.
   WebAdService.isCapturing.value = true;
   try {
-    return await _captureOriginalResultInner(
-      key,
-      leadingKeys: leadingKeys,
-      trailingKeys: trailingKeys,
-      overlayKeys: overlayKeys,
-    );
+    try {
+      return await _captureOriginalResultInner(
+        key,
+        leadingKeys: leadingKeys,
+        trailingKeys: trailingKeys,
+        overlayKeys: overlayKeys,
+      );
+    } catch (_) {
+      // [저장 기능 전면 정상화 — 근본 원인 수정] 아래 재시도는 "레이어가
+      // 아직 그려지지 않음" 같은 실제 타이밍 문제에 대한 안전망이다(공유
+      // 경로 `share_service.dart`의 1회-재시도 패턴과 동일). 다만 과거
+      // 이 자리에서 재시도해도 사용자 리포트의 "전체 결과 이미지를
+      // 준비하지 못했어요"가 계속 재현된 진짜 원인은 타이밍이 아니라,
+      // 아래 `_captureOriginalResultInner`가 `RenderObject.debugNeedsPaint`
+      // getter를 일반 로직에서 직접 호출하고 있었기 때문이다 — Flutter SDK
+      // 소스(`rendering/object.dart`)를 보면 이 getter는 `assert()` 블록
+      // 안에서만 값을 대입하는 **디버그 전용** API라서, release(AOT) 빌드는
+      // `assert`를 통째로 제거해 `late bool result`가 끝내 초기화되지 않고
+      // 호출 즉시 `LateInitializationError`를 던진다 — 재시도해도 매번
+      // 똑같이 깨진 코드를 다시 실행할 뿐이라 100% 재현되는 게 당연했다.
+      // 이번 커밋에서 `debugNeedsPaint` 의존을 완전히 제거했으므로(아래
+      // readiness 판정은 `hasSize`만 사용), 이 재시도는 이제 순수하게
+      // "레이어가 막 생성된 직후라 아직 toImage 가능 상태가 아닌" 정상적인
+      // 프레임 타이밍 문제만 커버한다.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      return await _captureOriginalResultInner(
+        key,
+        leadingKeys: leadingKeys,
+        trailingKeys: trailingKeys,
+        overlayKeys: overlayKeys,
+      );
+    }
   } finally {
     WebAdService.isCapturing.value = false;
   }
@@ -64,7 +90,22 @@ Future<Uint8List> _captureOriginalResultInner(
   final parts = [...leadingKeys, key, ...trailingKeys];
   for (var index = 0; index < parts.length; index++) {
     final object = parts[index].currentContext?.findRenderObject();
-    final ready = object is RenderRepaintBoundary && !object.debugNeedsPaint && object.hasSize;
+    // [근본 원인 수정 — 2026-11] 과거 `!object.debugNeedsPaint` 조건이
+    // 치명적 버그였다. `RenderObject.debugNeedsPaint`는 Flutter SDK
+    // 소스(`rendering/object.dart`)에 명시된 대로 "디버그 목적 전용"
+    // getter로, 내부에서 `assert(){ result = _needsPaint; return true; }`
+    // 형태로만 값을 대입한다. release/profile(AOT) 빌드는 `assert`를
+    // 전부 제거하므로 `late bool result`가 끝내 초기화되지 못해 이 getter를
+    // 부르는 즉시 `LateInitializationError`를 던진다 — 즉 release 빌드의
+    // 저장/공유 기능은 타이밍과 무관하게 **항상, 100% 결정적으로** 실패하고
+    // 있었다(사용자가 재현한 "전체 결과 이미지를 준비하지 못했어요" 버그의
+    // 진짜 원인). `RenderRepaintBoundary.toImage()` 자체는 이 getter를
+    // `assert(!debugNeedsPaint)` 형태로만 쓰므로(release에서 조건 자체가
+    // 사라짐) 안전하다 — 문제는 우리 코드가 일반 로직에서 직접 호출한
+    // 것이었다. 레이어가 준비됐는지는 `hasSize`(`_size != null`만 확인하는
+    // 일반 getter, release에서도 안전)만으로 충분히 판정할 수 있으므로
+    // `debugNeedsPaint` 체크를 완전히 제거한다.
+    final ready = object is RenderRepaintBoundary && object.hasSize;
     if (!ready && index == bodyIndex) {
       throw StateError('결과 화면 준비가 끝난 뒤 다시 시도해주세요.');
     }
@@ -90,8 +131,11 @@ Future<Uint8List> _captureOriginalResultInner(
   final overlays = <RenderRepaintBoundary>[];
   for (final overlay in overlayKeys) {
     final object = overlay.currentContext?.findRenderObject();
+    // [근본 원인 수정 — 2026-11] 위 bodyIndex 판정과 동일한 이유로
+    // `debugNeedsPaint`(디버그 전용, release에서 LateInitializationError)
+    // 의존을 제거하고 `hasSize`만으로 판정한다.
     if (object is! RenderRepaintBoundary ||
-        object.debugNeedsPaint ||
+        !object.hasSize ||
         object.size.width > width ||
         object.size.height > body.size.height) {
       continue;
