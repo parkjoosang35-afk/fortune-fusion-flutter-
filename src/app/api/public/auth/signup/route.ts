@@ -43,6 +43,7 @@ import {
   clientIp,
   extractUniqueConstraintFields,
 } from "@/lib/user-auth";
+import { isValidEmail, INVALID_EMAIL_MESSAGE } from "@/lib/email-validator";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,8 @@ export async function POST(request: NextRequest) {
     nickname?: string;
     termsAgreed?: boolean;
     privacyAgreed?: boolean;
+    age14Confirmed?: boolean;
+    marketingAgreed?: boolean;
   };
   try {
     body = await request.json();
@@ -72,10 +75,23 @@ export async function POST(request: NextRequest) {
   // (Google Play 정책 및 개인정보보호법상 고지·동의 원칙 준수).
   const termsAgreed = body.termsAgreed === true;
   const privacyAgreed = body.privacyAgreed === true;
+  // [6-7-4-B-4 전면개정] 만 14세 이상 확인은 약관 제4조③에 따른 필수 요건이다.
+  // 마케팅 수신동의는 선택 항목이며 기본값은 false(미동의)다.
+  const age14Confirmed = body.age14Confirmed === true;
+  const marketingAgreed = body.marketingAgreed === true;
 
   if (!email || !password || !nickname) {
     return NextResponse.json(
       { success: false, error: "필수 정보를 모두 입력해 주세요." },
+      { status: 400, headers: CORS_HEADERS }
+    );
+  }
+  // [이메일 회원가입 오류 수정 지시서] 클라이언트 검증이 우회되더라도
+  // (API 직접 호출 등) 서버가 최종 방어선 역할을 하도록 동일 기준으로
+  // 재검증한다. `abc`, `abc123`, `abc@` 등은 여기서 차단된다.
+  if (!isValidEmail(email)) {
+    return NextResponse.json(
+      { success: false, error: INVALID_EMAIL_MESSAGE, code: "INVALID_EMAIL" },
       { status: 400, headers: CORS_HEADERS }
     );
   }
@@ -91,6 +107,16 @@ export async function POST(request: NextRequest) {
         success: false,
         error: "이용약관 및 개인정보처리방침에 동의해야 가입할 수 있습니다.",
         code: "TERMS_NOT_AGREED",
+      },
+      { status: 400, headers: CORS_HEADERS }
+    );
+  }
+  if (!age14Confirmed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "만 14세 이상만 가입할 수 있습니다.",
+        code: "AGE14_NOT_CONFIRMED",
       },
       { status: 400, headers: CORS_HEADERS }
     );
@@ -130,6 +156,8 @@ export async function POST(request: NextRequest) {
           gradeId: bronzeGrade?.id ?? null,
           termsAgreedAt: now,
           privacyAgreedAt: now,
+          age14ConfirmedAt: now,
+          marketingAgreed,
         },
         include: { grade: true, profile: true },
       });

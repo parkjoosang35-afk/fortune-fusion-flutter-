@@ -139,6 +139,11 @@ model User {
   // 하지 않음 — 데이터 임의 수정 금지 원칙).
   termsAgreedAt      DateTime? @map("terms_agreed_at")
   privacyAgreedAt    DateTime? @map("privacy_agreed_at")
+  // [6-7-4-B-4 전면개정] 회원가입 시 "만 14세 이상입니다" 필수 체크박스 동의 시각.
+  // termsAgreedAt/privacyAgreedAt과 동일한 패턴(시각 기록 = 동의 증빙)을 따른다.
+  // 기존 회원(이 체크박스 신설 이전 가입자)은 NULL로 남으며, 이는 소급 강제
+  // 동의 처리를 하지 않는다는 기존 원칙과 동일하다.
+  age14ConfirmedAt   DateTime? @map("age14_confirmed_at")
   // [Phase C - 웰컴 리워드 팝업 1회성 노출] 회원가입 웰컴 리워드 팝업(WelcomeRewardModal,
   // Flutter 03_Welcome_Reward.html)을 이미 확인(CTA "복주머니 받기" 탭)했는지 여부.
   // 클라이언트 로컬 저장소(SharedPreferences) 대신 서버 필드로 관리해 앱 재설치/

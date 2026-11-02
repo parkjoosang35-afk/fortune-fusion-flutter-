@@ -4,28 +4,28 @@
 // 정책 준수를 위해 직접 요청한 "공개적으로 접근 가능한 활성 URL" 형태의 개인정보
 // 처리방침이다. 인증/로그인 없이 접근 가능해야 하므로 (admin) 그룹 밖에 위치한다.
 //
-// [내용 근거] 6-7-4-B-3에서 admin_web 백엔드를 read-only로 조사해 확정한 사실관계
-// (손금/관상 사진 미저장, 회원탈퇴 파기 미구현이었던 부분은 6-7-4-B-4에서 구현 완료,
-// 로그인 로그 실작동, 쿠팡파트너스 실사용, 소셜로그인/PG결제는 501/시뮬레이션 상태 등)
-// 만을 반영했으며, 실제로 수집·처리하지 않는 항목은 기재하지 않았다.
-// [2026-XX 정정] 복주머니는 광고/활동으로만 적립되는 무료 재화이며, 구독/PG
-// 결제는 서버 시뮬레이션만 존재하고 실제 결제대행사 연동이 없어 결제/PG 관련
-// 수집·위탁 항목을 실제 서비스 상태에 맞게 삭제했다.
+// [2026-10-29 전면개정 — 개발자 전달용 개정판 반영] 사용자가 제공한
+// `신통방통_이용약관_개인정보처리방침_개정판.md`의 "개인정보처리방침(개정판)"
+// 섹션을 그대로 텍스트로 옮겼다. 주요 변경점: 소셜 로그인(카카오/구글) 가입 시
+// 수집 항목 추가(1조 나), 얼굴 사진 등 민감정보 별도 동의 조항 신설(1조 다),
+// "전화번호" 수집 항목 삭제(3조 — 실제로 수집하지 않으므로), AI 모델 제공업체를
+// Anthropic(Claude)으로 명시 및 소셜 로그인 위탁 문구 추가(5조), 접속기록
+// 위조·변조 방지 조치 추가(8조).
 //
 // [사업자 정보] 사용자 확정: 운영주체 "서치앤메이크"(대표: 이권호), 문의 이메일
 // "searciandmake@gmail.com". 전화번호는 사용자가 "임의로 만들지 않는다"고 명시해
 // 기재하지 않는다.
-// (2026년 사업 운영 법인 이전에 따라 라이즈주식회사 → 서치앤메이크로 변경)
 
 export const metadata = {
   title: "개인정보처리방침 | Fortune Fusion",
   description: "Fortune Fusion(신통방통) 개인정보처리방침",
 };
 
-const EFFECTIVE_DATE = "2026년 8월 18일";
+const EFFECTIVE_DATE = "2026년 11월 28일";
 const CONTACT_EMAIL = "searciandmake@gmail.com";
 const OPERATOR_NAME = "서치앤메이크";
 const REPRESENTATIVE_NAME = "이권호";
+const AI_PROVIDER_NAME = "Anthropic(Claude)";
 
 function Section({
   title,
@@ -62,7 +62,11 @@ export default function PrivacyPolicyPage() {
       <Section title="1. 수집하는 개인정보 항목 및 수집 방법">
         <p className="font-semibold text-slate-900">가. 회원가입 시 수집 항목</p>
         <ul className="ml-4 list-disc space-y-1">
-          <li>필수: 이메일 주소, 비밀번호(암호화 저장), 닉네임</li>
+          <li>필수(이메일 가입): 이메일 주소, 비밀번호(암호화 저장), 닉네임</li>
+          <li>
+            필수(소셜 로그인 가입 — 카카오·구글): 소셜 계정 식별자, 이메일,
+            닉네임 등 해당 플랫폼이 제공하는 프로필 정보
+          </li>
         </ul>
         <p className="mt-3 font-semibold text-slate-900">
           나. 서비스 이용 과정에서 수집되는 항목
@@ -83,7 +87,17 @@ export default function PrivacyPolicyPage() {
           <li>기기정보 및 접속 로그: 접속 IP, 접속일시, 로그인 성공/실패 기록</li>
           <li>푸시 알림 수신을 위한 기기 토큰(FCM 토큰)</li>
         </ul>
-        <p className="mt-3 font-semibold text-slate-900">다. 수집 방법</p>
+        <p className="mt-3 font-semibold text-slate-900">
+          다. 민감정보(얼굴 사진)의 별도 동의
+        </p>
+        <p>
+          얼굴 사진은 생체식별정보에 해당할 수 있는 민감정보이므로, 회사는
+          얼굴관상·손금 기능 이용 시점에 이용자에게 별도 동의를 받은 경우에만
+          사진을 처리합니다. 사진은 분석 응답 생성 목적으로만 일시적으로
+          처리되며 즉시 파기되고, 회사 서버에 저장되지 않습니다. 동의를
+          거부하여도 서비스의 다른 기능은 이용할 수 있습니다.
+        </p>
+        <p className="mt-3 font-semibold text-slate-900">라. 수집 방법</p>
         <ul className="ml-4 list-disc space-y-1">
           <li>회원가입, 서비스 이용 과정에서 이용자가 직접 입력</li>
           <li>서비스 이용 과정에서 자동으로 생성·수집(접속 로그 등)</li>
@@ -92,7 +106,10 @@ export default function PrivacyPolicyPage() {
 
       <Section title="2. 개인정보의 수집 및 이용 목적">
         <ul className="ml-4 list-disc space-y-1">
-          <li>회원 가입 의사 확인, 회원제 서비스 제공에 따른 본인 식별·인증</li>
+          <li>
+            회원 가입 의사 확인, 회원제 서비스 제공에 따른 본인 식별·인증
+            (소셜 로그인 가입·인증 포함)
+          </li>
           <li>사주/운세/궁합/얼굴관상/손금 등 개인화된 콘텐츠 생성 및 제공</li>
           <li>커뮤니티(소원방), 매칭, 채팅, AI 상담 등 부가 서비스 제공</li>
           <li>공지사항 전달, 이벤트 및 광고성 정보 제공(수신 동의자에 한함)</li>
@@ -110,7 +127,7 @@ export default function PrivacyPolicyPage() {
         <ul className="ml-4 list-disc space-y-1">
           <li>
             <span className="font-semibold">회원 탈퇴 시:</span> 탈퇴 신청일로부터
-            30일간 유예기간을 두며, 유예기간 경과 후 이메일, 전화번호, 닉네임 등
+            30일간 유예기간을 두며, 유예기간 경과 후 이메일, 닉네임 등
             개인식별정보를 복구 불가능한 방식으로 비식별화하고, 사주 프로필·AI
             운세 이용기록·상담 내역 등 민감한 이용기록은 완전 삭제합니다.
           </li>
@@ -133,18 +150,26 @@ export default function PrivacyPolicyPage() {
         </p>
       </Section>
 
-      <Section title="5. 개인정보 처리업무의 위탁">
+      <Section title="5. 개인정보 처리업무의 위탁 및 외부 서비스">
         <p>
           회사는 원활한 서비스 제공을 위하여 아래와 같이 개인정보 처리업무를
-          외부에 위탁하고 있습니다.
+          외부에 위탁하거나 외부 서비스를 이용하고 있습니다.
         </p>
         <ul className="ml-4 list-disc space-y-1">
           <li>
             <span className="font-semibold">AI 콘텐츠 생성:</span> 이용자가
-            입력한 생년월일 등 정보 및 업로드한 사진을 AI(인공지능) 모델
-            제공업체에 실시간으로 전송하여 사주/얼굴관상/손금 등 분석 결과를
-            생성합니다. 전송된 사진 및 입력정보는 분석 응답 생성 목적으로만
-            일시적으로 처리되며 회사 서버에 별도 저장되지 않습니다.
+            입력한 생년월일 등 정보 및 업로드한 사진을 AI 모델 제공업체(
+            {AI_PROVIDER_NAME})에 실시간으로 전송하여 사주/얼굴관상/손금 등
+            분석 결과를 생성합니다. 전송된 사진 및 입력정보는 분석 응답 생성
+            목적으로만 일시적으로 처리되며 회사 서버에 별도 저장되지
+            않습니다.
+          </li>
+          <li>
+            <span className="font-semibold">소셜 로그인(카카오·구글):</span>{" "}
+            이용자가 소셜 로그인을 선택하면 해당 플랫폼으로부터 계정 식별자,
+            이메일, 닉네임 등 프로필 정보를 제공받아 가입·인증에 사용합니다.
+            소셜 플랫폼의 개인정보 처리는 각 플랫폼의 개인정보처리방침에
+            따릅니다.
           </li>
           <li>
             <span className="font-semibold">제휴 마케팅(쿠팡파트너스):</span>{" "}
@@ -207,6 +232,7 @@ export default function PrivacyPolicyPage() {
         <ul className="ml-4 list-disc space-y-1">
           <li>비밀번호의 암호화 저장 및 일방향 암호화(해시) 처리</li>
           <li>개인정보에 대한 접근 권한 관리(관리자 계정 역할 기반 접근 제어)</li>
+          <li>접속기록의 위조·변조 방지 및 접속기록 보관</li>
         </ul>
       </Section>
 
