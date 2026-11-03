@@ -83,6 +83,9 @@ import 'features/wishroom/application/wishroom_provider.dart';
 import 'features/wishroom/data/wr_api.dart';
 import 'features/guinji/data/guinji_repository.dart';
 import 'features/guinji/application/guinji_provider.dart';
+// [궁합지도 Flutter 화면 개발] 신규 궁합지도 API 연동 전역 상태.
+import 'features/gunghap/data/gunghap_repository.dart';
+import 'features/gunghap/application/gunghap_provider.dart';
 import 'features/pouch_box/application/pouch_box_provider.dart';
 import 'features/pouch_box/data/pouch_box_repository.dart';
 import 'features/result_access/application/result_access_provider.dart';
@@ -354,6 +357,13 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => GuinjiProvider(GuinjiRepository()),
         ),
+        // [궁합지도 Flutter 화면 개발 — §1①] admin_web
+        // `/api/public/gunghap/*` 실 API 연동. 100 복주머니 차감은 전부
+        // 서버 `/unlock` 트랜잭션 내부에서만 발생하며, 이 Provider는
+        // 조회/요청만 수행한다(귀인지도 GuinjiProvider와 동일한 원칙).
+        ChangeNotifierProvider(
+          create: (_) => GunghapProvider(GunghapRepository()),
+        ),
         // [소원방 v2.6 재구축] 신규 모듈 전역 상태. 서버가 레벨/포인트/쿨타임/
         // 감쇠를 전부 계산하므로(docs/SCREENS.md [SERVER] 원칙) 이 Provider는
         // 순수 ChangeNotifier + Repository 주입만으로 충분하다(복주머니 잔액은
@@ -525,6 +535,10 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     // — 기존에는 등록이 누락돼 로그아웃 후에도 이전 계정의 지도 메타와
     // 멤버(이름·생년월일) 정보가 메모리에 잔존했다.
     auth.registerLogoutCallback(context.read<GuinjiProvider>().clearOnLogout);
+    // [궁합지도 Flutter 화면 개발] 궁합지도 Provider도 동일한 계정 격리
+    // 원칙을 적용한다 — 이전 계정의 초대 토큰/결과 데이터가 로그아웃 후
+    // 메모리에 잔존하면 안 된다.
+    auth.registerLogoutCallback(context.read<GunghapProvider>().clearOnLogout);
     // [엔진 통합 지시문 STEP 3] 교차검증 오케스트레이터도 동일한 계정
     // 격리 원칙을 적용한다 — 이전 계정의 사주/타로/관상/손금/궁합 원본
     // 데이터가 응축된 UnifiedFortuneProfile이 로그아웃 후 잔존하면 안 된다.
