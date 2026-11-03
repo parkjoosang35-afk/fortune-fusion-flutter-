@@ -113,7 +113,21 @@ export async function POST(
     );
   }
 
-  const gender = body.gender === "male" ? "male" : "female";
+  // [2026-11 긴급 수정 — "성별 미입력 시 무조건 female로 저장" 버그]
+  // 기존에는 body.gender가 없거나 유효하지 않으면 묵시적으로 "female"로
+  // 폴백해, 웹 경로(`guinji-invite-interactive.tsx`)에 성별 선택 UI 자체가
+  // 없었던 시기에 들어온 모든 게스트가 실제로는 성별을 선택하지 않았음에도
+  // 전부 여성 캐린터로 저장되는 결함이 있었다. Flutter 앱(`guinji_map_
+  // guest_join_screen.dart`)과 동일하게 gender를 필수값으로 바꿔, 값이
+  // 없거나 'male'/'female'이 아니면 400으로 명시 거부한다(암묵적 기본값
+  // 금지 — 사용자가 실제로 선택한 값만 저장).
+  if (body.gender !== "male" && body.gender !== "female") {
+    return NextResponse.json(
+      { success: false, error: "성별을 선택해 주세요." },
+      { status: 400, headers: CORS_HEADERS }
+    );
+  }
+  const gender = body.gender;
   let timeUnknown = true;
   let hour = 12;
   let minute = 0;

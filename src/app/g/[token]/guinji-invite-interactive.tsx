@@ -86,8 +86,19 @@ export function GuinjiInviteInteractive({
   const [timeKnown, setTimeKnown] = useState(false);
   const [hour, setHour] = useState("");
   const [minute, setMinute] = useState("");
+  // [2026-11 긴급 수정 — 귀인지도 3대 결함#2 "성별 캐릭터 저장 오류"의
+  // 웹 경로 누락분] Flutter 앱 화면에는 성별 선택 UI가 있었지만, 이
+  // 웹 페이지(카카오톡 공유 링크로 들어오는 게스트 대부분이 실제로
+  // 거치는 경로)에는 성별 선택 UI 자체가 없어 백엔드가 암묵적으로
+  // "female"로 저장하고 있었다. Flutter와 동일한 '여성'/'남성' 토글을
+  // 추가한다.
+  const [gender, setGender] = useState<"female" | "male" | null>(null);
   const [agreePolicy, setAgreePolicy] = useState(false);
   const [agreeAge14, setAgreeAge14] = useState(false);
+  // [2026-11 긴급 수정 — 귀인지도 3대 결함#3 "회원약관 보기" 웹 경로 누락분]
+  // 개인정보처리방침(/privacy-policy) 보기 모달과, 체크박스 동의 대상은
+  // 아니지만 열람은 가능해야 하는 이용약관(/terms) 모달을 위한 state.
+  const [policyModal, setPolicyModal] = useState<{ title: string; path: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<JoinResult | null>(null);
@@ -136,6 +147,11 @@ export function GuinjiInviteInteractive({
       birthTime = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
     }
 
+    if (!gender) {
+      setError("성별을 선택해 주세요.");
+      return;
+    }
+
     if (!agreePolicy || !agreeAge14) {
       setError("개인정보처리방침 동의와 14세 이상 확인에 체크해 주세요.");
       return;
@@ -151,6 +167,7 @@ export function GuinjiInviteInteractive({
           birthDate,
           calendarType,
           birthTime,
+          gender,
           agreePolicy,
           agreeAge14,
         }),
@@ -288,16 +305,50 @@ export function GuinjiInviteInteractive({
               </div>
             )}
 
+            {/* [2026-11 긴급 수정 — 귀인지도 3대 결함#2] 성별 선택 토글.
+                Flutter 앱(_GiChip '여성'/'남성')과 동일한 UX. 선택하지
+                않으면 handleSubmit에서 막히고(위 검증), 백엔드도 gender가
+                없으면 400으로 거부한다(암묵적 'female' 기본값 폴백 제거). */}
+            <p className="mb-2 text-center text-xs text-[#8C7F6E]">성별</p>
+            <div className="mb-4 flex gap-2">
+              {(["female", "male"] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGender(g)}
+                  className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                    gender === g
+                      ? "bg-[#F5CF6A] text-[#1A0D2E]"
+                      : "bg-[#24163B] text-[#C9BBA8] border border-[#3A2A52]"
+                  }`}
+                >
+                  {g === "female" ? "여성" : "남성"}
+                </button>
+              ))}
+            </div>
+
             {/* 동의 체크박스 — 개인정보처리방침 / 14세 이상 확인 (필수) */}
             <div className="mb-3 space-y-1.5 text-left">
-              <label className="flex items-center gap-2 text-xs text-[#C9BBA8]">
-                <input
-                  type="checkbox"
-                  checked={agreePolicy}
-                  onChange={(e) => setAgreePolicy(e.target.checked)}
-                  className="h-4 w-4 accent-[#F5CF6A]"
-                />
-                (필수) 개인정보처리방침에 동의합니다.
+              <label className="flex items-center justify-between gap-2 text-xs text-[#C9BBA8]">
+                <span className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={agreePolicy}
+                    onChange={(e) => setAgreePolicy(e.target.checked)}
+                    className="h-4 w-4 accent-[#F5CF6A]"
+                  />
+                  (필수) 개인정보처리방침에 동의합니다.
+                </span>
+                {/* [2026-11 긴급 수정 — 귀인지도 3대 결함#3] 기존에는 이
+                    "보기" 자체가 없어 체크박스 라벨만 있었다. 실제
+                    /privacy-policy 전문을 모달로 보여준다. */}
+                <button
+                  type="button"
+                  onClick={() => setPolicyModal({ title: "개인정보처리방침", path: "/privacy-policy" })}
+                  className="shrink-0 text-[#F5CF6A] underline underline-offset-2"
+                >
+                  보기
+                </button>
               </label>
               <label className="flex items-center gap-2 text-xs text-[#C9BBA8]">
                 <input
@@ -308,6 +359,20 @@ export function GuinjiInviteInteractive({
                 />
                 (필수) 만 14세 이상입니다.
               </label>
+            </div>
+
+            {/* [2026-11 긴급 수정 — 귀인지도 3대 결함#3] 개인정보처리방침과는
+                별개로 공식 이용약관(/terms)을 열람할 수 있는 링크. 체크박스
+                동의 대상은 아니다(게스트 참여는 회원가입이 아니므로) —
+                Flutter 앱의 "회원약관 보기" 링크와 동일한 위치/의미. */}
+            <div className="mb-3 text-center">
+              <button
+                type="button"
+                onClick={() => setPolicyModal({ title: "이용약관(회원약관)", path: "/terms" })}
+                className="text-xs text-[#8C7F6E] underline underline-offset-2"
+              >
+                회원약관 보기
+              </button>
             </div>
 
             {error && <p className="mb-3 text-center text-xs text-[#EF7A55]">{error}</p>}
@@ -331,6 +396,49 @@ export function GuinjiInviteInteractive({
           갱신되어 새로고침 없이 즉시 다시 그려지고, 본인은 "✦ 당신" 노드로
           자기 자리를 확인할 수 있다. */}
       <GuinjiOrbitMap counts={counts} ownerName={ownerName} self={self} />
+
+      {/* [2026-11 긴급 수정 — 귀인지도 3대 결함#3] 개인정보처리방침/이용약관
+          열람 모달. Flutter 앱의 바텀시트(WebView)와 동일한 목적 —
+          실제 해당 페이지 전문을 iframe으로 그대로 보여주고, 닫으면
+          초대장 화면으로 복귀한다(풀스크린 모달이므로 뒤 배경이 바로
+          이 화면). */}
+      {policyModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+          onClick={() => setPolicyModal(null)}
+        >
+          <div
+            className="flex h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-[#1A0D2E]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#3A2A52] px-4 py-3">
+              <p className="text-sm font-bold text-[#F8F2E6]">{policyModal.title}</p>
+              <button
+                type="button"
+                onClick={() => setPolicyModal(null)}
+                aria-label="닫기"
+                className="text-lg text-[#C9BBA8]"
+              >
+                ✕
+              </button>
+            </div>
+            <iframe
+              src={policyModal.path}
+              title={policyModal.title}
+              className="flex-1 bg-white"
+            />
+            <div className="p-4">
+              <button
+                type="button"
+                onClick={() => setPolicyModal(null)}
+                className="block w-full rounded-2xl bg-[#F5CF6A] px-4 py-3 text-sm font-bold text-[#1A0D2E]"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
