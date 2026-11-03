@@ -377,6 +377,24 @@ export interface CalculateSajuOptions {
   gender?: "male" | "female";
   isLunar?: boolean;
   timeUnknown?: boolean;
+  /**
+   * [2026-?? 추가 — 궁합지도 개발 지시서 §3-B 대응] 음력 입력이고
+   * 해당 월이 윤달일 때 true. Flutter `ManseryeokCoreEngine.calculatePillars()`
+   * (lib/features/home/domain/manseryeok/manseryeok_core_engine.dart)의
+   * `isLeapMonth` 파라미터와 완전히 동일한 의미·동일한 처리 방식
+   * (lunar-javascript는 윤달을 "month 값의 음수"로 표현)이다.
+   *
+   * [하위 호환 — 기존 호출부 영향 없음] 이 필드를 생략(또는 false)하면
+   * 기존 동작과 100% 동일하다(기본값 false, month 그대로 전달). 기존
+   * 귀인지도 호출부(g/[token]/join/route.ts 등)는 이 옵션을 전달하지
+   * 않으므로 동작이 전혀 바뀌지 않는다 — "기존 서비스 기능을 임의로
+   * 변경하지 않는다" 원칙에 따른 순수 additive 확장.
+   *
+   * [절대 금지] isLunar=false(양력)일 때는 이 값을 무시한다(윤달 개념은
+   * 음력에만 존재) — 사용자가 명시적으로 지정했을 때만 음수 변환한다
+   * (Dart 원본과 동일한 "임의로 윤달 처리하지 않는다" 원칙).
+   */
+  isLeapMonth?: boolean;
   /** 대운 판정 기준 시점(생략 시 현재 시각). */
   referenceDate?: Date;
 }
@@ -395,6 +413,7 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
     gender = "male",
     isLunar = false,
     timeUnknown = false,
+    isLeapMonth = false,
     referenceDate,
   } = opts;
   const hour = timeUnknown ? 12 : (hourIn ?? 12);
@@ -402,7 +421,11 @@ export function calculateSaju(opts: CalculateSajuOptions): SajuManseryeokResult 
   let solar: InstanceType<typeof Solar>;
   let lunar: InstanceType<typeof Lunar>;
   if (isLunar) {
-    lunar = Lunar.fromYmdHms(year, month, day, hour, minute, 0);
+    // [윤달 지원] Dart `ManseryeokCoreEngine.calculatePillars()`와 동일한
+    // 규칙: 윤달일 때만 month를 음수로 바꿔 전달한다(그 외에는 절대 임의로
+    // 윤달 처리하지 않는다).
+    const lunarMonth = isLeapMonth ? -month : month;
+    lunar = Lunar.fromYmdHms(year, lunarMonth, day, hour, minute, 0);
     solar = lunar.getSolar();
   } else {
     solar = Solar.fromYmdHms(year, month, day, hour, minute, 0);
