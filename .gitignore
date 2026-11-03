@@ -63,3 +63,4 @@ make_jwt_tmp*.mjs
 /dev.db
 /public/preview/
 /prisma/backups/
+prisma/dev.db*backup*

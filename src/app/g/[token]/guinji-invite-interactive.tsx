@@ -177,18 +177,18 @@ export function GuinjiInviteInteractive({
 
   return (
     <>
-      <div className="rounded-3xl border border-[#2A2A2E] bg-[#161618] p-6 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
-        <p className="mb-1 flex items-center justify-center gap-1.5 text-center text-[13px] text-[#8A8880]">
-          <span className="text-[#E9C46A]">✦</span>
+      <div className="rounded-3xl border border-[#3A2A52] bg-[#1F1133] p-6 shadow-[0_4px_20px_-8px_rgba(245,207,106,0.15)]">
+        <p className="mb-1 flex items-center justify-center gap-1.5 text-center text-[13px] text-[#C9BBA8]">
+          <span className="text-[#F5CF6A]">✦</span>
           나는 {ownerName}님에게 어떤 사람일까?
-          <span className="text-[#E9C46A]">✦</span>
+          <span className="text-[#F5CF6A]">✦</span>
         </p>
 
         {result ? (
           <ResultCard ownerName={ownerName} result={result} />
         ) : (
           <form onSubmit={handleSubmit} className="mt-4">
-            <p className="mb-3 text-center text-xs text-[#575650]">
+            <p className="mb-3 text-center text-xs text-[#8C7F6E]">
               이름과 생년월일을 입력하면, 바로 결과가 나오고 지도에 이름이 올라가요.
             </p>
 
@@ -197,7 +197,7 @@ export function GuinjiInviteInteractive({
               onChange={(e) => setName(e.target.value)}
               placeholder="이름(닉네임도 괜찮아요)"
               maxLength={20}
-              className="mb-3 w-full rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
+              className="mb-3 w-full rounded-2xl border border-[#3A2A52] bg-[#24163B] px-3 py-2.5 text-center text-sm text-[#F8F2E6] placeholder:text-[#8C7F6E] focus:border-[#F5CF6A] focus:outline-none focus:ring-2 focus:ring-[#F5CF6A]/25"
             />
 
             {/* 음력/양력 토글 */}
@@ -209,8 +209,8 @@ export function GuinjiInviteInteractive({
                   onClick={() => setCalendarType(v)}
                   className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
                     calendarType === v
-                      ? "bg-[#E9C46A] text-white"
-                      : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
+                      ? "bg-[#F5CF6A] text-[#1A0D2E]"
+                      : "bg-[#24163B] text-[#C9BBA8] border border-[#3A2A52]"
                   }`}
                 >
                   {v === "solar" ? "양력" : "음력"}
@@ -225,7 +225,7 @@ export function GuinjiInviteInteractive({
                 placeholder="년(예: 1998)"
                 inputMode="numeric"
                 maxLength={4}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
+                className="w-1/3 rounded-2xl border border-[#3A2A52] bg-[#24163B] px-3 py-2.5 text-center text-sm text-[#F8F2E6] placeholder:text-[#8C7F6E] focus:border-[#F5CF6A] focus:outline-none focus:ring-2 focus:ring-[#F5CF6A]/25"
               />
               <input
                 value={month}
@@ -233,7 +233,7 @@ export function GuinjiInviteInteractive({
                 placeholder="월"
                 inputMode="numeric"
                 maxLength={2}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
+                className="w-1/3 rounded-2xl border border-[#3A2A52] bg-[#24163B] px-3 py-2.5 text-center text-sm text-[#F8F2E6] placeholder:text-[#8C7F6E] focus:border-[#F5CF6A] focus:outline-none focus:ring-2 focus:ring-[#F5CF6A]/25"
               />
               <input
                 value={day}
@@ -241,7 +241,7 @@ export function GuinjiInviteInteractive({
                 placeholder="일"
                 inputMode="numeric"
                 maxLength={2}
-                className="w-1/3 rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
+                className="w-1/3 rounded-2xl border border-[#3A2A52] bg-[#24163B] px-3 py-2.5 text-center text-sm text-[#F8F2E6] placeholder:text-[#8C7F6E] focus:border-[#F5CF6A] focus:outline-none focus:ring-2 focus:ring-[#F5CF6A]/25"
               />
             </div>
 
@@ -251,7 +251,7 @@ export function GuinjiInviteInteractive({
                 type="button"
                 onClick={() => setTimeKnown(false)}
                 className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                  !timeKnown ? "bg-[#E9C46A] text-white" : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
+                  !timeKnown ? "bg-[#F5CF6A] text-[#1A0D2E]" : "bg-[#24163B] text-[#C9BBA8] border border-[#3A2A52]"
                 }`}
               >
                 시간 모름
@@ -260,7 +260,7 @@ export function GuinjiInviteInteractive({
                 type="button"
                 onClick={() => setTimeKnown(true)}
                 className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                  timeKnown ? "bg-[#E9C46A] text-white" : "bg-[#1C1C1F] text-[#8A8880] border border-[#2A2A2E]"
+                  timeKnown ? "bg-[#F5CF6A] text-[#1A0D2E]" : "bg-[#24163B] text-[#C9BBA8] border border-[#3A2A52]"
                 }`}
               >
                 시간 입력
@@ -275,7 +275,7 @@ export function GuinjiInviteInteractive({
                   placeholder="시(0~23)"
                   inputMode="numeric"
                   maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
+                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#3A2A52] bg-[#24163B] px-3 py-2.5 text-center text-sm text-[#F8F2E6] placeholder:text-[#8C7F6E] focus:border-[#F5CF6A] focus:outline-none focus:ring-2 focus:ring-[#F5CF6A]/25"
                 />
                 <input
                   value={minute}
@@ -283,28 +283,28 @@ export function GuinjiInviteInteractive({
                   placeholder="분"
                   inputMode="numeric"
                   maxLength={2}
-                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2.5 text-center text-sm text-[#F2F0EC] placeholder:text-[#575650] focus:border-[#E9C46A] focus:outline-none focus:ring-2 focus:ring-[#E9C46A]/25"
+                  className="w-1/2 max-w-[120px] rounded-2xl border border-[#3A2A52] bg-[#24163B] px-3 py-2.5 text-center text-sm text-[#F8F2E6] placeholder:text-[#8C7F6E] focus:border-[#F5CF6A] focus:outline-none focus:ring-2 focus:ring-[#F5CF6A]/25"
                 />
               </div>
             )}
 
             {/* 동의 체크박스 — 개인정보처리방침 / 14세 이상 확인 (필수) */}
             <div className="mb-3 space-y-1.5 text-left">
-              <label className="flex items-center gap-2 text-xs text-[#8A8880]">
+              <label className="flex items-center gap-2 text-xs text-[#C9BBA8]">
                 <input
                   type="checkbox"
                   checked={agreePolicy}
                   onChange={(e) => setAgreePolicy(e.target.checked)}
-                  className="h-4 w-4 accent-[#E9C46A]"
+                  className="h-4 w-4 accent-[#F5CF6A]"
                 />
                 (필수) 개인정보처리방침에 동의합니다.
               </label>
-              <label className="flex items-center gap-2 text-xs text-[#8A8880]">
+              <label className="flex items-center gap-2 text-xs text-[#C9BBA8]">
                 <input
                   type="checkbox"
                   checked={agreeAge14}
                   onChange={(e) => setAgreeAge14(e.target.checked)}
-                  className="h-4 w-4 accent-[#E9C46A]"
+                  className="h-4 w-4 accent-[#F5CF6A]"
                 />
                 (필수) 만 14세 이상입니다.
               </label>
@@ -314,11 +314,11 @@ export function GuinjiInviteInteractive({
             <button
               type="submit"
               disabled={submitting}
-              className="mb-2 block w-full rounded-2xl bg-[#E9C46A] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#F2D488] disabled:opacity-60"
+              className="mb-2 block w-full rounded-2xl bg-[#F5CF6A] px-4 py-3.5 text-sm font-bold text-[#1A0D2E] shadow-[0_8px_32px_-12px_rgba(245,207,106,0.22)] transition-transform active:scale-[0.98] hover:bg-[#FADFA0] disabled:opacity-60"
             >
               {submitting ? "확인하는 중" : `${ownerName}님과 나의 관계 보기`}
             </button>
-            <p className="text-center text-xs text-[#575650]">
+            <p className="text-center text-xs text-[#8C7F6E]">
               결과 확인과 동시에 지도에 이름이 올라가요. 다시 입력할 필요 없어요.
             </p>
           </form>
@@ -370,16 +370,16 @@ function ResultCard({
   // 단계인데, 이 서비스는 이미 웹으로도 완전히 동작하므로 눌렀을 때
   // 앱 설치가 아니라 웹 신통방통 메인 귀인지도로 바로 이동한다.
   return (
-    <div className="mt-4 rounded-2xl border border-[#2A2A2E] bg-[#111113] p-6 text-center">
-      <p className="mb-1 text-xs text-[#575650]">
+    <div className="mt-4 rounded-2xl border border-[#3A2A52] bg-[#0A0716] p-6 text-center">
+      <p className="mb-1 text-xs text-[#8C7F6E]">
         {result.dayMasterKr ? `나의 일간 · ${result.dayMasterKr}(${result.dayMasterElement})` : "관계 결과"}
       </p>
-      <p style={{ fontFamily: "'Noto Serif KR', serif" }} className="mb-3 text-3xl font-bold text-[#E9C46A]">
+      <p style={{ fontFamily: "'Noto Serif KR', serif" }} className="mb-3 text-3xl font-bold text-[#F5CF6A]">
         {meta?.hanja} {meta?.label}
       </p>
-      <p className="mb-4 text-sm text-[#8A8880]">
+      <p className="mb-4 text-sm text-[#C9BBA8]">
         {result.ownerName ?? ownerName}님과 당신은{" "}
-        <span className="font-medium text-[#E9C46A]">{meta?.subtitle}</span>의 결이에요.
+        <span className="font-medium text-[#F5CF6A]">{meta?.subtitle}</span>의 결이에요.
       </p>
       {/* [2026-11 수정 — "같은 귀인 4명이 다 똑같다" 버그 수정] 관계유형
           고정 문구 1개(meta.description)만 보여주던 자리를, 이 관계의
@@ -389,13 +389,13 @@ function ResultCard({
           텍스트 총량도 함께 늘어난다. */}
       <div className="mb-3 space-y-2 text-left">
         {narrative.map((p, i) => (
-          <p key={i} className="text-xs leading-relaxed text-[#8A8880]">
+          <p key={i} className="text-xs leading-relaxed text-[#C9BBA8]">
             {p}
           </p>
         ))}
       </div>
       {result.timeUnknown && (
-        <p className="mb-3 text-xs leading-relaxed text-[#575650]">
+        <p className="mb-3 text-xs leading-relaxed text-[#8C7F6E]">
           태어난 시간을 입력하지 않아 정오(12:00) 기준으로 계산했어요.
         </p>
       )}
@@ -409,15 +409,15 @@ function ResultCard({
           (design_handoff_guinji_web README Y·Guest Result 스펙:
           서브 카피 "당신의 지도에는 누가 있을까요" + Primary CTA
           "✧ 내 지도 만들기 · 무료") */}
-      <p className="mb-2 text-xs text-[#575650]">당신의 지도에는 누가 있을까요</p>
+      <p className="mb-2 text-xs text-[#8C7F6E]">당신의 지도에는 누가 있을까요</p>
       <button
         type="button"
         onClick={() => goToSintongWeb(SINTONG_WEB_URLS.guinji)}
-        className="block w-full rounded-2xl bg-[#E9C46A] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)] transition-transform active:scale-[0.98] hover:bg-[#F2D488]"
+        className="block w-full rounded-2xl bg-[#F5CF6A] px-4 py-3.5 text-sm font-bold text-[#1A0D2E] shadow-[0_8px_32px_-12px_rgba(245,207,106,0.22)] transition-transform active:scale-[0.98] hover:bg-[#FADFA0]"
       >
         ✧ 내 지도 만들기 · 무료
       </button>
-      <p className="mt-2 text-center text-[11px] text-[#575650]">
+      <p className="mt-2 text-center text-[11px] text-[#8C7F6E]">
         설치 없이 바로 열려요 · 신통방통 웹
       </p>
     </div>

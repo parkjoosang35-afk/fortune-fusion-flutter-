@@ -126,6 +126,11 @@ export async function GET(request: NextRequest) {
           members: map.members.map((m) => ({
             memberId: toGuinjiMemberPublicId(m.id),
             name: m.name,
+            // [2026-11 성별 캐릭터 저장 오류 수정] 레거시 멤버(마이그레이션
+            // 이전 생성분)는 gender가 null일 수 있다. 클라이언트
+            // (GuinjiPerson.fromServerJson)는 null을 이미 정상적으로
+            // 처리하도록 구현되어 있으므로 그대로 전달한다.
+            gender: m.gender ?? null,
             solarLunar: m.solarLunar,
             birthDate: m.birthDate,
             birthTime: m.birthTime,

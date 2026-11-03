@@ -23,13 +23,13 @@
 //
 // [2026-09, 바이럴 디자인 이식] 사용자가 예전에 전달한 "바이럴 디자인"
 // 핸드오프 패키지(`nextjs_guiindo`, HANDOFF.md)의 아이보리+로즈골드 팔레트
-// (--bg-ivory:#0B0B0D, --bg-cream:#111113, --rose-500:#E9C46A,
-// --rose-700:#E9C46A, --blush:#E9C46A, --gold:#E9C46A, --ink:#F2F0EC,
-// --ink-soft:#8A8880)로 전면 리스킨한다. Flutter `/guinji-map/*`
+// (--bg-ivory:#0A0716, --bg-cream:#0A0716, --rose-500:#F5CF6A,
+// --rose-700:#F5CF6A, --blush:#F5CF6A, --gold:#F5CF6A, --ink:#F8F2E6,
+// --ink-soft:#C9BBA8)로 전면 리스킨한다. Flutter `/guinji-map/*`
 // (GmColors)와 정확히 같은 색상 토큰이므로, 카톡 → 이 랜딩 → 앱까지
 // 이어지는 전체 바이럴 여정이 하나의 디자인 언어로 통일된다.
 // admin_web은 Tailwind v4(설정파일 없는 CSS 기반)를 쓰므로, 전역 테마를
-// 건드리지 않고 이 라우트에만 arbitrary value(`bg-[#0B0B0D]` 등)로 색을
+// 건드리지 않고 이 라우트에만 arbitrary value(`bg-[#0A0716]` 등)로 색을
 // 지정한다 — 관리자 대시보드 나머지 화면에는 영향이 없다. 아래
 // `loadInvite()`의 조회 로직, `generateMetadata()`의 OG 개인화,
 // 캐시버스팅 구조는 전혀 손대지 않았다(디자인만 교체).
@@ -231,7 +231,7 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
   const invite = await loadInvite(token);
 
   return (
-    <div className="min-h-screen bg-[#0B0B0D] pb-[76px]">
+    <div className="min-h-screen bg-[#0A0716] pb-[76px]">
       {invite.state === "ok" && (
         <>
           {/* 히어로 섹션 — zip HeroSection 이식: 큰 히어로 이미지 +
@@ -247,57 +247,57 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
               <div className="mb-5 flex items-center gap-1.5">
                 <span
                   className="flex h-6 w-6 items-center justify-center rounded-full"
-                  style={{ backgroundImage: "linear-gradient(135deg, #F7E4AE, #E9C46A)" }}
+                  style={{ backgroundImage: "linear-gradient(135deg, #FADFA0, #F5CF6A)" }}
                 >
                   <span className="text-[10px] font-bold leading-none text-white">신</span>
                 </span>
-                <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F2F0EC]">
+                <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F8F2E6]">
                   신통방통
                 </span>
               </div>
 
               {/* 초대 배지 */}
-              <div className="mb-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E9C46A]/25 bg-[#E9C46A]/10 px-3 py-1.5">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#E9C46A]" />
-                <span className="whitespace-nowrap text-[11px] font-semibold text-[#E9C46A]">
+              <div className="mb-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#F5CF6A]/25 bg-[#F5CF6A]/10 px-3 py-1.5">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#F5CF6A]" />
+                <span className="whitespace-nowrap text-[11px] font-semibold text-[#F5CF6A]">
                   {invite.ownerName}님이 초대했어요
                 </span>
               </div>
 
               <h1
                 style={{ fontFamily: SERIF }}
-                className="mb-2 text-[36px] font-bold leading-[1.15] tracking-tight text-[#F2F0EC]"
+                className="mb-2 text-[36px] font-bold leading-[1.15] tracking-tight text-[#F8F2E6]"
               >
-                <span className="mb-1 block text-[18px] font-medium text-[#8A8880]">
+                <span className="mb-1 block text-[18px] font-medium text-[#C9BBA8]">
                   {invite.ownerName}님의
                 </span>
                 <span
                   className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: "linear-gradient(90deg, #E9C46A, #E9C46A)" }}
+                  style={{ backgroundImage: "linear-gradient(90deg, #F5CF6A, #F5CF6A)" }}
                 >
                   귀인 지도
                 </span>
               </h1>
-              <p className="mb-5 text-[14px] leading-relaxed text-[#8A8880]">
+              <p className="mb-5 text-[14px] leading-relaxed text-[#C9BBA8]">
                 당신의 인연과 관계를
                 <br />
                 지도로 담았어요
               </p>
 
               {/* 히어로 이미지 (zip public/images/hero-hanbok.png) */}
-              <div className="relative mb-5 overflow-hidden rounded-3xl shadow-[0_8px_32px_-12px_rgba(166,121,94,0.22)]">
+              <div className="relative mb-5 overflow-hidden rounded-3xl shadow-[0_8px_32px_-12px_rgba(245,207,106,0.22)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/hero-hanbok.png" alt="" className="block h-auto w-full" />
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0B0B0D] to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0A0716] to-transparent" />
               </div>
 
-              <div className="space-y-2 text-[13.5px] leading-relaxed text-[#8A8880]">
+              <div className="space-y-2 text-[13.5px] leading-relaxed text-[#C9BBA8]">
                 <p>
                   내 주변을 살펴보면 유난히 자신의 성장에만 힘이 되는, 나와 다른 인연이라
-                  인식하지 못했던 <b className="text-[#F2F0EC]">귀인지도</b>가 있어요.
+                  인식하지 못했던 <b className="text-[#F8F2E6]">귀인지도</b>가 있어요.
                 </p>
                 <p>귀인, 인연, 힘이 되는 사람, 서로 보완하는 관계까지 명확히 확인할 수 있어요.</p>
-                <p className="pt-1 font-semibold text-[#F2F0EC]">
+                <p className="pt-1 font-semibold text-[#F8F2E6]">
                   생일만 넣으면, 내가 이 사람에게
                   <br />
                   어떤 사람인지 바로 나와요.
@@ -310,8 +310,8 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
             {/* "오늘 사주 미리보기" 카드 — zip PreviewCard 이식, 실제
                 deriveCharacterType() 결과(오행 5종) 그대로 사용 */}
             {invite.characterType && (
-              <div className="rounded-3xl border border-[#2A2A2E] bg-[#161618] p-4 shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
-                <div className="mb-2 inline-flex items-center gap-1 rounded-full border border-[#EFC4AB] bg-[#1C1C1F] px-3 py-1 text-[12px] text-[#E9C46A]">
+              <div className="rounded-3xl border border-[#3A2A52] bg-[#1F1133] p-4 shadow-[0_4px_20px_-8px_rgba(245,207,106,0.15)]">
+                <div className="mb-2 inline-flex items-center gap-1 rounded-full border border-[#F5CF6A] bg-[#24163B] px-3 py-1 text-[12px] text-[#F5CF6A]">
                   오늘 사주 미리보기
                 </div>
                 <div
@@ -324,14 +324,14 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
                   <br />
                   {invite.characterType.hanja} {invite.characterType.title}
                 </div>
-                <div className="mb-3 text-[12px] text-[#8A8880]">
+                <div className="mb-3 text-[12px] text-[#C9BBA8]">
                   {invite.characterType.description}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {(CHARACTER_TAGS[invite.characterType.element] ?? []).map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 rounded-full border border-[#2A2A2E] bg-[#111113] px-3 py-1 text-[12px] text-[#8A8880]"
+                      className="inline-flex items-center gap-1 rounded-full border border-[#3A2A52] bg-[#0A0716] px-3 py-1 text-[12px] text-[#C9BBA8]"
                     >
                       {tag}
                     </span>
@@ -365,22 +365,22 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
           <div className="relative mb-5 flex items-center justify-center gap-1.5">
             <span
               className="flex h-6 w-6 items-center justify-center rounded-full"
-              style={{ backgroundImage: "linear-gradient(135deg, #F7E4AE, #E9C46A)" }}
+              style={{ backgroundImage: "linear-gradient(135deg, #FADFA0, #F5CF6A)" }}
             >
               <span className="text-[10px] font-bold leading-none text-white">신</span>
             </span>
-            <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F2F0EC]">
+            <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F8F2E6]">
               신통방통
             </span>
           </div>
           {/* [v1.1 §7-2, E1 변형] 재요청 버튼을 넣지 않는다 — 주인의 중단
               결정을 시스템이 무력화하면 안 된다. 버튼은 "나도 내 귀인 지도
               만들기" 1개뿐이다(재요청 없음). */}
-          <div className="relative rounded-3xl border border-[#2A2A2E] bg-[#161618] p-8 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
-            <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#F2F0EC]">
+          <div className="relative rounded-3xl border border-[#3A2A52] bg-[#1F1133] p-8 text-center shadow-[0_4px_20px_-8px_rgba(245,207,106,0.15)]">
+            <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#F8F2E6]">
               {invite.ownerName}님이 이 링크를 닫았어요
             </h1>
-            <p className="mb-2 text-sm leading-relaxed text-[#8A8880]">
+            <p className="mb-2 text-sm leading-relaxed text-[#C9BBA8]">
               이 초대 링크는 더 이상 사용할 수 없어요.
               <br />
               그래도 괜찮아요 — 나만의 귀인 지도는
@@ -402,22 +402,22 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
           <div className="relative mb-5 flex items-center justify-center gap-1.5">
             <span
               className="flex h-6 w-6 items-center justify-center rounded-full"
-              style={{ backgroundImage: "linear-gradient(135deg, #F7E4AE, #E9C46A)" }}
+              style={{ backgroundImage: "linear-gradient(135deg, #FADFA0, #F5CF6A)" }}
             >
               <span className="text-[10px] font-bold leading-none text-white">신</span>
             </span>
-            <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F2F0EC]">
+            <span style={{ fontFamily: SERIF }} className="text-[13px] font-bold text-[#F8F2E6]">
               신통방통
             </span>
           </div>
           {/* [v1.1 §7-3, E5 그대로] 재발급된 옛 토큰도 이 화면으로 흡수된다
               (별도 안내 없음 — 별칭 테이블 없는 Phase 1의 한계, Phase 2
               과제로 남김). */}
-          <div className="relative rounded-3xl border border-[#2A2A2E] bg-[#161618] p-8 text-center shadow-[0_4px_20px_-8px_rgba(166,121,94,0.15)]">
-            <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#F2F0EC]">
+          <div className="relative rounded-3xl border border-[#3A2A52] bg-[#1F1133] p-8 text-center shadow-[0_4px_20px_-8px_rgba(245,207,106,0.15)]">
+            <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#F8F2E6]">
               링크를 찾을 수 없어요
             </h1>
-            <p className="mb-2 text-sm leading-relaxed text-[#8A8880]">
+            <p className="mb-2 text-sm leading-relaxed text-[#C9BBA8]">
               주소가 잘못되었거나, 지도가
               <br />
               삭제되었을 수 있어요.
@@ -430,8 +430,8 @@ export default async function GuinjiInviteLandingPage({ params }: PageProps) {
       )}
 
       {/* 브랜드 푸터 */}
-      <footer className="mx-auto w-full max-w-[440px] border-t border-[#2A2A2E] px-5 pt-5 pb-8 text-center">
-        <p className="text-[10px] text-[#575650]">© 2026 Sintongbangtong. All rights reserved.</p>
+      <footer className="mx-auto w-full max-w-[440px] border-t border-[#3A2A52] px-5 pt-5 pb-8 text-center">
+        <p className="text-[10px] text-[#8C7F6E]">© 2026 Sintongbangtong. All rights reserved.</p>
       </footer>
 
       {/* [2026-09, 웹 하단바 신설 — 사용자 명시 지시 "웹이니까 신통방통 하단바를

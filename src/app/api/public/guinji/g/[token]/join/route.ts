@@ -183,7 +183,18 @@ export async function POST(
         include: { relationship: true },
       });
       if (existingMember?.relationship) {
-        return { member: existingMember, relationship: existingMember.relationship, created: false };
+        // [2026-11 성별 캐릭터 저장 오류 수정] 마이그레이션 이전에 생성된
+        // 기존 멤버는 gender가 null일 수 있다. 동일인이 재제출(idempotent
+        // 경로)하면 이번에 보낸 gender 값으로 보정해, 레거시 데이터도
+        // 재방문 시 자연스럽게 채워지도록 한다.
+        const patchedMember =
+          existingMember.gender == null
+            ? await tx.guinjiMapMember.update({
+                where: { id: existingMember.id },
+                data: { gender },
+              })
+            : existingMember;
+        return { member: patchedMember, relationship: existingMember.relationship, created: false };
       }
 
       const member = await tx.guinjiMapMember.create({
@@ -191,6 +202,12 @@ export async function POST(
           mapId: map.id,
           joinedUserId: null, // [설계 결정] 익명 참여 — 스키마가 이미 nullable로 지원.
           name,
+          // [2026-11 성별 캐릭터 저장 오류 수정] 초대장에서 선택한 성별값을
+          // 그대로 저장한다. 이전에는 이 값이 calculateSaju() 호출에만
+          // 쓰이고 DB에는 저장되지 않아, /guinji/maps/me가 gender를 항상
+          // null로 반환 → Flutter GuinjiCharacter.of()가 해시 기반 50/50
+          // 랜덤 성별로 폴백하는 버그의 근본 원인이었다.
+          gender,
           solarLunar: isLunar ? "lunar" : "solar",
           birthDate,
           birthTime: timeUnknown ? null : birthTime ?? null,

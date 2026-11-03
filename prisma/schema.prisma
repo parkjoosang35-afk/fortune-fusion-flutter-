@@ -4213,6 +4213,7 @@ model GuinjiMapMember {
   mapId            Int       @map("map_id")
   joinedUserId     Int?      @map("joined_user_id") // 실제 회원으로 참여했다면 User.id(비회원 초대 단계에서는 null)
   name             String // 닉네임(비식별 원칙 — 결과카드에는 노출 안 함)
+  gender           String?   @map("gender") // male/female, null=미입력(기존 데이터 호환) — 귀인 캐릭터 성별 표시용
   solarLunar       String    @default("solar") // solar/lunar
   birthDate        String    @map("birth_date") // YYYY-MM-DD
   birthTime        String?   @map("birth_time") // HH:mm, null=미입력
