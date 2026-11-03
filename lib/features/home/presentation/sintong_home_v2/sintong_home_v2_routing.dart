@@ -97,6 +97,22 @@ void openPalmReading(BuildContext context) {
   );
 }
 
+/// [전체보기 섹션 2개 추가 — design_handoff_add_two_sections.zip]
+/// "오늘의운세" 카드 전용 목적지. 2026-08-13 결정으로 일간 운세는
+/// 정통사주 80항목에 통합되었고(`RemovedDailyFortuneStub` 참고) 별도
+/// 전용 화면이 없으므로, 기존 정통사주 카드와 완전히 동일한 목적지
+/// (`/saju-renewal`)로 연결한다(신규 화면/라우트 없음 — 기존 화면
+/// 재사용 원칙).
+void openTodayFortune(BuildContext context, {Offset? tapPosition}) =>
+    openSubScreen(context, SHomeV2Category.saju, tapPosition: tapPosition);
+
+/// [전체보기 섹션 2개 추가 — design_handoff_add_two_sections.zip]
+/// "궁합지도" 카드 전용 목적지. 이미 완전히 구현되어 있는 궁합
+/// 입력 화면(`/compatibility/input`, [CompatibilityInputScreen])으로
+/// 곧장 연결한다(신규 화면 없음).
+void openCompatibilityMap(BuildContext context) =>
+    Navigator.of(context).pushNamed('/compatibility/input');
+
 /// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
 /// 2열×3행 사진 포토 카드 그리드 데이터. 순서/틴트/이미지는 README.md
 /// "섹션 매핑" 표 그대로: 소원방·타로 / 정통사주·귀인지도 / 관상·손금.
@@ -146,6 +162,10 @@ const List<SHomeV2SheetCard> sHomeV2SheetCards = [
 /// 순서/틴트/이미지는 README.md "섹션 매핑" 표 그대로이며, 탭 목적지는
 /// 위 [sHomeV2SheetCards]와 완전히 동일한 기존 라우트를 재사용한다.
 ///
+/// [전체보기 섹션 2개 추가 — design_handoff_add_two_sections.zip] 배열
+/// 맨 앞에 "오늘의운세"·"궁합지도" 2개를 추가해 2열×3행(6개) →
+/// 2열×4행(8개)으로 확장한다. 기존 6개 카드의 순서·값은 그대로 둔다.
+///
 /// [onTap 시그니처] 각 카드가 자신을 그리는 위젯의 [BuildContext]를
 /// 받는다(최상위 그리드 context가 아님) — 정통사주 카드가 docs/03 §00
 /// "구현은 카드 중심 좌표를 원점으로" 요구사항에 맞춰 자신의 화면상
@@ -153,6 +173,20 @@ const List<SHomeV2SheetCard> sHomeV2SheetCards = [
 /// 카드는 이 인자를 그냥 전달만 하면 되므로(기존 `context`와 사실상
 /// 동일하게 동작) 동작 변화가 없다.
 List<SHomeV2PhotoCard> buildSHomeV2PhotoCards(BuildContext context) => [
+  SHomeV2PhotoCard(
+    title: '오늘의운세',
+    asset: 'assets/images/sintong_home_v2/sections/section-today.png',
+    tint: const Color(0xFFF5CF6A),
+    // 정통사주와 동일한 목적지이므로 동일하게 카드 중심 좌표를 넘긴다.
+    onTap: (ctx) =>
+        openTodayFortune(ctx, tapPosition: sajuCardCenterOf(ctx)),
+  ),
+  SHomeV2PhotoCard(
+    title: '궁합지도',
+    asset: 'assets/images/sintong_home_v2/sections/section-match.png',
+    tint: const Color(0xFFF3B3C8),
+    onTap: (ctx) => openCompatibilityMap(ctx),
+  ),
   SHomeV2PhotoCard(
     title: '소원방',
     asset: 'assets/images/sintong_home_v2/sections/section-wish.png',
