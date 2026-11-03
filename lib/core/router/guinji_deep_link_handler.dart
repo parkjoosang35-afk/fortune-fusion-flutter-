@@ -200,11 +200,36 @@ class GuinjiDeepLinkHandler {
       couponToken = uri.pathSegments[1];
     }
 
-    if (couponToken == null || couponToken.isEmpty) return;
+    if (couponToken != null && couponToken.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final navState = appNavigatorKey.currentState;
+        if (navState == null) return;
+        navState.pushNamed('/coupon/$couponToken');
+      });
+      return;
+    }
+
+    // ── 7) 궁합지도 초대(`gh`) ───────────────────────────────────────
+    // [신통방통 궁합지도 개발 지시서 §2③] `fortunefusion://gh/{token}` /
+    // `https://sintong.kr/gh/{token}`. '/r'·'/w'·'/coupon'과 동일한
+    // 패턴으로 AppRouter의 '/gh/{token}' named route로 위임한다
+    // ([GunghapGuestInputScreen]이 비로그인 게스트 사주입력을 담당).
+    String? ghToken;
+    if (uri.scheme == 'fortunefusion' && uri.host == 'gh') {
+      final segments = uri.pathSegments;
+      ghToken = segments.isNotEmpty ? segments.first : null;
+    } else if (uri.scheme == 'https' &&
+        uri.host == 'sintong.kr' &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'gh') {
+      ghToken = uri.pathSegments[1];
+    }
+
+    if (ghToken == null || ghToken.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navState = appNavigatorKey.currentState;
       if (navState == null) return;
-      navState.pushNamed('/coupon/$couponToken');
+      navState.pushNamed('/gh/$ghToken');
     });
   }
 

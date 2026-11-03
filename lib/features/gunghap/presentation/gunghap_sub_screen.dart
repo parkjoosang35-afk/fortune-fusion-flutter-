@@ -11,7 +11,7 @@ import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
 import '../widgets/cat_icon.dart';
 import '../domain/gunghap_data.dart';
-import 'gunghap_coming_soon_screen.dart';
+import 'gunghap_invite_screen.dart';
 
 class GunghapSubScreen extends StatefulWidget {
   const GunghapSubScreen({super.key, required this.method, required this.majorId});
@@ -42,9 +42,10 @@ class _GunghapSubScreenState extends State<GunghapSubScreen> {
             ? null
             : () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => GunghapComingSoonScreen(
-                    title: widget.method == 'invite' ? '상대방 정보' : '나의 정보',
-                    stepLabel: widget.method == 'invite' ? 'STEP 03 · THEIR STAR' : 'STEP 02 · MY STAR',
+                  builder: (_) => GunghapInviteScreen(
+                    method: widget.method,
+                    majorId: _majorId,
+                    subName: _selectedSub,
                   ),
                 ),
               ),

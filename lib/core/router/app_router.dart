@@ -94,6 +94,7 @@ import '../../features/guinji/presentation/guinji_map_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
+import '../../features/gunghap/presentation/gunghap_guest_input_screen.dart';
 import '../../features/guinji/navigation/guinji_page_route.dart';
 import 'global_bottom_nav_shell.dart';
 // [귀인지도 기능 정리 — 관계상세/랭킹] `/guinji-map/*` 신규 디자인 톤으로
@@ -217,6 +218,18 @@ class AppRouter {
       final token = name.substring('/coupon/'.length);
       if (token.isNotEmpty) {
         return _pageNamed('/coupon', BokjuCouponResolveScreen(token: token));
+      }
+    }
+
+    // [궁합지도 개발 지시서 §2③] `/gh/{token}` — 궁합지도 초대 딥링크.
+    // "초대 발송자가 상대방의 생년월일을 미리 알고 있어야 하는 구조로
+    // 만들지 마세요" 원칙에 따라, 이 경로는 비로그인 게스트가 자신의
+    // 사주정보를 직접 입력하는 [GunghapGuestInputScreen]으로 연결된다
+    // ('/g/'·'/r/'·'/w/'·'/coupon/'과 동일한 와일드카드 선매칭 패턴).
+    if (name.startsWith('/gh/')) {
+      final token = name.substring('/gh/'.length);
+      if (token.isNotEmpty) {
+        return _page(GunghapGuestInputScreen(token: token), '/gh');
       }
     }
 
