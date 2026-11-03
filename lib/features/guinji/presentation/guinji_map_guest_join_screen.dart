@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/config/env_config.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
 import '../application/guinji_provider.dart';
 import 'guinji_calculating_screen.dart';
@@ -11,6 +12,7 @@ import 'guinji_guest_result_screen.dart';
 import 'guinji_invitation_letter.dart';
 import 'guinji_invitation_story_hero.dart';
 import 'guinji_invitation_theme.dart';
+import 'guinji_policy_webview.dart';
 
 /// 게스트 참여+입력 — `/g/:mapToken`
 ///
@@ -226,97 +228,125 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
     );
   }
 
-  void _showTermsSheet() {
-    // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일] 이 시트는
-    // isScrollControlled 없이 showModalBottomSheet를 호출해 Flutter 기본
-    // 동작으로 높이가 화면의 절반으로 강제 고정됐다. 시스템 글자 확대
-    // (1.3배) 조건에서 제목+본문 문단+버튼이 그 절반 높이를 넘어 55px
-    // 바닥 오버플로가 실측됐다(360×640@1.3 widget test로 확인). 다른
-    // 시트들(shrine/widgets/sheets.dart, shop/widgets/shop_widgets.dart)과
-    // 동일한 표준 패턴 — isScrollControlled: true + SafeArea(top: false) +
-    // SingleChildScrollView — 으로 "내용이 들어가면 그대로, 넘칠 때만
-    // 스크롤"되게 한다. 디자인(그라데이션·보더·패딩·텍스트)은 그대로다.
+  // [2026-11 회원약관 보기 수정] 과거에는 '보기'를 누르면 하드코딩된
+  // 4문장짜리 개인정보 안내문만 보여줬고, 실제 공식 "이용약관"을 확인할
+  // 방법이 이 화면 어디에도 없었다(개인정보 안내와 회원 이용약관이
+  // 혼동·혼재되어 있던 근본 원인). 이제는 두 문서를 명확히 분리한다:
+  //   - [기존 체크박스 '보기'] admin_web `/privacy-policy`(개인정보
+  //     처리방침) 전체를 WebView로 보여준다 — 더 이상 하드코딩 블러브가
+  //     아니라 실제 공식 문서.
+  //   - [신규 '회원약관 보기' 링크] admin_web `/terms`(이용약관) 전체를
+  //     WebView로 보여준다 — 회원가입 화면(signup_screen.dart)의 공식
+  //     약관과 동일한 소스(단일 진실 공급원), 별도 복제본이 아니다.
+  // 두 시트 모두 동일한 구조(제목으로 어떤 문서인지 명시 + 스크롤 가능한
+  // WebView + '닫기' 버튼으로 초대장 화면 복귀)를 공유해 혼동 가능성을
+  // 없앤다. 외부 브라우저로 나가지 않고(기존 signup_screen의
+  // launchUrl(externalApplication) 패턴과 달리) 시트 안에서 완결되므로
+  // '닫기'를 누르면 항상 이 초대장 화면으로 정상 복귀한다.
+  void _showPolicyWebViewSheet({required String title, required String path}) {
+    final url = '${EnvConfig.adminApiBaseUrl}$path';
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           top: false,
-          child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(GiRadius.sheet),
-          ),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF24133D), GiColors.bg2],
+          child: FractionallySizedBox(
+            heightFactor: 0.88,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(GiRadius.sheet),
               ),
-              border: Border(
-                top: BorderSide(color: Color(0x40F5CF6A)),
-              ),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '개인정보 수집 · 이용 안내',
-                  style: TextStyle(
-                    fontFamily: GiFonts.display,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    color: GiColors.fg,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF24133D), GiColors.bg2],
                   ),
+                  border: Border(top: BorderSide(color: Color(0x40F5CF6A))),
                 ),
-                const SizedBox(height: 14),
-                const Text(
-                  '입력하신 이름(닉네임)·생년월일·태어난 시간·성별은 지도 '
-                  '소유자와의 관계를 계산하는 용도로만 사용되며, 지도 '
-                  '소유자에게만 결과 형태로 표시돼요. 수집된 정보는 관계 '
-                  '계산 목적 외에는 사용되지 않아요.',
-                  style: TextStyle(
-                    fontFamily: GiFonts.body,
-                    fontSize: 13.5,
-                    height: 1.6,
-                    color: GiColors.muted,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      backgroundColor: GiColors.glow,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(GiRadius.field),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                fontFamily: GiFonts.display,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 17,
+                                color: GiColors.fg,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(sheetContext).pop(),
+                            icon: const Icon(
+                              Icons.close,
+                              color: GiColors.muted,
+                              size: 20,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Text(
-                      '확인했어요',
-                      style: TextStyle(
-                        fontFamily: GiFonts.body,
-                        fontWeight: FontWeight.w700,
-                        color: GiColors.bg1,
+                    const Divider(height: 1, color: GiColors.line),
+                    Expanded(
+                      child: Container(
+                        color: Colors.white,
+                        child: PolicyWebView(url: url),
                       ),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          style: TextButton.styleFrom(
+                            backgroundColor: GiColors.glow,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                GiRadius.field,
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            '닫기',
+                            style: TextStyle(
+                              fontFamily: GiFonts.body,
+                              fontWeight: FontWeight.w700,
+                              color: GiColors.bg1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
               ),
             ),
-          ),
           ),
         );
       },
     );
   }
+
+  void _showPrivacyPolicySheet() => _showPolicyWebViewSheet(
+        title: '개인정보처리방침',
+        path: '/privacy-policy',
+      );
+
+  void _showTermsSheet() => _showPolicyWebViewSheet(
+        title: '이용약관(회원약관)',
+        path: '/terms',
+      );
 
   bool get _canSubmit =>
       _nameController.text.trim().isNotEmpty && _agreePolicy && _agreeAge14;
@@ -595,12 +625,15 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
 
         _GiConsentCard(
           children: [
+            // [2026-11 회원약관 보기 수정] '보기'는 이제 하드코딩 블러브가
+            // 아니라 실제 admin_web `/privacy-policy`(개인정보처리방침)
+            // 전문을 WebView로 보여준다.
             _GiConsentRow(
               value: _agreePolicy,
               onChanged: (v) => setState(() => _agreePolicy = v),
               label: '개인정보 수집 · 이용에 동의합니다',
               moreLabel: '보기',
-              onMore: _showTermsSheet,
+              onMore: _showPrivacyPolicySheet,
             ),
             const Divider(height: 1, color: GiColors.line),
             _GiConsentRow(
@@ -609,6 +642,28 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               label: '만 14세 이상입니다',
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        // [2026-11 회원약관 보기 수정 — 신규] 개인정보처리방침과는 별개로,
+        // 회원 가입 시 보는 것과 동일한 공식 "이용약관"(서비스 전반의
+        // 권리·의무)을 게스트 참여 화면에서도 확인할 수 있게 한다. 체크박스
+        // 동의 항목은 아니다(게스트 참여는 회원가입이 아니므로 별도 필수
+        // 동의 대상이 아님) — 열람 전용 링크로만 제공해 "참여 전 궁금하면
+        // 확인할 수 있다"는 투명성만 보장한다.
+        Center(
+          child: GestureDetector(
+            onTap: _showTermsSheet,
+            child: const Text(
+              '회원약관 보기',
+              style: TextStyle(
+                fontFamily: GiFonts.ui,
+                fontSize: 12,
+                color: GiColors.muted,
+                decoration: TextDecoration.underline,
+                decorationColor: GiColors.muted,
+              ),
+            ),
+          ),
         ),
 
         if (_formError != null) ...[
