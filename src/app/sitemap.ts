@@ -7,10 +7,13 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
   const now = new Date();
-  return ["", "/saju", "/login", "/terms", "/privacy-policy", "/account-deletion"].map((path) => ({
+  // [애드센스 승인 개선 — 2026-11-02] /guide(서비스 가이드) 추가. 기존 /saju
+  // 항목은 이번에 신설한 src/app/saju/page.tsx가 실제로 서빙되므로 더 이상
+  // 깨진 링크가 아니다(운영 nginx 재확인 결과 라우팅 충돌 없음).
+  return ["", "/saju", "/guide", "/login", "/terms", "/privacy-policy", "/account-deletion"].map((path) => ({
     url: `${baseUrl}${path}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
-    priority: path === "" ? 1 : 0.5,
+    priority: path === "" ? 1 : path === "/saju" || path === "/guide" ? 0.8 : 0.5,
   }));
 }
