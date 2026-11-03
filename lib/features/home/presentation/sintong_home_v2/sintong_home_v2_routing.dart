@@ -30,6 +30,7 @@ import '../../../pass/presentation/pass_gate_helper.dart';
 import '../../../saju_renewal/navigation/saju_dimension_transition.dart';
 import '../../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../../guinji/presentation/guinji_landing_screen.dart';
+import '../../../gunghap/presentation/gunghap_home_screen.dart';
 import 'sintong_home_v2_data.dart';
 import 'widgets/sintong_section_photo_card.dart';
 
@@ -106,12 +107,25 @@ void openPalmReading(BuildContext context) {
 void openTodayFortune(BuildContext context, {Offset? tapPosition}) =>
     openSubScreen(context, SHomeV2Category.saju, tapPosition: tapPosition);
 
-/// [전체보기 섹션 2개 추가 — design_handoff_add_two_sections.zip]
-/// "궁합지도" 카드 전용 목적지. 이미 완전히 구현되어 있는 궁합
-/// 입력 화면(`/compatibility/input`, [CompatibilityInputScreen])으로
-/// 곧장 연결한다(신규 화면 없음).
-void openCompatibilityMap(BuildContext context) =>
-    Navigator.of(context).pushNamed('/compatibility/input');
+/// [궁합지도 Star Map 디자인 적용 — design_handoff_gunghap_map.zip]
+/// "궁합지도" 카드 전용 목적지.
+///
+/// 기존에는 단순 궁합 입력 화면(`/compatibility/input`,
+/// [CompatibilityInputScreen] — 애정/우정/사업/가족 궁합, 0~100점
+/// 수치 표기)으로 연결했었다. 이번 핸드오프는 이것과는 별개의, 훨씬
+/// 풍부한 신규 "궁합지도"(Star Map 테마, 8개 대분류, 점수·퍼센트
+/// 표기 금지) 기능이며, 사용자가 "궁합지도 클릭시 지금 디자인
+/// 나오게 만들어주면됨"이라고 명시적으로 요청해 이 카드의 목적지를
+/// 새 [GunghapHomeScreen]으로 교체한다.
+///
+/// ⚠️ 범위: 신규 화면은 01 메인 홈 → 02 대분류 → 03 세부 카테고리까지
+/// 실제 클릭 흐름이 동작하며, 그 이후(나의 정보 입력부터)는 실제 사주
+/// FACT 엔진·초대장 백엔드·복주머니 결제가 없어 "준비 중" 안내 화면으로
+/// 자연스럽게 멈춘다(정식 개발 지시서의 전체 백엔드 구현은 이번 턴
+/// 범위 밖 — 디자인/클릭 흐름만 구현).
+void openCompatibilityMap(BuildContext context) => Navigator.of(
+  context,
+).push(MaterialPageRoute(builder: (_) => const GunghapHomeScreen()));
 
 /// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
 /// 2열×3행 사진 포토 카드 그리드 데이터. 순서/틴트/이미지는 README.md
