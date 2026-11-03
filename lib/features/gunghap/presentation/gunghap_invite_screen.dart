@@ -75,7 +75,18 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
     setState(() => _creating = false);
 
     if (!ok) {
-      AppToast.show(context, provider.error ?? '초대장 생성에 실패했습니다.', isError: true);
+      // [긴급 검수 지시 §4] API 연결 실패(NETWORK_ERROR)는 "서비스 연결이
+      // 원활하지 않습니다" 문구로 구분 노출하고, 재시도 버튼을 제공해
+      // 사용자가 화면에 그대로 머물지 않도록 한다.
+      final isNetworkError = provider.errorCode == 'NETWORK_ERROR';
+      AppToast.show(
+        context,
+        isNetworkError
+            ? (provider.error ?? '서비스 연결이 원활하지 않습니다.')
+            : (provider.error ?? '초대장을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.'),
+        isError: true,
+        onRetry: _createInvite,
+      );
       return;
     }
 
@@ -100,7 +111,15 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
     setState(() => _checkingStatus = false);
 
     if (data == null) {
-      AppToast.show(context, provider.error ?? '초대 현황을 확인할 수 없습니다.', isError: true);
+      final isNetworkError = provider.errorCode == 'NETWORK_ERROR';
+      AppToast.show(
+        context,
+        isNetworkError
+            ? (provider.error ?? '서비스 연결이 원활하지 않습니다.')
+            : (provider.error ?? '초대 현황을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'),
+        isError: true,
+        onRetry: _checkStatus,
+      );
       return;
     }
     final joined = data['joined'] == true;
@@ -111,7 +130,9 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
     }
     if (!mounted) return;
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => GunghapResultScreen(resultId: resultId)),
+      MaterialPageRoute(
+        builder: (_) => GunghapResultScreen(resultId: resultId),
+      ),
     );
   }
 
@@ -123,7 +144,10 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
 
     return GHScreen(
       bottomNav: const MainBottomNavBar(currentIndex: 0),
-      appBar: GHAppBar(title: '궁합 초대장', onBack: () => Navigator.of(context).pop()),
+      appBar: GHAppBar(
+        title: '궁합 초대장',
+        onBack: () => Navigator.of(context).pop(),
+      ),
       footer: created
           ? GHButton(
               label: _checkingStatus ? '확인하는 중…' : '참여 현황 확인하기',
@@ -173,7 +197,11 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
                   child: Text(
                     '상대방의 생년월일은 입력하지 않아요. 초대장을 받은\n'
                     '사람이 직접, 로그인 없이 자신의 사주 정보를 입력해요.',
-                    style: GHText.ui(size: 12, height: 1.6, color: GHColors.gray),
+                    style: GHText.ui(
+                      size: 12,
+                      height: 1.6,
+                      color: GHColors.gray,
+                    ),
                   ),
                 ),
               ],

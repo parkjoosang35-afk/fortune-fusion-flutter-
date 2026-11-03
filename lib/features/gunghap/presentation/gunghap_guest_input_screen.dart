@@ -60,12 +60,28 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadInvite());
   }
 
+  bool _inviteLoadFailed = false;
+
   Future<void> _loadInvite() async {
+    setState(() {
+      _loadingInvite = true;
+      _inviteLoadFailed = false;
+    });
     final provider = context.read<GunghapProvider>();
     final data = await provider.fetchInviteToken(widget.token);
     if (!mounted) return;
+    if (data == null) {
+      // [긴급 검수 지시 §4] 초대 링크 확인 실패 시(네트워크 오류 포함)
+      // 빈 입력폼만 보여준 채 방치하지 않고, 전용 오류 화면 + 재시도
+      // 버튼을 노출한다.
+      setState(() {
+        _loadingInvite = false;
+        _inviteLoadFailed = true;
+      });
+      return;
+    }
     setState(() {
-      _ownerName = data?['ownerName'] as String?;
+      _ownerName = data['ownerName'] as String?;
       _loadingInvite = false;
     });
   }
@@ -97,7 +113,10 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     final yearNum = int.tryParse(year);
     final monthNum = int.tryParse(month);
     final dayNum = int.tryParse(day);
-    if (year.length != 4 || yearNum == null || monthNum == null || dayNum == null) {
+    if (year.length != 4 ||
+        yearNum == null ||
+        monthNum == null ||
+        dayNum == null) {
       setState(() => _formError = '생년월일을 정확히 입력해주세요.');
       return;
     }
@@ -147,12 +166,23 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     setState(() => _submitting = false);
 
     if (result == null) {
-      setState(() => _formError = provider.error ?? '제출에 실패했습니다. 다시 시도해주세요.');
+      // [긴급 검수 지시 §4] 연결 실패(NETWORK_ERROR)는 전용 문구로 구분해
+      // 보여준다 — 이 화면은 비회원 전용 입력 폼이라 원문 입력값이 그대로
+      // 유지되므로("다시 시도" = 같은 버튼 재클릭) 별도 재시도 버튼 없이도
+      // 바로 재시도가 가능하다.
+      final isNetworkError = provider.errorCode == 'NETWORK_ERROR';
+      setState(() {
+        _formError = isNetworkError
+            ? (provider.error ?? '서비스 연결이 원활하지 않습니다.')
+            : (provider.error ?? '제출하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      });
       return;
     }
 
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => GunghapGuestResultScreen(result: result)),
+      MaterialPageRoute(
+        builder: (_) => GunghapGuestResultScreen(result: result),
+      ),
     );
   }
 
@@ -160,7 +190,10 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
   Widget build(BuildContext context) {
     return GHScreen(
       bottomNav: const MainBottomNavBar(currentIndex: 0),
-      appBar: GHAppBar(title: '궁합 초대 참여', onBack: () => Navigator.of(context).maybePop()),
+      appBar: GHAppBar(
+        title: '궁합 초대 참여',
+        onBack: () => Navigator.of(context).maybePop(),
+      ),
       footer: GHButton(
         label: _submitting ? '제출하는 중…' : '내 궁합 확인하기',
         onPressed: (_canSubmit && !_submitting) ? _handleSubmit : null,
@@ -168,7 +201,32 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
       child: _loadingInvite
           ? const Padding(
               padding: EdgeInsets.only(top: 80),
-              child: Center(child: CircularProgressIndicator(color: GHColors.gold)),
+              child: Center(
+                child: CircularProgressIndicator(color: GHColors.gold),
+              ),
+            )
+          : _inviteLoadFailed
+          ? Padding(
+              padding: const EdgeInsets.only(top: 80),
+              child: Column(
+                children: [
+                  Text(
+                    '초대 정보를 불러오지 못했어요.\n서비스 연결이 원활하지 않습니다.',
+                    textAlign: TextAlign.center,
+                    style: GHText.ui(
+                      size: 14,
+                      height: 1.6,
+                      color: GHColors.gray,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GHButton(
+                    label: '다시 시도',
+                    onPressed: _loadInvite,
+                    expand: false,
+                  ),
+                ],
+              ),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -179,7 +237,8 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
                   title: (_ownerName != null && _ownerName!.isNotEmpty)
                       ? '$_ownerName님이\n궁합을 물어봤어요'
                       : '궁합지도에\n초대받았어요',
-                  sub: '당신의 생년월일만 입력하면 바로 궁합을 확인할 수 있어요.\n'
+                  sub:
+                      '당신의 생년월일만 입력하면 바로 궁합을 확인할 수 있어요.\n'
                       '회원가입은 필요하지 않아요.',
                 ),
                 _GhFieldLabel('이름 · 닉네임'),
@@ -356,7 +415,14 @@ class _GhFieldLabel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text('◇ ', style: TextStyle(fontSize: 9, color: GHColors.gold)),
-        Text(label, style: GHText.ui(size: 12, weight: FontWeight.w600, color: GHColors.gray)),
+        Text(
+          label,
+          style: GHText.ui(
+            size: 12,
+            weight: FontWeight.w600,
+            color: GHColors.gray,
+          ),
+        ),
       ],
     ),
   );
@@ -392,7 +458,10 @@ class _GhTextField extends StatelessWidget {
         isDense: true,
         counterText: '',
         hintText: hint,
-        hintStyle: GHText.ui(size: 14.5, color: GHColors.gray.withValues(alpha: .6)),
+        hintStyle: GHText.ui(
+          size: 14.5,
+          color: GHColors.gray.withValues(alpha: .6),
+        ),
         border: InputBorder.none,
       ),
     ),
@@ -434,7 +503,10 @@ class _GhNumberUnit extends StatelessWidget {
               isDense: true,
               counterText: '',
               hintText: placeholder,
-              hintStyle: GHText.ui(size: 14.5, color: GHColors.gray.withValues(alpha: .6)),
+              hintStyle: GHText.ui(
+                size: 14.5,
+                color: GHColors.gray.withValues(alpha: .6),
+              ),
               border: InputBorder.none,
             ),
           ),
@@ -451,7 +523,11 @@ class _GhNumberUnit extends StatelessWidget {
 }
 
 class _GhChip extends StatelessWidget {
-  const _GhChip({required this.label, required this.active, required this.onTap});
+  const _GhChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -468,7 +544,11 @@ class _GhChip extends StatelessWidget {
       ),
       child: Text(
         active ? '✦ $label' : label,
-        style: GHText.ui(size: 13.5, weight: FontWeight.w600, color: active ? GHColors.gold : GHColors.gray),
+        style: GHText.ui(
+          size: 13.5,
+          weight: FontWeight.w600,
+          color: active ? GHColors.gold : GHColors.gray,
+        ),
       ),
     ),
   );
@@ -502,7 +582,13 @@ class _GhInlineCheck extends StatelessWidget {
               if (subtitle != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: Text(subtitle!, style: GHText.ui(size: 11, color: GHColors.gray.withValues(alpha: .7))),
+                  child: Text(
+                    subtitle!,
+                    style: GHText.ui(
+                      size: 11,
+                      color: GHColors.gray.withValues(alpha: .7),
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -527,7 +613,14 @@ class _GhCheckboxBox extends StatelessWidget {
       border: Border.all(color: value ? GHColors.gold : GHColors.lineSoft),
     ),
     child: value
-        ? const Text('✓', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: GHColors.ink))
+        ? const Text(
+            '✓',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: GHColors.ink,
+            ),
+          )
         : null,
   );
 }
@@ -547,7 +640,11 @@ class _GhConsentCard extends StatelessWidget {
 }
 
 class _GhConsentRow extends StatelessWidget {
-  const _GhConsentRow({required this.value, required this.onChanged, required this.label});
+  const _GhConsentRow({
+    required this.value,
+    required this.onChanged,
+    required this.label,
+  });
   final bool value;
   final ValueChanged<bool> onChanged;
   final String label;

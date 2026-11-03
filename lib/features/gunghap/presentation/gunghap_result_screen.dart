@@ -48,6 +48,7 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
     final provider = context.read<GunghapProvider>();
     final ok = await provider.fetchResult(widget.resultId);
     if (!mounted) return;
@@ -59,8 +60,23 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
         Navigator.of(context).pushNamed('/login');
       } else if (code == 'FORBIDDEN') {
         AppToast.show(context, '이 결과를 열람할 권한이 없습니다.', isError: true);
+      } else if (code == 'NETWORK_ERROR') {
+        // [긴급 검수 지시 §4] 연결 실패는 전용 메시지 + 재시도 버튼으로
+        // 안내한다. 화면 본문에도 _ErrorState(다시 시도 버튼)가 이미
+        // 뜨므로 토스트는 보조 안내 역할을 한다.
+        AppToast.show(
+          context,
+          provider.error ?? '서비스 연결이 원활하지 않습니다.',
+          isError: true,
+          onRetry: _load,
+        );
       } else {
-        AppToast.show(context, provider.error ?? '결과를 불러올 수 없습니다.', isError: true);
+        AppToast.show(
+          context,
+          provider.error ?? '결과를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          isError: true,
+          onRetry: _load,
+        );
       }
     }
   }
@@ -75,9 +91,25 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
 
     if (!ok) {
       if (provider.errorCode == 'INSUFFICIENT_BALANCE') {
-        AppToast.show(context, '복주머니가 부족합니다. 복주머니를 모아 다시 시도해 주세요.', isError: true);
+        AppToast.show(
+          context,
+          '복주머니가 부족합니다. 복주머니를 모아 다시 시도해 주세요.',
+          isError: true,
+        );
+      } else if (provider.errorCode == 'NETWORK_ERROR') {
+        AppToast.show(
+          context,
+          provider.error ?? '서비스 연결이 원활하지 않습니다.',
+          isError: true,
+          onRetry: _unlock,
+        );
       } else {
-        AppToast.show(context, provider.error ?? '잠금해제에 실패했습니다.', isError: true);
+        AppToast.show(
+          context,
+          provider.error ?? '잠금해제하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          isError: true,
+          onRetry: _unlock,
+        );
       }
       return;
     }
@@ -96,22 +128,29 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
 
     return GHScreen(
       bottomNav: const MainBottomNavBar(currentIndex: 0),
-      appBar: GHAppBar(title: '궁합 결과', onBack: () => Navigator.of(context).pop()),
+      appBar: GHAppBar(
+        title: '궁합 결과',
+        onBack: () => Navigator.of(context).pop(),
+      ),
       child: _loading
           ? const Padding(
               padding: EdgeInsets.only(top: 80),
-              child: Center(child: CircularProgressIndicator(color: GHColors.gold)),
+              child: Center(
+                child: CircularProgressIndicator(color: GHColors.gold),
+              ),
             )
           : result == null
-              ? _ErrorState(onRetry: () {
-                  setState(() => _loading = true);
-                  _load();
-                })
-              : _ResultBody(
-                  result: result,
-                  unlocking: _unlocking,
-                  onUnlock: _unlock,
-                ),
+          ? _ErrorState(
+              onRetry: () {
+                setState(() => _loading = true);
+                _load();
+              },
+            )
+          : _ResultBody(
+              result: result,
+              unlocking: _unlocking,
+              onUnlock: _unlock,
+            ),
     );
   }
 }
@@ -160,7 +199,9 @@ class _ResultBody extends StatelessWidget {
         ? categoriesRaw.whereType<Map>().toList()
         : const <Map>[];
     final detailRaw = result['detail'];
-    final detail = detailRaw is List ? detailRaw.whereType<Map>().toList() : const <Map>[];
+    final detail = detailRaw is List
+        ? detailRaw.whereType<Map>().toList()
+        : const <Map>[];
     final detailByCategory = {
       for (final d in detail)
         if (d['categoryId'] != null) d['categoryId'] as String: d,
@@ -191,7 +232,10 @@ class _ResultBody extends StatelessWidget {
                 children: [
                   if (grade != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: GHColors.gold.withValues(alpha: .14),
                         borderRadius: BorderRadius.circular(999),
@@ -199,7 +243,11 @@ class _ResultBody extends StatelessWidget {
                       ),
                       child: Text(
                         grade,
-                        style: GHText.ui(size: 13, weight: FontWeight.w800, color: GHColors.gold),
+                        style: GHText.ui(
+                          size: 13,
+                          weight: FontWeight.w800,
+                          color: GHColors.gold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -207,7 +255,11 @@ class _ResultBody extends StatelessWidget {
                   if (chemistryScore != null)
                     Text(
                       '$chemistryScore점',
-                      style: GHText.ui(size: 13, weight: FontWeight.w700, color: GHColors.ivory),
+                      style: GHText.ui(
+                        size: 13,
+                        weight: FontWeight.w700,
+                        color: GHColors.ivory,
+                      ),
                     ),
                 ],
               ),
@@ -248,7 +300,10 @@ class _ResultBody extends StatelessWidget {
                     const Text('🔒', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text('상세 궁합 보고서', style: GHText.cardTitle(size: 16)),
+                      child: Text(
+                        '상세 궁합 보고서',
+                        style: GHText.cardTitle(size: 16),
+                      ),
                     ),
                   ],
                 ),
@@ -329,7 +384,11 @@ class _CategoryRow extends StatelessWidget {
               ),
               child: Text(
                 grade!,
-                style: GHText.ui(size: 12.5, weight: FontWeight.w700, color: GHColors.gold),
+                style: GHText.ui(
+                  size: 12.5,
+                  weight: FontWeight.w700,
+                  color: GHColors.gold,
+                ),
               ),
             ),
         ],
@@ -396,7 +455,11 @@ class _DetailCard extends StatelessWidget {
 }
 
 class _DetailSection extends StatelessWidget {
-  const _DetailSection({required this.label, required this.body, this.last = false});
+  const _DetailSection({
+    required this.label,
+    required this.body,
+    this.last = false,
+  });
   final String label;
   final String body;
   final bool last;
@@ -409,8 +472,18 @@ class _DetailSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Text('◇ ', style: TextStyle(fontSize: 9, color: GHColors.gold)),
-            Text(label, style: GHText.ui(size: 12.5, weight: FontWeight.w700, color: GHColors.gold)),
+            const Text(
+              '◇ ',
+              style: TextStyle(fontSize: 9, color: GHColors.gold),
+            ),
+            Text(
+              label,
+              style: GHText.ui(
+                size: 12.5,
+                weight: FontWeight.w700,
+                color: GHColors.gold,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 6),

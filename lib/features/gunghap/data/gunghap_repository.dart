@@ -1,9 +1,43 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
+
+/// [긴급 검수 지시 §4 — Flutter UX 보완]
+///
+/// 기존 코드는 모든 예외를 `ApiResult.fail('...중 오류가 발생했습니다: $e')`
+/// 형태로 처리해, `ClientException: Failed to fetch, uri=...` 같은 원시
+/// Dart/브라우저 예외 문자열이 그대로 사용자 화면(AppToast)에 노출되는
+/// 문제가 있었다(2026-11-03 운영 서버 궁합지도 API 404 감사 과정에서 발견).
+///
+/// 이 헬퍼는 "서버에 요청 자체가 도달하지 못한" 네트워크/연결 계층
+/// 예외(DNS 실패, 연결 거부, CORS 차단으로 인한 fetch 실패, 타임아웃 등)를
+/// 감지해 깨끗한 한국어 메시지 + 전용 에러코드(`NETWORK_ERROR`)로 치환한다.
+/// 그 외 예외(JSON 파싱 실패 등 서버는 응답했으나 처리 중 발생한 문제)는
+/// 기존처럼 맥락별 메시지를 유지하되, 원시 예외 텍스트는 노출하지 않는다.
+///
+/// [분류 근거] `package:http`는 웹에서 fetch 실패 시
+/// `http.ClientException`을, 네이티브(Android)에서는 `SocketException`을
+/// 던진다. `.timeout()`은 `TimeoutException`을 던진다. 세 가지 모두
+/// "서비스 연결이 원활하지 않습니다" 범주로 묶는다.
+ApiResult<T> gunghapNetworkOrGenericFailure<T>(
+  Object e,
+  String contextMessage,
+) {
+  final isNetworkFailure =
+      e is http.ClientException ||
+      e is SocketException ||
+      e is TimeoutException;
+  debugPrint('[GunghapRepository] 예외 발생 (network=$isNetworkFailure) -> $e');
+  if (isNetworkFailure) {
+    return ApiResult.fail('서비스 연결이 원활하지 않습니다.', code: 'NETWORK_ERROR');
+  }
+  return ApiResult.fail(contextMessage, code: 'UNKNOWN_ERROR');
+}
 
 /// 궁합지도(Gunghap Map) — 백엔드 5개 공개 API 대응 Repository.
 ///
@@ -70,8 +104,10 @@ class GunghapRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       return ApiResult.ok(data);
     } catch (e) {
-      debugPrint('[GunghapRepository] [createInvite] 예외 -> $e');
-      return ApiResult.fail('초대장 생성 중 오류가 발생했습니다: $e');
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '초대장을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
     }
   }
 
@@ -79,15 +115,11 @@ class GunghapRepository {
   /// 최초 호출, 인증 불필요).
   ///
   /// 반환: {ownerName, joined, resultId}
-  Future<ApiResult<Map<String, dynamic>>> fetchInviteToken(
-    String token,
-  ) async {
+  Future<ApiResult<Map<String, dynamic>>> fetchInviteToken(String token) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/g/$token',
     );
-    debugPrint(
-      '[GunghapRepository] [fetchInviteToken] 요청 -> $uri (인증 헤더 없음)',
-    );
+    debugPrint('[GunghapRepository] [fetchInviteToken] 요청 -> $uri (인증 헤더 없음)');
 
     try {
       final response = await http
@@ -104,8 +136,10 @@ class GunghapRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       return ApiResult.ok(data);
     } catch (e) {
-      debugPrint('[GunghapRepository] [fetchInviteToken] 예외 -> $e');
-      return ApiResult.fail('초대 링크 확인 중 오류가 발생했습니다: $e');
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '초대 링크를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
     }
   }
 
@@ -165,8 +199,7 @@ class GunghapRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       return ApiResult.ok(data);
     } catch (e) {
-      debugPrint('[GunghapRepository] [joinAnonymous] 예외 -> $e');
-      return ApiResult.fail('제출 처리 중 오류가 발생했습니다: $e');
+      return gunghapNetworkOrGenericFailure(e, '제출하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     }
   }
 
@@ -204,8 +237,10 @@ class GunghapRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       return ApiResult.ok(data);
     } catch (e) {
-      debugPrint('[GunghapRepository] [fetchResult] 예외 -> $e');
-      return ApiResult.fail('궁합 결과 조회 중 오류가 발생했습니다: $e');
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '궁합 결과를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
     }
   }
 
@@ -250,8 +285,10 @@ class GunghapRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       return ApiResult.ok(data);
     } catch (e) {
-      debugPrint('[GunghapRepository] [unlock] 예외 -> $e');
-      return ApiResult.fail('잠금해제 처리 중 오류가 발생했습니다: $e');
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '잠금해제에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+      );
     }
   }
 }
