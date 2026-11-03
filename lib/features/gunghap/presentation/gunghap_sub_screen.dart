@@ -4,6 +4,7 @@
 // (03 세부 카테고리) 포팅본.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
@@ -30,6 +31,10 @@ class _GunghapSubScreenState extends State<GunghapSubScreen> {
     final major = ghMajorById(_majorId);
     final subs = ghSubs[_majorId] ?? const [];
     return GHScreen(
+      // [하단바 누락 수정] 기존 공용 하단바 재사용(currentIndex: 0=홈).
+      // GHScreen의 _Footer가 hasNav 여부로 CTA와 하단바 사이 패딩을
+      // 자동 조정하므로 겹침 없이 함께 표시된다.
+      bottomNav: const MainBottomNavBar(currentIndex: 0),
       appBar: GHAppBar(title: major.name, onBack: () => Navigator.of(context).pop()),
       footer: GHButton(
         label: _selectedSub != null ? '$_selectedSub으로 진행' : '세부 궁합을 선택해 주세요',

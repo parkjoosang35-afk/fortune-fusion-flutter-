@@ -11,6 +11,7 @@
 // 입력 이후)는 아직 백엔드가 없어 "준비 중" 안내로 멈춘다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
@@ -26,6 +27,12 @@ class GunghapHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GHScreen(
+      // [하단바 누락 수정] 신통방통 공용 하단 네비게이션 바
+      // (홈/신당부적/복주머니/마이)를 그대로 재사용한다. 궁합지도는
+      // 홈 화면 "전체보기"에서 진입하므로 다른 push 화면들(정통사주/
+      // 타로/귀인지도 등)과 동일하게 currentIndex: 0(홈)을 쓴다 —
+      // 전용 하단바를 새로 만들지 않고 기존 [MainBottomNavBar] 그대로.
+      bottomNav: const MainBottomNavBar(currentIndex: 0),
       appBar: GHAppBar(
         leading: Row(
           children: const [

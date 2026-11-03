@@ -4,6 +4,7 @@
 // (02 대분류 선택) 포팅본.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_screen.dart';
@@ -72,6 +73,8 @@ class _GunghapMajorScreenState extends State<GunghapMajorScreen> {
       return const Scaffold(backgroundColor: GHColors.bg2, body: SizedBox.shrink());
     }
     return GHScreen(
+      // [하단바 누락 수정] 기존 공용 하단바 재사용(currentIndex: 0=홈).
+      bottomNav: const MainBottomNavBar(currentIndex: 0),
       appBar: GHAppBar(title: '궁합 분야 선택', onBack: () => Navigator.of(context).pop()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

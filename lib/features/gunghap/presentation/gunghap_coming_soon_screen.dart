@@ -10,6 +10,7 @@
 // Star Map 테마를 유지한 안내 화면으로 자연스럽게 멈춘다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
@@ -23,6 +24,8 @@ class GunghapComingSoonScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GHScreen(
+      // [하단바 누락 수정] 기존 공용 하단바 재사용(currentIndex: 0=홈).
+      bottomNav: const MainBottomNavBar(currentIndex: 0),
       appBar: GHAppBar(title: title, onBack: () => Navigator.of(context).pop()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
