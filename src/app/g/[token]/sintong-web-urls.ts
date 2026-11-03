@@ -41,4 +41,15 @@ export const SINTONG_WEB_URLS = {
    * 보내고 추후 전용 경로가 생기면 교체한다.
    */
   pouch: `${SINTONG_WEB_BASE}/home`,
+  /**
+   * [궁합지도 `/gh/[token]` 랜딩 신설] 궁합지도(Gunghap) 홈 화면
+   * (`GunghapHomeScreen`)은 귀인지도(`/guinji`)와 달리 `app_router.dart`에
+   * 전용 named route가 없다 — 오직 신통방통 메인 홈 화면의 "궁합지도"
+   * 카드를 탭했을 때(`openCompatibilityMap()`)만 `MaterialPageRoute`로
+   * 직접 push되며, 해시 딥링크(`#/gunghap` 등)로는 도달할 수 없다. 전용
+   * 라우트가 생기기 전까지는 위 `pouch`와 동일한 전례(전용 경로 없음 →
+   * 홈으로 폴백)를 따라 홈으로 보낸다 — 사용자가 홈에서 직접 궁합지도
+   * 카드를 탭해 진입한다.
+   */
+  gunghap: `${SINTONG_WEB_BASE}/home`,
 } as const;
