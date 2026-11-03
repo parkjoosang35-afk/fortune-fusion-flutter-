@@ -83,7 +83,10 @@ export async function POST(
       if (!result || result.deletedAt != null) {
         throw new Error("RESULT_NOT_FOUND");
       }
-      if (result.invite.ownerId !== auth.userId) {
+      // [Phase 2: DIRECT 결과(invite=null)는 ownerUserId로 판별 — 위
+      // results/[resultId]/route.ts와 동일 원칙, 기존 INVITE 로직 불변]
+      const resolvedOwnerId = result.invite?.ownerId ?? result.ownerUserId;
+      if (resolvedOwnerId !== auth.userId) {
         throw new Error("FORBIDDEN");
       }
 

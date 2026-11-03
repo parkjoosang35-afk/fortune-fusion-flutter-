@@ -213,7 +213,7 @@ model User {
   openPassAdRewardLogs          OpenPassAdRewardLog[]
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
-  shrineIssueLedgers             ShrineIssueLedger[]
+  shrineIssueLedgers            ShrineIssueLedger[]
   // [행운상자 - 복주머니 탭 신규 기능]
   pouchBoxOpenLogs              PouchBoxOpenLog[]
   // [복주머니 확장 Phase02-A]
@@ -4956,18 +4956,18 @@ model FunnelEvent {
 // 원장은 기기 초기화·재설치로 쉽게 우회되므로, "정본"은 반드시 이 테이블이다.
 // RULES: perStory=1(이야기 1편당 부적 1장), perDay=2(하루 2장 상한, KST 자정 기준).
 model ShrineIssueLedger {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
   // 사주 지문(SajuResult.pillars 기반 해시) — 같은 회원이라도 사주 자체가
   // 없으면(연결 전) 발급 불가이므로 이 값은 항상 non-null로 기록된다.
-  sajuFp      String   @map("saju_fp")
-  storyId     String   @map("story_id") // 이야기 1편 식별자(재발급 방지 단위)
-  composeKey  String   @map("compose_key") // fp|type|flavor|story|ending 조합(복제 방지)
-  serial      String   @unique // "SHR-xxxxxxxx" 발급 일련번호(부적에 노출)
+  sajuFp     String   @map("saju_fp")
+  storyId    String   @map("story_id") // 이야기 1편 식별자(재발급 방지 단위)
+  composeKey String   @map("compose_key") // fp|type|flavor|story|ending 조합(복제 방지)
+  serial     String   @unique // "SHR-xxxxxxxx" 발급 일련번호(부적에 노출)
   // [일일 한도 집계] KST 기준 'YYYY-MM-DD' 문자열. DateTime 범위 쿼리 대신
   // 문자열 equality로 단순하게 집계해 타임존 버그를 피한다.
-  issuedDate  String   @map("issued_date")
-  createdAt   DateTime @default(now()) @map("created_at")
+  issuedDate String   @map("issued_date")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -5004,9 +5004,9 @@ model ShrineIssueLedger {
 
 // ── gunghap_invite: 소유자가 "이 사람과 궁합을 보고 싶다"고 만든 초대 1건 ──
 model GunghapInvite {
-  id        Int    @id @default(autoincrement())
-  ownerId   Int    @map("owner_id")
-  token     String @unique // 공유용 토큰(sintong.app/gh/{token})
+  id              Int     @id @default(autoincrement())
+  ownerId         Int     @map("owner_id")
+  token           String  @unique // 공유용 토큰(sintong.app/gh/{token})
   // [절대 원칙 — 지시서 "초대 발송자가 상대방의 생년월일을 미리 알고
   // 있어야 하는 구조로 만들지 마세요"] 소유자는 자신의 사주만 미리
   // 계산해 캐시해두고, 상대방 생년월일은 절대 입력받지 않는다. 상대는
@@ -5014,16 +5014,16 @@ model GunghapInvite {
   ownerName       String? @map("owner_name") // 결과 카드 표시용(선택)
   ownerSajuParsed String  @map("owner_saju_parsed") // JSON: GuinjiSajuInput 포맷 재사용(사주 계산은 로그인 클라이언트가 이미 수행)
 
-  status       String    @default("active") @map("status") // active/revoked(소유자가 링크 중단)
-  tokenIssuedAt DateTime @default(now()) @map("token_issued_at")
-  revokedAt    DateTime? @map("revoked_at")
+  status        String    @default("active") @map("status") // active/revoked(소유자가 링크 중단)
+  tokenIssuedAt DateTime  @default(now()) @map("token_issued_at")
+  revokedAt     DateTime? @map("revoked_at")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  owner  User                @relation(fields: [ownerId], references: [id])
-  result GunghapPairResult?
+  owner       User                @relation(fields: [ownerId], references: [id])
+  result      GunghapPairResult?
   shareEvents GunghapShareEvent[]
 
   @@index([ownerId, createdAt])
@@ -5032,20 +5032,32 @@ model GunghapInvite {
 
 // ── gunghap_pair_result: 초대에 대한 게스트 응답 + 8분야 결과(캐시) ──
 model GunghapPairResult {
-  id       Int @id @default(autoincrement())
-  inviteId Int @unique @map("invite_id") // 초대 1건당 응답 1건(1:1)
+  id       Int  @id @default(autoincrement())
+  inviteId Int? @unique @map("invite_id") // [Phase 2] 초대 기반(INVITE) 결과에서만 값 존재. DIRECT 결과는 NULL.
+
+  // [Phase 2 — 궁합지도 통합 최종 개발 지시서 Option A] 결과 생성 경로 구분.
+  // INVITE=기존 초대 링크(/gh/{token}) 경유, DIRECT=로그인 사용자가 마이페이지
+  // 등에서 상대 정보를 직접 입력해 즉시 생성(초대 레코드 없음). 기존 데이터는
+  // 전부 INVITE로 백필한다(데이터 손실 없음, 기존 invite 기반 API 동작 불변).
+  resultType String @default("INVITE") @map("result_type")
+
+  // [Phase 2 신규] DIRECT 결과의 소유자(= 작성/조회 로그인 사용자). INVITE
+  // 결과는 기존과 동일하게 invite.ownerId로 소유자를 식별하므로 이 필드는
+  // NULL로 둔다(중복 저장 금지). my-results 조회 시 "ownerUserId ?? invite.ownerId"
+  // 패턴으로 통일 조회한다(Phase 3에서 구현).
+  ownerUserId Int? @map("owner_user_id")
 
   // [게스트 자가입력 — 비식별] 익명 참여 가능(joinedUserId는 null 허용),
   // 귀인지도 g/[token]/join과 동일한 설계(이름+생년월일만 수집, 신원 확인 無).
-  joinedUserId     Int?    @map("joined_user_id")
-  guestName        String  @map("guest_name")
-  guestGender      String  @map("guest_gender") // male/female (필수 — 기본값 암묵부여 금지, 귀인지도 2026-11 버그 재발 방지)
-  guestSolarLunar  String  @default("solar") @map("guest_solar_lunar") // solar/lunar
-  guestBirthDate   String  @map("guest_birth_date") // YYYY-MM-DD
-  guestBirthTime   String? @map("guest_birth_time") // HH:mm, null=미입력
+  joinedUserId          Int?    @map("joined_user_id")
+  guestName             String  @map("guest_name")
+  guestGender           String  @map("guest_gender") // male/female (필수 — 기본값 암묵부여 금지, 귀인지도 2026-11 버그 재발 방지)
+  guestSolarLunar       String  @default("solar") @map("guest_solar_lunar") // solar/lunar
+  guestBirthDate        String  @map("guest_birth_date") // YYYY-MM-DD
+  guestBirthTime        String? @map("guest_birth_time") // HH:mm, null=미입력
   guestBirthTimeMissing Boolean @default(false) @map("guest_birth_time_missing")
-  guestIsLeapMonth Boolean @default(false) @map("guest_is_leap_month") // 음력+윤달일 때만 true
-  guestSajuParsed  String  @map("guest_saju_parsed") // JSON: 서버가 계산한 GuinjiSajuInput 포맷(calculateSaju 재사용)
+  guestIsLeapMonth      Boolean @default(false) @map("guest_is_leap_month") // 음력+윤달일 때만 true
+  guestSajuParsed       String  @map("guest_saju_parsed") // JSON: 서버가 계산한 GuinjiSajuInput 포맷(calculateSaju 재사용)
 
   // [8분야 FACT/결과 — 분리 저장] factTrace=근거(FACT, 구조화 JSON),
   // categoryResults=분야별 등급+4요소 서술(관계특징/잘맞는부분/갈등가능성/
@@ -5054,16 +5066,16 @@ model GunghapPairResult {
   factTrace       String @map("fact_trace")
   categoryResults String @map("category_results")
 
-  engineVersion String @default("gunghap-1.0.0") @map("engine_version")
-  ruleVersion   String @default("gunghap-rules-1.0.0") @map("rule_version")
+  engineVersion String   @default("gunghap-1.0.0") @map("engine_version")
+  ruleVersion   String   @default("gunghap-rules-1.0.0") @map("rule_version")
   calculatedAt  DateTime @default(now()) @map("calculated_at")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  invite        GunghapInvite        @relation(fields: [inviteId], references: [id])
-  joinedUser    User?                @relation("GunghapPairResultJoinedUser", fields: [joinedUserId], references: [id])
+  invite        GunghapInvite?        @relation(fields: [inviteId], references: [id])
+  joinedUser    User?                 @relation("GunghapPairResultJoinedUser", fields: [joinedUserId], references: [id])
   unlockRecords GunghapUnlockRecord[]
 
   @@map("gunghap_pair_result")

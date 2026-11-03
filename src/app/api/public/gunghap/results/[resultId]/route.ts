@@ -64,8 +64,13 @@ export async function GET(
         { status: 404, headers: CORS_HEADERS },
       );
     }
-    // [타인의 결과 접근 차단] 초대 소유자가 아니면 403.
-    if (result.invite.ownerId !== auth.userId) {
+    // [타인의 결과 접근 차단 — Phase 2: invite가 null인 DIRECT 결과는
+    // ownerUserId로 판별한다(Phase 3에서 DIRECT 생성 API가 ownerUserId를
+    // 채운다). 기존 INVITE 결과는 invite.ownerId 판별 로직이 100% 동일하게
+    // 유지된다 — 이 분기가 없으면 DIRECT 결과 조회 시 invite가 null이라
+    // 타입 에러 및 런타임 크래시가 발생한다.]
+    const resolvedOwnerId = result.invite?.ownerId ?? result.ownerUserId;
+    if (resolvedOwnerId !== auth.userId) {
       return NextResponse.json(
         { success: false, error: "내가 만든 궁합 결과만 볼 수 있어요.", code: "FORBIDDEN" },
         { status: 403, headers: CORS_HEADERS },
@@ -84,7 +89,7 @@ export async function GET(
         success: true,
         data: {
           resultId: `gr_${result.id}`,
-          ownerName: result.invite.ownerName,
+          ownerName: result.invite?.ownerName ?? null,
           guestName: result.guestName,
           relationType: fact.base.relationType,
           relationTypeLabel: fact.base.relationTypeLabel,
