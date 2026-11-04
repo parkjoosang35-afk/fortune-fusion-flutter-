@@ -38,18 +38,12 @@ import { prisma } from "@/lib/db";
 import { GuinjiSajuInput } from "@/lib/guinji-relation-judger";
 import { guinjiSajuInputToV2 } from "@/lib/guinji-v2/adapter";
 import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
-import { computeGunghapFact, type GunghapFactResult } from "@/lib/gunghap/gunghap-relation-fact";
+import type { GunghapFactResult } from "@/lib/gunghap/gunghap-relation-fact";
 import {
-  gradeAllCategories,
-  GUNGHAP_CATEGORY_RULES_VERSION,
-  type CategoryGradeResult,
-  type GunghapCategoryId,
-} from "@/lib/gunghap/gunghap-category-rules";
-import {
-  narrateAllCategories,
-  GUNGHAP_NARRATIVE_VERSION,
-  type CategoryNarrative,
-} from "@/lib/gunghap/gunghap-narrative";
+  computeGunghapResult,
+  toFreeCategoryView,
+  type StoredCategoryResult,
+} from "@/lib/gunghap/gunghap-compute-helper";
 import { CORS_HEADERS, CORS_HEADERS_WITH_AUTH, toGunghapResultPublicId } from "../../../_shared";
 
 export const dynamic = "force-dynamic";
@@ -63,43 +57,6 @@ interface RequestBody {
   gender?: string; // 'male' | 'female'
   agreePolicy?: boolean;
   agreeAge14?: boolean;
-}
-
-/** 저장/응답에 공용으로 쓰는 "분야별 등급+서술" 병합 레코드. */
-interface StoredCategoryResult {
-  categoryId: GunghapCategoryId;
-  grade: string;
-  gradeCode: string;
-  relationshipFeature: string;
-  strength: string;
-  conflictRisk: string;
-  improvement: string;
-  factRefs: CategoryNarrative["factRefs"];
-}
-
-function mergeCategoryResults(
-  grades: CategoryGradeResult[],
-  narratives: CategoryNarrative[],
-): StoredCategoryResult[] {
-  const narrativeById = new Map(narratives.map((n) => [n.categoryId, n]));
-  return grades.map((g) => {
-    const n = narrativeById.get(g.categoryId);
-    return {
-      categoryId: g.categoryId,
-      grade: g.grade,
-      gradeCode: g.gradeCode,
-      relationshipFeature: n?.relationshipFeature ?? "",
-      strength: n?.strength ?? "",
-      conflictRisk: n?.conflictRisk ?? "",
-      improvement: n?.improvement ?? "",
-      factRefs: n?.factRefs ?? { relationshipFeature: [], strength: [], conflictRisk: [], improvement: [] },
-    };
-  });
-}
-
-/** 무료 응답용 — 등급만 노출(점수/서술 비노출, "grades-only" 원칙). */
-function toFreeCategoryView(stored: StoredCategoryResult[]) {
-  return stored.map((c) => ({ categoryId: c.categoryId, grade: c.grade, gradeCode: c.gradeCode }));
 }
 
 export async function POST(
@@ -250,13 +207,14 @@ export async function POST(
     const ownerPersonInput = guinjiSajuInputToV2(ownerSaju, invite.ownerName ?? invite.owner.nickname);
     const guestPersonInput = guinjiSajuInputToV2(guestSaju, name);
 
-    // [3개 엔진 연결 — 지시서 §1-3 "궁합 결과"] FACT → 등급 → 서술 순서로
-    // 연결해 8개 분야의 실제 결과를 생성한다. 어느 단계도 임의 수치를
-    // 넣지 않는다(모든 값은 fact에서 결정론적으로 파생).
-    const fact: GunghapFactResult = await computeGunghapFact(ownerPersonInput, guestPersonInput);
-    const grades = gradeAllCategories(fact);
-    const narratives = narrateAllCategories(grades);
-    const stored = mergeCategoryResults(grades, narratives);
+    // [3개 엔진 연결 — Phase 3에서 gunghap-compute-helper.ts로 추출,
+    // 로직 자체는 완전히 동일] FACT → 등급 → 서술 순서로 연결해 8개
+    // 분야의 실제 결과를 생성한다. 어느 단계도 임의 수치를 넣지 않는다
+    // (모든 값은 fact에서 결정론적으로 파생).
+    const { fact, stored, engineVersion, ruleVersion } = await computeGunghapResult(
+      ownerPersonInput,
+      guestPersonInput,
+    );
 
     const outcome = await prisma.$transaction(async (tx) => {
       try {
@@ -274,8 +232,8 @@ export async function POST(
             guestSajuParsed: JSON.stringify(guestSaju),
             factTrace: JSON.stringify(fact),
             categoryResults: JSON.stringify(stored),
-            engineVersion: `${fact.factEngineVersion}+${GUNGHAP_CATEGORY_RULES_VERSION}+${GUNGHAP_NARRATIVE_VERSION}`,
-            ruleVersion: fact.factRuleVersion,
+            engineVersion,
+            ruleVersion,
           },
         });
         return { result: created, created: true };

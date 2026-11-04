@@ -21,6 +21,8 @@ import {
   CORS_HEADERS_WITH_AUTH,
   parseGunghapResultDbId,
   requireUser,
+  resolveGunghapResultOwnerId,
+  toGunghapResultPublicId,
   unauthorizedResponse,
 } from "../../_shared";
 
@@ -64,12 +66,10 @@ export async function GET(
         { status: 404, headers: CORS_HEADERS },
       );
     }
-    // [타인의 결과 접근 차단 — Phase 2: invite가 null인 DIRECT 결과는
-    // ownerUserId로 판별한다(Phase 3에서 DIRECT 생성 API가 ownerUserId를
-    // 채운다). 기존 INVITE 결과는 invite.ownerId 판별 로직이 100% 동일하게
-    // 유지된다 — 이 분기가 없으면 DIRECT 결과 조회 시 invite가 null이라
-    // 타입 에러 및 런타임 크래시가 발생한다.]
-    const resolvedOwnerId = result.invite?.ownerId ?? result.ownerUserId;
+    // [타인의 결과 접근 차단 — Phase 2/3: invite가 null인 DIRECT 결과는
+    // ownerUserId로 판별한다. 기존 INVITE 결과는 invite.ownerId 판별
+    // 로직이 100% 동일하게 유지된다(resolveGunghapResultOwnerId 참고).
+    const resolvedOwnerId = resolveGunghapResultOwnerId(result);
     if (resolvedOwnerId !== auth.userId) {
       return NextResponse.json(
         { success: false, error: "내가 만든 궁합 결과만 볼 수 있어요.", code: "FORBIDDEN" },
@@ -125,6 +125,67 @@ export async function GET(
     console.error("[GET /api/public/gunghap/results/[resultId]] 실패:", e);
     return NextResponse.json(
       { success: false, error: "결과 조회 중 오류가 발생했습니다." },
+      { status: 500, headers: CORS_HEADERS },
+    );
+  }
+}
+
+// [Phase 3 — 궁합스토리 삭제] 소유자 본인만 삭제 가능. 실제 row를 지우지
+// 않고 `deletedAt`만 채우는 soft-delete를 사용한다(귀인지도 guinji_map
+// 삭제 패턴과 동일 원칙 — 복구/감사 추적 여지를 남긴다). 삭제 후에는
+// GET/my-results/unlock 모든 경로에서 `deletedAt != null` 조건으로
+// 제외되므로 사용자 눈에는 즉시 사라진다.
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ resultId: string }> },
+) {
+  const auth = await requireUser(request);
+  if (!auth) return unauthorizedResponse();
+
+  const { resultId } = await params;
+  const dbId = parseGunghapResultDbId(resultId);
+  if (dbId === null) {
+    return NextResponse.json(
+      { success: false, error: "resultId가 올바르지 않습니다." },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+
+  try {
+    const result = await prisma.gunghapPairResult.findUnique({
+      where: { id: dbId },
+      include: { invite: { select: { ownerId: true, ownerName: true } } },
+    });
+
+    if (!result || result.deletedAt != null) {
+      return NextResponse.json(
+        { success: false, error: "결과를 찾을 수 없어요.", code: "NOT_FOUND" },
+        { status: 404, headers: CORS_HEADERS },
+      );
+    }
+
+    // [타인의 결과 삭제 차단 — GET/unlock과 동일한 소유자 판별 재사용]
+    const resolvedOwnerId = resolveGunghapResultOwnerId(result);
+    if (resolvedOwnerId !== auth.userId) {
+      return NextResponse.json(
+        { success: false, error: "내가 만든 궁합 결과만 삭제할 수 있어요.", code: "FORBIDDEN" },
+        { status: 403, headers: CORS_HEADERS },
+      );
+    }
+
+    await prisma.gunghapPairResult.update({
+      where: { id: dbId },
+      data: { deletedAt: new Date() },
+    });
+
+    return NextResponse.json(
+      { success: true, data: { resultId: toGunghapResultPublicId(dbId), deleted: true } },
+      { headers: CORS_HEADERS },
+    );
+  } catch (e) {
+    console.error("[DELETE /api/public/gunghap/results/[resultId]] 실패:", e);
+    return NextResponse.json(
+      { success: false, error: "삭제 처리 중 오류가 발생했습니다." },
       { status: 500, headers: CORS_HEADERS },
     );
   }

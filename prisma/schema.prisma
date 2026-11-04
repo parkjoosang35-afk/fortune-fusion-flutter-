@@ -5047,6 +5047,19 @@ model GunghapPairResult {
   // 패턴으로 통일 조회한다(Phase 3에서 구현).
   ownerUserId Int? @map("owner_user_id")
 
+  // [Phase 3 신규 — 직접 생성(DIRECT) 멱등키] "API 재시도로 인한 중복 생성"과
+  // "사용자가 의도적으로 같은 상대와 다시 궁합을 보는 것"을 데이터 내용이
+  // 아니라 "요청 세션"으로 구분하기 위한 클라이언트 발급 키. Flutter는
+  // 사용자가 "확인하기"를 누르는 매 순간 새 UUID를 생성해 보낸다 — 같은
+  // 클릭의 네트워크 재시도는 동일 requestKey를 재전송하므로 기존 결과를
+  // 그대로 반환(중복 생성 0건), 사용자가 나중에 다시 버튼을 누르면 새
+  // UUID이므로 새 결과가 생성된다(의도적 재조회 허용). INVITE 결과는 항상
+  // null(ownerUserId와 동일하게 미사용) — SQLite UNIQUE 인덱스는 NULL을
+  // "서로 다른 값"으로 취급하므로 기존 INVITE 레코드와 절대 충돌하지 않는다
+  // (Phase 2에서 invite_id nullable 전환 시 스크래치 DB로 실증 검증한 성질과
+  // 동일한 원리 재사용).
+  requestKey String? @map("request_key")
+
   // [게스트 자가입력 — 비식별] 익명 참여 가능(joinedUserId는 null 허용),
   // 귀인지도 g/[token]/join과 동일한 설계(이름+생년월일만 수집, 신원 확인 無).
   joinedUserId          Int?    @map("joined_user_id")
@@ -5078,6 +5091,11 @@ model GunghapPairResult {
   joinedUser    User?                 @relation("GunghapPairResultJoinedUser", fields: [joinedUserId], references: [id])
   unlockRecords GunghapUnlockRecord[]
 
+  // [Phase 3 멱등 제약 — DIRECT 전용] 동일 사용자가 동일 requestKey로 재요청
+  // (네트워크 재시도)하면 새 행을 만들지 않고 기존 행을 반환한다. ownerUserId/
+  // requestKey 둘 다 INVITE 결과에서는 NULL이므로 기존 16건과 절대 충돌하지
+  // 않는다(SQLite 복합 UNIQUE도 어느 한 컬럼이라도 NULL이면 별개 행으로 취급).
+  @@unique([ownerUserId, requestKey])
   @@map("gunghap_pair_result")
 }
 

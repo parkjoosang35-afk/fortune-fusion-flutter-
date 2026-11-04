@@ -60,6 +60,31 @@ export function generateGunghapToken(): string {
   return randomBytes(12).toString("base64url");
 }
 
+/**
+ * [Phase 3 — 궁합지도 통합 최종 개발 지시서] GunghapPairResult의 "소유자"를
+ * INVITE/DIRECT 양쪽 경로에서 일관되게 판별한다.
+ *
+ * - INVITE 결과(기존, result_type='INVITE'): 초대 레코드의 ownerId가
+ *   진짜 소유자다. ownerUserId 컬럼은 항상 null로 남는다(Phase 2에서
+ *   의도적으로 설계 — "중복 저장 금지").
+ * - DIRECT 결과(Phase 3 신규, result_type='DIRECT'): invite 레코드
+ *   자체가 없으므로(inviteId=null), 결과에 직접 저장된 ownerUserId가
+ *   소유자다.
+ *
+ * Phase 2에서 results/[resultId]/route.ts, results/[resultId]/unlock/
+ * route.ts에 인라인으로 추가했던 `result.invite?.ownerId ?? result.
+ * ownerUserId` 패턴을 Phase 3에서 신규 작성하는 my-results/direct/
+ * delete 라우트에서도 동일하게 재사용하기 위해 공용 함수로 승격한다
+ * (동일 판별 로직을 3곳에 또 복붙하지 않기 위함 — 로직 자체는 완전히
+ * 동일, 중복 제거만 목적).
+ */
+export function resolveGunghapResultOwnerId(result: {
+  ownerUserId: number | null;
+  invite?: { ownerId: number } | null;
+}): number | null {
+  return result.invite?.ownerId ?? result.ownerUserId;
+}
+
 /** KST 기준 "오늘" 날짜 키 — 귀인지도 `todayKstDateKey()`와 동일 규칙. */
 export function todayKstDateKey(): string {
   const now = new Date();

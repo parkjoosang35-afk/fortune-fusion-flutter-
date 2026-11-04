@@ -41,6 +41,7 @@ import {
   CORS_HEADERS_WITH_AUTH,
   parseGunghapResultDbId,
   requireUser,
+  resolveGunghapResultOwnerId,
   unauthorizedResponse,
 } from "../../../_shared";
 
@@ -83,9 +84,9 @@ export async function POST(
       if (!result || result.deletedAt != null) {
         throw new Error("RESULT_NOT_FOUND");
       }
-      // [Phase 2: DIRECT 결과(invite=null)는 ownerUserId로 판별 — 위
+      // [Phase 2/3: DIRECT 결과(invite=null)는 ownerUserId로 판별 — 위
       // results/[resultId]/route.ts와 동일 원칙, 기존 INVITE 로직 불변]
-      const resolvedOwnerId = result.invite?.ownerId ?? result.ownerUserId;
+      const resolvedOwnerId = resolveGunghapResultOwnerId(result);
       if (resolvedOwnerId !== auth.userId) {
         throw new Error("FORBIDDEN");
       }
