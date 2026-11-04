@@ -165,9 +165,16 @@ class MySajuInfoScreen extends StatelessWidget {
       if (confirmed != true || !context.mounted) return;
     }
     if (!context.mounted) return;
+    // [버그 수정 — 2026-11 Screen A 실동작 검증 중 발견] hasSaju가
+    // false(최초 등록)일 때도 항상 mode: edit로 열려, SajuInputScreen의
+    // "FIRST VISIT" 타이틀/policy-note 대신 edit 모드 UI(변경분만 활성화되는
+    // 저장 버튼 등)가 떠버리는 결함이 있었다. hasSaju 여부에 따라
+    // first/edit 모드를 정확히 분기한다.
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const SajuInputScreen(mode: SajuInputMode.edit),
+        builder: (_) => SajuInputScreen(
+          mode: hasSaju ? SajuInputMode.edit : SajuInputMode.first,
+        ),
       ),
     );
   }
