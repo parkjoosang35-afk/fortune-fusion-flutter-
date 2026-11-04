@@ -99,13 +99,19 @@ void openPalmReading(BuildContext context) {
 }
 
 /// [전체보기 섹션 2개 추가 — design_handoff_add_two_sections.zip]
-/// "오늘의운세" 카드 전용 목적지. 2026-08-13 결정으로 일간 운세는
-/// 정통사주 80항목에 통합되었고(`RemovedDailyFortuneStub` 참고) 별도
-/// 전용 화면이 없으므로, 기존 정통사주 카드와 완전히 동일한 목적지
-/// (`/saju-renewal`)로 연결한다(신규 화면/라우트 없음 — 기존 화면
-/// 재사용 원칙).
+/// "오늘의운세" 카드 전용 목적지.
+///
+/// [버그 수정 — 사용자 리포트] 2026-08-13 결정으로 한때 일간 운세가
+/// 정통사주 80항목에 통합되어 이 카드를 `/saju-renewal`(정통사주 메인)로
+/// 연결했었으나, 이후 세션에서 기간별 운세 전용 화면
+/// ([FortunePeriodScreen], 라우트 `/fortune-period`, 오늘·주간·월간 3탭)이
+/// 정식으로 추가되었다. 이 함수가 갱신되지 않아 "오늘의 운세" 카드를 누르면
+/// 엉뚱하게 정통사주 메인 화면이 뜨는 버그가 발생했다 — 이제 정식 목적지인
+/// `/fortune-period`로 연결한다. `tapPosition`(정통사주 원형 확산 전환용)은
+/// 더 이상 쓰이지 않으므로 전달하지 않는다(호출부 시그니처 호환을 위해
+/// 매개변수 자체는 유지).
 void openTodayFortune(BuildContext context, {Offset? tapPosition}) =>
-    openSubScreen(context, SHomeV2Category.saju, tapPosition: tapPosition);
+    Navigator.of(context).pushNamed('/fortune-period');
 
 /// [궁합지도 Star Map 디자인 적용 — design_handoff_gunghap_map.zip]
 /// "궁합지도" 카드 전용 목적지.
