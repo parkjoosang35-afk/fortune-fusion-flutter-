@@ -13,11 +13,25 @@
 // 여부만 보고 잠금해제 CTA 노출 여부를 결정한다 — 이미 해금된 경우
 // 버튼 자체를 숨기므로 재열람 시 중복 호출/중복 차감 경로가 UI
 // 레벨에서도 존재하지 않는다.
+//
+// [궁합지도 Phase 4 §5 — 결과 이미지 갤러리 저장] 귀인지도
+// (`guinji_result_card_screen.dart`)와 동일한 검증된 패턴을 그대로
+// 재사용한다: `RepaintBoundary` + `captureOriginalResult`/
+// `saveOriginalResult`(core/util/original_result_capture.dart) +
+// `buildSaveFileName('gunghap', resultId)`. [GHScreen]은 이미 `child`를
+// `SingleChildScrollView`로 감싸므로(gh_screen.dart 참고), 그 안에서
+// `RepaintBoundary`를 직접 쓰면 뷰포트 높이가 아니라 콘텐츠의 "실제
+// 전체 높이"로 렌더링된 레이어를 그대로 캡처한다 — 8개 분야 등급 +
+// (해금 시) 8개 상세 리포트까지 아무리 길어져도 잘리지 않는다. 저장
+// 버튼은 [GHScreen.footer](스크롤 영역 밖, 캡처 범위 밖)에 둬서
+// 귀인지도와 동일하게 버튼 자체는 저장 이미지에 포함되지 않는다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/util/original_result_capture.dart';
+import '../../../core/util/save_filename.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../application/gunghap_provider.dart';
@@ -47,6 +61,11 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
   // decoded['code']를 그대로 전달), "다시 시도" 버튼이 의미 없는
   // 전용 안내 문구 + 목록으로 돌아가기 동작을 구분해서 보여준다.
   bool _deletedNotFound = false;
+  // [Phase 4 §5 — 결과 이미지 갤러리 저장] 결과 콘텐츠 전체를 감싸는
+  // RepaintBoundary 캡처 키. `_ResultBody` 전체(스텝/타이틀/별자리맵/
+  // 요약카드/8개 분야 등급/상세 리포트까지)를 하나의 레이어로 캡처한다.
+  final _originalResultKey = GlobalKey();
+  bool _savingImage = false;
 
   @override
   void initState() {
@@ -138,10 +157,32 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
     AppToast.show(context, '상세 보고서가 열렸어요.');
   }
 
+  // [Phase 4 §5 — 결과 이미지 갤러리 저장] 귀인지도
+  // (`guinji_result_card_screen.dart._saveImage`)와 완전히 동일한
+  // 구조: captureOriginalResult/saveOriginalResult 공용 유틸을 그대로
+  // 재사용하고, 성공/실패 토스트도 그 유틸이 전담한다(이 화면에서
+  // 별도 토스트 문구를 만들지 않음 — REQ-05/REQ-09 표준 유지).
+  // 파일명은 공통 규칙(`sintong_gunghap_{resultId}_{yyyyMMdd_HHmmss}`)을
+  // 그대로 따른다.
+  Future<void> _saveImage() async {
+    if (_savingImage) return;
+    setState(() => _savingImage = true);
+    try {
+      await saveOriginalResult(
+        context,
+        _originalResultKey,
+        name: buildSaveFileName('gunghap', widget.resultId),
+      );
+    } finally {
+      if (mounted) setState(() => _savingImage = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<GunghapProvider>();
     final result = provider.result;
+    final showResult = !_loading && result != null;
 
     return GHScreen(
       bottomNav: const MainBottomNavBar(currentIndex: 0),
@@ -149,6 +190,24 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
         title: '궁합 결과',
         onBack: () => Navigator.of(context).pop(),
       ),
+      // [Phase 4 §5] 저장 버튼은 캡처 범위(RepaintBoundary) 밖인 footer에
+      // 둔다 — 귀인지도와 동일하게 버튼 자체가 저장 이미지에 찍히지 않게
+      // 하기 위함. 결과가 아직 없거나(로딩/에러) 보이지 않을 때는 저장할
+      // 것이 없으므로 footer를 아예 숨긴다.
+      footer: showResult
+          ? GHButton(
+              label: _savingImage ? '이미지를 준비하는 중…' : '결과 이미지로 저장하기',
+              variant: GHButtonVariant.secondary,
+              leading: _savingImage
+                  ? null
+                  : const Icon(
+                      Icons.download_rounded,
+                      size: 16,
+                      color: GHColors.ivory,
+                    ),
+              onPressed: _savingImage ? null : _saveImage,
+            )
+          : null,
       child: _loading
           ? const Padding(
               padding: EdgeInsets.only(top: 80),
@@ -169,10 +228,25 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
                       _load();
                     },
                   ))
-          : _ResultBody(
-              result: result,
-              unlocking: _unlocking,
-              onUnlock: _unlock,
+          // [Phase 4 §5] RepaintBoundary로 결과 콘텐츠 전체를 감싼다.
+          // GHScreen.child는 이미 SingleChildScrollView 안에 배치되므로
+          // (gh_screen.dart 참고) 별도 스크롤뷰를 추가하지 않고, 이
+          // RepaintBoundary 레이어 자체가 "화면에 실제로 그려진 전체
+          // 높이"를 그대로 캡처 대상으로 갖는다 — 8개 분야 등급 카드와
+          // (해금 후) 8개 상세 리포트까지 더해져 화면보다 훨씬 길어져도
+          // 스크롤 뷰포트가 아니라 콘텐츠 전체 높이 기준으로 캡처되어
+          // 잘리지 않는다(ColoredBox로 배경색을 명시해 투명 영역이
+          // PNG에서 검게 찍히지 않도록 한다).
+          : RepaintBoundary(
+              key: _originalResultKey,
+              child: ColoredBox(
+                color: GHColors.bg2,
+                child: _ResultBody(
+                  result: result,
+                  unlocking: _unlocking,
+                  onUnlock: _unlock,
+                ),
+              ),
             ),
     );
   }
