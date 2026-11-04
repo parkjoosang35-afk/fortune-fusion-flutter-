@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import type { GunghapFactResult } from "@/lib/gunghap/gunghap-relation-fact";
 import type { GunghapCategoryId } from "@/lib/gunghap/gunghap-category-rules";
+import { filterStoredByMajorId } from "@/lib/gunghap/gunghap-compute-helper";
 import {
   CORS_HEADERS,
   CORS_HEADERS_WITH_AUTH,
@@ -79,10 +80,51 @@ export async function GET(
 
     const fact = JSON.parse(result.factTrace) as GunghapFactResult;
     const stored = JSON.parse(result.categoryResults) as StoredCategoryResult[];
+    // [2026-11 궁합 주제 반영 지시서 — Section 2] 선택된 주제가 있으면 1개
+    // 분야만, 없으면(레거시) 8개 전체를 노출한다.
+    const visibleStored = filterStoredByMajorId(stored, result.majorId);
 
     const unlocked = await prisma.gunghapUnlockRecord.findUnique({
       where: { userId_resultId: { userId: auth.userId, resultId: result.id } },
     });
+
+    // [Section 4 — LLM 캐시] 잠금해제된 경우, 캐시된 LLM 상세 해석이 있으면
+    // 그것을 반환하고, 아직 없으면(과거 unlock 레코드는 있는데 LLM 캐시가
+    // 비어있는 과도기 데이터) 결정론적 템플릿 서술로 안전하게 폴백한다
+    // (상세 화면이 빈 값으로 깨지는 것을 방지 — unlock 호출 시 캐시가
+    // 항상 채워지므로 정상 흐름에서는 이 폴백이 사실상 발생하지 않는다).
+    let detail: unknown = null;
+    let refunded = false;
+    if (unlocked) {
+      if (result.llmDetailJson) {
+        try {
+          detail = JSON.parse(result.llmDetailJson);
+        } catch {
+          detail = null;
+        }
+      }
+      if (!detail) {
+        detail = visibleStored.map((c) => ({
+          categoryId: c.categoryId,
+          grade: c.grade,
+          relationshipFeature: c.relationshipFeature,
+          strength: c.strength,
+          conflictRisk: c.conflictRisk,
+          improvement: c.improvement,
+        }));
+      }
+      // [2026-11 추가 검수 지시 — LLM 실패 시 환불 정책] unlock(POST)이 아닌
+      // 이 GET으로 재열람할 때도(예: 궁합스토리에서 다시 들어온 경우) "이
+      // 보고서는 LLM 생성 실패로 환불됐다"는 사실을 동일하게 보여줘야 한다
+      // — unlock/route.ts와 동일한 조회 조건(sourceType/sourceId)을 그대로
+      // 재사용한다(새 플래그 컬럼을 추가하지 않고 기존 PointHistory 감사
+      // 로그만으로 판별 — 스키마 변경 없음).
+      const refundRecord = await prisma.pointHistory.findFirst({
+        where: { sourceType: "gunghap_detail_unlock_refund", sourceId: result.id },
+        select: { id: true },
+      });
+      refunded = refundRecord != null;
+    }
 
     return NextResponse.json(
       {
@@ -97,26 +139,17 @@ export async function GET(
           chemistryScore: fact.base.chemistryScore,
           grade: fact.base.grade,
           gradeCode: fact.base.gradeCode,
-          categories: stored.map((c) => ({
+          majorId: result.majorId ?? null,
+          subName: result.subName ?? null,
+          categories: visibleStored.map((c) => ({
             categoryId: c.categoryId,
             grade: c.grade,
             gradeCode: c.gradeCode,
           })),
           unlocked: unlocked != null,
           unlockCost: 100,
-          // [유료 — 해금된 경우에만 4요소 서술 포함]
-          ...(unlocked
-            ? {
-                detail: stored.map((c) => ({
-                  categoryId: c.categoryId,
-                  grade: c.grade,
-                  relationshipFeature: c.relationshipFeature,
-                  strength: c.strength,
-                  conflictRisk: c.conflictRisk,
-                  improvement: c.improvement,
-                })),
-              }
-            : {}),
+          // [유료 — 해금된 경우에만 상세 해석 포함]
+          ...(unlocked ? { detail, llmSource: result.llmSource ?? "template", refunded } : {}),
         },
       },
       { headers: CORS_HEADERS },

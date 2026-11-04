@@ -24,6 +24,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isValidGuinjiSajuInput } from "@/lib/guinji-relation-judger";
+import { GUNGHAP_CATEGORY_ORDER } from "@/lib/gunghap/gunghap-category-rules";
 import {
   CORS_HEADERS,
   CORS_HEADERS_WITH_AUTH,
@@ -34,9 +35,17 @@ import {
 
 export const dynamic = "force-dynamic";
 
+// [2026-11 궁합 주제 반영 지시서 — Section 3] 미응답 초대 링크 만료기간.
+// 승인 문서 확정값: 7일. 완료된(결과가 생성된) 초대는 만료 판정을 받지
+// 않는다(g/[token]/route.ts에서 "invite.result != null"을 expiresAt
+// 체크보다 항상 먼저 확인) — 이 상수는 "미응답" 상태의 링크에만 적용된다.
+const INVITE_EXPIRY_DAYS = 7;
+
 interface RequestBody {
   ownerName?: string;
   saju?: unknown;
+  majorId?: string;
+  subName?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -68,10 +77,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // [2026-11 궁합 주제 반영 지시서 — Section 1] 사용자가 고른 궁합 분야.
+  // 선택사항(미지정 시 레거시와 동일하게 8분야 전체 노출) — 다만 값이
+  // 왔다면 반드시 8개 고정 분야 중 하나여야 한다(임의 문자열 저장 방지).
+  const majorId = body.majorId?.trim();
+  if (majorId && !GUNGHAP_CATEGORY_ORDER.includes(majorId as (typeof GUNGHAP_CATEGORY_ORDER)[number])) {
+    return NextResponse.json(
+      { success: false, error: "majorId가 올바르지 않습니다." },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+  const subName = body.subName?.trim();
+  if (subName && subName.length > 40) {
+    return NextResponse.json(
+      { success: false, error: "subName은 40자 이내여야 합니다." },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+
   try {
     // 토큰 충돌(사실상 발생하지 않지만 unique 제약 방어적 재시도) — 귀인지도
     // maps/route.ts와 동일 패턴.
-    let created: { id: number; token: string } | null = null;
+    let created: { id: number; token: string; expiresAt: Date | null } | null = null;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
     for (let attempt = 0; attempt < 3 && !created; attempt++) {
       const token = generateGunghapToken();
       try {
@@ -81,8 +110,12 @@ export async function POST(request: NextRequest) {
             token,
             ownerName: ownerName || null,
             ownerSajuParsed: JSON.stringify(body.saju),
+            majorId: majorId || null,
+            subName: subName || null,
+            tokenIssuedAt: now,
+            expiresAt,
           },
-          select: { id: true, token: true },
+          select: { id: true, token: true, expiresAt: true },
         });
       } catch (e) {
         const code = (e as { code?: string }).code;
@@ -104,6 +137,7 @@ export async function POST(request: NextRequest) {
           // 함께 내려준다(baseUrl은 클라이언트/운영 설정에 따라 다르므로
           // 여기서는 상대 경로만 제공).
           sharePath: `/gh/${created.token}`,
+          expiresAt: created.expiresAt ? created.expiresAt.toISOString() : null,
         },
       },
       { status: 201, headers: CORS_HEADERS },

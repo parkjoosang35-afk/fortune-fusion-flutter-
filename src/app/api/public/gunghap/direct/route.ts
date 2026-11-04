@@ -44,6 +44,7 @@ import { GuinjiSajuInput, isValidGuinjiSajuInput } from "@/lib/guinji-relation-j
 import { guinjiSajuInputToV2 } from "@/lib/guinji-v2/adapter";
 import { calculateSaju, guinjiSajuInputFromManseryeok } from "@/lib/saju-manseryeok-engine";
 import { computeGunghapResult, toFreeCategoryView, type StoredCategoryResult } from "@/lib/gunghap/gunghap-compute-helper";
+import { GUNGHAP_CATEGORY_ORDER } from "@/lib/gunghap/gunghap-category-rules";
 import type { GunghapFactResult } from "@/lib/gunghap/gunghap-relation-fact";
 import {
   CORS_HEADERS,
@@ -65,6 +66,8 @@ interface RequestBody {
   partnerIsLeapMonth?: boolean;
   partnerBirthTime?: string | null; // 'HH:mm'
   partnerGender?: string; // 'male' | 'female'
+  majorId?: string;
+  subName?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -155,6 +158,23 @@ export async function POST(request: NextRequest) {
   }
   const partnerGender = body.partnerGender;
 
+  // [2026-11 궁합 주제 반영 지시서 — Section 1/2] 사용자가 고른 궁합 분야.
+  // 선택사항(미지정 시 레거시와 동일하게 8분야 전체 노출).
+  const majorId = body.majorId?.trim();
+  if (majorId && !GUNGHAP_CATEGORY_ORDER.includes(majorId as (typeof GUNGHAP_CATEGORY_ORDER)[number])) {
+    return NextResponse.json(
+      { success: false, error: "majorId가 올바르지 않습니다." },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+  const subName = body.subName?.trim();
+  if (subName && subName.length > 40) {
+    return NextResponse.json(
+      { success: false, error: "subName은 40자 이내여야 합니다." },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
+
   let timeUnknown = true;
   let hour = 12;
   let minute = 0;
@@ -235,6 +255,8 @@ export async function POST(request: NextRequest) {
             categoryResults: JSON.stringify(stored),
             engineVersion,
             ruleVersion,
+            majorId: majorId || null,
+            subName: subName || null,
           },
         });
         return { result: created, created: true };
@@ -295,7 +317,9 @@ function buildDirectResponse(
         dayMasterElement: partnerManseryeok
           ? partnerManseryeok.dayMaster.element
           : fact.member.dayMasterElement,
-        categories: toFreeCategoryView(stored),
+        majorId: result.majorId ?? null,
+        subName: result.subName ?? null,
+        categories: toFreeCategoryView(stored, result.majorId),
         unlockCost: 100,
         created,
       },

@@ -67,9 +67,30 @@ function mergeCategoryResults(
   });
 }
 
+/**
+ * [2026-11 궁합 주제 반영 지시서 — Section 2] 사용자가 초대/직접생성 시
+ * 선택한 궁합 주제(majorId)가 있으면 해당 1개 분야만 남기고, 없으면(레거시
+ * 결과, majorId=null) 기존처럼 8개 분야 전체를 반환한다(하위 호환 — 기존
+ * 22건의 초대/16건의 결과는 majorId가 없으므로 동작이 전혀 바뀌지 않는다).
+ * 알 수 없는 majorId(저장 당시 오타 등 방어적 상황)가 들어오면 안전하게
+ * 전체 8개를 반환한다(빈 배열로 결과가 사라지는 것을 방지).
+ */
+export function filterStoredByMajorId<T extends { categoryId: string }>(
+  stored: T[],
+  majorId?: string | null,
+): T[] {
+  if (!majorId) return stored;
+  const filtered = stored.filter((c) => c.categoryId === majorId);
+  return filtered.length > 0 ? filtered : stored;
+}
+
 /** 무료 응답용 — 등급만 노출(점수/서술 비노출, "grades-only" 원칙). */
-export function toFreeCategoryView(stored: StoredCategoryResult[]) {
-  return stored.map((c) => ({ categoryId: c.categoryId, grade: c.grade, gradeCode: c.gradeCode }));
+export function toFreeCategoryView(stored: StoredCategoryResult[], majorId?: string | null) {
+  return filterStoredByMajorId(stored, majorId).map((c) => ({
+    categoryId: c.categoryId,
+    grade: c.grade,
+    gradeCode: c.gradeCode,
+  }));
 }
 
 /**

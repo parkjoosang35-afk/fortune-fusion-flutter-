@@ -47,7 +47,7 @@ export interface SajuEngineClientOptions {
   userId?: number | null;
 }
 
-const DEFAULT_BASE_URL = process.env.SAJU_ENGINE_BASE_URL ?? "http://127.0.0.1:8000";
+export const DEFAULT_BASE_URL = process.env.SAJU_ENGINE_BASE_URL ?? "http://127.0.0.1:8000";
 const DEFAULT_TIMEOUT_MS = 15_000; // docs/11_API_계약서.md §5 "facts | 03 전체 15s"
 /** access_control/free_pass.py verify_free_pass_token() 데모 검증 규칙 — "STB-" 접두사
  * + 32자 이상만 통과. 실서비스 회원 인증과 무관한 "서버-서버 내부 호출용 고정 토큰"이며,
@@ -63,7 +63,11 @@ const DEFAULT_TIMEOUT_MS = 15_000; // docs/11_API_계약서.md §5 "facts | 03 �
 // 커밋 저자가 실제 재현 확인). 상수를 없애고, 진짜 요청 시점(아래 함수 호출 시)에만
 // 환경변수를 읽고 운영에서 미설정이면 그 때 명확히 실패시킨다(고정 데모 토큰으로
 // 무음 실행되는 사고를 원천 차단하되, 빌드 타임에는 절대 평가되지 않는다).
-function freePassToken(): string {
+// [신통방통 오늘·주간·월간 운세 — 2026-11 디자인 지시서] export로 전환 —
+// 같은 saju_engine을 호출하는 다른 소비자 모듈(src/lib/fortune-period/*)이
+// 이 운영 안전장치(운영에서 토큰 미설정 시 명확한 오류)를 중복 구현하지
+// 않고 그대로 재사용하기 위함. 함수 내부 로직은 한 글자도 바꾸지 않았다.
+export function freePassToken(): string {
   const fromEnv = process.env.SAJU_ENGINE_FREE_PASS_TOKEN;
   if (fromEnv) return fromEnv;
   if (process.env.NODE_ENV === "production") {

@@ -167,12 +167,21 @@ export async function POST(
     // 사람이 같은 링크에 또 입력을 시도하는 경우든 동일하게 처리한다 —
     // 스키마 설계(1:1) 자체가 "초대 1건당 응답 1건"이기 때문이다.
     if (invite.result != null) {
-      return buildJoinResponse(invite.result, invite.owner.nickname, invite.ownerName, false);
+      return buildJoinResponse(invite.result, invite.owner.nickname, invite.ownerName, false, invite.majorId, invite.subName);
     }
     if (invite.revokedAt != null) {
       return NextResponse.json(
         { success: false, error: "초대한 사람이 이 링크를 중단했어요.", code: "REVOKED" },
         { status: 403, headers: CORS_HEADERS },
+      );
+    }
+    // [2026-11 궁합 주제 반영 지시서 — Section 3] 7일 만료 체크. completed
+    // 분기(위 invite.result != null)보다 뒤에 있으므로 이미 응답 완료된
+    // 초대는 이 체크에 영향받지 않는다(확정 기준 "완료된 궁합 결과는 보존").
+    if (invite.expiresAt != null && invite.expiresAt.getTime() < Date.now()) {
+      return NextResponse.json(
+        { success: false, error: "초대 링크가 만료되었어요(발급 후 7일이 지났어요).", code: "EXPIRED" },
+        { status: 410, headers: CORS_HEADERS },
       );
     }
     if (!invite.ownerSajuParsed) {
@@ -234,6 +243,11 @@ export async function POST(
             categoryResults: JSON.stringify(stored),
             engineVersion,
             ruleVersion,
+            // [2026-11 궁합 주제 반영 지시서 — Section 1/2] 초대 생성 시
+            // 저장된 주제를 결과에도 복사한다(게스트는 join 시점에 주제를
+            // 다시 선택하지 않음 — 초대자가 고른 주제를 그대로 따른다).
+            majorId: invite.majorId ?? null,
+            subName: invite.subName ?? null,
           },
         });
         return { result: created, created: true };
@@ -250,7 +264,7 @@ export async function POST(
       }
     });
 
-    return buildJoinResponse(outcome.result, invite.owner.nickname, invite.ownerName, outcome.created, guestManseryeok);
+    return buildJoinResponse(outcome.result, invite.owner.nickname, invite.ownerName, outcome.created, invite.majorId, invite.subName, guestManseryeok);
   } catch (e) {
     console.error("[POST /api/public/gunghap/g/[token]/join] 실패:", e);
     return NextResponse.json(
@@ -269,6 +283,8 @@ function buildJoinResponse(
   ownerNickname: string,
   ownerName: string | null,
   created: boolean,
+  majorId?: string | null,
+  subName?: string | null,
   guestManseryeok?: ReturnType<typeof calculateSaju>,
 ) {
   const fact = JSON.parse(result.factTrace) as GunghapFactResult;
@@ -292,7 +308,9 @@ function buildJoinResponse(
         dayMasterElement: guestManseryeok
           ? guestManseryeok.dayMaster.element
           : fact.member.dayMasterElement,
-        categories: toFreeCategoryView(stored),
+        majorId: majorId ?? result.majorId ?? null,
+        subName: subName ?? result.subName ?? null,
+        categories: toFreeCategoryView(stored, majorId ?? result.majorId),
         unlockCost: 100,
         joined: true,
       },

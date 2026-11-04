@@ -27,6 +27,8 @@
 // 쓰고 guinji GET API를 호출하지 않는다).
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
+import { categoryLabel } from "@/lib/gunghap/gunghap-narrative";
+import type { GunghapCategoryId } from "@/lib/gunghap/gunghap-category-rules";
 import { GunghapInviteInteractive } from "./gunghap-invite-interactive";
 import { MakeMyGunghapButton } from "./make-my-gunghap-button";
 import { SintongBottomNavBar } from "../../g/[token]/sintong-bottom-nav-bar";
@@ -49,11 +51,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // (추후 Phase에서 궁합 전용 동적 OG가 필요하면 별도 작업으로 추가).
   const ogImageUrl = `${baseUrl}/images/hero-hanbok.png`;
 
+  // [2026-11 궁합 주제 반영 지시서 — Section 1] 초대 생성 시 선택한 주제가
+  // 있으면 OG 제목/설명에 반영한다(예: "OO님이 보낸 연애 궁합 초대장").
+  // 미선택(레거시 초대)이면 기존 일반 문구를 그대로 쓴다.
+  const topicSuffix =
+    invite.state === "ok" && invite.majorLabel ? ` · ${invite.majorLabel}` : "";
   const title =
     invite.state === "ok"
-      ? `${invite.ownerName}님이 보낸 궁합지도 초대장`
+      ? `${invite.ownerName}님이 보낸${topicSuffix ? ` ${invite.majorLabel}` : ""} 궁합지도 초대장`
       : "신통방통 · 궁합지도";
-  const description = "이름과 생년월일만 넣으면, 두 사람의 궁합이 바로 나와요.";
+  const description =
+    invite.state === "ok" && invite.majorLabel
+      ? `${invite.majorLabel} 궁합, 이름과 생년월일만 넣으면 바로 나와요.`
+      : "이름과 생년월일만 넣으면, 두 사람의 궁합이 바로 나와요.";
 
   return {
     title,
@@ -88,23 +98,33 @@ async function loadInvite(token: string) {
     }
 
     const ownerName = invite.ownerName ?? invite.owner.nickname;
+    const majorLabel = invite.majorId
+      ? categoryLabel(invite.majorId as GunghapCategoryId)
+      : null;
 
     // [중요 — 귀인지도 g/[token]/route.ts와 동일 순서 원칙] 이미 결과가
-    // 존재하면(누군가 이미 참여를 완료했다면) revoke 여부와 무관하게 그
-    // 사실(joined=true)만 알려준다 — 단, 이 랜딩페이지 자체는 "참여
+    // 존재하면(누군가 이미 참여를 완료했다면) revoke/만료 여부와 무관하게
+    // 그 사실(joined=true)만 알려준다 — 단, 이 랜딩페이지 자체는 "참여
     // 완료된 초대 링크를 다시 열었을 때 무엇을 보여줄지"까지는 Phase 1
     // 범위에 포함하지 않는다(1초대 1결과 스키마 제약 — 재참여 폼을
     // 보여주면 서버가 거부할 뿐 오류는 아니다). 일단 안내만 명확히
-    // 보여주고, revoked보다 먼저 판정한다.
+    // 보여주고, revoked/expired보다 먼저 판정한다(확정 기준 "완료된
+    // 궁합 결과는 보존").
     if (invite.result != null) {
-      return { state: "joined" as const, ownerName };
+      return { state: "joined" as const, ownerName, majorLabel };
     }
 
     if (invite.revokedAt != null) {
-      return { state: "revoked" as const, ownerName };
+      return { state: "revoked" as const, ownerName, majorLabel };
     }
 
-    return { state: "ok" as const, ownerName };
+    // [2026-11 궁합 주제 반영 지시서 — Section 3] 미응답 상태에서 7일
+    // 경과 시 만료 처리(신규 상태, 기존 revoked와 별도 안내문 노출).
+    if (invite.expiresAt != null && invite.expiresAt.getTime() < Date.now()) {
+      return { state: "expired" as const, ownerName, majorLabel };
+    }
+
+    return { state: "ok" as const, ownerName, majorLabel };
   } catch (e) {
     console.error("[GET /gh/[token]] 조회 실패:", e);
     return { state: "error" as const };
@@ -251,6 +271,32 @@ export default async function GunghapInviteLandingPage({ params }: PageProps) {
               그래도 괜찮아요 — 나만의 궁합지도는
               <br />
               언제든 만들 수 있어요.
+            </p>
+            <MakeMyGunghapButton />
+          </div>
+        </div>
+      )}
+
+      {invite.state === "expired" && (
+        <div className="relative mx-auto w-full max-w-[440px] px-4 py-8">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-56 opacity-70"
+            style={{ backgroundImage: HERO_STARS_BG }}
+            aria-hidden
+          />
+          <div className="relative mb-5 flex items-center justify-center gap-1.5">
+            <BrandMark />
+          </div>
+          <div className="relative rounded-3xl border border-[#3A2A52] bg-[#1F1133] p-8 text-center shadow-[0_4px_20px_-8px_rgba(245,207,106,0.15)]">
+            <h1 style={{ fontFamily: SERIF }} className="mb-4 text-xl font-bold text-[#F8F2E6]">
+              초대 링크가 만료됐어요
+            </h1>
+            <p className="mb-2 text-sm leading-relaxed text-[#C9BBA8]">
+              발급 후 7일이 지나 이 링크는
+              <br />
+              더 이상 사용할 수 없어요.
+              <br />
+              {invite.ownerName}님에게 새 링크를 요청해 주세요.
             </p>
             <MakeMyGunghapButton />
           </div>
