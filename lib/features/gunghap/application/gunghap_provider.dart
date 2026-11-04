@@ -304,6 +304,15 @@ class GunghapProvider extends ChangeNotifier {
   /// 성공 시 [_result]에 `unlocked:true`와 `detail`(8개 분야 전체
   /// 서술)을 병합해 갱신한다(재조회 없이 화면이 바로 반영 가능).
   ///
+  /// [2026-11 환불 UI 보완 지시] 서버 `/unlock` 및 `GET /results/{id}`
+  /// 응답에는 이미 `llmSource`("llm" | "template")와 `refunded`(bool)
+  /// 필드가 포함돼 있었으나(백엔드 변경 없음 — 기존 구현 그대로), 이
+  /// Provider가 그동안 `unlocked`/`detail`만 병합하고 두 필드를
+  /// 버려왔다. 이제 `_result`에 그대로 병합해 화면(`GunghapResultScreen`)이
+  /// `result['refunded'] == true`일 때 환불 안내 배너를 표시할 수 있게
+  /// 한다 — **백엔드 과금/환불 로직 자체는 전혀 건드리지 않음**, 이미
+  /// 서버가 계산해 내려준 값을 화면까지 전달만 하는 순수 파싱 보완이다.
+  ///
   /// 반환: 성공 시 true, 실패 시 false.
   Future<bool> unlock(String resultId) async {
     _isLoading = true;
@@ -326,6 +335,8 @@ class GunghapProvider extends ChangeNotifier {
         ..._result!,
         'unlocked': true,
         'detail': data['detail'],
+        'llmSource': data['llmSource'],
+        'refunded': data['refunded'] == true,
       };
     }
     notifyListeners();

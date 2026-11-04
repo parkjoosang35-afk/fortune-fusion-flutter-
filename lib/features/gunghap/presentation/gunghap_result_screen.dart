@@ -298,6 +298,12 @@ class _ResultBody extends StatelessWidget {
     final chemistryScore = result['chemistryScore'];
     final unlocked = result['unlocked'] == true;
     final unlockCost = (result['unlockCost'] as num?)?.toInt() ?? 100;
+    // [2026-11 환불 UI 보완 지시] 서버가 LLM 생성에 실패해 100P를 자동
+    // 환불한 경우(`refunded:true`), 해금된 상세 보고서가 실제로는
+    // "참고용 템플릿 해석"임을 사용자에게 명확히 알린다. 정상 LLM
+    // 해석(`refunded:false`)일 때는 배너를 아예 렌더링하지 않는다 —
+    // 과금/환불 로직 자체는 서버가 이미 끝낸 사실을 화면에 반영만 한다.
+    final refunded = unlocked && result['refunded'] == true;
     final categoriesRaw = result['categories'];
     final categories = categoriesRaw is List
         ? categoriesRaw.whereType<Map>().toList()
@@ -429,6 +435,10 @@ class _ResultBody extends StatelessWidget {
           ),
         ] else ...[
           const GHSectionHead(mono: 'DETAIL REPORT', title: '상세 궁합 보고서'),
+          if (refunded) ...[
+            const _RefundNoticeBanner(),
+            const SizedBox(height: 14),
+          ],
           for (final c in categories) ...[
             _DetailCard(
               categoryId: c['categoryId'] as String?,
@@ -440,6 +450,38 @@ class _ResultBody extends StatelessWidget {
       ],
     );
   }
+}
+
+// [2026-11 환불 UI 보완 지시] LLM 호출이 끝내 실패해 서버가 100P를 자동
+// 환불한 경우에만 노출되는 안내 배너. `GHCard`/기존 색상 토큰
+// (GHColors.rose)을 그대로 재사용해 궁합지도 디자인 언어를 벗어나지
+// 않는다 — 신규 색상/컴포넌트를 만들지 않음.
+class _RefundNoticeBanner extends StatelessWidget {
+  const _RefundNoticeBanner();
+
+  @override
+  Widget build(BuildContext context) => GHCard(
+    borderRadius: GHRadius.cardSm,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('⚠️', style: TextStyle(fontSize: 16)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            '상세 해석 생성이 원활하지 않아 복주머니 100P가 자동 환불되었습니다. '
+            '아래 내용은 참고용 해석입니다.',
+            style: GHText.ui(
+              size: 12.5,
+              weight: FontWeight.w600,
+              height: 1.5,
+              color: GHColors.rose,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _CategoryRow extends StatelessWidget {
