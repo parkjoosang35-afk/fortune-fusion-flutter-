@@ -116,6 +116,8 @@ import '../../features/saju_renewal/navigation/saju_dimension_transition.dart';
 import '../../features/bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
 import '../../features/bokju_coupon/presentation/bokju_coupon_scan_screen.dart';
 import '../../features/bokju_coupon/presentation/bokju_coupon_history_screen.dart';
+import '../../features/fortune_period/presentation/saju_input_screen.dart';
+import '../../features/fortune_period/presentation/my_saju_info_screen.dart';
 import 'package:provider/provider.dart';
 import 'app_navigator_key.dart';
 import '../web/web_nav_bridge.dart';
@@ -878,6 +880,24 @@ class AppRouter {
         return _pageNamed('/reward/coupon/scan', const BokjuCouponScanScreen());
       case '/reward/coupon/my':
         return _pageNamed('/reward/coupon/my', const BokjuCouponHistoryScreen());
+
+      // ── 기간별 운세(fortune_period) — 화면 A 검증용 임시 라우트.
+      // [2026-11 작업중] 화면 B(3탭 메인)가 아직 구현되지 않아 정식
+      // 엔트리포인트(`/fortune-period`)는 아직 등록하지 않는다. 이 두
+      // 라우트는 SajuInputScreen/MySajuInfoScreen을 실제 서버(API) 대상
+      // 수동/자동 검증을 위해 임시로 연결한 것이며, 화면 D(라우팅 연결)
+      // 단계에서 공식 라우트 체계로 재정비될 예정이다. 기존 메뉴/다른
+      // 라우트는 전혀 건드리지 않는다(add-only).
+      case '/fortune-period/saju-input':
+        return _pageNamed(
+          '/fortune-period/saju-input',
+          const SajuInputScreen(),
+        );
+      case '/fortune-period/my-saju':
+        return _pageNamed(
+          '/fortune-period/my-saju',
+          const MySajuInfoScreen(),
+        );
 
       // ── 마이 ──
       case '/my/notifications':
