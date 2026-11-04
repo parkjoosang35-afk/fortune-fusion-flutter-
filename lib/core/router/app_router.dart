@@ -118,6 +118,7 @@ import '../../features/bokju_coupon/presentation/bokju_coupon_scan_screen.dart';
 import '../../features/bokju_coupon/presentation/bokju_coupon_history_screen.dart';
 import '../../features/fortune_period/presentation/saju_input_screen.dart';
 import '../../features/fortune_period/presentation/my_saju_info_screen.dart';
+import '../../features/fortune_period/presentation/fortune_period_screen.dart';
 import 'package:provider/provider.dart';
 import 'app_navigator_key.dart';
 import '../web/web_nav_bridge.dart';
@@ -881,13 +882,14 @@ class AppRouter {
       case '/reward/coupon/my':
         return _pageNamed('/reward/coupon/my', const BokjuCouponHistoryScreen());
 
-      // ── 기간별 운세(fortune_period) — 화면 A 검증용 임시 라우트.
-      // [2026-11 작업중] 화면 B(3탭 메인)가 아직 구현되지 않아 정식
-      // 엔트리포인트(`/fortune-period`)는 아직 등록하지 않는다. 이 두
-      // 라우트는 SajuInputScreen/MySajuInfoScreen을 실제 서버(API) 대상
-      // 수동/자동 검증을 위해 임시로 연결한 것이며, 화면 D(라우팅 연결)
-      // 단계에서 공식 라우트 체계로 재정비될 예정이다. 기존 메뉴/다른
-      // 라우트는 전혀 건드리지 않는다(add-only).
+      // ── 기간별 운세(fortune_period) ──
+      // 화면 B(오늘/주간/월간 3탭 메인) 공식 엔트리포인트. MySajuInfoScreen의
+      // "☾ 오늘의 운세 보러 가기" 버튼이 이 라우트로 이동한다.
+      case '/fortune-period':
+        return _pageNamed('/fortune-period', const FortunePeriodScreen());
+      // 아래 두 라우트는 화면 A(사주정보 등록/수정) 검증용으로 먼저 연결한
+      // 것이며, 화면 D(라우팅 연결) 단계에서 공식 체계로 재정비될 예정이다.
+      // 기존 메뉴/다른 라우트는 전혀 건드리지 않는다(add-only).
       case '/fortune-period/saju-input':
         return _pageNamed(
           '/fortune-period/saju-input',
