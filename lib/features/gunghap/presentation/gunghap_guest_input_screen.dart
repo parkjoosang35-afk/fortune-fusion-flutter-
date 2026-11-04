@@ -24,6 +24,7 @@ import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
 import 'gunghap_guest_result_screen.dart';
+import 'gunghap_result_screen.dart';
 
 class GunghapGuestInputScreen extends StatefulWidget {
   const GunghapGuestInputScreen({super.key, required this.token});
@@ -62,16 +63,44 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
 
   bool _inviteLoadFailed = false;
 
+  /// [2026-11 궁합 주제 반영 지시서 — Section 3] 초대 링크의 4가지 상태.
+  /// 'pending'=응답 대기(정상, 입력폼 표시) / 'completed'=이미 응답 완료
+  /// (영구 보존, 재제출 불가) / 'cancelled'=소유자가 중단 / 'expired'=발급
+  /// 후 7일 경과(미응답 상태에서만 발생 — completed는 절대 expired로
+  /// 전환되지 않음). null=아직 판정 전(로딩 중) 또는 네트워크 오류로
+  /// 상태 자체를 알 수 없는 경우(이 경우 [_inviteLoadFailed] 경로 사용).
+  String? _inviteStatus;
+  String? _resultId;
+
   Future<void> _loadInvite() async {
     setState(() {
       _loadingInvite = true;
       _inviteLoadFailed = false;
+      _inviteStatus = null;
     });
     final provider = context.read<GunghapProvider>();
     final data = await provider.fetchInviteToken(widget.token);
     if (!mounted) return;
     if (data == null) {
-      // [긴급 검수 지시 §4] 초대 링크 확인 실패 시(네트워크 오류 포함)
+      // [2026-11 지시서 — Section 3] 서버가 4xx/410으로 응답한 경우
+      // errorCode로 cancelled/expired/not_found를 구분한다. 그 외
+      // (네트워크 오류 등)는 기존처럼 일반 오류+재시도 화면을 보여준다.
+      final code = provider.errorCode;
+      if (code == 'REVOKED') {
+        setState(() {
+          _loadingInvite = false;
+          _inviteStatus = 'cancelled';
+        });
+        return;
+      }
+      if (code == 'EXPIRED') {
+        setState(() {
+          _loadingInvite = false;
+          _inviteStatus = 'expired';
+        });
+        return;
+      }
+      // [긴급 검수 지시 §4] 그 외 실패(네트워크 오류, NOT_FOUND 포함)는
       // 빈 입력폼만 보여준 채 방치하지 않고, 전용 오류 화면 + 재시도
       // 버튼을 노출한다.
       setState(() {
@@ -80,8 +109,11 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
       });
       return;
     }
+    final status = data['status'] as String?;
     setState(() {
       _ownerName = data['ownerName'] as String?;
+      _inviteStatus = status ?? (data['joined'] == true ? 'completed' : 'pending');
+      _resultId = data['resultId'] as String?;
       _loadingInvite = false;
     });
   }
@@ -186,18 +218,64 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     );
   }
 
+  /// [2026-11 궁합 주제 반영 지시서 — Section 3] completed/cancelled/
+  /// expired 3가지 "입력폼을 보여줄 수 없는" 상태를 위한 공용 안내
+  /// 카드. pending(정상)은 이 메서드를 호출하지 않는다.
+  Widget _buildStatusCard({
+    required String emoji,
+    required String title,
+    required String message,
+    Widget? action,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 40)),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: GHText.ui(
+              size: 16,
+              weight: FontWeight.w700,
+              color: GHColors.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GHText.ui(size: 13, height: 1.6, color: GHColors.gray),
+          ),
+          if (action != null) ...[const SizedBox(height: 20), action],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // [2026-11 지시서 — Section 3] 4상태 중 입력폼을 보여줄 수 있는 것은
+    // 'pending'뿐이다. 나머지 상태는 전용 안내 카드로 대체한다.
+    final isBlockedStatus =
+        !_loadingInvite &&
+        !_inviteLoadFailed &&
+        _inviteStatus != null &&
+        _inviteStatus != 'pending';
+
     return GHScreen(
       bottomNav: const MainBottomNavBar(currentIndex: 0),
       appBar: GHAppBar(
         title: '궁합 초대 참여',
         onBack: () => Navigator.of(context).maybePop(),
       ),
-      footer: GHButton(
-        label: _submitting ? '제출하는 중…' : '내 궁합 확인하기',
-        onPressed: (_canSubmit && !_submitting) ? _handleSubmit : null,
-      ),
+      footer: isBlockedStatus
+          ? null
+          : GHButton(
+              label: _submitting ? '제출하는 중…' : '내 궁합 확인하기',
+              onPressed: (_canSubmit && !_submitting) ? _handleSubmit : null,
+            ),
       child: _loadingInvite
           ? const Padding(
               padding: EdgeInsets.only(top: 80),
@@ -227,6 +305,41 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
                   ),
                 ],
               ),
+            )
+          : _inviteStatus == 'completed'
+          ? _buildStatusCard(
+              emoji: '✅',
+              title: '이미 참여를 완료한 초대예요',
+              message:
+                  (_ownerName != null && _ownerName!.isNotEmpty)
+                      ? '$_ownerName님과의 궁합 결과는\n이미 완성되어 있어요.'
+                      : '이 초대는 이미 응답이 완료되어 있어요.',
+              action: _resultId == null
+                  ? null
+                  : GHButton(
+                      label: '결과 보기',
+                      expand: false,
+                      onPressed: () {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                GunghapResultScreen(resultId: _resultId!),
+                          ),
+                        );
+                      },
+                    ),
+            )
+          : _inviteStatus == 'cancelled'
+          ? _buildStatusCard(
+              emoji: '🚫',
+              title: '초대한 사람이 링크를 중단했어요',
+              message: '이 초대 링크는 더 이상 사용할 수 없어요.',
+            )
+          : _inviteStatus == 'expired'
+          ? _buildStatusCard(
+              emoji: '⌛',
+              title: '초대 링크가 만료됐어요',
+              message: '발급 후 7일이 지나 더 이상 사용할 수 없어요.\n초대한 사람에게 새 링크를 요청해 주세요.',
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

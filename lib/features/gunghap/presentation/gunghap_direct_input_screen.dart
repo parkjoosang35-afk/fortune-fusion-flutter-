@@ -15,9 +15,13 @@
 // 대분류/세부 카테고리 선택 UI를 그대로 재사용하고, 그 다음 단계에서만
 // 이 화면으로 분기한다(`method == 'invite'`일 때는 기존
 // `GunghapInviteScreen`으로, `method == 'direct'`일 때만 이 화면으로
-// 연결 — `gunghap_sub_screen.dart` 분기 참고). 카테고리(majorId/subName)는
-// 백엔드 `/direct` API 계약에 포함되지 않으므로(표시용 컨텍스트일 뿐)
-// 화면 타이틀 안내 문구에만 사용하고 요청 본문에는 포함하지 않는다.
+// 연결 — `gunghap_sub_screen.dart` 분기 참고).
+//
+// [2026-11 궁합 주제 반영 지시서 — Section 1/2] 카테고리(majorId/subName)는
+// 화면 타이틀 안내 문구뿐 아니라 `/direct` API 요청 본문에도 포함된다 —
+// 서버가 이 값을 저장해 결과 화면/카카오 공유 메시지가 선택한 주제 1개만
+// 노출하도록 필터링한다(과거에는 표시용 컨텍스트로만 쓰이고 요청 본문에는
+// 포함되지 않았으나, 이번 지시서로 그 설계를 반대로 뒤집었다).
 //
 // [입력 UI 재사용] `GunghapGuestInputScreen`(게스트 본인 정보 입력)의
 // 생년월일/양력·음력·윤달/출생시간/출생시간모름/성별 입력 패턴을 그대로
@@ -180,6 +184,8 @@ class _GunghapDirectInputScreenState extends State<GunghapDirectInputScreen> {
       partnerIsLeapMonth: _calendarIndex == 2,
       partnerBirthTime: birthTime,
       partnerGender: _gender!,
+      majorId: widget.majorId,
+      subName: widget.subName,
     );
 
     if (!mounted) return;

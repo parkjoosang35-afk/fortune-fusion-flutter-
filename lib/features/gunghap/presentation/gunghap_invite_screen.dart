@@ -55,6 +55,17 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
   GHMajor? get _major =>
       widget.majorId == null ? null : ghMajorById(widget.majorId);
 
+  /// [2026-11 궁합 주제 반영 지시서 — Section 1] 카카오 공유 메시지에
+  /// 쓸 주제 표시 문구. 주제 미선택 시 null(기존 일반 문구 사용).
+  String? get _topicLabel {
+    final major = _major;
+    if (major == null) return null;
+    final subName = widget.subName;
+    return subName == null || subName.isEmpty
+        ? major.name
+        : '${major.name} · $subName';
+  }
+
   Future<void> _createInvite() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isLoggedIn) {
@@ -70,7 +81,11 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
 
     setState(() => _creating = true);
     final provider = context.read<GunghapProvider>();
-    final ok = await provider.createInviteForUser(user);
+    final ok = await provider.createInviteForUser(
+      user,
+      majorId: widget.majorId,
+      subName: widget.subName,
+    );
     if (!mounted) return;
     setState(() => _creating = false);
 
@@ -97,6 +112,7 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
         context,
         provider.inviteToken,
         ownerName: user.nickname,
+        topicLabel: _topicLabel,
       );
     }
   }
@@ -218,6 +234,7 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
                 context,
                 provider.inviteToken,
                 ownerName: context.read<AuthProvider>().currentUser?.nickname,
+                topicLabel: _topicLabel,
               ),
             ),
             const SizedBox(height: 8),
@@ -228,6 +245,7 @@ class _GunghapInviteScreenState extends State<GunghapInviteScreen> {
                 context,
                 provider.inviteToken,
                 ownerName: context.read<AuthProvider>().currentUser?.nickname,
+                topicLabel: _topicLabel,
               ),
             ),
           ],

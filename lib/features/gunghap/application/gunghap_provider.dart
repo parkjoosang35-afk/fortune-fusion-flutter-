@@ -130,9 +130,19 @@ class GunghapProvider extends ChangeNotifier {
   /// 형태로도 입력받지 않는다 — 오직 호출자 본인의 [UserModel] 저장
   /// 프로필만 사용한다.
   ///
+  /// [2026-11 궁합 주제 반영 지시서 — Section 1] [majorId]/[subName]은
+  /// 사용자가 초대 생성 전 화면(`GunghapMajorScreen`/`GunghapSubScreen`)
+  /// 에서 고른 궁합 분야/세부 카테고리다. 둘 다 선택사항이지만, 지정하면
+  /// 카카오 공유 메시지와 게스트/소유자 결과 화면이 모두 해당 주제
+  /// 1개만 보여주게 된다(서버 측 필터링).
+  ///
   /// 반환: 성공 시 true(이후 [inviteToken]/[sharePath] 사용 가능),
   /// 실패 시 false([error] 참고).
-  Future<bool> createInviteForUser(UserModel user) async {
+  Future<bool> createInviteForUser(
+    UserModel user, {
+    String? majorId,
+    String? subName,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -162,6 +172,8 @@ class GunghapProvider extends ChangeNotifier {
       final result = await _repository.createInvite(
         ownerName: user.nickname,
         saju: sajuJson,
+        majorId: majorId,
+        subName: subName,
       );
       if (!result.success || result.data == null) {
         _isLoading = false;
@@ -357,6 +369,8 @@ class GunghapProvider extends ChangeNotifier {
     bool partnerIsLeapMonth = false,
     String? partnerBirthTime, // 'HH:mm' | null
     required String partnerGender, // 'male' | 'female'
+    String? majorId,
+    String? subName,
   }) async {
     _isCreatingDirect = true;
     _error = null;
@@ -400,6 +414,8 @@ class GunghapProvider extends ChangeNotifier {
         partnerIsLeapMonth: partnerIsLunar ? partnerIsLeapMonth : false,
         partnerBirthTime: partnerBirthTime,
         partnerGender: partnerGender,
+        majorId: majorId,
+        subName: subName,
       );
 
       _isCreatingDirect = false;

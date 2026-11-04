@@ -69,10 +69,17 @@ class GunghapRepository {
   /// [중요] 이 엔드포인트는 상대방(게스트)의 어떠한 정보도 입력받지
   /// 않는다 — body에는 초대자 본인의 `saju`만 담긴다.
   ///
-  /// 반환: {inviteId, token, sharePath}
+  /// [2026-11 궁합 주제 반영 지시서 — Section 1] [majorId]/[subName]은
+  /// 사용자가 초대 생성 전에 고른 궁합 분야(예: 'love')/세부 카테고리
+  /// 표시 라벨(예: '썸 단계 궁합')이다. 둘 다 선택사항 — 미지정 시 서버가
+  /// 레거시와 동일하게 8분야 전체를 노출한다.
+  ///
+  /// 반환: {inviteId, token, sharePath, expiresAt}
   Future<ApiResult<Map<String, dynamic>>> createInvite({
     String? ownerName,
     required Map<String, dynamic> saju,
+    String? majorId,
+    String? subName,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/invites',
@@ -88,6 +95,8 @@ class GunghapRepository {
             body: jsonEncode({
               if (ownerName != null) 'ownerName': ownerName,
               'saju': saju,
+              if (majorId != null) 'majorId': majorId,
+              if (subName != null) 'subName': subName,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -332,6 +341,8 @@ class GunghapRepository {
     bool partnerIsLeapMonth = false, // calendarType == 'lunar'일 때만 유효
     String? partnerBirthTime, // 'HH:mm' | null (모르면 null)
     required String partnerGender, // 'male' | 'female'
+    String? majorId,
+    String? subName,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/direct',
@@ -354,6 +365,8 @@ class GunghapRepository {
               'partnerIsLeapMonth': partnerIsLeapMonth,
               'partnerBirthTime': partnerBirthTime,
               'partnerGender': partnerGender,
+              if (majorId != null) 'majorId': majorId,
+              if (subName != null) 'subName': subName,
             }),
           )
           .timeout(const Duration(seconds: 15));

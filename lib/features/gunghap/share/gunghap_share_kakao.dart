@@ -25,16 +25,25 @@ String buildGunghapInviteLink(String token) =>
 /// 카카오톡 설치 시 `ShareClient.shareDefault(template: TextTemplate(...))`로
 /// 카카오톡 공유 시트를 직접 띄우고, 실패/미설치/웹이면 `safeShareText`로
 /// 폴백한다(귀인지도와 동일한 폴백 원칙).
+///
+/// [2026-11 궁합 주제 반영 지시서 — Section 1] [topicLabel]은 사용자가
+/// 고른 궁합 분야/세부 카테고리 표시 문구(예: "연애 궁합 · 썸 단계
+/// 궁합")다. null이면(주제 미선택 — 레거시 흐름) 기존 일반 문구를 그대로
+/// 쓴다. 지정되면 메시지에 주제를 명시해, 받는 사람이 "무슨 궁합으로
+/// 초대됐는지" 바로 알 수 있게 한다.
 Future<void> shareGunghapInvite(
   BuildContext context,
   String? token, {
   String? ownerName,
+  String? topicLabel,
 }) async {
   if (token == null || token.isEmpty) return;
   final link = buildGunghapInviteLink(token);
-  final message =
-      '${ownerName ?? '친구'}님이 궁합지도에 당신을 초대했어요!\n'
-      '링크를 열고 생년월일만 입력하면 두 사람의 궁합을 바로 볼 수 있어요.\n$link';
+  final message = topicLabel == null
+      ? '${ownerName ?? '친구'}님이 궁합지도에 당신을 초대했어요!\n'
+            '링크를 열고 생년월일만 입력하면 두 사람의 궁합을 바로 볼 수 있어요.\n$link'
+      : '${ownerName ?? '친구'}님이 "$topicLabel" 궁합지도에 당신을 초대했어요!\n'
+            '링크를 열고 생년월일만 입력하면 두 사람의 $topicLabel 궁합을 바로 볼 수 있어요.\n$link';
 
   if (!kIsWeb) {
     try {
