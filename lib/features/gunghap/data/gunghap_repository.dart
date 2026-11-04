@@ -39,7 +39,7 @@ ApiResult<T> gunghapNetworkOrGenericFailure<T>(
   return ApiResult.fail(contextMessage, code: 'UNKNOWN_ERROR');
 }
 
-/// 궁합지도(Gunghap Map) — 백엔드 5개 공개 API 대응 Repository.
+/// 궁합지도(Gunghap Map) — 백엔드 8개 공개 API 대응 Repository.
 ///
 /// [백엔드 대응 — admin_web `src/app/api/public/gunghap/*`]
 /// - `POST /api/public/gunghap/invites` → [createInvite] (인증 필요)
@@ -47,6 +47,9 @@ ApiResult<T> gunghapNetworkOrGenericFailure<T>(
 /// - `POST /api/public/gunghap/g/{token}/join` → [joinAnonymous] (인증 불필요)
 /// - `GET  /api/public/gunghap/results/{resultId}` → [fetchResult] (인증 필요, 소유자 전용)
 /// - `POST /api/public/gunghap/results/{resultId}/unlock` → [unlock] (인증 필요, 소유자 전용)
+/// - `POST /api/public/gunghap/direct` → [createDirect] (인증 필요, Phase 4)
+/// - `GET  /api/public/gunghap/my-results` → [fetchMyResults] (인증 필요, Phase 4)
+/// - `DELETE /api/public/gunghap/results/{resultId}` → [deleteResult] (인증 필요, 소유자 전용, Phase 4)
 ///
 /// [guinji_repository.dart와 동일한 패턴] 이 Repository는 귀인지도
 /// `GuinjiRepository`와 완전히 동일한 구조(ApiResult 래핑, authHeader
@@ -288,6 +291,184 @@ class GunghapRepository {
       return gunghapNetworkOrGenericFailure(
         e,
         '잠금해제에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  /// POST /gunghap/direct — 상대방에게 초대장을 보내지 않고 로그인 회원
+  /// 본인이 직접 상대방 정보를 입력해 즉시 궁합 결과를 생성(인증 필수).
+  ///
+  /// [B안 비대칭 신뢰 구조] 호출자 본인의 사주는 [mySaju]로 이미 계산된
+  /// `GuinjiSajuInput` 형태 JSON을 그대로 전달한다(초대장 생성과 동일하게
+  /// 클라이언트가 [JeontongReportBuilder]로 미리 계산 — `GunghapProvider`
+  /// 참고). 상대방 정보는 원본 그대로(`partner*` 필드) 전송하며, 서버가
+  /// `calculateSaju()`로 상대방 사주를 계산한다 — 클라이언트는 상대방
+  /// 사주를 계산하지 않는다.
+  ///
+  /// [멱등성 — requestKey] [requestKey]는 호출부(Provider)가 "확인" 버튼을
+  /// 누를 때마다 새로 생성하는 세션 범위 UUID다. 동일 `requestKey` +
+  /// 동일 로그인 사용자로 재호출(예: 네트워크 재시도)하면 서버가 기존
+  /// 저장된 결과를 그대로 반환한다(`created:false`, 재계산/재생성 없음).
+  /// 사용자가 "다시 입력해서 같은 상대를 또 조회"하는 의도적 재조회는
+  /// 호출부가 새 `requestKey`를 생성해 전달하므로 항상 새 결과가
+  /// 만들어진다 — 이 구분은 전적으로 requestKey 값 자체에 달려 있으며
+  /// Repository는 그 값을 그대로 전달만 한다.
+  ///
+  /// [절대 금지] 이 메서드는 초대장을 생성하지 않는다 — `invites`
+  /// 엔드포인트를 호출하지 않으며, 응답에도 `token`/`sharePath`가 없다.
+  ///
+  /// 반환: {resultId, resultType:'DIRECT', ownerName, guestName,
+  /// relationType, relationTypeLabel, relationTypeDesc, chemistryScore,
+  /// grade, gradeCode, timeUnknown, dayMasterKr, dayMasterElement,
+  /// categories: [{categoryId, grade, gradeCode}] (8개, 무료 등급만),
+  /// unlockCost, created}
+  Future<ApiResult<Map<String, dynamic>>> createDirect({
+    required String requestKey,
+    required Map<String, dynamic> mySaju,
+    String? myName,
+    required String partnerName,
+    required String partnerBirthDate, // 'YYYY-MM-DD'
+    String partnerCalendarType = 'solar', // 'solar' | 'lunar'
+    bool partnerIsLeapMonth = false, // calendarType == 'lunar'일 때만 유효
+    String? partnerBirthTime, // 'HH:mm' | null (모르면 null)
+    required String partnerGender, // 'male' | 'female'
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/direct',
+    );
+    debugPrint('[GunghapRepository] [createDirect] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ...authHeader},
+            body: jsonEncode({
+              'requestKey': requestKey,
+              'mySaju': mySaju,
+              if (myName != null) 'myName': myName,
+              'partnerName': partnerName,
+              'partnerBirthDate': partnerBirthDate,
+              'partnerCalendarType': partnerCalendarType,
+              'partnerIsLeapMonth': partnerIsLeapMonth,
+              'partnerBirthTime': partnerBirthTime,
+              'partnerGender': partnerGender,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401) {
+        debugPrint('[GunghapRepository] [createDirect] 401 -> 로그인 필요');
+        return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '궁합 생성에 실패했습니다.';
+        debugPrint('[GunghapRepository] [createDirect] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '궁합을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  /// GET /gunghap/my-results — 궁합스토리: 로그인 회원 본인의 DIRECT +
+  /// INVITE 궁합 결과를 모두 조회(인증 필수, 최신순 정렬은 서버가 수행).
+  ///
+  /// [절대 원칙] 이 메서드는 로컬 저장소나 하드코딩 데이터를 전혀 쓰지
+  /// 않는다 — 서버 DB에 실제 저장된 결과만 반환한다.
+  ///
+  /// 반환: {items: [{resultId, resultType:'DIRECT'|'INVITE', ownerName,
+  /// guestName, relationTypeLabel, grade, gradeCode, categoryCount,
+  /// createdAt(ISO8601)}], total}
+  ///
+  /// [주의 — ownerName 항상 null인 DIRECT] DIRECT 결과는 `ownerName`이
+  /// 항상 null이다(로그인 사용자 본인이 곧 owner라 별도 저장하지 않는
+  /// 설계). "상대방 이름"은 resultType과 무관하게 항상 `guestName`을
+  /// 사용해야 한다 — `ownerName`을 상대방 이름으로 오인해 쓰지 말 것.
+  Future<ApiResult<Map<String, dynamic>>> fetchMyResults() async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/my-results',
+    );
+    debugPrint('[GunghapRepository] [fetchMyResults] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401) {
+        debugPrint('[GunghapRepository] [fetchMyResults] 401 -> 로그인 필요');
+        return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '궁합스토리를 불러오지 못했습니다.';
+        debugPrint('[GunghapRepository] [fetchMyResults] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '궁합스토리를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  /// DELETE /gunghap/results/{resultId} — 궁합 결과 소프트 삭제(인증 필수,
+  /// 소유자 전용). DIRECT/INVITE 모두 동일 엔드포인트를 사용한다(서버가
+  /// `resolveGunghapResultOwnerId()`로 소유자를 통합 판별).
+  ///
+  /// 실패 코드: 404 'NOT_FOUND'(이미 삭제됐거나 존재하지 않음), 403
+  /// 'FORBIDDEN'(내가 만든 결과가 아님).
+  ///
+  /// 반환: {resultId, deleted:true}
+  Future<ApiResult<Map<String, dynamic>>> deleteResult(String resultId) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/results/$resultId',
+    );
+    debugPrint('[GunghapRepository] [deleteResult] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .delete(
+            uri,
+            headers: {'Content-Type': 'application/json', ...authHeader},
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401) {
+        debugPrint('[GunghapRepository] [deleteResult] 401 -> 로그인 필요');
+        return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '삭제에 실패했습니다.';
+        debugPrint('[GunghapRepository] [deleteResult] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.',
       );
     }
   }

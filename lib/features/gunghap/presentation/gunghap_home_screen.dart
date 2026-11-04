@@ -11,7 +11,10 @@
 // 입력 이후)는 아직 백엔드가 없어 "준비 중" 안내로 멈춘다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../application/gunghap_provider.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
@@ -20,6 +23,8 @@ import '../widgets/star_map.dart';
 import '../widgets/cat_icon.dart';
 import '../domain/gunghap_data.dart';
 import 'gunghap_major_screen.dart';
+import 'gunghap_result_screen.dart';
+import 'gunghap_story_screen.dart';
 
 class GunghapHomeScreen extends StatelessWidget {
   const GunghapHomeScreen({super.key});
@@ -45,11 +50,11 @@ class GunghapHomeScreen extends StatelessWidget {
           GHIconButton(
             glyph: '◈',
             label: '내 궁합',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('내 궁합 관리 화면은 준비 중이에요.')),
-              );
-            },
+            // [궁합지도 Phase 4 §3] "준비 중" 플레이스홀더를 실제
+            // 궁합스토리 화면(서버 DB 실데이터)으로 교체.
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const GunghapStoryScreen()),
+            ),
           ),
         ],
       ),
@@ -195,20 +200,18 @@ class GunghapHomeScreen extends StatelessWidget {
             mono: 'RECENT',
             title: '최근 살펴본 궁합',
             trailing: TextButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('내 궁합 관리 화면은 준비 중이에요.')),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const GunghapStoryScreen()),
               ),
               child: Text('내 궁합 관리 ›', style: GHText.ui(size: 13, color: GHColors.gray)),
             ),
           ),
-          Column(
-            children: [
-              for (final h in ghRecentHistory) ...[
-                _HistoryRow(item: h),
-                const SizedBox(height: 10),
-              ],
-            ],
-          ),
+          // [궁합지도 Phase 4 §3] 디자인 미리보기 전용 하드코딩
+          // ghRecentHistory 더미를 제거하고, 실제 서버 결과(최대 2건
+          // 미리보기)를 보여준다. 로딩/빈 상태는 이 섹션 특성상 과하지
+          // 않게 처리 — 비어 있으면 섹션 자체를 숨기고, 전체 목록은
+          // 위 "내 궁합 관리 ›"에서 확인하게 한다.
+          const _RecentGunghapPreview(),
         ],
       ),
     );
@@ -321,16 +324,94 @@ class _MajorTile extends StatelessWidget {
   );
 }
 
-class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.item});
-  final GHHistoryItem item;
+// ═══════════════════════════════════════════════════════════════
+// [궁합지도 Phase 4 §3] "최근 살펴본 궁합" — 실제 서버 데이터 전용.
+//
+// [절대 원칙] 더 이상 gunghap_data.dart의 하드코딩 ghRecentHistory를
+// 쓰지 않는다. GunghapProvider.fetchMyResults()(GET /my-results)를
+// 호출해 실제 DIRECT+INVITE 결과를 가져오고, 최신 2건만 미리보기로
+// 보여준다. 전체 목록은 "내 궁합 관리 ›"에서 GunghapStoryScreen으로.
+// ═══════════════════════════════════════════════════════════════
+class _RecentGunghapPreview extends StatefulWidget {
+  const _RecentGunghapPreview();
+
+  @override
+  State<_RecentGunghapPreview> createState() => _RecentGunghapPreviewState();
+}
+
+class _RecentGunghapPreviewState extends State<_RecentGunghapPreview> {
+  bool _requested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _requested = true;
+      context.read<GunghapProvider>().fetchMyResults();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final major = ghMajorById(item.majorId);
+    final provider = context.watch<GunghapProvider>();
+
+    if (!_requested || (provider.isLoadingMyResults && provider.myResults.isEmpty)) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2, color: GHColors.gold),
+          ),
+        ),
+      );
+    }
+
+    if (provider.myResults.isEmpty) {
+      // [빈 상태] 이 섹션 자체를 숨긴다 — 하드코딩 더미로 대체하지 않는다.
+      return const SizedBox.shrink();
+    }
+
+    final recent = provider.myResults.take(2).toList();
+    return Column(
+      children: [
+        for (final item in recent) ...[
+          _HistoryRow(item: item),
+          const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _HistoryRow extends StatelessWidget {
+  const _HistoryRow({required this.item});
+
+  /// `GET /gunghap/my-results` 응답 items[i] (실제 서버 데이터).
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    // [상대방 이름 원칙] DIRECT는 ownerName이 항상 null이므로 resultType과
+    // 무관하게 항상 guestName을 사용한다(gunghap_repository.dart 참고).
+    final guestName = item['guestName'] as String? ?? '상대방';
+    final relationTypeLabel = item['relationTypeLabel'] as String?;
+    final grade = item['grade'] as String?;
+    final resultType = item['resultType'] as String?;
+    final createdAtRaw = item['createdAt'] as String?;
+    final dateLabel = _formatDate(createdAtRaw);
+    final resultId = item['resultId'] as String?;
+
     return GestureDetector(
-      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('궁합 결과 화면은 준비 중이에요.')),
-      ),
+      onTap: resultId == null
+          ? null
+          : () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => GunghapResultScreen(resultId: resultId),
+              ),
+            ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
@@ -349,7 +430,7 @@ class _HistoryRow extends StatelessWidget {
                 border: Border.all(color: GHColors.divider),
               ),
               alignment: Alignment.center,
-              child: CatIcon(kind: major.icon, size: 30, active: true),
+              child: const CatIcon(kind: 'heart', size: 30, active: true),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -357,41 +438,48 @@ class _HistoryRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          item.a,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GHText.cardTitle(size: 15),
-                        ),
-                      ),
-                      Text(' ✦ ', style: GHText.ui(size: 14, color: GHColors.gold)),
-                      Flexible(
-                        child: Text(
-                          item.b,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GHText.cardTitle(size: 15),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    guestName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GHText.cardTitle(size: 15),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(item.sub, style: GHText.ui(size: 12, color: GHColors.gold)),
-                      const SizedBox(width: 6),
-                      Text('·', style: GHText.ui(size: 12, color: GHColors.gray)),
-                      const SizedBox(width: 6),
-                      Text(item.date, style: GHText.mono(size: 9.5, color: GHColors.gray)),
+                      if (relationTypeLabel != null) ...[
+                        Flexible(
+                          child: Text(
+                            relationTypeLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GHText.ui(size: 12, color: GHColors.gold),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text('·', style: GHText.ui(size: 12, color: GHColors.gray)),
+                        const SizedBox(width: 6),
+                      ],
+                      if (dateLabel != null)
+                        Text(dateLabel, style: GHText.mono(size: 9.5, color: GHColors.gray)),
                     ],
                   ),
                 ],
               ),
             ),
-            if (item.paid)
+            if (resultType == 'DIRECT')
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: GHColors.violet.withValues(alpha: .4)),
+                ),
+                child: Text(
+                  'DIRECT',
+                  style: GHText.mono(size: 8.5, color: GHColors.violetText),
+                ),
+              )
+            else if (grade != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
@@ -399,7 +487,7 @@ class _HistoryRow extends StatelessWidget {
                   border: Border.all(color: GHColors.mint.withValues(alpha: .4)),
                 ),
                 child: Text(
-                  'REPORT',
+                  grade,
                   style: GHText.mono(size: 8.5, color: GHColors.mint),
                 ),
               ),
@@ -409,5 +497,12 @@ class _HistoryRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String? _formatDate(String? iso) {
+    if (iso == null || iso.isEmpty) return null;
+    final parsed = DateTime.tryParse(iso);
+    if (parsed == null) return null;
+    return DateFormat('yyyy · MM · dd').format(parsed.toLocal());
   }
 }

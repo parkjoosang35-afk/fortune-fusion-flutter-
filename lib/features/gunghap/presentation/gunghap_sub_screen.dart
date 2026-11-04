@@ -11,6 +11,7 @@ import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
 import '../widgets/cat_icon.dart';
 import '../domain/gunghap_data.dart';
+import 'gunghap_direct_input_screen.dart';
 import 'gunghap_invite_screen.dart';
 
 class GunghapSubScreen extends StatefulWidget {
@@ -40,13 +41,22 @@ class _GunghapSubScreenState extends State<GunghapSubScreen> {
         label: _selectedSub != null ? '$_selectedSub으로 진행' : '세부 궁합을 선택해 주세요',
         onPressed: _selectedSub == null
             ? null
+            // [궁합지도 Phase 4 §2] method == 'direct'일 때만 신규 직접
+            // 입력 화면으로 분기한다. method == 'invite'는 기존
+            // GunghapInviteScreen 경로를 그대로 유지해 기존 초대장 기능을
+            // 전혀 건드리지 않는다(회귀 방지).
             : () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => GunghapInviteScreen(
-                    method: widget.method,
-                    majorId: _majorId,
-                    subName: _selectedSub,
-                  ),
+                  builder: (_) => widget.method == 'direct'
+                      ? GunghapDirectInputScreen(
+                          majorId: _majorId,
+                          subName: _selectedSub,
+                        )
+                      : GunghapInviteScreen(
+                          method: widget.method,
+                          majorId: _majorId,
+                          subName: _selectedSub,
+                        ),
                 ),
               ),
       ),

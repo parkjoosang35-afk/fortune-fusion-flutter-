@@ -152,34 +152,9 @@ const List<(String, String, String)> ghHours = [
   ('亥', '해시', '21:30–23:29'),
 ];
 
-/// [디자인 미리보기 전용] 홈 "최근 살펴본 궁합" 섹션 표시용 더미.
-/// 실제 서비스에서는 로그인 사용자의 실제 결과 기록으로 대체되어야 한다.
-class GHHistoryItem {
-  const GHHistoryItem({
-    required this.id,
-    required this.a,
-    required this.b,
-    required this.majorId,
-    required this.sub,
-    required this.date,
-    required this.paid,
-  });
-  final String id;
-  final String a;
-  final String b;
-  final String majorId;
-  final String sub;
-  final String date;
-  final bool paid;
-}
-
-const List<GHHistoryItem> ghRecentHistory = [
-  GHHistoryItem(
-    id: 'h1', a: '김지현', b: '이민준', majorId: 'love', sub: '썸 궁합',
-    date: '2026 · 11 · 02', paid: true,
-  ),
-  GHHistoryItem(
-    id: 'h2', a: '김지현', b: '박서연', majorId: 'friend', sub: '여행 궁합',
-    date: '2026 · 10 · 27', paid: false,
-  ),
-];
+// [제거됨] 과거 "디자인 미리보기 전용" 더미였던 GHHistoryItem/ghRecentHistory는
+// Phase 4(궁합스토리) 작업에서 실제 서버 결과 기반 구현(GunghapStoryScreen,
+// gunghap_home_screen.dart의 _RecentGunghapPreview/_HistoryRow)으로 완전히
+// 대체되어 더 이상 어디에서도 참조되지 않으므로 삭제했다.
+// 실제 데이터는 GunghapProvider.fetchMyResults() → GET /api/public/gunghap/my-results
+// 를 통해서만 가져온다.

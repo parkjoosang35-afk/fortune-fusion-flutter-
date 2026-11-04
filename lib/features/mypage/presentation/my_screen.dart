@@ -257,6 +257,16 @@ class _MyScreenState extends State<MyScreen> {
                     context,
                   ).pushNamed('/ai-fortune/reading-archive'),
                 ),
+                // [궁합지도 Phase 4 §3] 마이페이지 궁합스토리 메뉴.
+                // DIRECT(직접 입력)+INVITE(초대장) 궁합 결과를 서버에서
+                // 실제로 조회해 보여주는 화면으로 이동한다(로컬 더미 아님,
+                // GunghapStoryScreen → GunghapProvider.fetchMyResults()).
+                _ArchiveCard(
+                  icon: Icons.favorite_outline,
+                  label: '궁합스토리',
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/gunghap/story'),
+                ),
               ],
             ),
             const SizedBox(height: UnifiedTokens.spaceXxl),

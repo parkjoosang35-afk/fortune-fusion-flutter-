@@ -40,6 +40,13 @@ class GunghapResultScreen extends StatefulWidget {
 class _GunghapResultScreenState extends State<GunghapResultScreen> {
   bool _loading = true;
   bool _unlocking = false;
+  // [궁합지도 Phase 4 §4 — 결과 재열람] 궁합스토리에서 과거 기록을 다시
+  // 열람할 때, 그 사이 결과가 삭제됐을 수 있다(DELETE
+  // /api/public/gunghap/results/{resultId} 이미 Phase 3에서 구현/배포됨).
+  // 서버는 이 경우 404 + code:'NOT_FOUND'를 반환하므로(fetchResult가
+  // decoded['code']를 그대로 전달), "다시 시도" 버튼이 의미 없는
+  // 전용 안내 문구 + 목록으로 돌아가기 동작을 구분해서 보여준다.
+  bool _deletedNotFound = false;
 
   @override
   void initState() {
@@ -48,7 +55,12 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
   }
 
   Future<void> _load() async {
-    if (mounted) setState(() => _loading = true);
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _deletedNotFound = false;
+      });
+    }
     final provider = context.read<GunghapProvider>();
     final ok = await provider.fetchResult(widget.resultId);
     if (!mounted) return;
@@ -60,6 +72,11 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
         Navigator.of(context).pushNamed('/login');
       } else if (code == 'FORBIDDEN') {
         AppToast.show(context, '이 결과를 열람할 권한이 없습니다.', isError: true);
+      } else if (code == 'NOT_FOUND') {
+        // [삭제된 결과 접근 시 안내] 궁합스토리에서 삭제된 기록을
+        // 다시 눌렀거나, 다른 기기에서 이미 삭제된 경우.
+        setState(() => _deletedNotFound = true);
+        AppToast.show(context, '이미 삭제된 궁합 결과예요.', isError: true);
       } else if (code == 'NETWORK_ERROR') {
         // [긴급 검수 지시 §4] 연결 실패는 전용 메시지 + 재시도 버튼으로
         // 안내한다. 화면 본문에도 _ErrorState(다시 시도 버튼)가 이미
@@ -140,12 +157,18 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
               ),
             )
           : result == null
-          ? _ErrorState(
-              onRetry: () {
-                setState(() => _loading = true);
-                _load();
-              },
-            )
+          ? (_deletedNotFound
+                ? _ErrorState(
+                    message: '이미 삭제된 궁합 결과예요.\n궁합스토리 목록으로 돌아가 주세요.',
+                    retryLabel: '목록으로 돌아가기',
+                    onRetry: () => Navigator.of(context).pop(),
+                  )
+                : _ErrorState(
+                    onRetry: () {
+                      setState(() => _loading = true);
+                      _load();
+                    },
+                  ))
           : _ResultBody(
               result: result,
               unlocking: _unlocking,
@@ -156,19 +179,26 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
+  const _ErrorState({
+    required this.onRetry,
+    this.message = '결과를 불러오지 못했어요.',
+    this.retryLabel = '다시 시도',
+  });
   final VoidCallback onRetry;
+  final String message;
+  final String retryLabel;
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 60),
     child: Column(
       children: [
         Text(
-          '결과를 불러오지 못했어요.',
+          message,
+          textAlign: TextAlign.center,
           style: GHText.ui(size: 14, color: GHColors.gray),
         ),
         const SizedBox(height: 16),
-        GHButton(label: '다시 시도', onPressed: onRetry, expand: false),
+        GHButton(label: retryLabel, onPressed: onRetry, expand: false),
       ],
     ),
   );

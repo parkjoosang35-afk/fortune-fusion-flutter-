@@ -95,6 +95,7 @@ import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 import '../../features/gunghap/presentation/gunghap_guest_input_screen.dart';
+import '../../features/gunghap/presentation/gunghap_story_screen.dart';
 import '../../features/guinji/navigation/guinji_page_route.dart';
 import 'global_bottom_nav_shell.dart';
 // [귀인지도 기능 정리 — 관계상세/랭킹] `/guinji-map/*` 신규 디자인 톤으로
@@ -551,6 +552,11 @@ class AppRouter {
           '/my/fortune-records',
           const MyFortuneRecordsScreen(),
         );
+
+      // [궁합지도 Phase 4 §3] 마이페이지 "궁합스토리" — 서버 DB의 실제
+      // DIRECT+INVITE 궁합 결과 목록(하드코딩/로컬 저장 아님).
+      case '/gunghap/story':
+        return _pageNamed('/gunghap/story', const GunghapStoryScreen());
 
       // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
       // 이야기" 흐름 진입점. STEP1~6 백엔드(saju_engine_v3.3/topics-select/
