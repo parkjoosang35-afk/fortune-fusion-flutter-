@@ -7,6 +7,7 @@ import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../auth/presentation/signup_complete_screen.dart';
 import '../data/saju_visual_adapter.dart';
 import '../domain/pending_saju_entry.dart';
 import '../state/saju_renewal_provider.dart';
@@ -93,7 +94,12 @@ const List<String> _kBirthPlaceOptions = [
 ///   schema.prisma의 SajuFactsCache/TopicInterpretResult가 전부 birthKey
 ///   unique 기준이기 때문).
 class BirthInputScreen extends StatefulWidget {
-  const BirthInputScreen({super.key, this.isEditMode = false, this.initialDraft});
+  const BirthInputScreen({
+    super.key,
+    this.isEditMode = false,
+    this.initialDraft,
+    this.isSignupFlow = false,
+  });
 
   /// true면 "수정 모드"로 진입 — 타이틀/버튼 문구가 바뀌고, 저장 후
   /// 03(계산중)으로 강제 이동하지 않고 이전 화면으로 돌아간다.
@@ -104,6 +110,19 @@ class BirthInputScreen extends StatefulWidget {
   /// 프리필 또는 빈 폼). `isEditMode`와는 함께 쓰이지 않는다(수정 모드는
   /// 이미 로그인된 사용자만 진입하는 경로이므로 draft 복원이 필요 없음).
   final SajuEntryDraft? initialDraft;
+
+  /// [회원가입 통합 사주정보 — 디자인 핸드오프 04/05 화면] true면 방금
+  /// 가입(이메일/카카오/구글)을 마치고 "공통 본인 사주정보 입력"으로
+  /// 강제 연결된 상태다. `isEditMode`와는 상호 배타적이다.
+  /// - 상단 타이틀/CTA 문구가 "가입을 마무리"하는 톤으로 바뀐다
+  ///   (`✧ 사주정보 저장하고 시작하기` 상당).
+  /// - 저장 성공 시 03(계산중)이 아니라 05(가입 완료 요약) 화면으로
+  ///   이동한다.
+  /// - 뒤로가기(상단 ←, 시스템 back)를 누르면 핸드오프 dev-spec.md
+  ///   "가입 모드에서 뒤로가기: 이탈 불가 토스트"에 따라 화면을 유지하고
+  ///   안내 토스트만 띄운다(로그아웃 후 가입 선택 화면으로 돌아가고
+  ///   싶으면 설정에서 가능 — 임의로 세션을 끊지 않는다).
+  final bool isSignupFlow;
 
   @override
   State<BirthInputScreen> createState() => _BirthInputScreenState();
@@ -624,6 +643,20 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       return;
     }
 
+    if (widget.isSignupFlow) {
+      // [회원가입 통합 사주정보 — 디자인 핸드오프 04→05] 가입 직후
+      // 흐름에서는 바로 사주 계산(03)으로 보내지 않고, 05(가입 완료
+      // 요약) 화면으로 pushReplacement한다 — 뒤로가기로 이 입력 화면에
+      // 다시 돌아올 수 없게 스택에서 제거한다(dev-spec.md 라우팅 규칙
+      // "05 가입 완료 → pendingMenu ? 해당 메뉴 : 홈"과 동일 취지로,
+      // 여기서는 pendingMenu가 없는 일반 가입 경로이므로 홈으로
+      // 이어진다).
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const SignupCompleteScreen()),
+      );
+      return;
+    }
+
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const CalculatingScreen()));
@@ -639,17 +672,31 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     // 문구를 숨긴다(시간 자체를 안 쓰므로 보정 의미가 없음).
     final showSolarTimeNote = !timeUnknown;
 
-    return Scaffold(
+    return PopScope(
+      // [dev-spec.md §Interactions "가입 모드에서 뒤로가기: 이탈 불가
+      // 토스트 — 사주정보를 입력해야 가입이 완료돼요"] 회원가입 플로우로
+      // 들어온 경우에만 뒤로가기를 막는다. 일반 입력/수정 모드는 기존
+      // 그대로 자유롭게 뒤로 갈 수 있다(회귀 없음).
+      canPop: !widget.isSignupFlow,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || !widget.isSignupFlow) return;
+        AppToast.show(context, '사주정보를 입력해야 가입이 완료돼요', isError: true);
+      },
+      child: Scaffold(
       body: SajuDarkBase(
         child: SafeArea(
           child: Column(
             children: [
               SajuTopBar(
-                left: SajuIconButton(
-                  icon: '←',
-                  onTap: () => Navigator.of(context).maybePop(),
-                ),
-                title: widget.isEditMode ? '출생정보 수정' : 'BIRTH · 02',
+                left: widget.isSignupFlow
+                    ? null
+                    : SajuIconButton(
+                        icon: '←',
+                        onTap: () => Navigator.of(context).maybePop(),
+                      ),
+                title: widget.isEditMode
+                    ? '출생정보 수정'
+                    : (widget.isSignupFlow ? 'SIGN UP · N°02' : 'BIRTH · 02'),
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -661,7 +708,9 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                       Text(
                         widget.isEditMode
                             ? '출생정보를\n다시 확인해주세요'
-                            : '태어난 순간을\n정확히 알려주세요',
+                            : (widget.isSignupFlow
+                                  ? '나의 사주정보\n입력'
+                                  : '태어난 순간을\n정확히 알려주세요'),
                         style: const TextStyle(
                           fontFamily: SajuType.serif,
                           fontWeight: FontWeight.w700,
@@ -675,7 +724,10 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                       Text(
                         widget.isEditMode
                             ? '처음에 잘못 입력했다면 지금 바로 고칠 수 있어요.'
-                            : '시간이 정밀할수록 사주가 선명해집니다.',
+                            : (widget.isSignupFlow
+                                  ? '매번 생년월일을 입력하지 않고, 나에게 맞는\n'
+                                        '개인 맞춤 운세를 편리하게 제공받을 수 있어요.'
+                                  : '시간이 정밀할수록 사주가 선명해집니다.'),
                         style: const TextStyle(
                           fontFamily: SajuType.body,
                           fontSize: 14,
@@ -1067,7 +1119,11 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                   ),
                 ),
                 child: SajuButton(
-                  label: widget.isEditMode ? '저장하기' : '사주 분석 시작하기',
+                  label: widget.isEditMode
+                      ? '저장하기'
+                      : (widget.isSignupFlow
+                            ? '✧ 사주정보 저장하고 시작하기'
+                            : '사주 분석 시작하기'),
                   loading: _submitting,
                   onTap: _submitting ? null : _submit,
                 ),
@@ -1081,7 +1137,14 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       // 이름 있는 라우트 전용 전역 하단바 래퍼(`wrapWithGlobalBottomNav`)를
       // 거치지 않는다. 다른 공용 화면들과 동일한 MainBottomNavBar를 그대로
       // 재사용한다(디자인/기능 변경 없음, 탭 0=홈 고정).
-      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
+      //
+      // [회원가입 통합 사주정보] 가입 플로우 중에는 아직 "가입 완료" 전
+      // 단계이므로 하단 탭 이동으로 다른 메뉴에 빠져나가지 않도록 숨긴다
+      // (dev-spec.md "가입 모드에서 이탈 불가" 원칙과 동일한 취지).
+      bottomNavigationBar: widget.isSignupFlow
+          ? null
+          : const MainBottomNavBar(currentIndex: 0),
+      ),
     );
   }
 }

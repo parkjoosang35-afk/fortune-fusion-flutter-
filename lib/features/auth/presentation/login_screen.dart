@@ -4,6 +4,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/luck_pouch_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
+import '../../fortune_period/domain/fortune_saju_profile.dart';
 import '../../guinji/presentation/guinji_input_screen.dart';
 import '../../guinji/presentation/guinji_join_screen.dart';
 import '../../guinji/presentation/guinji_onboarding_screen.dart';
@@ -147,10 +148,31 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isSubmitting = false);
       if (!mounted) return;
       if (ok) {
-        // [프로필체크 화면 완전 제거] _login()과 동일하게, 프로필 보유
-        // 여부와 무관하게 항상 곧바로 홈으로 이동한다.
-        // [비로그인 결과보기 복귀 지시서 R2] _login()과 동일하게 소셜
-        // 로그인 완료 시점에도 pending 복귀 대상을 먼저 확인한다.
+        // [회원가입 통합 사주정보 — 전면 재도입, 2026-11] 카카오/구글로
+        // 처음 가입한 "신규" 사용자는 서버에 아직 user_profiles 레코드가
+        // 없다(social-login/route.ts가 user_profiles를 생성하지 않음 —
+        // signup/route.ts와 동일한 설계). 이메일 가입 경로(signup_screen.
+        // dart)와 동일하게, 사주정보가 아직 없는 사용자는 공통 입력
+        // 화면으로 먼저 보내고 가입을 "완료"시킨다. 기존 회원(재로그인)은
+        // 이미 사주정보가 있으므로 지금까지처럼 곧바로 홈으로 이동한다
+        // (회귀 없음 — `isFortuneSajuComplete`는 이미 완전한 프로필에는
+        // true를 반환해 아래 분기를 타지 않는다).
+        final user = context.read<AuthProvider>().currentUser;
+        if (!isFortuneSajuComplete(user)) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const BirthInputScreen(isSignupFlow: true),
+            ),
+          );
+          replayPendingPassRequest();
+          replayPendingGuinjiJoin();
+          replayPendingGuinjiOnboarding();
+          replayPendingGuinjiMapEntry();
+          replayPendingBokjuCoupon();
+          return;
+        }
+        // [비로그인 결과보기 복귀 지시서 R2] 기존 회원 재로그인 경로는
+        // 그대로 유지 — pending 복귀 대상을 먼저 확인한다.
         final restoredResultAccess = await restorePendingResultAccessAfterLogin(
           context,
         );

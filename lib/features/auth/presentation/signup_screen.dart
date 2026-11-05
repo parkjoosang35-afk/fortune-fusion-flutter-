@@ -16,7 +16,6 @@ import '../../intro/presentation/onboarding_video_screen.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../result_access/presentation/result_access_gate_sheet.dart';
 import '../../saju_renewal/screens/birth_input_screen.dart';
 import '../application/auth_provider.dart';
 import 'widgets/auth_checkbox.dart';
@@ -159,20 +158,23 @@ class _SignupScreenState extends State<SignupScreen> {
         if (!mounted) return;
       }
       if (!mounted) return;
-      // [프로필체크 화면 완전 제거 - 사용자 요청] 회원가입 직후 생년월일
-      // 입력을 강제하던 '/signup/profile-check' 화면이 삭제되었다. 이제
-      // 가입 성공 시 곧바로 홈으로 이동한다 — 생년월일은 이후 사주/운세
-      // 첫 이용 시점에 해당 입력 화면의 "내 계정 프로필로 저장" 체크박스로
-      // 원하는 사용자만 계정에 저장한다.
-      //
-      // [온보딩 영상 적용 가이드 §4] "회원가입 완료 직후"도 온보딩 영상
-      // 트리거 조건으로 명시되어 있음. `has_seen_onboarding_v1` 플래그를
-      // 아직 안 봤다면(=스플래시 경로로 한 번도 안 봤다면) 홈 이동 전에
-      // 영상을 먼저 보여준다. 이미 봤다면 기존과 동일하게 곧바로 '/home'.
-      await _goHomeWithOnboardingCheck(context);
+      // [회원가입 통합 사주정보 — 전면 재도입, 2026-11]
+      // 과거(42180cc4, 2026-09-17)에는 "프로필체크 강제 화면"을 완전히
+      // 제거하고 사주/운세 첫 이용 시점의 선택적 체크박스로 대체했으나,
+      // `design_handoff_review/`(사용자 업로드 디자인 핸드오프) 지시에
+      // 따라 "가입 후 한 번만 사주정보를 입력하면 모든 운세 메뉴에서
+      // 함께 사용"하는 흐름을 다시 도입한다. 이번에는 전용 화면을 새로
+      // 만들지 않고, 기존 `BirthInputScreen`(수정 모드에서 이미
+      // 생년월일/시간/음양력/윤달/성별 전체를 다루는 검증된 화면)에
+      // `isSignupFlow: true`를 주어 재사용한다 — "기존 패턴과 통합"
+      // 원칙(dev-spec.md) 및 "신규 화면을 만들지 말고 기존 화면에
+      // 연결" 원칙(README.md)을 모두 지킨다.
+      await _goToSajuProfileInput(context);
       if (!mounted) return;
       // 로그인 화면과 동일하게, 회원가입 화면으로 오게 만든 대기 중인
       // 재진입 요청(프리패스/귀인지도 등)이 있으면 함께 재생한다.
+      // [궁합지도 영향 분석 — dev-spec.md §5] replayPendingGuinjiMapEntry
+      // 등 궁합/귀인지도 재진입 로직은 그대로 유지한다(삭제 금지).
       replayPendingPassRequest();
       replayPendingGuinjiJoin();
       replayPendingGuinjiOnboarding();
@@ -188,18 +190,27 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  /// [온보딩 영상 적용 가이드 §4] 회원가입 성공 직후 호출.
-  /// `has_seen_onboarding_v1` 플래그를 아직 안 봤으면 온보딩 영상을
-  /// 먼저 전체화면으로 보여준 뒤(건너뛰기 가능) '/home'으로 이동하고,
-  /// 이미 봤으면(스플래시 경로 등으로) 기존과 동일하게 곧바로 이동한다.
-  Future<void> _goHomeWithOnboardingCheck(BuildContext context) async {
+  /// [온보딩 영상 적용 가이드 §4 + 회원가입 통합 사주정보] 회원가입 성공
+  /// 직후 호출. 온보딩 영상을 아직 안 봤으면 먼저 보여준 뒤(건너뛰기
+  /// 가능), 공통 본인 사주정보 입력 화면(`BirthInputScreen`,
+  /// `isSignupFlow: true`)으로 `pushReplacement`한다 — 뒤로가기로 가입
+  /// 화면에 되돌아갈 수 없다(가입 자체는 이미 서버에 완료됐으므로).
+  ///
+  /// [비로그인 결과보기 복귀 지시서 R2와의 관계] 과거에는 이 시점에
+  /// pending 결과보기 복귀를 먼저 확인했으나, 이제는 "가입 직후 1회
+  /// 사주정보 입력"이 더 우선순위 높은 필수 단계다 — 사주정보 입력을
+  /// 마친 뒤(SignupCompleteScreen "홈으로 가기") pending 복귀 로직이
+  /// 자연스럽게 다시 확인되도록 홈 이동 지점을 그쪽으로 옮긴다. 결과보기
+  /// 복귀 자체를 삭제하지 않는다 — 단지 사주정보 입력 다음으로 순서만
+  /// 미뤄진다.
+  Future<void> _goToSajuProfileInput(BuildContext context) async {
     bool alreadySeen = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       alreadySeen =
           prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
     } catch (_) {
-      // 조회 실패 시 기존 동작(곧바로 홈 이동)과 동일하게 안전 폴백.
+      // 조회 실패 시 기존 동작(곧바로 다음 단계)과 동일하게 안전 폴백.
       alreadySeen = true;
     }
     if (!context.mounted) return;
@@ -221,19 +232,11 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!context.mounted) return;
     }
 
-    // [비로그인 결과보기 복귀 지시서 R2] login_screen.dart와 동일하게,
-    // 회원가입(이메일 인증 포함) 완료 시점에도 pending 복귀 대상을 먼저
-    // 확인한다 — 있으면 원래 화면 + 결과보기 시트로 복귀하고, 없으면
-    // 기존과 동일하게 '/home'으로 이동한다.
-    final restoredResultAccess = await restorePendingResultAccessAfterLogin(
-      context,
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const BirthInputScreen(isSignupFlow: true),
+      ),
     );
-    if (!context.mounted) return;
-    if (!restoredResultAccess) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/home', (route) => false);
-    }
   }
 
   @override
