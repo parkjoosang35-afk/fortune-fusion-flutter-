@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/api/api_result.dart';
 import '../../../core/data/my_fortune_record_store.dart';
 import '../../../core/utils/load_state.dart';
 import '../data/auth_repository.dart';
@@ -62,6 +63,12 @@ class AuthProvider extends ChangeNotifier {
     required String birthDate,
   }) {
     return _repository.findEmail(nickname: nickname, birthDate: birthDate);
+  }
+
+  /// [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 중복확인.
+  /// `SignupScreen`이 이메일 필드 blur 시점에 호출한다.
+  Future<ApiResult<bool>> checkEmailAvailable(String email) {
+    return _repository.checkEmailAvailable(email);
   }
 
   /// [로그인 화면 "비밀번호 찾기" 버그수정 — 2026-09] 이메일+닉네임+생년월일

@@ -109,6 +109,45 @@ class AuthRepository {
     }
   }
 
+  /// [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 입력란
+  /// blur 시점에 중복 여부를 선제 확인한다 — README.md "이메일 blur 시
+  /// 중복 확인 → 상태 문구: 확인하고 있어요… / 사용할 수 있는 이메일이에요 /
+  /// 이미 가입된 이메일이에요. 로그인해 주세요. / 이메일 형식을 확인해
+  /// 주세요" 스펙 대응. 서버 `GET /api/public/auth/email-check`를 호출하며,
+  /// 형식이 유효하지 않으면 서버 왕복 없이 바로 INVALID_EMAIL을 반환한다.
+  ///
+  /// [주의] 이 결과는 "제출 시점"의 최종 방어선이 아니다 — 실제 가입
+  /// (emailSignup)은 여전히 서버 UNIQUE 제약(P2002)으로 한 번 더 검증되며,
+  /// blur 체크와 제출 사이에 다른 사용자가 같은 이메일로 먼저 가입하는
+  /// 경쟁 상황도 그 쪽에서 최종적으로 걸러진다.
+  Future<ApiResult<bool>> checkEmailAvailable(String email) async {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) {
+      return ApiResult.fail('이메일을 입력해 주세요.', code: 'EMAIL_REQUIRED');
+    }
+    if (!EmailValidator.isValid(trimmed)) {
+      return ApiResult.fail(EmailValidator.errorMessage, code: 'INVALID_EMAIL');
+    }
+    final uri = Uri.parse(
+      '$_base/email-check',
+    ).replace(queryParameters: {'email': trimmed});
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '이메일 확인 중 오류가 발생했습니다.',
+          code: decoded['code'] as String?,
+        );
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data['available'] as bool);
+    } catch (e) {
+      debugPrint('[AuthRepository] [checkEmailAvailable] 예외 -> $e');
+      return ApiResult.fail('이메일 확인 중 오류가 발생했습니다: $e');
+    }
+  }
+
   Future<ApiResult<UserModel>> emailLogin(String email, String password) async {
     if (email.isEmpty || password.isEmpty) {
       return ApiResult.fail('이메일과 비밀번호를 입력해 주세요.');

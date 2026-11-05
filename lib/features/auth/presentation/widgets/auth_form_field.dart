@@ -18,6 +18,16 @@ class AuthFormField extends StatefulWidget {
   final String? errorText;
   final bool obscureText;
   final TextInputType? keyboardType;
+  // [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 blur
+  // 중복확인 — 호출부(SignupScreen)가 포커스 상실 시점을 직접 감지해야
+  // 서버 조회를 트리거할 수 있도록, 기존 "내부 전용 FocusNode" 구조를 깨지
+  // 않으면서 외부에서 주입할 수 있는 옵션을 추가한다. 넘기지 않으면 기존과
+  // 동일하게 내부에서 자체 생성한다(다른 모든 AuthFormField 사용처는 변경 없음).
+  final FocusNode? focusNode;
+  // `hint`가 가변 상태 메시지(확인 중/사용 가능/중복됨)로 쓰일 때, 상태에
+  // 따라 색을 바꿀 수 있도록 선택적 색상 오버라이드를 추가한다. 지정하지
+  // 않으면 기존처럼 textSecondary 톤을 그대로 쓴다.
+  final Color? hintColor;
 
   const AuthFormField({
     super.key,
@@ -29,6 +39,8 @@ class AuthFormField extends StatefulWidget {
     this.errorText,
     this.obscureText = false,
     this.keyboardType,
+    this.focusNode,
+    this.hintColor,
   });
 
   @override
@@ -37,20 +49,30 @@ class AuthFormField extends StatefulWidget {
 
 class _AuthFormFieldState extends State<AuthFormField> {
   late bool _obscure = widget.obscureText;
-  final FocusNode _focusNode = FocusNode();
+  // 외부에서 focusNode를 주입하면 그것을 그대로 쓰고(소유권도 외부에 남겨둔다 —
+  // dispose는 호출하지 않는다), 주입하지 않으면 기존과 동일하게 내부에서
+  // 생성·관리한다.
+  late final FocusNode _focusNode = widget.focusNode ?? FocusNode();
+  bool get _ownsFocusNode => widget.focusNode == null;
   bool _focused = false;
 
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() {
-      setState(() => _focused = _focusNode.hasFocus);
-    });
+    _focused = _focusNode.hasFocus;
+    _focusNode.addListener(_handleFocusChange);
+  }
+
+  void _handleFocusChange() {
+    setState(() => _focused = _focusNode.hasFocus);
   }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    _focusNode.removeListener(_handleFocusChange);
+    if (_ownsFocusNode) {
+      _focusNode.dispose();
+    }
     super.dispose();
   }
 
@@ -155,7 +177,10 @@ class _AuthFormFieldState extends State<AuthFormField> {
           else if (widget.hint != null)
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 4),
-              child: Text(widget.hint!, style: IntroTextStyles.fieldHint()),
+              child: Text(
+                widget.hint!,
+                style: IntroTextStyles.fieldHint(color: widget.hintColor),
+              ),
             ),
         ],
       ),

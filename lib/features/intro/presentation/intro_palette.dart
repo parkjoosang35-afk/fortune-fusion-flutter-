@@ -72,6 +72,11 @@ class IntroPalette {
   /// 3화면(01_Intro.html)에는 없던 색으로, 02번 핸드오프 문서에서 처음 등장했다.
   static const Color danger = Color(0xFFF5A8BD);
 
+  /// [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 중복확인
+  /// "사용할 수 있는 이메일이에요" 성공 문구 전용(README.md 명시값 #b8f0d4).
+  /// 기존 danger(#F5A8BD)와는 별개 색으로, 성공 상태 전용으로 신설한다.
+  static const Color success = Color(0xFFB8F0D4);
+
   // ───────────────────────── [Phase C - 03_Welcome_Reward.html 반영] ─────────────────────────
 
   /// 웰컴 리워드 팝업 stage 배경(핸드오프 `html, body { background: #0a0716 }`).

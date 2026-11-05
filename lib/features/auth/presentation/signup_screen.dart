@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,6 +64,22 @@ class _SignupScreenState extends State<SignupScreen> {
   // 동일한 인라인 에러 표시 패턴(AuthFormField.errorText)을 그대로 재사용한다.
   String? _emailError;
 
+  // [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 blur 시
+  // 중복확인 — README.md "확인하고 있어요… / 사용할 수 있는 이메일이에요 /
+  // 이미 가입된 이메일이에요. 로그인해 주세요. / 이메일 형식을 확인해
+  // 주세요" 4가지 상태를 그대로 구현한다. `_emailError`(danger 톤, 제출
+  // 차단용)와는 별개로 `_emailCheckMessage`/`_emailAvailable`로 상태를
+  // 보관해 success(민트) 톤도 표시할 수 있게 한다.
+  final _emailFocusNode = FocusNode();
+  Timer? _emailCheckDebounce;
+  bool _emailChecking = false;
+  String? _emailCheckMessage;
+  bool? _emailAvailable;
+  // blur 체크가 끝난 이메일 값을 기억해, 그 값을 그대로 제출할 때는
+  // 네트워크 재확인 없이 바로 통과시킨다(제출 시 서버가 최종 검증하므로
+  // 중복 호출일 뿐, 막을 필요는 없다).
+  String? _lastCheckedEmail;
+
   // [6-7-4-B-4] 이용약관/개인정보처리방침 동의는 회원가입의 필수 요건이다.
   // 개별 동의 항목 + "전체 동의"를 함께 제공한다.
   bool _termsAgreed = false;
@@ -91,12 +108,104 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] blur 시점
+    // 감지 — 포커스를 잃는 순간(hasFocus: true -> false)에만 서버 중복확인을
+    // 호출한다. 입력 중(각 키 입력마다) 호출하지 않아 서버 부하를 줄인다.
+    _emailFocusNode.addListener(() {
+      if (!_emailFocusNode.hasFocus) {
+        _checkEmailAvailability();
+      }
+    });
+    // 이메일 값을 수정하면(마지막으로 확인했던 값과 달라지면) 이전 확인
+    // 결과(성공/중복/형식오류 메시지)를 즉시 지운다 — 더 이상 유효하지
+    // 않은 결과를 계속 보여주지 않기 위함.
+    _emailController.addListener(_handleEmailTextChanged);
+  }
+
+  void _handleEmailTextChanged() {
+    final email = _emailController.text.trim();
+    if (email == _lastCheckedEmail) return;
+    if (_emailCheckMessage == null && _emailError == null) return;
+    _emailCheckDebounce?.cancel();
+    setState(() {
+      _emailChecking = false;
+      _emailCheckMessage = null;
+      _emailAvailable = null;
+      _emailError = null;
+    });
+  }
+
+  @override
   void dispose() {
+    _emailCheckDebounce?.cancel();
+    _emailController.removeListener(_handleEmailTextChanged);
+    _emailFocusNode.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _passwordConfirmController.dispose();
     _nicknameController.dispose();
     super.dispose();
+  }
+
+  /// [§4] 이메일 blur 시 중복확인. 짧은 디바운스(300ms)를 둬서, 포커스가
+  /// 아주 빠르게 들어왔다 나가는 경우(예: 탭 이동 중) 불필요한 API 호출을
+  /// 한 번 더 줄인다.
+  void _checkEmailAvailability() {
+    final email = _emailController.text.trim();
+    _emailCheckDebounce?.cancel();
+    if (email.isEmpty) {
+      setState(() {
+        _emailCheckMessage = null;
+        _emailAvailable = null;
+      });
+      return;
+    }
+    // 이미 같은 값으로 확인을 마쳤으면 재호출하지 않는다(화면 안에서 다른
+    // 필드를 탭했다가 다시 돌아오는 경우 등).
+    if (email == _lastCheckedEmail && _emailCheckMessage != null) return;
+
+    _emailCheckDebounce = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      if (!EmailValidator.isValid(email)) {
+        setState(() {
+          _emailChecking = false;
+          _emailAvailable = null;
+          _emailCheckMessage = '이메일 형식을 확인해 주세요';
+        });
+        return;
+      }
+      setState(() {
+        _emailChecking = true;
+        _emailCheckMessage = '확인하고 있어요…';
+        _emailAvailable = null;
+      });
+      final result = await context.read<AuthProvider>().checkEmailAvailable(
+        email,
+      );
+      if (!mounted) return;
+      _lastCheckedEmail = email;
+      if (!result.success) {
+        setState(() {
+          _emailChecking = false;
+          _emailAvailable = null;
+          // INVALID_EMAIL 등 서버 메시지를 그대로 보여준다 — 형식 오류는
+          // 이미 위에서 클라이언트가 먼저 걸렀으므로, 여기 도달하는 실패는
+          // 주로 네트워크 오류다.
+          _emailCheckMessage = result.errorMessage ?? '이메일 확인 중 오류가 발생했습니다.';
+        });
+        return;
+      }
+      final available = result.data ?? false;
+      setState(() {
+        _emailChecking = false;
+        _emailAvailable = available;
+        _emailCheckMessage = available
+            ? '사용할 수 있는 이메일이에요'
+            : '이미 가입된 이메일이에요. 로그인해 주세요.';
+      });
+    });
   }
 
   Future<void> _submit() async {
@@ -328,10 +437,19 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   AuthFormField(
                     controller: _emailController,
+                    focusNode: _emailFocusNode,
                     label: '이메일',
                     required: true,
                     hintText: 'example@fortunefusion.app',
-                    hint: '로그인 시 사용됩니다',
+                    // [§4 이메일 중복확인] blur 직후 확인 메시지가 있으면
+                    // 그것을 우선 표시하고, 아직 확인 전이면 기존 기본
+                    // 안내 문구('로그인 시 사용됩니다')를 그대로 보여준다.
+                    hint: _emailCheckMessage ?? '로그인 시 사용됩니다',
+                    hintColor: _emailCheckMessage == null
+                        ? null
+                        : (_emailAvailable == true
+                              ? IntroPalette.success
+                              : (_emailChecking ? null : IntroPalette.danger)),
                     keyboardType: TextInputType.emailAddress,
                     // [이메일 회원가입 오류 수정 지시서] 잘못된 형식 제출 시
                     // 비밀번호 확인 필드와 동일한 인라인 에러 표시.
