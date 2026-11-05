@@ -40,6 +40,12 @@ Future<BirthdayPickerValue?> showBirthdayPicker(
   String? title,
   String? ctaLabel,
   String? sourceLabel,
+  // [B2 — 음력 날짜 검증] 기본값은 기존과 동일한 양력 전용 검증
+  // ([validateBirthdayDate])이다. 음력 입력이 필요한 화면(예: 본인 사주정보
+  // 입력)은 이 위젯을 고치지 않고, 바깥에서 "기존 만세력 엔진 기준" 음력
+  // 검증 함수를 만들어 넘기기만 하면 된다 — 다른 호출부(궁합/귀인지도 등)는
+  // 전혀 영향받지 않는다.
+  BirthdayDateValidator? dateValidator,
 }) {
   return Navigator.of(context).push<BirthdayPickerValue>(
     PageRouteBuilder<BirthdayPickerValue>(
@@ -54,6 +60,7 @@ Future<BirthdayPickerValue?> showBirthdayPicker(
           title: title,
           ctaLabel: ctaLabel,
           sourceLabel: sourceLabel,
+          dateValidator: dateValidator,
           onClose: () => Navigator.of(ctx).pop(),
           onConfirm: (v) => Navigator.of(ctx).pop(v),
         );
@@ -84,6 +91,7 @@ class BirthdayPickerModal extends StatefulWidget {
     this.title,
     this.ctaLabel,
     this.sourceLabel,
+    this.dateValidator,
     required this.onClose,
     required this.onConfirm,
   });
@@ -94,6 +102,10 @@ class BirthdayPickerModal extends StatefulWidget {
   final String? title;
   final String? ctaLabel;
   final String? sourceLabel;
+
+  /// [B2] 지정하지 않으면 기존과 동일하게 [validateBirthdayDate](양력
+  /// 전용)를 사용한다.
+  final BirthdayDateValidator? dateValidator;
   final VoidCallback onClose;
   final ValueChanged<BirthdayPickerValue> onConfirm;
 
@@ -192,7 +204,8 @@ class _BirthdayPickerModalState extends State<BirthdayPickerModal>
 
   bool get _dateComplete => _digits.every((x) => x.isNotEmpty);
 
-  BirthdayDateValidation get _validation => validateBirthdayDate(_y, _m, _d);
+  BirthdayDateValidation get _validation =>
+      (widget.dateValidator ?? validateBirthdayDate)(_y, _m, _d);
 
   bool get _canGoStep2 => _dateComplete && _validation.ok;
 

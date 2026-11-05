@@ -25,6 +25,7 @@ class SajuEntryDraft {
     required this.timeRangeStart,
     required this.gender,
     required this.isLunar,
+    this.isLeapMonth = false,
     required this.birthPlace,
   });
 
@@ -42,6 +43,9 @@ class SajuEntryDraft {
   /// 'male' | 'female'
   final String gender;
   final bool isLunar;
+
+  /// 음력(isLunar=true)일 때만 의미가 있는 윤달 여부. 양력이면 항상 false.
+  final bool isLeapMonth;
   final String birthPlace;
 }
 

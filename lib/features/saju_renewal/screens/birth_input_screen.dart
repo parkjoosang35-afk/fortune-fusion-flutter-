@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/router/app_navigator_key.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/utils/lunar_calendar_util.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
@@ -112,8 +113,18 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   BirthdayPickerValue? _birthValue;
   String _gender = 'female'; // 'male' | 'female' — 디자인 기본값(Seg 첫 옵션)과 동일.
   bool _isLunar = false;
+
+  /// [회원가입·본인 사주정보 통합 흐름 — 전면 검수 지시서 B1] 음력
+  /// 선택 시에만 의미가 있는 윤달 여부. 양력이면 항상 false로 취급한다
+  /// (`saju_input_screen.dart`의 `_leap`과 동일한 역할).
+  bool _isLeapMonth = false;
   bool _submitting = false;
   String? _error;
+
+  /// B1/B2: 음력+윤달 선택이 그 연도에 실제로 존재하지 않는 조합일 때의
+  /// 안내 메시지(예: "2023년(음력)은 윤2월만 윤달이에요"). null이면 문제
+  /// 없음 — `_openPicker()`에서 매번 재계산한다.
+  String? _leapMonthWarning;
 
   /// [버그수정 — "이름 입력란이 없음"] 02 화면에 이름(닉네임) 입력/표시
   /// 필드가 전혀 없었다. `UserModel.nickname`은 회원가입 시 이미 서버에
@@ -143,6 +154,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   String? _originalBirthTime;
   bool _originalBirthTimeUnknown = false;
   bool _originalIsLunar = false;
+  bool _originalIsLeapMonth = false;
 
   @override
   void initState() {
@@ -182,11 +194,14 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       // 빠져 있었다 — 수정 모드로 재진입했을 때 음력으로 저장한 사용자가
       // 항상 "양력"으로 되돌아와 보이는 문제가 있었다.
       _isLunar = user.isLunar;
+      // [B1 — 윤달 프리필] 음력일 때만 의미가 있다(양력이면 항상 false).
+      _isLeapMonth = user.isLunar ? user.isLeapMonth : false;
       // [출생정보 수정 기능] "실제로 바뀌었는지" 판단용 원본값 보관.
       _originalBirthDate = user.birthDate;
       _originalBirthTime = user.birthTime;
       _originalBirthTimeUnknown = user.birthTimeUnknown;
       _originalIsLunar = user.isLunar;
+      _originalIsLeapMonth = _isLeapMonth;
     }
     // [버그수정 — 이름 입력란] 회원가입 시 받은 닉네임을 기본값으로 채워
     // 보여준다(비어있지 않은 한 그대로 쓸 수 있고, 원하면 바로 고칠 수 있음).
@@ -213,6 +228,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       );
       _gender = draft.gender;
       _isLunar = draft.isLunar;
+      _isLeapMonth = draft.isLunar ? draft.isLeapMonth : false;
       _birthPlace = draft.birthPlace;
       _nicknameController.text = draft.nickname;
     }
@@ -240,6 +256,93 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     return null;
   }
 
+  /// [B2 — 음력 날짜 검증] 음력 선택 시, `BirthdayPickerModal`의 8자리
+  /// 키패드 입력 단계에서부터 "기존 만세력 엔진 기준"(`LunarCalendarUtil`,
+  /// `saju_input_screen.dart`와 동일 원칙)으로 실제 존재하는 날짜인지
+  /// 검증한다. 공용 위젯([validateBirthdayDate])은 양력 전용 로직을 그대로
+  /// 유지하고, 이 화면만 `dateValidator`로 음력 검증 함수를 주입한다 —
+  /// 궁합/귀인지도 등 같은 위젯을 쓰는 다른 화면은 영향받지 않는다.
+  BirthdayDateValidation _lunarPickerValidator(int? y, int? m, int? d) {
+    if (m != null && (m < 1 || m > 12)) {
+      return const BirthdayDateValidation(
+        ok: false,
+        field: 'month',
+        msg: '1월부터 12월까지 있어요',
+      );
+    }
+    if (y != null) {
+      final now = DateTime.now().year;
+      if (y < 1900) {
+        return const BirthdayDateValidation(
+          ok: false,
+          field: 'year',
+          msg: '1900년 이후로 입력해주세요',
+        );
+      }
+      if (y > now) {
+        return BirthdayDateValidation(
+          ok: false,
+          field: 'year',
+          msg: '$now년까지 입력할 수 있어요',
+        );
+      }
+    }
+    if (y != null && m != null && _isLeapMonth && !LunarCalendarUtil.hasLeapMonth(y, m)) {
+      final actual = LunarCalendarUtil.leapMonthOf(y);
+      return BirthdayDateValidation(
+        ok: false,
+        field: 'month',
+        msg: actual == 0
+            ? '$y년(음력)에는 윤달이 없어요'
+            : '$y년(음력)은 윤$actual월만 윤달이에요',
+      );
+    }
+    if (d != null && m != null && y != null) {
+      final maxD = LunarCalendarUtil.daysInLunarMonth(y, m, isLeap: _isLeapMonth) ?? 29;
+      if (d < 1 || d > maxD) {
+        return BirthdayDateValidation(
+          ok: false,
+          field: 'day',
+          msg: '${_isLeapMonth ? '윤$m월' : '$m월'}은 $maxD일까지 있어요',
+        );
+      }
+    } else if (d != null) {
+      if (d < 1 || d > 30) {
+        return const BirthdayDateValidation(
+          ok: false,
+          field: 'day',
+          msg: '1일부터 30일까지 있어요',
+        );
+      }
+    }
+    return BirthdayDateValidation.valid;
+  }
+
+  /// [B1/B2] 날짜가 이미 선택된 상태에서 음력/윤달 설정이 바뀌면(예: 윤달
+  /// 체크 해제·체크, 양력→음력 전환), 기존에 고른 날짜가 더 이상 유효하지
+  /// 않을 수 있다(예: 윤달에만 있는 "윤4월 30일"을 골라둔 채 윤달 체크를
+  /// 해제하면 평달 4월엔 30일이 없을 수 있음). 이런 경우 조용히 잘못된
+  /// 값을 유지한 채 저장되지 않도록, 날짜를 비우고 다시 고르게 안내한다.
+  void _recheckBirthValueAfterLunarToggle() {
+    final v = _birthValue;
+    if (v == null || !_isLunar) {
+      _leapMonthWarning = null;
+      return;
+    }
+    final validation = LunarCalendarUtil.validateLunarDate(
+      year: v.year,
+      month: v.month,
+      day: v.day,
+      isLeap: _isLeapMonth,
+    );
+    if (!validation.ok) {
+      _leapMonthWarning = validation.message;
+      _birthValue = null;
+    } else {
+      _leapMonthWarning = null;
+    }
+  }
+
   Future<void> _openPicker() async {
     final result = await showBirthdayPicker(
       context,
@@ -247,11 +350,13 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       requireTime: false,
       initialValue: _birthValue,
       title: '태어난 날을 알려주세요',
+      dateValidator: _isLunar ? _lunarPickerValidator : null,
     );
     if (result == null) return;
     setState(() {
       _birthValue = result;
       _error = null;
+      _leapMonthWarning = null;
     });
   }
 
@@ -353,6 +458,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       kst: DateTime(dt.year, dt.month, dt.day, timeUnknown ? 0 : dt.hour, 0),
       gender: _gender,
       isLunar: _isLunar,
+      isLeapMonth: _isLunar ? _isLeapMonth : false,
       timeUnknown: timeUnknown,
       referenceDate: DateTime.now(),
     );
@@ -423,6 +529,10 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     final birthTimeStr = value.time != null
         ? '${value.time!.rangeStart.toString().padLeft(2, '0')}:00'
         : null;
+    // [B2] 양력이면 윤달 개념 자체가 없으므로 항상 false로 정규화해
+    // 저장한다(saju_input_screen.dart의 `_cal == 'lunar' ? _leap : false`와
+    // 동일 원칙).
+    final isLeapMonth = _isLunar ? _isLeapMonth : false;
 
     // [비회원 둘러보기 및 로그인 연속성 — 정통사주, 귀인지도 패턴 적용]
     // 로그인 게이트를 화면 "진입 시점"(SajuRenewalHomeScreen._start())이
@@ -444,6 +554,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
           timeRangeStart: value.time?.rangeStart,
           gender: _gender,
           isLunar: _isLunar,
+          isLeapMonth: isLeapMonth,
           birthPlace: _birthPlace,
         ),
       );
@@ -460,7 +571,8 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
         birthDateStr != _originalBirthDate ||
         birthTimeStr != _originalBirthTime ||
         birthTimeUnknown != _originalBirthTimeUnknown ||
-        _isLunar != _originalIsLunar;
+        _isLunar != _originalIsLunar ||
+        isLeapMonth != _originalIsLeapMonth;
 
     if (widget.isEditMode && birthRelatedChanged) {
       final confirmed = await showAppConfirmDialog(
@@ -484,6 +596,7 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       birthDate: birthDateStr,
       birthTime: birthTimeStr,
       isLunar: _isLunar,
+      isLeapMonth: isLeapMonth,
       birthTimeUnknown: birthTimeUnknown,
       birthPlace: _birthPlace,
       gender: _gender,
@@ -724,12 +837,66 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                             child: _SajuSeg(
                               options: const ['양력', '음력'],
                               value: _isLunar ? '음력' : '양력',
-                              onChange: (v) =>
-                                  setState(() => _isLunar = v == '음력'),
+                              onChange: (v) => setState(() {
+                                _isLunar = v == '음력';
+                                if (!_isLunar) _isLeapMonth = false;
+                                _recheckBirthValueAfterLunarToggle();
+                              }),
                             ),
                           ),
                         ],
                       ),
+                      // [B1 — 윤달 선택] 음력을 고른 경우에만 노출한다
+                      // (saju_input_screen.dart의 '윤달에 태어났어요' 체크와
+                      // 동일한 UX 원칙 — 양력에는 윤달 개념이 없으므로 숨김).
+                      if (_isLunar)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: InkWell(
+                            onTap: () => setState(() {
+                              _isLeapMonth = !_isLeapMonth;
+                              _recheckBirthValueAfterLunarToggle();
+                            }),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6),
+                                    color: _isLeapMonth
+                                        ? SajuGold.g300
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: _isLeapMonth
+                                          ? SajuGold.g300
+                                          : SajuText.line,
+                                    ),
+                                  ),
+                                  child: _isLeapMonth
+                                      ? const Icon(
+                                          Icons.check,
+                                          size: 13,
+                                          color: SajuInk.i900,
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  '윤달에 태어났어요',
+                                  style: TextStyle(
+                                    fontFamily: SajuType.ui,
+                                    fontSize: 13,
+                                    color: SajuText.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       // docs/03 §02 검증 — 생년월일 필드 바로 아래에
                       // "이 정보가 있어야 사주를 세울 수 있어요"(C-02-8).
                       if (_birthValue == null && _error != null)
@@ -737,6 +904,21 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
                             _error!,
+                            style: const TextStyle(
+                              fontFamily: SajuType.ui,
+                              fontSize: 12,
+                              color: Color(0xFFE08A7E),
+                            ),
+                          ),
+                        ),
+                      // [B2] 음력+윤달 조합이 그 해에 실제로 존재하지 않아
+                      // 날짜가 초기화된 경우의 안내(예: "2023년(음력)은
+                      // 윤2월만 윤달이에요").
+                      if (_leapMonthWarning != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            _leapMonthWarning!,
                             style: const TextStyle(
                               fontFamily: SajuType.ui,
                               fontSize: 12,

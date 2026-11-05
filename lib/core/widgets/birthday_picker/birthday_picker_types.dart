@@ -227,6 +227,17 @@ class BirthdayDateValidation {
   static const valid = BirthdayDateValidation(ok: true);
 }
 
+/// [회원가입·본인 사주정보 통합 흐름 — 전면 검수 지시서 B2] 날짜 검증
+/// 함수의 타입. 기본 구현([validateBirthdayDate])은 양력 전용이다.
+/// 음력 입력 화면(`birth_input_screen.dart`)은 이 타입에 맞춰 "기존
+/// 만세력 엔진 기준" 음력 검증 함수를 만들어 [BirthdayPickerModal]에
+/// 주입한다 — 위젯 자체는 양력/음력을 모르는 공용 컴포넌트로 유지된다.
+typedef BirthdayDateValidator = BirthdayDateValidation Function(
+  int? y,
+  int? m,
+  int? d,
+);
+
 /// 원본 JS `validateDateBP(y, m, d)` 그대로 포팅.
 BirthdayDateValidation validateBirthdayDate(int? y, int? m, int? d) {
   if (m != null) {

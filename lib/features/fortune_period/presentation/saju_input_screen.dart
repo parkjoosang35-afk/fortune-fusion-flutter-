@@ -20,6 +20,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/utils/lunar_calendar_util.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_types.dart';
 import '../../auth/application/auth_provider.dart';
@@ -104,13 +105,44 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
     }
   }
 
+  /// [음력 30일 고정 버그 수정 — 회원가입·본인 사주정보 통합 흐름 지시서]
+  /// 과거에는 음력이면 무조건 30일을 반환해, 29일까지만 있는 음력
+  /// "작은달"에도 30일을 선택할 수 있었다(존재하지 않는 날짜가 서버에
+  /// 저장될 수 있는 버그). `lunar` 패키지(사주 계산 엔진과 동일 출처)의
+  /// 실제 월별 일수를 사용한다 — 해당 연/월(+윤달 여부) 조합이 존재하지
+  /// 않으면 보수적으로 29를 반환해 "일" 드롭다운이 비정상적으로 많은
+  /// 항목을 보여주지 않게 한다.
   int get _maxDay {
     if (_y == null || _m == null) return 31;
     if (_cal == 'solar') return DateTime(_y!, _m! + 1, 0).day;
-    return 30;
+    return LunarCalendarUtil.daysInLunarMonth(_y!, _m!, isLeap: _leap) ?? 29;
   }
 
-  bool get _dateOk => _y != null && _m != null && _d != null && _d! <= _maxDay;
+  /// 음력 + "윤달" 체크 시, 해당 연도에 그 달이 실제로 윤달인지 확인한다.
+  /// (예: 2023년은 윤2월만 존재 — 2023년에 윤5월을 윤달로 체크하면 무효.)
+  bool get _leapMonthValid {
+    if (_cal != 'lunar' || !_leap) return true;
+    if (_y == null || _m == null) return true;
+    return LunarCalendarUtil.hasLeapMonth(_y!, _m!);
+  }
+
+  bool get _dateOk =>
+      _y != null &&
+      _m != null &&
+      _d != null &&
+      _d! >= 1 &&
+      _d! <= _maxDay &&
+      _leapMonthValid;
+
+  /// 연/월/윤달 선택이 바뀌어 `_maxDay`가 줄어들면(예: 양력→음력, 또는
+  /// 음력 "큰달"→"작은달"), 이미 선택된 `_d`가 더 이상 존재하지 않는
+  /// 날짜가 될 수 있다. 이 경우 null로 되돌려 사용자가 다시 고르게 한다
+  /// (잘못된 날짜가 조용히 유지된 채 저장되는 것을 방지).
+  void _clampDay() {
+    if (_d != null && _d! > _maxDay) {
+      _d = null;
+    }
+  }
 
   bool get _formOk => _gender.isNotEmpty && _dateOk && _time != null;
 
@@ -334,6 +366,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                       onChanged: (v) => setState(() {
                         _cal = v;
                         if (v == 'solar') _leap = false;
+                        _clampDay();
                       }),
                     ),
                     const SizedBox(height: 10),
@@ -349,7 +382,10 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                               (i) => 2026 - i,
                             ),
                             labelOf: (v) => '$v년',
-                            onChanged: (v) => setState(() => _y = v),
+                            onChanged: (v) => setState(() {
+                              _y = v;
+                              _clampDay();
+                            }),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -360,7 +396,10 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                             hint: '월',
                             items: List.generate(12, (i) => i + 1),
                             labelOf: (v) => '$v월',
-                            onChanged: (v) => setState(() => _m = v),
+                            onChanged: (v) => setState(() {
+                              _m = v;
+                              _clampDay();
+                            }),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -369,6 +408,8 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                           child: _DateDropdown<int>(
                             value: _d,
                             hint: '일',
+                            // [음력 30일 고정 버그 수정] 음력 "작은달"(29일)에는
+                            // 더 이상 존재하지 않는 30일이 목록에 나타나지 않는다.
                             items: List.generate(_maxDay, (i) => i + 1),
                             labelOf: (v) => '$v일',
                             onChanged: (v) => setState(() => _d = v),
@@ -376,11 +417,30 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                         ),
                       ],
                     ),
+                    if (_cal == 'lunar' && _leap && !_leapMonthValid)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _y != null && _m != null
+                              ? (LunarCalendarUtil.leapMonthOf(_y!) == 0
+                                    ? '$_y년(음력)에는 윤달이 없어요'
+                                    : '$_y년(음력)은 윤${LunarCalendarUtil.leapMonthOf(_y!)}월만 윤달이에요')
+                              : '윤달 여부를 다시 확인해 주세요',
+                          style: const TextStyle(
+                            fontFamily: FortunePeriodType.body,
+                            fontSize: 12,
+                            color: FortunePeriodColors.accent,
+                          ),
+                        ),
+                      ),
                     if (_cal == 'lunar')
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: InkWell(
-                          onTap: () => setState(() => _leap = !_leap),
+                          onTap: () => setState(() {
+                            _leap = !_leap;
+                            _clampDay();
+                          }),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
