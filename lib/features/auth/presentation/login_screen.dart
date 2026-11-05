@@ -376,8 +376,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   '아이디 찾기',
                                   style: IntroTextStyles.bottomLink().copyWith(
                                     decoration: TextDecoration.underline,
-                                    decorationColor:
-                                        IntroPalette.textSecondary,
+                                    decorationColor: IntroPalette.textSecondary,
                                   ),
                                 ),
                               ),
@@ -398,8 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   '비밀번호 찾기',
                                   style: IntroTextStyles.bottomLink().copyWith(
                                     decoration: TextDecoration.underline,
-                                    decorationColor:
-                                        IntroPalette.textSecondary,
+                                    decorationColor: IntroPalette.textSecondary,
                                   ),
                                 ),
                               ),
@@ -446,10 +444,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 18),
                   // `.bottom-link`
+                  // [02 회원가입 선택 화면 신설] 핸드오프 flow-main.jsx의
+                  // EmailLogin.onSignup()은 "02 선택"이 아니라 바로
+                  // "이메일 회원가입"(email)으로 연결된다 — 이메일로
+                  // 로그인하다가 "회원가입"을 누르면 곧장 이메일 가입
+                  // 폼으로 가야 한다(카카오/구글 선택을 다시 거치지 않음).
                   Center(
                     child: GestureDetector(
-                      onTap: () =>
-                          Navigator.of(context).pushReplacementNamed('/signup'),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed('/signup/email'),
                       child: RichText(
                         text: TextSpan(
                           style: IntroTextStyles.bottomLink(),

@@ -207,8 +207,7 @@ class _SignupScreenState extends State<SignupScreen> {
     bool alreadySeen = true;
     try {
       final prefs = await SharedPreferences.getInstance();
-      alreadySeen =
-          prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
+      alreadySeen = prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
     } catch (_) {
       // 조회 실패 시 기존 동작(곧바로 다음 단계)과 동일하게 안전 폴백.
       alreadySeen = true;
@@ -378,10 +377,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 14),
                   // `.bottom-link`
+                  // [02 회원가입 선택 화면 신설] 핸드오프 flow-main.jsx의
+                  // EmailSignup.onLogin()은 "02 선택"이 아니라 바로
+                  // "이메일 로그인"(emailLogin)으로 연결된다 — 이메일로
+                  // 가입하다가 "로그인"을 누르면 다시 카카오/구글 선택을
+                  // 거치지 않고 곧장 이메일 로그인 폼으로 가야 한다.
                   Center(
                     child: GestureDetector(
-                      onTap: () =>
-                          Navigator.of(context).pushReplacementNamed('/login'),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed('/login/email'),
                       child: RichText(
                         text: TextSpan(
                           style: IntroTextStyles.bottomLink(),

@@ -10,6 +10,7 @@ import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/intro/presentation/onboarding_gate_screen.dart';
 import '../../features/policy/presentation/policy_notice_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/signup_choice_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/fortune/shared/presentation/removed_daily_fortune_stub.dart';
 import '../../features/mypage/presentation/my_fortune_records_screen.dart';
@@ -261,10 +262,24 @@ class AppRouter {
       // 완전히 대체했고, 이 named route를 호출하는 코드가 앱 전체(딥링크 포함)
       // 어디에도 없음을 확인해 죽은 라우트만 제거한다. 화면 파일 자체
       // (onboarding_screen.dart)는 향후 참조 가능성을 배제할 수 없어 보존한다.
+      // [신통방통 회원가입·본인 사주정보 통합 흐름 — 전면 검수 지시서,
+      // 2026-11] `/login`·`/signup`의 실제 목적지를 "02 회원가입/로그인
+      // 선택"(SignupChoiceScreen, 카카오·구글·이메일 3버튼)으로 바꾼다.
+      // 기존 이메일 전용 화면(LoginScreen/SignupScreen)은 삭제하지 않고
+      // `/login/email`·`/signup/email`로 그대로 보존해, 02 화면의
+      // "이메일" 버튼에서만 연결한다 — 두 화면의 로직은 전혀 변경하지
+      // 않았다. 앱 전역의 23개 `pushNamed('/login')`/`pushNamed('/signup')`
+      // 호출부는 모두 named route를 통해서만 진입하므로, 이 한 곳만
+      // 바꾸면 전체가 자동으로 02 화면을 먼저 거치게 된다(회귀 없음 —
+      // 호출부 각각을 개별 수정할 필요가 없다).
       case '/login':
-        return _pageNamed('/login', const LoginScreen());
+        return _pageNamed('/login', const SignupChoiceScreen(isLogin: true));
       case '/signup':
-        return _pageNamed('/signup', const SignupScreen());
+        return _pageNamed('/signup', const SignupChoiceScreen(isLogin: false));
+      case '/login/email':
+        return _pageNamed('/login/email', const LoginScreen());
+      case '/signup/email':
+        return _pageNamed('/signup/email', const SignupScreen());
       // [2026 디자인 핸드오프 콘텐츠 반영] 인트로 페이지4 CTA 링크
       // `"재미·참고용" 콘텐츠 안내` 대상 라우트(핸드오프 §라우팅
       // onDisclaimerTap()과 동일한 경로 문자열).
@@ -880,7 +895,10 @@ class AppRouter {
       case '/reward/coupon/scan':
         return _pageNamed('/reward/coupon/scan', const BokjuCouponScanScreen());
       case '/reward/coupon/my':
-        return _pageNamed('/reward/coupon/my', const BokjuCouponHistoryScreen());
+        return _pageNamed(
+          '/reward/coupon/my',
+          const BokjuCouponHistoryScreen(),
+        );
 
       // ── 기간별 운세(fortune_period) ──
       // 화면 B(오늘/주간/월간 3탭 메인) 공식 엔트리포인트. MySajuInfoScreen의
@@ -896,10 +914,7 @@ class AppRouter {
           const SajuInputScreen(),
         );
       case '/fortune-period/my-saju':
-        return _pageNamed(
-          '/fortune-period/my-saju',
-          const MySajuInfoScreen(),
-        );
+        return _pageNamed('/fortune-period/my-saju', const MySajuInfoScreen());
 
       // ── 마이 ──
       case '/my/notifications':
