@@ -91,6 +91,18 @@ class ShrineV3Provider extends ChangeNotifier {
     return order;
   }
 
+  /// 10 화면용 상세 조회 — 부적함 캐시를 건드리지 않는 단발성 조회.
+  Future<ShrineOrderDetail?> getBoxDetailPublic(int orderId) async {
+    final result = await _repository.getBoxDetail(orderId);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage;
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return null;
+    }
+    return result.data;
+  }
+
   Future<ShrineIncenseResult?> lightIncense(int orderId) async {
     final result = await _repository.lightIncense(orderId);
     if (!result.success || result.data == null) {
