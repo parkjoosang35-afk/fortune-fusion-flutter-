@@ -82,16 +82,36 @@ class _LoginScreenState extends State<LoginScreen> {
         LuckPouchToastController.instance.showFirstLoginReward(rewardAmount);
       }
       if (!mounted) return;
+      // [회원가입 통합 사주정보 — 전면 재도입, 2026-11] dev-spec.md §4
+      // "POST /api/auth/email/login → { user, session, hasProfile }"
+      // 계약에 따르면 이메일 로그인도 프로필 유무로 분기해야 한다. 서버
+      // 응답 자체에는 hasProfile 필드가 없지만(스키마 변경 최소화 원칙),
+      // `isFortuneSajuComplete(user)`로 동일한 판별이 가능하다 — 과거
+      // (42180cc4 이전/이후 혼재 기간)에 가입했지만 사주정보를 아직 한
+      // 번도 입력하지 않은 기존 계정이 이메일로 재로그인하는 경우를
+      // 포함한다. 소셜 로그인(_socialLogin)과 완전히 동일한 분기 로직이다
+      // — 이미 프로필이 완전한 사용자는 `isFortuneSajuComplete`가 true를
+      // 반환해 아래 분기를 타지 않으므로 회귀가 없다.
+      final user = context.read<AuthProvider>().currentUser;
+      if (!isFortuneSajuComplete(user)) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const BirthInputScreen(isSignupFlow: true),
+          ),
+        );
+        replayPendingPassRequest();
+        replayPendingGuinjiJoin();
+        replayPendingGuinjiOnboarding();
+        replayPendingGuinjiMapEntry();
+        replayPendingBokjuCoupon();
+        return;
+      }
       // [요청 1 - 프로필체크 강제 이동 제거] 이전에는 생년월일 보유 여부와
       // 무관하게 항상 '/signup/profile-check'로 먼저 보냈고, 그 화면의
       // initState()가 다시 '/home'으로 리다이렉트하는 이중 네비게이션
       // (화면 깜빡임/지연)이 발생했다. 이미 프로필(생년월일)이 있는
       // 재로그인 사용자는 곧바로 홈으로 보내고, 신규/미입력 사용자만
-      // 프로필체크 화면으로 보낸다.
-      // [프로필체크 화면 완전 제거] 생년월일 보유 여부와 무관하게 항상
-      // 곧바로 홈으로 이동한다. 생년월일은 이후 사주/운세 첫 이용 시점에
-      // 해당 입력 화면에서 받고, "내 계정 프로필로 저장" 체크박스로
-      // 원하는 사용자만 계정에 저장한다.
+      // 위 분기에서 사주정보 입력 화면으로 보낸다.
       //
       // [비로그인 결과보기 복귀 지시서 R2] "결과보기" 시트의 "로그인하고
       // 결과보기" CTA를 거쳐 로그인하러 온 경우, PendingResultAccessReturnStore에
