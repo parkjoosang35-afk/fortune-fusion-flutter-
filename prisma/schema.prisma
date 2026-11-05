@@ -213,7 +213,11 @@ model User {
   openPassAdRewardLogs          OpenPassAdRewardLog[]
   passCategoryUsages            PassCategoryUsage[]
   fortuneAdWatchLogs            FortuneAdWatchLog[]
-  shrineIssueLedgers            ShrineIssueLedger[]
+  // [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 구버전
+  // shrineIssueLedgers(ShrineIssueLedger[]) 관계는 U12 어뷰징 방지
+  // 원장(이야기 기반 발급)과 함께 삭제되었다. 신규 관계는 아래
+  // shrineOrders(ShrineOrder[])를 참고.
+  shrineOrders                  ShrineOrder[]
   // [행운상자 - 복주머니 탭 신규 기능]
   pouchBoxOpenLogs              PouchBoxOpenLog[]
   // [복주머니 확장 Phase02-A]
@@ -262,7 +266,7 @@ model User {
   // 자체 규칙 조합(주간)만 쓰고 외부 AI 호출은 전혀 없다. 기존
   // FortuneResult(유료 AI 생성 결과: tarot/face/palm/saju)와는 다른
   // 모델이라 이름을 FortunePeriodResult로 구분한다.
-  fortunePeriodResults           FortunePeriodResult[]
+  fortunePeriodResults          FortunePeriodResult[]
 
   @@map("users")
 }
@@ -3476,6 +3480,9 @@ model ResultAccessTransaction {
   user           User            @relation(fields: [userId], references: [id])
   userPass       UserPass?       @relation(fields: [userPassId], references: [id])
   fortuneRequest FortuneRequest? @relation(fields: [fortuneRequestId], references: [id])
+  // [신당(THE SHRINE) v3] contentType="shrine_bujeok" 거래가 생성 완료되면
+  // ShrineOrder가 이 행을 1:1로 참조한다(위 ShrineOrder 모델 참고).
+  shrineOrder    ShrineOrder?
 
   @@index([userId, createdAt])
   @@index([status])
@@ -4968,32 +4975,106 @@ model FunnelEvent {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// 신당(THE SHRINE) U12 어뷰징 방지 — 발급 원장 (2026 신당 서버연동 지시서)
+// 신당(THE SHRINE) v3 전면 재구축 — 2026-11-06
 // ══════════════════════════════════════════════════════════════════
-// [설계 원칙] 신당 JS 프로토타입(shrine-engine.js)의 ledger/RULES/canIssue/
-// recordIssue를 서버로 포팅한다. 클라이언트(SharedPreferences/localStorage)
-// 원장은 기기 초기화·재설치로 쉽게 우회되므로, "정본"은 반드시 이 테이블이다.
-// RULES: perStory=1(이야기 1편당 부적 1장), perDay=2(하루 2장 상한, KST 자정 기준).
-model ShrineIssueLedger {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @map("user_id")
-  // 사주 지문(SajuResult.pillars 기반 해시) — 같은 회원이라도 사주 자체가
-  // 없으면(연결 전) 발급 불가이므로 이 값은 항상 non-null로 기록된다.
-  sajuFp     String   @map("saju_fp")
-  storyId    String   @map("story_id") // 이야기 1편 식별자(재발급 방지 단위)
-  composeKey String   @map("compose_key") // fp|type|flavor|story|ending 조합(복제 방지)
-  serial     String   @unique // "SHR-xxxxxxxx" 발급 일련번호(부적에 노출)
-  // [일일 한도 집계] KST 기준 'YYYY-MM-DD' 문자열. DateTime 범위 쿼리 대신
-  // 문자열 equality로 단순하게 집계해 타임존 버그를 피한다.
-  issuedDate String   @map("issued_date")
-  createdAt  DateTime @default(now()) @map("created_at")
+// [배경] 구버전(U1~U13, 어두운 공포 이야기 버전 + U12 어뷰징 방지
+// 발급원장 ShrineIssueLedger)은 영상 대역폭 비용 문제로 전면 삭제되었다.
+// design_handoff_shrine_v3 핸드오프 기준 신규 스키마로 교체한다.
+//
+// [비용 통제 원칙 — 사용자 지시] 06 "추천받기" 화면은 서버 호출 없이
+// 클라이언트가 이미 로드한 정통사주 엔진 결과(JeontongReportBuilder)만으로
+// 추천 근거를 생성한다(무료, DB 기록 없음). 과금/서버 기록이 발생하는
+// 지점은 오직 "민세레나에게 부탁하기"(05→07 결제 게이트 통과 후 1건
+// 생성)뿐이다 — 아래 ShrineOrder가 그 유일한 생성 지점이다.
+//
+// [결제 재사용 원칙] 지갑 차감 자체는 이 모델이 하지 않는다. 기존
+// ResultAccessTransaction(contentType="shrine_bujeok")이 FREEPASS/POUCH/AD
+// 차감을 전담하고, ShrineOrder.resultAccessTransactionId로 1:1 연결만
+// 한다(§8.1 공통화 원칙 — 콘텐츠별 결제 로직 재구현 금지).
+model TalismanItem {
+  id           Int      @id @default(autoincrement())
+  // "wealth0".."wish7" — 신당 v3 핸드오프 bujeok-data.js/suneung-data.js의
+  // id 그대로(클라이언트 K 배열의 id와 1:1 매칭, 새 채번 금지).
+  slug         String   @unique
+  // wealth/biz/love/harmony/exam/suneung/health/ward/wish (9종).
+  category     String
+  // 한자 1~2자(원형 아이콘 표시용, 예: '財', '學').
+  hanja        String
+  name         String // 예: "재물부", "수능대합격부"
+  // 06 추천받기 화면 카테고리 카드/목록에 쓰는 짧은 소망 문구(예: "들어온 재물을 모으기를").
+  aim          String
+  // 05 상세 화면 §意/效/人/期/用/祈 섹션(05_상세_소망 핸드오프 구조 그대로 보존).
+  sub          String? // 수능 10종 전용 부제(예: "최고의 학업 성취와...")
+  meaning      String // 의미(意)
+  effects      Json // 효능(效) — string[]
+  recommendFor Json     @map("recommend_for") // 추천 대상(人) — string[]
+  validityTerm String   @map("validity_term") // 효력 기간(期) 설명 문구
+  usage        Json // 사용 방법(用) — string[]
+  goesWith     Json     @map("goes_with") // 함께 하면 좋은 기원(祈) — string[]
+  // bj/talisman/{slug}.jpg(56종) 또는 suneung-{no}(10종) 변환본 WebP 경로.
+  imagePath    String   @map("image_path")
+  thumbPath    String?  @map("thumb_path") // 수능 10종의 "-t" 세로 썸네일(WebP).
+  sortOrder    Int      @default(0) @map("sort_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  orders ShrineOrder[]
 
-  // perStory=1 재발급 방지: 같은 회원+같은 이야기는 1건만 존재해야 한다.
-  @@unique([userId, storyId])
-  @@index([userId, issuedDate])
-  @@map("shrine_issue_ledgers")
+  @@index([category, sortOrder])
+  @@map("talisman_items")
+}
+
+// [唯一(유일) 기록] 같은 TalismanItem이라도 주문마다 이름/사주/소망/일련번호가
+// 겹치지 않는다(README §6). serial은 이 테이블이 "정본"으로 서버에서만
+// 발급한다(클라이언트 로컬 계산 절대 금지 — 기존 U12 ledger와 동일 원칙 계승).
+model ShrineOrder {
+  id                        Int      @id @default(autoincrement())
+  userId                    Int      @map("user_id")
+  talismanItemId            Int      @map("talisman_item_id")
+  // "神堂 N°00000" 형식, 전역 유일 — AUTO_INCREMENT 기반 서버 채번.
+  serial                    String   @unique
+  // 주문 시점 스냅샷(이후 회원정보가 바뀌어도 이 부적 기록은 불변 — 唯一 원칙).
+  ownerName                 String   @map("owner_name")
+  sajuPillars               String   @map("saju_pillars") // "乙亥 甲申 丁丑 丁未" (연월일시 4주, 시 모름이면 3주)
+  wish                      String // 부적에 담은 소망(05 textarea, 최대 40자)
+  // 결제 게이트(ResultAccessGateSheet)가 생성한 거래 — 지갑차감은 전부
+  // 이 거래가 전담하고, 이 테이블은 "그 결제로 어떤 부적을 받았는지"만 기록.
+  resultAccessTransactionId Int?     @unique @map("result_access_transaction_id")
+  // 소지 기간 관리(§7 향 올리기). 기본 49일, 향 올리기 1회당 +3일(최대 49일
+  // 유지 — README "더 늘지 않고 최대 49일까지만 유지").
+  issuedDateKey             String   @map("issued_date_key") // KST "YYYY-MM-DD" — 하루 1회 향 올리기 판정 기준
+  expiresDateKey            String   @map("expires_date_key") // KST "YYYY-MM-DD" — issuedDateKey + daysRemaining
+  daysRemaining             Int      @default(49) @map("days_remaining")
+  lastIncenseDateKey        String?  @map("last_incense_date_key") // 오늘 이미 향을 올렸는지 판정
+  // 소지 중/보관 중(=唯一 기록은 유지하되 기간만료 전 다른 걸로 교체)/기간만료.
+  status                    String   @default("ACTIVE") @map("status") // ACTIVE/ARCHIVED/EXPIRED
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  user                    User                     @relation(fields: [userId], references: [id])
+  talismanItem            TalismanItem             @relation(fields: [talismanItemId], references: [id])
+  resultAccessTransaction ResultAccessTransaction? @relation(fields: [resultAccessTransactionId], references: [id])
+  incenseLogs             ShrineIncenseLog[]
+
+  @@index([userId, status])
+  @@map("shrine_orders")
+}
+
+// [향 올리기 이력] 감사/통계용 append-only 로그. daysRemaining 갱신 자체는
+// ShrineOrder에서 하고, 이 로그는 "언제 몇 번 올렸는지"만 남긴다.
+model ShrineIncenseLog {
+  id            Int      @id @default(autoincrement())
+  shrineOrderId Int      @map("shrine_order_id")
+  dateKey       String   @map("date_key") // KST "YYYY-MM-DD"
+  daysBefore    Int      @map("days_before")
+  daysAfter     Int      @map("days_after")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  shrineOrder ShrineOrder @relation(fields: [shrineOrderId], references: [id])
+
+  @@unique([shrineOrderId, dateKey])
+  @@map("shrine_incense_logs")
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -5125,10 +5206,10 @@ model GunghapPairResult {
   // 멱등을 보장). llmDetailJson=LLM이 생성한 해석 JSON(카테고리별 텍스트),
   // llmSource="llm"(정상)|"template"(LLM 실패 폴백), llmModel/llmGeneratedAt=
   // 감사(audit) 및 재보고용 메타데이터.
-  llmDetailJson   String?   @map("llm_detail_json")
-  llmSource       String?   @map("llm_source") // "llm" | "template"
-  llmModel        String?   @map("llm_model")
-  llmGeneratedAt  DateTime? @map("llm_generated_at")
+  llmDetailJson  String?   @map("llm_detail_json")
+  llmSource      String?   @map("llm_source") // "llm" | "template"
+  llmModel       String?   @map("llm_model")
+  llmGeneratedAt DateTime? @map("llm_generated_at")
 
   engineVersion String   @default("gunghap-1.0.0") @map("engine_version")
   ruleVersion   String   @default("gunghap-rules-1.0.0") @map("rule_version")
@@ -5204,19 +5285,19 @@ model GunghapShareEvent {
 //  6. period_key는 서버가 KST(Asia/Seoul) 기준으로 계산한다.
 // ════════════════════════════════════════════════════════════════
 model FortunePeriodResult {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @map("user_id")
-  kind        String    @map("kind") // today | week | month
-  periodKey   String    @map("period_key") // today: YYYY-MM-DD, week: 월요일 YYYY-MM-DD, month: YYYY-MM
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  kind        String   @map("kind") // today | week | month
+  periodKey   String   @map("period_key") // today: YYYY-MM-DD, week: 월요일 YYYY-MM-DD, month: YYYY-MM
   // [수정 시 이번 기간 무효화] user_profiles 수정 시 saju_rev를 올리고
   // "이번 기간"(오늘/이번 주/이번 달) 결과만 invalidated=true 처리한다.
   // 지난 기간 결과는 보관 기록으로 그대로 둔다(README §4 "수정" 절).
-  sajuRev     Int       @default(1) @map("saju_rev")
-  engineVer   String    @default("v3.3") @map("engine_ver") // saju_engine 버전 — 추후 교체 시 재계산 판단용
-  payload     String    @map("payload") // README §5 응답 스키마(JSON 문자열, SQLite JSONB 매핑)
-  invalidated Boolean   @default(false) @map("invalidated")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  sajuRev     Int      @default(1) @map("saju_rev")
+  engineVer   String   @default("v3.3") @map("engine_ver") // saju_engine 버전 — 추후 교체 시 재계산 판단용
+  payload     String   @map("payload") // README §5 응답 스키마(JSON 문자열, SQLite JSONB 매핑)
+  invalidated Boolean  @default(false) @map("invalidated")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id])
 
