@@ -8,7 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-enum BirthdayPickerPalette { midnight, hanji }
+enum BirthdayPickerPalette { midnight, hanji, moonlit }
 
 class BirthdayPickerColors {
   const BirthdayPickerColors({
@@ -125,7 +125,45 @@ const BirthdayPickerColors _hanji = BirthdayPickerColors(
   ],
 );
 
+// [회원가입 통합 사주정보 04 화면 — Moonlit Crystal 리스킨]
+// `design_handoff_signup_saju_profile/README.md` 토큰표(--bg-1 #3d3568,
+// --bg-2 #1e1a3a, --glow #e8c8f5, --rose #f3a6c8 등)를 그대로 옮긴 전용
+// 팔레트. 값은 `features/intro/presentation/intro_palette.dart`
+// (`IntroPalette`)와 동일한 소스에서 나왔지만, 이 파일(core/widgets)은
+// feature 레이어에 의존하지 않는 원칙을 지키기 위해 헥스값을 직접
+// 중복 선언한다(기존 `midnight`/`hanji`는 값 변경 없이 그대로 둔다).
+const BirthdayPickerColors _moonlit = BirthdayPickerColors(
+  bg1: Color(0xFF3D3568),
+  bg2: Color(0xFF1E1A3A),
+  tail: Color(0xFF15102A),
+  fg: Color(0xFFF0EAFF),
+  muted: Color(0xA6DCD2F5), // rgba(220,210,245,0.65)
+  glow: Color(0xFFE8C8F5),
+  glowShadow: Color(0x59E8C8F5), // rgba(232,200,245,0.35)
+  line: Color(0x26DCC8FF), // rgba(220,200,255,0.15)
+  card: Color(0x14C8B4FF), // rgba(200,180,255,0.08)
+  cardHover: Color(0x1EE8C8F5),
+  chipBorder: Color(0x80E8C8F5),
+  slotEmpty: Color(0x40DCD2F5),
+  slotHint: Color(0x66DCD2F5),
+  ctaText: Color(0xFF2A1A3A),
+  errorColor: Color(0xFFF5A8BD),
+  checkGlyph: Color(0xFF2A1A3A),
+  backdrop: Color(0x9915102A),
+  sigilColor: Color(0xFFE8C8F5),
+  sigilOpacity: 0.5,
+  stars: true,
+  hanjiGrain: false,
+  overlay: Color(0xDD1E1A3A),
+  bgWashes: [
+    Color(0x24A8D5E3), // crystal
+    Color(0x1FE8C8F5), // glow
+    Color(0x19F3A6C8), // rose
+  ],
+);
+
 const Map<BirthdayPickerPalette, BirthdayPickerColors> kBirthdayPalettes = {
   BirthdayPickerPalette.midnight: _midnight,
   BirthdayPickerPalette.hanji: _hanji,
+  BirthdayPickerPalette.moonlit: _moonlit,
 };

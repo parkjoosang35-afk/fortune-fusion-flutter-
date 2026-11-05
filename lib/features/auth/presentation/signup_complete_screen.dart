@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../fortune_period/domain/fortune_saju_profile.dart';
 import '../../result_access/presentation/result_access_gate_sheet.dart';
-import '../../saju_renewal/theme/saju_dark_tokens.dart';
-import '../../saju_renewal/widgets/saju_base_widgets.dart';
+import '../../intro/presentation/intro_palette.dart';
+import '../../intro/presentation/intro_text_styles.dart';
 import '../application/auth_provider.dart';
+import 'widgets/auth_primary_button.dart';
 
 /// [회원가입 통합 사주정보 — 디자인 핸드오프 05 "가입 완료" 화면]
 ///
-/// `design_handoff_review/README.md` §05 스펙을 기존 앱의 다크 사주
-/// 디자인 시스템(`saju_renewal` 피처의 `SajuDarkBase`/`SajuTopBar`/
-/// `SajuButton`)으로 재구현한다. 새 디자인 토큰을 만들지 않고 기존
-/// `BirthInputScreen`과 동일한 톤을 그대로 재사용해(핸드오프 README
-/// "기존 신통방통 디자인 시스템 기준으로 재현" 원칙) 일관성을 유지한다.
+/// `design_handoff_review/README.md` §05 스펙의 "Moonlit Crystal" 팔레트
+/// (`IntroPalette`/`IntroTextStyles`)를 그대로 재현한다. 02(로그인)/03(가입)
+/// 화면과 동일한 디자인 시스템을 사용해 가입 플로우 전체의 시각적 일관성을
+/// 유지한다.
+///
+/// [2026-xx 리스킨] 이전 구현은 전혀 무관한 다른 피처("정통사주 리뉴얼")의
+/// 다크 골드/블랙 톤 디자인 시스템(`SajuDarkBase`/`SajuGold`/`SajuType`)을
+/// 잘못 재사용하고 있었다. 02/03과 톤이 어긋나 있던 것을 바로잡아
+/// `IntroPalette`/`IntroTextStyles` 기반으로 전면 재작성한다. `_goHome()`의
+/// 비로그인 결과보기 복귀 로직은 100% 그대로 보존했다.
 ///
 /// [진입 경로] `BirthInputScreen(isSignupFlow: true)`가 저장(= 서버
 /// `updateProfile` 성공)에 성공한 직후에만 `pushReplacement`로 연결된다.
@@ -36,106 +42,148 @@ class SignupCompleteScreen extends StatelessWidget {
         if (!didPop) _goHome(context);
       },
       child: Scaffold(
-        body: SajuDarkBase(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
-              child: Column(
-                children: [
-                  const SajuTopBar(title: 'SIGN UP · 完'),
-                  Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      IntroPalette.backgroundTop,
+                      IntroPalette.backgroundBottom,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFFF1DCFA),
-                                  Color(0xFFD2B2F0),
-                                  Color(0xFFB9D9EA),
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: SajuGold.glow,
-                                  blurRadius: 30,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: const Text(
-                              '命',
-                              style: TextStyle(
-                                fontFamily: SajuType.serif,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 30,
-                                color: Color(0xFF2A2150),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
                           Text(
-                            '${user?.nickname ?? ''}님,\n가입이 완료되었어요',
-                            textAlign: TextAlign.center,
-                            style: SajuType.h1,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            '저장한 사주정보는 모든 운세 메뉴에서\n'
-                            '다시 입력하지 않아도 함께 사용돼요.',
-                            textAlign: TextAlign.center,
-                            style: SajuType.body14,
-                          ),
-                          const SizedBox(height: 28),
-                          if (user != null)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 18,
-                                horizontal: 18,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: SajuText.line),
-                                color: SajuText.card,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('◈ MY SAJU', style: SajuType.mono10),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    summary,
-                                    style: const TextStyle(
-                                      fontFamily: SajuType.ui,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: SajuGold.g100,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            'SIGN UP · 完',
+                            style: IntroTextStyles.formEyebrow(
+                              color: IntroPalette.primary,
                             ),
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                  SajuButton(
-                    label: '☾ 홈으로 가기',
-                    onTap: () => _goHome(context),
-                  ),
-                ],
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFFF1DCFA),
+                                    Color(0xFFD2B2F0),
+                                    Color(0xFFB9D9EA),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: IntroPalette.glowShadow,
+                                    blurRadius: 30,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                '命',
+                                style: TextStyle(
+                                  fontFamily:
+                                      IntroTextStyles.title().fontFamily,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 30,
+                                  color: IntroPalette.onPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              '${user?.nickname ?? ''}님,\n가입이 완료되었어요',
+                              textAlign: TextAlign.center,
+                              style: IntroTextStyles.formTitle(
+                                color: IntroPalette.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '저장한 사주정보는 모든 운세 메뉴에서\n'
+                              '다시 입력하지 않아도 함께 사용돼요.',
+                              textAlign: TextAlign.center,
+                              style: IntroTextStyles.formSubtitle(),
+                            ),
+                            const SizedBox(height: 28),
+                            if (user != null)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 18,
+                                  horizontal: 18,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: IntroPalette.cardBorder,
+                                  ),
+                                  color: IntroPalette.primaryLight,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '◈ MY SAJU',
+                                      style: IntroTextStyles.formEyebrow(
+                                        color: IntroPalette.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      summary,
+                                      style:
+                                          const TextStyle(
+                                            fontFamily: 'Pretendard',
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ).copyWith(
+                                            color: IntroPalette.textPrimary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    AuthPrimaryButton(
+                      label: '☾ 홈으로 가기',
+                      onPressed: () => _goHome(context),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

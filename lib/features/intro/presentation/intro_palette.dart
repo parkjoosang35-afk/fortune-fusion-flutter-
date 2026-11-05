@@ -115,4 +115,11 @@ class IntroPalette {
 
   /// Arch 윈도우(이미지 영역) 배경(핸드오프 --arch window bg #15102a).
   static const Color archWindowBg = Color(0xFF15102A);
+
+  // ───────────────────────── [회원가입 통합 사주정보 04/05 반영] ─────────────────────────
+  // `design_handoff_signup_saju_profile` README.md 토큰표의 --rose. 04(생년월일
+  // 입력) 화면의 "＊ 필수 입력" 마커 및 時(시) 전용 포인트 컬러로 쓰인다.
+
+  /// 필수 입력 마커 / 時(시) 전용 포인트(핸드오프 --rose #f3a6c8).
+  static const Color rose = Color(0xFFF3A6C8);
 }
