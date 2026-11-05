@@ -4808,10 +4808,15 @@ model SajuFactsCache {
   // 요청이 같은 캐시를 잘못 재사용하는 사고가 난다. true_solar/longitude/dayun_method/
   // current_year는 saju_engine 호출부(saju-engine-client.ts)가 고정값만 쓰고 클라이언트가
   // 바꿀 수 없으므로 캐시 키에 넣지 않는다(바뀔 수 없는 값은 키에 넣을 필요가 없음).
-  birthKey      String    @unique @map("birth_key") // sha256(birthDate|birthTime|isLunar|gender|zihourPolicy)
+  // [음력 윤달 핵심 결함 수정 지시 반영] isLeapMonth(윤달 여부)는 is_lunar=true일 때
+  // 하위호환을 위해 birthKey 해시 순서의 "끝"에 추가한다(기존 8개 필드 순서는 그대로
+  // 유지 — 과거 저장된 캐시의 birthKey와 호환 깨지지 않도록). 이 필드가 없으면
+  // "평달/윤달만 다르고 나머지가 같은 음력 두 사용자"가 같은 캐시를 잘못 공유한다.
+  birthKey      String    @unique @map("birth_key") // sha256(year|month|day|hour|minute|gender|isLunar|zihourPolicy|isLeapMonth)
   birthDate     String    @map("birth_date")
   birthTime     String?   @map("birth_time")
   isLunar       Boolean   @default(false) @map("is_lunar")
+  isLeapMonth   Boolean   @default(false) @map("is_leap_month")
   gender        String?
   zihourPolicy  String    @default("traditional") @map("zihour_policy") // "traditional" | "legacy" — BirthInputV3.zihour_policy 원문 보존
   factsJson     String    @map("facts_json") // POST /saju/v3/facts 원본 응답 전체(JSON 문자열, 재계산 없이 그대로 보관)

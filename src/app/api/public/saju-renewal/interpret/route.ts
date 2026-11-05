@@ -246,6 +246,7 @@ export async function POST(request: NextRequest) {
       minute,
       gender: engineGender,
       isLunar: user.profile.isLunar,
+      isLeapMonth: user.profile.isLeapMonth,
     };
 
     // ── SajuFactsCache 조회 → FACT 확보(§4 "FACT 확보") ──

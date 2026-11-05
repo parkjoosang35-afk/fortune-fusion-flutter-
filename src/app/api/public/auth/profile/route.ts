@@ -69,6 +69,8 @@ export async function PATCH(request: NextRequest) {
     // 확장하지 않는다"에 따라 과거 저장된 값을 소급 검증/수정하지 않는다).
     if (body.birth_date) {
       const isLunar = body.is_lunar !== undefined ? body.is_lunar : (existing.profile?.isLunar ?? false);
+      const isLeapMonth =
+        body.is_leap_month !== undefined ? body.is_leap_month : (existing.profile?.isLeapMonth ?? false);
       const birthTimeUnknown =
         body.birth_time_unknown !== undefined
           ? body.birth_time_unknown
@@ -78,6 +80,7 @@ export async function PATCH(request: NextRequest) {
         await validateBirthDate({
           birthDate: body.birth_date,
           isLunar,
+          isLeapMonth,
           birthTimeUnknown,
           ...parseBirthTimeString(birthTime),
         });

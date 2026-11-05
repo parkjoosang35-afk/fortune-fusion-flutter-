@@ -34,6 +34,9 @@ export interface SajuBirthInput {
   minute?: number; // 기본 0
   gender?: "male" | "female";
   isLunar?: boolean;
+  /** 음력 윤달 여부(isLunar=true일 때만 의미 있음). 기본 false — 기존 호출부는
+   * 변경 없이 그대로 평달로 계산되어 하위호환이 깨지지 않는다. */
+  isLeapMonth?: boolean;
   /** 야자시 정책 — 엔진 기본값 "traditional"(23시 익일파). "legacy"는 기존 방식. */
   zihourPolicy?: "traditional" | "legacy";
 }
@@ -99,6 +102,7 @@ function normalizeInput(input: SajuBirthInput): Required<SajuBirthInput> {
     minute: input.minute ?? 0,
     gender: input.gender ?? "male",
     isLunar: input.isLunar ?? false,
+    isLeapMonth: input.isLeapMonth ?? false,
     zihourPolicy: input.zihourPolicy ?? "traditional",
   };
 }
@@ -111,9 +115,17 @@ function normalizeInput(input: SajuBirthInput): Required<SajuBirthInput> {
  */
 export function computeBirthKey(input: SajuBirthInput): string {
   const n = normalizeInput(input);
-  const raw = [n.year, n.month, n.day, n.hour, n.minute, n.gender, n.isLunar, n.zihourPolicy].join(
-    "|"
-  );
+  const raw = [
+    n.year,
+    n.month,
+    n.day,
+    n.hour,
+    n.minute,
+    n.gender,
+    n.isLunar,
+    n.zihourPolicy,
+    n.isLeapMonth,
+  ].join("|");
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
@@ -141,6 +153,7 @@ async function callSajuEngineFacts(
         minute: input.minute,
         gender: input.gender,
         is_lunar: input.isLunar,
+        is_leap_month: input.isLeapMonth,
         zihour_policy: input.zihourPolicy,
       }),
       signal: controller.signal,
@@ -214,6 +227,7 @@ export async function getSajuFacts(
       birthDate: `${normalized.year}-${String(normalized.month).padStart(2, "0")}-${String(normalized.day).padStart(2, "0")}`,
       birthTime: `${String(normalized.hour).padStart(2, "0")}:${String(normalized.minute).padStart(2, "0")}`,
       isLunar: normalized.isLunar,
+      isLeapMonth: normalized.isLeapMonth,
       gender: normalized.gender,
       zihourPolicy: normalized.zihourPolicy,
       factsJson: JSON.stringify(facts),

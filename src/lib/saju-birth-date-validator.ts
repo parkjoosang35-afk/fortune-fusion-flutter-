@@ -93,6 +93,11 @@ export interface BirthDateValidationInput {
   /** "YYYY-MM-DD" 형식 문자열(클라이언트 원본 그대로). */
   birthDate: string;
   isLunar?: boolean;
+  /** 음력 윤달 여부(isLunar=true일 때만 의미 있음). lunar-javascript가 윤달을
+   * 음수 월로 구분하므로(예: 2월 윤달 = -2), 이 플래그가 없으면 존재하지 않는
+   * 윤달날짜(예: 2023년에 윤달5월은 없음)나 윤달 일수 초과(예: 윤달2월 30일)를
+   * 검증할 수 없다. */
+  isLeapMonth?: boolean;
   /** 0~23 정수 또는 null/undefined("시간 모름"). */
   birthHour?: number | null;
   /** "시간 모름" 플래그 — true면 birthHour 값과 무관하게 시간 검증을 건너뛴다(§4 순서5). */
@@ -144,7 +149,11 @@ export async function validateBirthDate(
     // 음력 입력: lunar-javascript가 "only 29 days in lunar year ... month ..." 같은
     // 예외를 던지면 존재하지 않는 음력 날짜 → DATE_NOT_EXIST로 변환한다.
     try {
-      const lunar = Lunar.fromYmd(year, month, day);
+      // [음력 윤달 핵심 결함 수정 지시] 윤달이면 음수 월을 넘겨 lunar-javascript가 직접
+      // 존재하지 않는 윤달(예: 윤달5월)이나 윤달 일수 초과(예: 윤달2월 30일)를 예외로
+      // 던지게 한다(라이브러리 자체가 이미 올바르게 거부함 — 직접 검증로직 추가 불필요).
+      const lunarMonth = input.isLeapMonth ? -month : month;
+      const lunar = Lunar.fromYmd(year, lunarMonth, day);
       const solar = lunar.getSolar();
       solarYear = solar.getYear();
       solarMonth = solar.getMonth();

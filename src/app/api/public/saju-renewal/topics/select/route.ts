@@ -227,6 +227,7 @@ export async function POST(request: NextRequest) {
       minute,
       gender: engineGender,
       isLunar: user.profile.isLunar,
+      isLeapMonth: user.profile.isLeapMonth,
       // zihourPolicy: UserProfile에 저장 필드가 없어 엔진 기본값("traditional")을
       // 그대로 사용한다(§11 "캐시 사용 원칙"과 무관 — 이 값은 saju-engine-client.ts의
       // normalizeInput()이 기본값을 채워준다).

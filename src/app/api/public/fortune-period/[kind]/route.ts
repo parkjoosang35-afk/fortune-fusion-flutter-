@@ -88,6 +88,7 @@ export async function GET(
     birthDate: profile.birthDate,
     birthTime: profile.birthTime,
     isLunar: profile.isLunar,
+    isLeapMonth: profile.isLeapMonth,
     gender: user.gender,
   };
   const sajuRev = profile.sajuRev;

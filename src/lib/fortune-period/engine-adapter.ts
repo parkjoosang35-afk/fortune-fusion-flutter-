@@ -192,12 +192,14 @@ export interface ProfileBirthInfo {
   birthDate: string; // "YYYY-MM-DD" — 연/월/일은 각 호출 시점에 대표일로 교체되므로 여기선 참고만
   birthTime: string | null; // "HH:mm"
   isLunar: boolean;
+  /** 음력 윤달 여부(isLunar=true일 때만 의미 있음) — 음력 핵심 결함 수정 지시에 따라 추가. */
+  isLeapMonth: boolean;
   gender: string | null;
 }
 
 function toEngineBaseInput(profile: ProfileBirthInfo): Pick<
   SajuBirthInput,
-  "hour" | "minute" | "gender" | "isLunar"
+  "hour" | "minute" | "gender" | "isLunar" | "isLeapMonth"
 > {
   let hour = 12;
   let minute = 0;
@@ -209,7 +211,7 @@ function toEngineBaseInput(profile: ProfileBirthInfo): Pick<
     }
   }
   const gender: "male" | "female" = profile.gender === "female" ? "female" : "male";
-  return { hour, minute, gender, isLunar: profile.isLunar };
+  return { hour, minute, gender, isLunar: profile.isLunar, isLeapMonth: profile.isLeapMonth };
 }
 
 function engineBodyFor(
@@ -225,6 +227,7 @@ function engineBodyFor(
     minute: base.minute,
     gender: base.gender,
     is_lunar: base.isLunar,
+    is_leap_month: base.isLeapMonth,
   };
 }
 
