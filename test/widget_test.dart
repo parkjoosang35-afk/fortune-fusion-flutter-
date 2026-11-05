@@ -7,26 +7,15 @@
 // 이 테스트가 갱신되지 않아 실패하고 있었다. 현재 SplashScreen
 // (lib/features/auth/presentation/splash_screen.dart)의 실제 렌더링
 // 내용에 맞춰 검증 대상을 갱신한다.
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_app/app.dart';
 import 'package:flutter_app/features/auth/presentation/splash_screen.dart';
-import 'package:flutter_app/features/shrine/shrine_module.dart';
 
 void main() {
   setUp(() async {
-    // [기존 결함 수정] app.dart가 Provider 트리를 구성할 때
-    // ChangeNotifierProvider(create: (_) => ShrineSessionProvider(ShrineModule.prefs))
-    // 가 등록되는데, 이 등록 자체가 `ShrineModule.prefs`(static late 필드) 값을
-    // "읽어서" 넘기는 것이므로, main()의 `await ShrineModule.init()`을 거치지
-    // 않고 바로 App()을 pump하면 LateInitializationError가 발생한다
-    // (U11 2~3단계 작업과 무관한 사전 존재 결함, flutter test 전체 실행 시 발견).
-    // SharedPreferences를 목(mock) 초기화한 뒤 ShrineModule.prefs에 직접
-    // 할당해, 실제 main()의 초기화 순서를 테스트에서도 재현한다.
     SharedPreferences.setMockInitialValues({});
-    ShrineModule.prefs = await SharedPreferences.getInstance();
   });
 
   testWidgets('App boots and shows splash screen', (WidgetTester tester) async {

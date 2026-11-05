@@ -17,7 +17,6 @@ import '../../core/wr_toast.dart';
 import '../characters/character_shop_screen.dart';
 import '../../../fortune/shared/domain/reading_artifact.dart';
 import '../../../fortune/shared/data/reading_wish_link_store.dart';
-import '../../../shrine/state/shrine_session_provider.dart';
 
 class ComposeScreen extends StatefulWidget {
   // [관상·손금 결과화면 + 소원방 봉인 통합 리디자인 v7, v7.1 "예외 경로"]
@@ -26,13 +25,12 @@ class ComposeScreen extends StatefulWidget {
   // 소원 작성이 성공하면(_submit) 새로 만들어진 소원에 이 풀이를 함께
   // 동봉한다 — v7.1 원칙("풀이는 동봉물, 새 소원 생성 금지")의 유일한
   // 예외 경로가 바로 이 경우다(소원이 아예 없을 때만 새로 씀).
-  const ComposeScreen({super.key, this.pendingReading, this.pendingShrineBoxNo});
+  // [신당 v3 재구축] 구버전 신당(ShrineSessionProvider) 연동 경로였던
+  // pendingShrineBoxNo 파라미터는 구 모듈 삭제와 함께 제거되었다. 신당 v3에서
+  // 동일한 "소원방 없을 때 함께 생성" 플로우가 필요해지면 shrine_v3 기반으로
+  // 새로 설계해 다시 연결한다.
+  const ComposeScreen({super.key, this.pendingReading});
   final ReadingArtifact? pendingReading;
-  // [U13 포팅] 신당(THE SHRINE)에서 "소원방이 아직 없어 만들면서 함께
-  // 부적을 봉인"하는 경우에만 채워진다 — BoxItem.no(부적함 식별자). 소원
-  // 작성이 성공하면(_submit) 새로 만들어진 소원방에 이 부적을 로컬로만
-  // 봉인한다(ReadingWishLinkStore와 동일한 "서버 비저장" 원칙).
-  final String? pendingShrineBoxNo;
   @override
   State<ComposeScreen> createState() => _ComposeScreenState();
 }
@@ -150,24 +148,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
       // [v7 통합 — v7.1 예외 경로] 소원이 아예 없어 이 화면에서 "함께"
       // 새로 소원을 쓴 경우에만, 방금 생성된 소원에 대기 중이던 풀이를
       // 동봉한다(ReadingWishLinkStore — 서버 영속 전까지의 로컬 매핑).
-      // [U13 포팅] 신당 부적 봉인 예외 경로 — 소원방이 아예 없어 이 화면에서
-      // "함께" 새로 소원을 쓴 경우에만, 방금 생성된 소원방에 대기 중이던
-      // 부적을 로컬로 봉인한다(BoxItem.sealedTo, 서버 비저장).
-      if (widget.pendingShrineBoxNo != null) {
-        final newRoom = context.read<WishRoomProvider>().room;
-        if (newRoom != null && mounted) {
-          context.read<ShrineSessionProvider>().updateBox(
-            widget.pendingShrineBoxNo!,
-            (b) => b.copy(
-              sealedTo: SealedTo(
-                wishRoomId: newRoom.id,
-                wishText: newRoom.text,
-                at: DateTime.now().millisecondsSinceEpoch,
-              ),
-            ),
-          );
-        }
-      }
+      // [신당 v3 재구축] 구버전 신당 부적 봉인 예외 경로(pendingShrineBoxNo →
+      // ShrineSessionProvider.updateBox)는 구 모듈 삭제와 함께 제거되었다.
       if (widget.pendingReading != null) {
         final newRoomId = context.read<WishRoomProvider>().room?.id;
         if (newRoomId != null) {
