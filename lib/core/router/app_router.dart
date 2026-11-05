@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'app_shell.dart';
-// [신당(神堂) 통합 — A안, 공식 지시서 `01_dev_spec_v1.4.pdf` §3.1~3.2,
-// 2026-11 확정] 하단바 정식 등록 완료 — AppShell의 1번 탭("신당부적")이
-// ShrineNav.rootRoute()로 신당 내부 Navigator 스택을 직접 push한다
-// (app_shell.dart `_openShrine` 참고). '/shrine' named route는 외부
-// 딥링크/직접 URL 진입(예: QA, 웹 주소창)을 위한 보조 경로로 유지한다.
-import '../../features/shrine/widgets/shrine_screen_router.dart';
+// [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] AppShell의 1번 탭("신당부적")이
+// ShrineV3EntryScreen을 push한다(app_shell.dart `_openShrine` 참고).
+// '/shrine' named route는 외부 딥링크/직접 URL 진입을 위한 보조
+// 경로로 유지한다.
+import '../../features/shrine_v3/presentation/screens/shrine_v3_entry_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/intro/presentation/onboarding_gate_screen.dart';
 import '../../features/policy/presentation/policy_notice_screen.dart';
@@ -242,12 +241,10 @@ class AppRouter {
     switch (settings.name) {
       case '/splash':
         return _pageNamed('/splash', const SplashScreen());
-      // [신당(神堂) 통합 — A안 확정] 정식 진입점은 AppShell 1번 탭이지만,
-      // 외부 딥링크/직접 URL 접근을 위해 '/shrine' named route도 함께
-      // 유지한다(항상 entry부터 시작 — 탭 쪽의 소지부 보유 분기와 달리
-      // 이 경로는 재방문자 단축 로직을 적용하지 않는다).
+      // [신당(THE SHRINE) v3] 정식 진입점은 AppShell 1번 탭이지만, 외부
+      // 딥링크/직접 URL 접근을 위해 '/shrine' named route도 함께 유지한다.
       case '/shrine':
-        return _pageNamed('/shrine', shrineScreenFor('entry', null));
+        return _pageNamed('/shrine', const ShrineV3EntryScreen());
       // [인트로 전면 개편] 4단계 인트로(카드1/카드2/CTA) 페이저. 스플래시 이후
       // introSeen=false인 첫 실행 사용자에게만 노출된다.
       //

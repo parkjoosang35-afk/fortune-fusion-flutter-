@@ -86,6 +86,12 @@ import 'features/guinji/application/guinji_provider.dart';
 // [궁합지도 Flutter 화면 개발] 신규 궁합지도 API 연동 전역 상태.
 import 'features/gunghap/data/gunghap_repository.dart';
 import 'features/gunghap/application/gunghap_provider.dart';
+// [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 구버전(U1-U13)은 비용
+// 문제로 전면 삭제되었다. design_handoff_shrine_v3 핸드오프 기준 신규
+// ShrineV3Provider로 교체한다(서버 지갑차감/일련번호/향 올리기는 전부
+// admin_web /api/public/shrine/* 가 처리 — shrine_v3_repository.dart 참고).
+import 'features/shrine_v3/data/shrine_v3_repository.dart';
+import 'features/shrine_v3/application/shrine_v3_provider.dart';
 import 'features/pouch_box/application/pouch_box_provider.dart';
 import 'features/pouch_box/data/pouch_box_repository.dart';
 import 'features/result_access/application/result_access_provider.dart';
@@ -101,18 +107,6 @@ import 'features/saju_renewal/data/saju_recent_story_store.dart';
 import 'core/orchestrator/orchestrator_provider.dart';
 import 'core/orchestrator/fortune_orchestrator.dart';
 import 'core/orchestrator/door_engine_gateway.dart';
-// [신당(THE SHRINE) 통합 — v4.0 재구축] 기존 A안(2026-11)은 전면 삭제되고
-// 신규 zip(go_router+riverpod 원본)을 provider+Navigator 1.0으로 기계적
-// 포팅한 신규 ShrineSessionProvider로 교체되었다. 생성자가 SharedPreferences를
-// 직접 받으므로(지시서 §7 상태 스키마), main()에서 runApp 이전에 미리
-// 준비해 둔 ShrineModule.prefs를 그대로 주입한다.
-import 'features/shrine/shrine_module.dart';
-import 'features/shrine/state/shrine_session_provider.dart';
-import 'features/shrine/application/shrine_payment_gateway.dart';
-import 'features/shrine/engine/shrine_engine.dart';
-import 'features/shrine/engine/real_saju_repository.dart';
-import 'features/shrine/engine/real_member_repository.dart';
-import 'features/shrine/engine/shrine_server_repository.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -168,50 +162,14 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PouchBoxProvider(PouchBoxRepository()),
         ),
-        // [신당(神堂) 통합 — P1] ChangeNotifier 기반 세션 상태(기기 내
-        // SharedPreferences에만 저장, 서버 전송 없음 — 지시서 §1.2).
+        // [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 지갑차감/일련번호
+        // 발급/향 올리기는 전부 admin_web /api/public/shrine/* 서버
+        // 트랜잭션이 담당한다(ShrineV3Repository). 결제 자체는 신규 게이트를
+        // 만들지 않고 기존 ResultAccessGateSheet(아래 ResultAccessProvider)를
+        // 그대로 재사용한다 — 이 Provider는 부적 목록/부적함/추천 조회
+        // 상태만 담당.
         ChangeNotifierProvider(
-          create: (_) => ShrineSessionProvider(ShrineModule.prefs),
-        ),
-        // [버그 수정 — 결과보기 게이트 미표시] 신당 「제단 앞으로 다가가기」가
-        // 신통방통 공통 결과보기 3택 시트(프리패스/복주머니/광고)를 띄우도록
-        // 실제 게이트웨이를 등록한다. 이 등록이 없으면 shrine_module.dart의
-        // `_readPaymentGateway()`가 예외를 잡아 무조건 통과시키는 기본값
-        // `FreePassGateway()`로 폴백해 게이트 UI 자체가 생략된다.
-        Provider<ShrinePaymentGateway>(
-          create: (_) => const SintongShrinePaymentGateway(),
-        ),
-        // [버그 수정 — 회원 연결 화면 무한 로딩] 신당 ConnectScreen("동의하고
-        // 연결하기")과 SajuScreen이 각각 context.read<MemberRepository>() /
-        // context.read<SajuRepository>()를 호출하는데, 이 두 Provider도
-        // ShrinePaymentGateway와 동일하게 app.dart에 등록되지 않아 예외가
-        // 발생했다. 단, 이 두 곳은 try/catch 폴백이 없어 예외가 그대로
-        // 전파되어 async 함수가 중간에 끊기고 `busy` 플래그가 되돌아오지
-        // 않아 "신당의 명부를 펼치는 중…" 버튼이 영원히 멈춰 다음 화면으로
-        // 전혀 넘어가지 않았다.
-        // [신당 실제 로그인 연동 — 후보 B 확정, U12 어뷰징 방지 선행조건]
-        // "신통방통 회원과 연결이 당연히 돼야하는데"라는 사용자 지적에
-        // 따라 SampleMemberRepository(고정 가짜 회원)를 실제 로그인 정보
-        // 기반 RealMemberRepository로 교체한다. AuthProvider가 위
-        // (line 138)에 먼저 등록되어 있으므로 context.read로 안전하게
-        // 주입할 수 있다. 정통사주 풀이는 서버 saju-renewal API가 아니라
-        // 신통방통이 이미 보유한 로컬 PHASE1~4 만세력 엔진
-        // (JeontongReportBuilder + SajuInterpreter)을 그대로 호출하는
-        // RealSajuRepository로 교체한다 — 새 계산 로직 없음, 화면에
-        // 뜨던 "SAMPLE" 배지도 이제 source가 'STB_SAJU_ENGINE'이 되어
-        // 자동으로 사라진다(screens_v3.dart SajuScreen 기존 분기).
-        Provider<MemberRepository>(
-          create: (context) =>
-              RealMemberRepository(context.read<AuthProvider>()),
-        ),
-        Provider<SajuRepository>(create: (_) => RealSajuRepository()),
-        // [U12 어뷰징 방지 — Step 3] admin_web ShrineIssueLedger API
-        // (can-issue/record-issue/sign/verify-share) 호출 전용. UI 상태를
-        // 갖지 않는 순수 HTTP Repository이므로 ChangeNotifier가 아닌
-        // 단순 Provider로 등록한다(PouchBoxRepository와 달리 Repository
-        // 자체를 Provider 래퍼 없이 직접 context.read<...>()로 꺼내 쓴다).
-        Provider<ShrineServerRepository>(
-          create: (_) => ShrineServerRepository(),
+          create: (_) => ShrineV3Provider(ShrineV3Repository()),
         ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
@@ -545,19 +503,11 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     auth.registerLogoutCallback(
       context.read<OrchestratorProvider>().clearOnLogout,
     );
-    // [신당(神堂) 계정 격리 버그 수정 — 2026-10-27] 위 "계정 격리 원칙"이
-    // 신당(ShrineSessionProvider)에는 등록되어 있지 않았다. 신당은 이름·
-    // 생년월일·이야기 진행상태·부적함(box)·결말 기록을
-    // SharedPreferences('shrine.v2')에 "로그인 계정과 무관하게" 영구
-    // 저장하므로, 로그아웃 후 다른 계정으로 새로 가입/로그인해도 이전
-    // 계정이 신당에 연결했던 이름(예: 샘플 회원 "박서연")과 진행 상태가
-    // 기기에 그대로 남아 다음 계정 화면에 섞여 나오는 결함이 있었다.
-    // resetData()는 이미 "신당 개인화 데이터 전체 초기화(방문설정·효과음
-    // 등 pref만 보존)" 역할로 구현되어 있었으나(ResultScreen 공유뷰
-    // "나도 신당에 들어가기"에서만 호출), 로그아웃 경로에는 연결되어
-    // 있지 않았다. 다른 feature Provider와 동일한 패턴으로 등록한다.
+    // [신당(THE SHRINE) v3 계정 격리] 부적함/추천 조회 상태는 서버
+    // (admin_web ShrineOrder 등)가 userId 기준으로 관리하므로, 로그아웃 시
+    // 클라이언트 캐시(ShrineV3Provider 내부 state)만 비워주면 된다.
     auth.registerLogoutCallback(
-      context.read<ShrineSessionProvider>().resetData,
+      context.read<ShrineV3Provider>().clearOnLogout,
     );
   }
 

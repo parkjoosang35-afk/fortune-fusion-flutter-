@@ -10,8 +10,13 @@ import '../../features/home/presentation/sintong_home_v2/sintong_home_v2_screen.
 // 신당을 연다(아래 _openShrine 참고). WishRoomIntroScreen import와 소원방
 // push 기능 자체는 홈 카드/마이페이지 등 다른 진입점이 계속 쓰므로 삭제하지
 // 않는다 — 다만 이 파일에서는 더 이상 직접 참조하지 않는다.
-import '../../features/shrine/state/shrine_session_provider.dart';
-import '../../features/shrine/widgets/shrine_nav.dart';
+// [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 구버전(ShrineSessionProvider/
+// ShrineNav, 어두운 공포 이야기 버전)은 비용 문제(영상 대역폭)로 전면
+// 삭제되었다. design_handoff_shrine_v3 핸드오프 기준 신규 ShrineV3Provider/
+// ShrineV3EntryScreen로 교체한다 — app.dart에 이미 ShrineV3Provider가
+// 전역 등록되어 있다(아래 shrine_v3 모듈 신규 생성 예정, 아직 파일 없음).
+import '../../features/shrine_v3/application/shrine_v3_provider.dart';
+import '../../features/shrine_v3/presentation/screens/shrine_v3_entry_screen.dart';
 import '../../features/auth/application/auth_provider.dart';
 // [행운상자 - 복주머니 탭 신규 기능] 사용자 요청("복주머니 탭 자리에
 // 첨부한 행운상자 기능을 넣어달라, 하단바 라벨은 그대로 복주머니")에 따라
@@ -133,23 +138,19 @@ class _AppShellState extends State<AppShell> {
     // (로그인조차 안 한 상태로 신당에 들어가는 "회원 연결 없이 직접
     // 적기" 경로는 currentUser가 null이므로 이 체크를 건드리지
     // 않는다 — 기존 동작 그대로 유지.)
-    final shrineSession = context.read<ShrineSessionProvider>();
+    // [신당 v3 계정 격리] v3는 서버(admin_web ShrineOrder 등)가 userId
+    // 기준으로 부적함을 관리하므로, 로그인 사용자가 바뀌면 app.dart의
+    // 로그아웃 콜백(ShrineV3Provider.clearOnLogout)이 이미 캐시를 비워준다.
+    // 여기서는 로그인 여부만 확인하고 곧장 입구 화면을 push한다 — v3는
+    // 구버전처럼 22-라우트 내부 Navigator 스택(ShrineNav)을 쓰지 않고,
+    // 10개 화면을 표준 Navigator.push 체인으로 연결한다(화면별로 각자
+    // 다음 화면을 push).
     final currentUserId = context.read<AuthProvider>().currentUser?.id;
-    final linkedMemberId = shrineSession.state.memberId;
-    if (currentUserId != null &&
-        linkedMemberId != null &&
-        linkedMemberId != currentUserId) {
-      shrineSession.resetData();
-    }
-    // [신규 신당 모듈 포팅] 구버전 ShrineState.kept(bool) 필드는 신규
-    // 모델에 없다 — "소지부 간직" 여부는 box 리스트가 비어있지 않은지로
-    // 판정한다(신당 README §9 "진행: ... kept" → 신규 state.box 목록에
-    // 흡수됨). ShrineNav도 rootRoute(Route 반환)가 아니라 openRoot(직접
-    // push 수행)로 바뀌었으므로 Navigator.push 이중 호출을 제거한다.
-    final kept = shrineSession.state.box.isNotEmpty;
-    final startId = kept ? 'list' : 'entry';
+    debugPrint('[AppShell] 신당 진입 (userId=$currentUserId)');
     if (!mounted) return;
-    ShrineNav.openRoot(context, startId);
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ShrineV3EntryScreen()));
   }
 
   // [운세보기 섹션 삭제] FortuneHubScreen 탭 콘텐츠를 _tabs에서 제거.
@@ -164,11 +165,12 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    // [신당(神堂) 통합 — A안 §3.2 "배지"] 보관 중인 소지부가 있을 때만
-    // 신당부적 탭에 금색 점을 표시한다. watch로 구독해 신당 내부에서
-    // 소지부를 받는 즉시(ShrineReceiveScreen의 kept:true 저장) 하단바가
-    // 재빌드되도록 한다.
-    final kept = context.watch<ShrineSessionProvider>().state.box.isNotEmpty;
+    // [신당 v3 §3.2 "배지"] 보관 중인 부적이 있을 때만 신당부적 탭에
+    // 금색 점을 표시한다. watch로 구독해 부적함에 새 항목이 생기는 즉시
+    // 하단바가 재빌드되도록 한다. (ShrineV3Provider.hasOwnedTalismans는
+    // shrine_v3 모듈 생성 시 함께 정의해야 한다 — 현재는 모듈 자체가
+    // 없어 아래 참조가 임시로 컴파일 에러 상태다.)
+    final kept = context.watch<ShrineV3Provider>().hasOwnedTalismans;
     return Scaffold(
       body: IndexedStack(index: _navToTab(_index), children: _tabs),
       bottomNavigationBar: MidnightBottomNavBar(
