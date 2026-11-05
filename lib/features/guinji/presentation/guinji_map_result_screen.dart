@@ -291,6 +291,12 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     Navigator.of(context).pushNamed('/guinji-map/m/ranking');
   }
 
+  // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한 개념] 소유자가 초대
+  // 링크 없이 지인 정보를 직접 입력해 즉시 등록하는 화면으로 이동한다.
+  void _openDirectAdd() {
+    Navigator.of(context).pushNamed('/guinji-map/m/add-direct');
+  }
+
   @override
   Widget build(BuildContext context) {
     final total = widget.people.length;
@@ -342,12 +348,37 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     Expanded(
                       child: Text(
                         '$total명과 연결되어 있어요',
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 13.5,
                           color: GmColors.muted,
                         ),
                       ),
                     ),
+                    // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한
+                    // 개념] 초대 링크 없이 소유자가 지인 정보를 직접
+                    // 입력해 즉시 등록하는 진입점. 기존 2버튼(랭킹/초대)
+                    // 레이아웃을 깨지 않도록 아이콘 전용 컴팩트 버튼으로
+                    // 추가한다.
+                    Tooltip(
+                      message: '지인 직접 추가',
+                      child: OutlinedButton(
+                        onPressed: _openDirectAdd,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: GmColors.fg,
+                          side: const BorderSide(color: GmColors.line),
+                          shape: const CircleBorder(),
+                          minimumSize: const Size(32, 32),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: const Icon(
+                          Icons.person_add_alt_1,
+                          size: 15,
+                          color: GmColors.fg,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
                     OutlinedButton(
                       onPressed: _openRanking,
                       style: OutlinedButton.styleFrom(

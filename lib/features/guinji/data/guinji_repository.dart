@@ -142,6 +142,64 @@ class GuinjiRepository {
     }
   }
 
+  /// POST /guinji/maps/{mapId}/members/direct — 지도 소유자(로그인 회원)가
+  /// 초대 링크 없이 지인 정보를 직접 입력해 즉시 멤버로 등록한다.
+  ///
+  /// [궁합지도 DIRECT 방식과 동일한 개념] 궁합지도(gunghap)의
+  /// `createDirect`에 대응하는 귀인지도 버전. [joinMap]과 달리 지인 본인이
+  /// 아니라 "소유자"가 호출하므로 반드시 인증 헤더를 포함하고, 사주값
+  /// (`saju`)은 보내지 않는다 — 서버가 B안 비대칭 신뢰 모델에 따라 지인의
+  /// 사주를 직접 계산한다(admin_web
+  /// `maps/[mapId]/members/direct/route.ts` 참고).
+  ///
+  /// 반환: {memberId, relationship:{relationType, chemistryScore,
+  /// ohaengEvidence}, created}
+  Future<ApiResult<Map<String, dynamic>>> addMemberDirect({
+    required String mapId,
+    required String name,
+    required String gender, // 'male' | 'female'
+    required String solarLunar, // 'solar' | 'lunar'
+    required String birthDate, // 'YYYY-MM-DD'
+    String? birthTime, // 'HH:mm' | null
+    bool isLeapMonth = false,
+  }) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/guinji/maps/$mapId/members/direct',
+    );
+    debugPrint('[GuinjiRepository] [addMemberDirect] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ...authHeader},
+            body: jsonEncode({
+              'name': name,
+              'gender': gender,
+              'solarLunar': solarLunar,
+              'birthDate': birthDate,
+              'birthTime': birthTime,
+              'isLeapMonth': isLeapMonth,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '등록에 실패했습니다.';
+        debugPrint('[GuinjiRepository] [addMemberDirect] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      debugPrint('[GuinjiRepository] [addMemberDirect] 예외 -> $e');
+      return ApiResult.fail('등록 처리 중 오류가 발생했습니다: $e');
+    }
+  }
+
   /// GET /guinji/g/{token} — 초대 링크 유효성 확인(딥링크 진입 시 최초 호출).
   /// 반환: {mapId, ownerName, joined, expired}
   /// [주의] 404 응답도 body에 `code`(NOT_FOUND|EXPIRED)가 담겨 있으므로

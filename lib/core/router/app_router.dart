@@ -92,6 +92,7 @@ import '../../features/guinji/presentation/guinji_landing_screen.dart';
 import '../../features/guinji/presentation/guinji_input_screen.dart';
 import '../../features/guinji/presentation/guinji_calculating_screen.dart';
 import '../../features/guinji/presentation/guinji_map_result_screen.dart';
+import '../../features/guinji/presentation/guinji_direct_input_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
@@ -400,6 +401,15 @@ class AppRouter {
               );
             },
           ),
+        );
+      // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한 개념] 지도
+      // 소유자가 초대 링크 없이 지인 정보를 직접 입력해 즉시 등록한다.
+      // GuinjiProvider는 전역 Provider이므로 Builder 불필요(화면 내부에서
+      // context.read로 직접 접근).
+      case '/guinji-map/m/add-direct':
+        return _guinjiNamed(
+          '/guinji-map/m/add-direct',
+          const GuinjiDirectInputScreen(),
         );
       case '/guinji-map/m/share':
         return _guinjiNamed(

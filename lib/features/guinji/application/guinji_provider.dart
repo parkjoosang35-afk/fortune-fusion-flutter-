@@ -603,6 +603,63 @@ class GuinjiProvider extends ChangeNotifier {
     }
   }
 
+  /// [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한 개념] 지도 소유자가
+  /// 초대 링크 없이 지인의 정보를 직접 입력해 즉시 등록한다.
+  /// `POST /guinji/maps/{mapId}/members/direct` 호출 후, 성공하면
+  /// [loadMyMap]을 다시 호출해 새 멤버가 반영된 최신 상태로 갱신한다
+  /// (members/relationships는 멤버 수가 많아질수록 수동 append보다 전체
+  /// 재조회가 더 안전·단순하다 — [createMapForUser]가 이미 같은 패턴을
+  /// 쓴다).
+  ///
+  /// [포인트 미지급] 서버가 이 경로에는 `guinji_join` 포인트를 지급하지
+  /// 않는다(소유자 본인이 입력한 것이라 "참여"가 아님) — 클라이언트도
+  /// 별도의 포인트 관련 UI를 띄우지 않는다.
+  ///
+  /// 반환값: 성공 시 true(호출부는 이후 [people]을 그대로 사용), 실패 시
+  /// false([error] 참고).
+  Future<bool> addMemberDirect({
+    required String name,
+    required String gender, // 'male' | 'female'
+    required bool isLunar,
+    required DateTime birthDate,
+    String? birthTime, // 'HH:mm', null이면 시간 미상
+    bool isLeapMonth = false,
+  }) async {
+    final currentMapId = mapId;
+    if (currentMapId == null) {
+      _error = '지도 정보가 없어 등록할 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final birthDateStr =
+        '${birthDate.year.toString().padLeft(4, '0')}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
+
+    final result = await _repository.addMemberDirect(
+      mapId: currentMapId,
+      name: name,
+      gender: gender,
+      solarLunar: isLunar ? 'lunar' : 'solar',
+      birthDate: birthDateStr,
+      birthTime: birthTime,
+      isLeapMonth: isLeapMonth,
+    );
+
+    if (!result.success) {
+      _isLoading = false;
+      _error = result.errorMessage ?? '등록에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    // 새 멤버가 반영된 최신 members/relationships를 다시 불러온다.
+    return await loadMyMap();
+  }
+
   /// GET /guinji/g/{token}/profile — 게스트(비로그인) 호스트 프로필
   /// 미리보기. [fetchInvite]와 달리 로그인이 필요 없어 초대장 화면
   /// (제출 전)에서 호출할 수 있다. 실패해도 조용히 무시 가능(반환 null이면
