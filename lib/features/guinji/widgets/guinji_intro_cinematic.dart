@@ -428,7 +428,7 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
                     style: TextStyle(
                       fontFamily: GmText.ui,
                       fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       color: Color(0x8CF2F0EC),
                     ),
                   ),
@@ -574,6 +574,7 @@ class _WuxingPainter extends CustomPainter {
           text: _elements[i],
           style: TextStyle(
             fontFamily: GmText.display,
+            fontWeight: FontWeight.w800,
             fontSize: 16 * scale,
             color: GmColors.gold.withValues(alpha: opacity),
           ),
@@ -1113,6 +1114,7 @@ class _IntroTitle extends StatelessWidget {
           TextSpan(
             style: const TextStyle(
               fontFamily: GmText.ui,
+              fontWeight: FontWeight.w600,
               fontSize: 15,
               color: Color(0x99F2F0EC),
             ),
@@ -1166,7 +1168,7 @@ class _AnimatedChar extends StatelessWidget {
         style: TextStyle(
           fontFamily: GmText.display,
           fontSize: 34,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w800,
           letterSpacing: -0.03,
           height: 1.22,
           color: color,
@@ -1191,7 +1193,7 @@ class _AnimatedChar extends StatelessWidget {
         style: TextStyle(
           fontFamily: GmText.display,
           fontSize: 34,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w800,
           letterSpacing: -0.03,
           height: 1.22,
           color: color,
@@ -1281,7 +1283,7 @@ class _IntroCta extends StatelessWidget {
           style: TextStyle(
             fontFamily: GmText.ui,
             fontSize: 12.5,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: Color(0x73F2F0EC),
           ),
         ),

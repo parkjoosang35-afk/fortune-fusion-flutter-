@@ -410,7 +410,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                                             style: TextStyle(
                                               fontFamily: GmText.display,
                                               fontSize: 15,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w800,
                                               height: 1.6,
                                               color: color,
                                             ),
@@ -734,7 +734,7 @@ class _DeepHero extends StatelessWidget {
                         hanja,
                         style: TextStyle(
                           fontFamily: GmText.display,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           fontSize: 13,
                           color: color,
                         ),
@@ -757,7 +757,7 @@ class _DeepHero extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: GmText.display,
                     fontSize: 30,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w800,
                     height: 1.3,
                     letterSpacing: -0.7,
                     color: GmColors.fg,
@@ -799,7 +799,7 @@ class _HeroFallback extends StatelessWidget {
           style: const TextStyle(
             fontFamily: GmText.display,
             fontSize: 72,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
             color: GmColors.fg,
           ),
         ),
@@ -839,6 +839,7 @@ class _DeepChapter extends StatelessWidget {
                 no.toString().padLeft(2, '0'),
                 style: TextStyle(
                   fontFamily: GmText.mono,
+                  fontWeight: FontWeight.w500,
                   fontSize: 11,
                   letterSpacing: 1.5,
                   color: color,
@@ -850,7 +851,7 @@ class _DeepChapter extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
                   color: GmColors.fg,
                 ),
@@ -976,7 +977,7 @@ class _FaceAvatar extends StatelessWidget {
           style: TextStyle(
             fontFamily: GmText.display,
             fontSize: size * 0.4,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
             color: color,
           ),
         ),
@@ -998,7 +999,7 @@ class _FaceAvatar extends StatelessWidget {
             style: TextStyle(
               fontFamily: GmText.display,
               fontSize: size * 0.4,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               color: color,
             ),
           ),

@@ -186,7 +186,7 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
               style: TextStyle(
                 fontFamily: GmText.display,
                 fontSize: 24,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 letterSpacing: -0.4,
                 color: GmColors.fg,
               ),
@@ -196,6 +196,7 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
               '초대 링크 없이 지인의 정보를 바로 입력하면\n곧바로 관계를 확인할 수 있어요.',
               style: TextStyle(
                 fontFamily: GmText.ui,
+                fontWeight: FontWeight.w600,
                 fontSize: 13,
                 height: 1.5,
                 color: GmColors.muted,
@@ -213,6 +214,7 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 14,
                   color: GmColors.fg,
                 ),
@@ -336,7 +338,7 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
                       style: TextStyle(
                         fontFamily: GmText.ui,
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         color: _timeUnknown ? GmColors.onFg : GmColors.muted,
                       ),
                     ),
@@ -350,6 +352,7 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
                 '태어난 시간을 몰라요. 3기둥으로 계산합니다(정확도 다소 낮아짐).',
                 style: TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 11.5,
                   color: GmColors.muted,
                   height: 1.5,
@@ -359,10 +362,7 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
 
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: GmColors.line),
@@ -370,13 +370,17 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('✦', style: TextStyle(fontSize: 13, color: GmColors.gold)),
+                  Text(
+                    '✦',
+                    style: TextStyle(fontSize: 13, color: GmColors.gold),
+                  ),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       '지인의 생년월일로 바로 관계를 계산해요. 초대 링크는 발송되지 않아요.',
                       style: TextStyle(
                         fontFamily: GmText.ui,
+                        fontWeight: FontWeight.w600,
                         fontSize: 12,
                         height: 1.6,
                         color: GmColors.muted,
@@ -438,7 +442,7 @@ class _GdGenderSegment extends StatelessWidget {
           style: TextStyle(
             fontFamily: GmText.ui,
             fontSize: 13.5,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: active ? GmColors.onFg : GmColors.muted,
           ),
         ),
@@ -474,6 +478,7 @@ class _GdNumberBox extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: GmText.ui,
+            fontWeight: FontWeight.w600,
             fontSize: 14,
             color: GmColors.fg,
           ),

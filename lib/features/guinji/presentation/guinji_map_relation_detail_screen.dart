@@ -230,7 +230,9 @@ class _GuinjiMapRelationDetailScreenState
     } catch (_) {
       // 링크 생성 실패 시에만 텍스트 공유로 폴백.
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('결과 공유에 실패했어요. 다시 시도해주세요.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('결과 공유에 실패했어요. 다시 시도해주세요.')),
+        );
       }
     }
   }
@@ -314,7 +316,7 @@ class _GuinjiMapRelationDetailScreenState
                         style: const TextStyle(
                           fontFamily: GmText.display,
                           fontSize: 30,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           color: Colors.white,
                         ),
                       ),
@@ -332,7 +334,7 @@ class _GuinjiMapRelationDetailScreenState
                       style: const TextStyle(
                         fontFamily: GmText.display,
                         fontSize: 22,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         color: GmColors.fg,
                       ),
                     ),
@@ -446,7 +448,7 @@ class _GuinjiMapRelationDetailScreenState
                           ohaeng.label,
                           style: TextStyle(
                             fontFamily: GmText.display,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             fontSize: 18,
                             color: ohaeng.color,
                           ),
@@ -1064,7 +1066,7 @@ class _IcoPouch extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 9,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: Color(0xFFE9C46A),
                 ),
               ),

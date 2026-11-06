@@ -142,9 +142,9 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
   /// 동일 — 노드 바텀시트를 거치지 않고 바로 상세로 이동).
   void _openArrivalRelation(GuinjiPerson person) {
     _dismissArrivalOverlay();
-    Navigator.of(context).push(
-      guinjiPageRoute(GuinjiMapRelationDetailScreen(person: person)),
-    );
+    Navigator.of(
+      context,
+    ).push(guinjiPageRoute(GuinjiMapRelationDetailScreen(person: person)));
   }
 
   void _maybeShowMilestoneCelebration() {
@@ -190,7 +190,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                   style: TextStyle(
                     fontFamily: GmText.display,
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: GmColors.fg,
                   ),
                 ),
@@ -262,9 +262,9 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
       // 새 디자인 톤 관계상세 화면으로 push한다.
       onSeeMore: () {
         Navigator.of(context).maybePop();
-        Navigator.of(context).push(
-          guinjiPageRoute(GuinjiMapRelationDetailScreen(person: person)),
-        );
+        Navigator.of(
+          context,
+        ).push(guinjiPageRoute(GuinjiMapRelationDetailScreen(person: person)));
       },
     );
   }
@@ -667,7 +667,7 @@ class _GmFriendRow extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: color,
                 ),
               ),
@@ -794,7 +794,7 @@ class _GmOwnerSajuCard extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: GmText.display,
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: GmColors.gold,
                   ),
                 ),

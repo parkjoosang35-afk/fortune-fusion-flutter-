@@ -134,6 +134,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                                 initial,
                                 style: const TextStyle(
                                   fontFamily: GmText.display,
+                                  fontWeight: FontWeight.w800,
                                   fontSize: 48,
                                   color: GmColors.fg,
                                 ),
@@ -169,7 +170,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: GmText.display,
                           fontSize: 30,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           color: GmColors.onFg,
                         ),
                       ),
@@ -185,7 +186,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: GmText.ui,
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           color: GmColors.muted,
                         ),
                       ),
@@ -218,7 +219,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                               style: TextStyle(
                                 fontFamily: GmText.display,
                                 fontSize: 34,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w800,
                                 color: color,
                                 height: 1,
                               ),
@@ -229,7 +230,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                               style: TextStyle(
                                 fontFamily: GmText.ui,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
                                 color: GmColors.muted,
                               ),
                             ),
@@ -256,7 +257,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                               hanja,
                               style: TextStyle(
                                 fontFamily: GmText.display,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w800,
                                 fontSize: 14,
                                 color: color,
                               ),
@@ -307,6 +308,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                           narratorText,
                           style: const TextStyle(
                             fontFamily: GmText.ui,
+                            fontWeight: FontWeight.w600,
                             fontSize: 12.5,
                             height: 1.6,
                             color: GmColors.muted,
@@ -354,7 +356,7 @@ class GuinjiNodeSheet extends StatelessWidget {
                                     style: const TextStyle(
                                       fontFamily: GmText.ui,
                                       fontSize: 11,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.w600,
                                       color: GmColors.muted,
                                     ),
                                   ),
@@ -450,6 +452,7 @@ class _MomentRow extends StatelessWidget {
             text: TextSpan(
               style: const TextStyle(
                 fontFamily: GmText.ui,
+                fontWeight: FontWeight.w600,
                 fontSize: 12,
                 height: 1.55,
                 color: GmColors.muted,

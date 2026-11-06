@@ -79,6 +79,7 @@ class _GuinjiLandingScreenState extends State<GuinjiLandingScreen> {
                 '내 귀인지도를 불러오고 있어요',
                 style: TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 13,
                   color: GmColors.muted,
                 ),

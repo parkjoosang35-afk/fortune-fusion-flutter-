@@ -82,7 +82,7 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
           style: const TextStyle(
             fontFamily: GmText.display,
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w800,
             color: GmColors.fg,
           ),
         ),
@@ -249,7 +249,7 @@ class _RankTab extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 40,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: GmColors.gold.withValues(alpha: 0.5),
                 ),
               ),
@@ -261,7 +261,7 @@ class _RankTab extends StatelessWidget {
                   fontFamily: GmText.display,
                   fontSize: 20,
                   height: 1.4,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                   color: GmColors.fg,
                 ),
               ),
@@ -271,6 +271,7 @@ class _RankTab extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 14,
                   height: 1.6,
                   color: GmColors.muted,
@@ -328,6 +329,7 @@ class _RankTab extends StatelessWidget {
                 '전체 순위 · 케미 점수 높은 순',
                 style: TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 12.5,
                   color: GmColors.dim,
                 ),
@@ -398,7 +400,7 @@ class _PodiumSlot extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: GmText.display,
                         fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         color: GmColors.gold,
                       ),
                     ),
@@ -472,7 +474,7 @@ class _PodiumSlot extends StatelessWidget {
             style: TextStyle(
               fontFamily: GmText.ui,
               fontSize: 11.5,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: type.color,
             ),
           ),
@@ -505,7 +507,7 @@ class _PodiumSlot extends StatelessWidget {
               style: TextStyle(
                 fontFamily: GmText.display,
                 fontSize: big ? 24 : 19,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 color: big ? GmColors.gold : GmColors.fg,
               ),
             ),
@@ -560,7 +562,7 @@ class _RankRow extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: GmText.display,
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w800,
                     color: GmColors.dim,
                   ),
                 ),
@@ -604,7 +606,7 @@ class _RankRow extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: GmText.display,
                           fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           color: type.color,
                         ),
                       ),
@@ -614,7 +616,7 @@ class _RankRow extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: GmText.ui,
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           color: type.color,
                         ),
                       ),
@@ -622,6 +624,7 @@ class _RankRow extends StatelessWidget {
                         character != null ? ' · ${character.band}' : '',
                         style: const TextStyle(
                           fontFamily: GmText.ui,
+                          fontWeight: FontWeight.w600,
                           fontSize: 12,
                           color: GmColors.dim,
                         ),
@@ -660,7 +663,7 @@ class _RankRow extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 17,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                   color: GmColors.fg,
                 ),
               ),
@@ -793,7 +796,7 @@ class _FilterChip extends StatelessWidget {
                   hanja!,
                   style: TextStyle(
                     fontFamily: GmText.display,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     fontSize: 13,
                     color: active ? color : GmColors.muted,
                   ),
@@ -842,6 +845,7 @@ class _TypeGroup extends StatelessWidget {
             '해당 유형의 참여자가 아직 없어요',
             style: TextStyle(
               fontFamily: GmText.ui,
+              fontWeight: FontWeight.w600,
               fontSize: 14.5,
               height: 1.6,
               color: GmColors.muted,
@@ -870,7 +874,7 @@ class _TypeGroup extends StatelessWidget {
                   spec.hanja,
                   style: TextStyle(
                     fontFamily: GmText.display,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     fontSize: 12,
                     color: spec.color,
                   ),
@@ -882,7 +886,7 @@ class _TypeGroup extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                   color: GmColors.fg,
                 ),
               ),
@@ -891,6 +895,7 @@ class _TypeGroup extends StatelessWidget {
                 '${members.length}명',
                 style: const TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 12.5,
                   color: GmColors.dim,
                 ),

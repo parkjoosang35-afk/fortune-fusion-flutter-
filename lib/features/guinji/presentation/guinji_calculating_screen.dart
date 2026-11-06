@@ -125,7 +125,7 @@ class _GuinjiCalculatingScreenState extends State<GuinjiCalculatingScreen>
               style: const TextStyle(
                 fontFamily: GmText.display,
                 fontSize: 22,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w800,
                 color: GmColors.fg,
                 height: 1.35,
               ),
@@ -136,6 +136,7 @@ class _GuinjiCalculatingScreenState extends State<GuinjiCalculatingScreen>
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: GmText.ui,
+                fontWeight: FontWeight.w600,
                 fontSize: 13.5,
                 color: GmColors.muted,
               ),

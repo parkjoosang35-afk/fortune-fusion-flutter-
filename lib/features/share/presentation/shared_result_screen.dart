@@ -130,7 +130,10 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
   /// GuinjiMapRelationDetailScreen과 동일한 위젯(GmColors/GmChip 등)으로
   /// 다시 그린다. 원본 PNG가 있으면(과거 호환) 위 `_originalPng` 분기가
   /// 먼저 처리하므로 여기는 텍스트 payload 기반 재구성 경로다.
-  Widget _buildRelationshipResult(BuildContext context, SharedResultDto shared) {
+  Widget _buildRelationshipResult(
+    BuildContext context,
+    SharedResultDto shared,
+  ) {
     final payload = shared.payload ?? const {};
     final relationType = payload['relationType'] as String? ?? 'BI_HWA';
     final meta = guinjiRelationMetaOf(relationType);
@@ -179,7 +182,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
                   style: const TextStyle(
                     fontFamily: GmText.display,
                     fontSize: 30,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
                   ),
                 ),
@@ -197,7 +200,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 22,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: GmColors.fg,
                 ),
               ),
@@ -354,14 +357,16 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: ohaeng.color.withValues(alpha: 0.16),
-                    border: Border.all(color: ohaeng.color.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: ohaeng.color.withValues(alpha: 0.5),
+                    ),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
                     ohaeng.label,
                     style: TextStyle(
                       fontFamily: GmText.display,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 18,
                       color: ohaeng.color,
                     ),
@@ -384,7 +389,10 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
                         const SizedBox(height: 2),
                         Text(
                           note,
-                          style: const TextStyle(fontSize: 11, color: GmColors.muted),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: GmColors.muted,
+                          ),
                         ),
                       ],
                     ],
@@ -426,7 +434,9 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: GmColors.gold.withValues(alpha: 0.06),
-                      border: Border.all(color: GmColors.gold.withValues(alpha: 0.18)),
+                      border: Border.all(
+                        color: GmColors.gold.withValues(alpha: 0.18),
+                      ),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text.rich(
@@ -462,8 +472,9 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
         const SizedBox(height: 16),
         Center(
           child: TextButton(
-            onPressed: () =>
-                Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false),
+            onPressed: () => Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home', (r) => false),
             child: const Text(
               '신통방통 홈으로 가기',
               style: TextStyle(color: GmColors.muted),

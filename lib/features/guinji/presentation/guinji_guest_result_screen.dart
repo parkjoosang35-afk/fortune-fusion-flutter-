@@ -134,7 +134,7 @@ class GuinjiGuestResultScreen extends StatelessWidget {
               style: const TextStyle(
                 fontFamily: GmText.display,
                 fontSize: 20,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 height: 1.3,
                 color: GmColors.fg,
               ),
@@ -151,7 +151,7 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   height: 1.3,
                   color: GmColors.fg,
                 ),
@@ -341,7 +341,7 @@ class _GuestResultCard extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 40,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: color,
                   height: 1,
                 ),

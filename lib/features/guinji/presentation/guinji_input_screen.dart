@@ -252,7 +252,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
               style: TextStyle(
                 fontFamily: GmText.display,
                 fontSize: 24,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 letterSpacing: -0.4,
                 color: GmColors.fg,
               ),
@@ -278,6 +278,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                     TextSpan(
                       style: const TextStyle(
                         fontFamily: GmText.ui,
+                        fontWeight: FontWeight.w600,
                         fontSize: 13.5,
                         height: 1.5,
                         color: GmColors.muted,
@@ -311,6 +312,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                 maxLength: 24,
                 style: const TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 14,
                   color: GmColors.fg,
                 ),
@@ -434,7 +436,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                       style: TextStyle(
                         fontFamily: GmText.ui,
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         color: _timeUnknown ? GmColors.onFg : GmColors.muted,
                       ),
                     ),
@@ -448,6 +450,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
                 '태어난 시간을 몰라요. 3기둥으로 계산합니다(정확도 다소 낮아짐).',
                 style: TextStyle(
                   fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
                   fontSize: 11.5,
                   color: GmColors.muted,
                   height: 1.5,
@@ -506,7 +509,7 @@ class _GenderSegment extends StatelessWidget {
           style: TextStyle(
             fontFamily: GmText.ui,
             fontSize: 13.5,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: active ? GmColors.onFg : GmColors.muted,
           ),
         ),
@@ -542,6 +545,7 @@ class _NumberBox extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: GmText.ui,
+            fontWeight: FontWeight.w600,
             fontSize: 14,
             color: GmColors.fg,
           ),

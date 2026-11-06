@@ -394,6 +394,7 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: GmText.ui,
+                          fontWeight: FontWeight.w600,
                           fontSize: 15,
                           height: 1.6,
                           color: GmColors.muted,
@@ -452,7 +453,7 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                           style: TextStyle(
                             fontFamily: GmText.display,
                             fontSize: 30,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: -0.6,
                             color: GmColors.fg,
                           ),
@@ -464,6 +465,7 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                               : '아직 연결된 사람이 없어요',
                           style: TextStyle(
                             fontFamily: GmText.ui,
+                            fontWeight: FontWeight.w600,
                             fontSize: 13.5,
                             color: arrived > 0 ? GmColors.gold : GmColors.muted,
                           ),
@@ -763,7 +765,7 @@ class _ArrivalToast extends StatelessWidget {
                                       visual.hanja,
                                       style: TextStyle(
                                         fontFamily: GmText.display,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w800,
                                         fontSize: 14,
                                         color: visual.color,
                                       ),
@@ -800,6 +802,7 @@ class _ArrivalToast extends StatelessWidget {
                                   '방금 · 생년월일을 입력했어요',
                                   style: TextStyle(
                                     fontFamily: GmText.ui,
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 12.5,
                                     color: GmColors.muted,
                                   ),
@@ -862,7 +865,7 @@ class _OwnerAvatar extends StatelessWidget {
                 '我',
                 style: TextStyle(
                   fontFamily: GmText.display,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   fontSize: 24,
                   color: GmColors.gold,
                 ),
@@ -875,6 +878,7 @@ class _OwnerAvatar extends StatelessWidget {
           '나',
           style: TextStyle(
             fontFamily: GmText.ui,
+            fontWeight: FontWeight.w600,
             fontSize: 12.5,
             color: GmColors.muted,
           ),
@@ -1110,7 +1114,7 @@ class _ArrivalFace extends StatelessWidget {
                     hanja,
                     style: TextStyle(
                       fontFamily: GmText.display,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 18,
                       color: color,
                     ),
@@ -1126,7 +1130,7 @@ class _ArrivalFace extends StatelessWidget {
                       hanja,
                       style: TextStyle(
                         fontFamily: GmText.display,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         fontSize: 18,
                         color: color,
                       ),
@@ -1139,6 +1143,7 @@ class _ArrivalFace extends StatelessWidget {
           name,
           style: const TextStyle(
             fontFamily: GmText.ui,
+            fontWeight: FontWeight.w600,
             fontSize: 11,
             color: GmColors.fg,
           ),
@@ -1433,6 +1438,7 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
                       '${widget.person.name}님은 나에게',
                       style: const TextStyle(
                         fontFamily: GmText.ui,
+                        fontWeight: FontWeight.w600,
                         fontSize: 11.5,
                         color: GmColors.muted,
                       ),
@@ -1443,7 +1449,7 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
                       style: TextStyle(
                         fontFamily: GmText.display,
                         fontSize: 19,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w800,
                         color: color,
                       ),
                     ),
@@ -1460,7 +1466,7 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
                       style: const TextStyle(
                         fontFamily: GmText.display,
                         fontSize: 28,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w800,
                         color: GmColors.fg,
                       ),
                     ),
@@ -1469,6 +1475,7 @@ class _ArrivalResultCardState extends State<_ArrivalResultCard>
                     '케미 점수',
                     style: TextStyle(
                       fontFamily: GmText.ui,
+                      fontWeight: FontWeight.w600,
                       fontSize: 10,
                       color: GmColors.dim,
                     ),

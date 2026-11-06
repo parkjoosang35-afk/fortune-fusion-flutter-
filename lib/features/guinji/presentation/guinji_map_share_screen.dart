@@ -402,7 +402,7 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
                   style: TextStyle(
                     fontFamily: GmText.display,
                     fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: GmColors.fg,
                     height: 1.3,
                   ),
@@ -731,7 +731,7 @@ class _KakaoOgPreview extends StatelessWidget {
                                 style: const TextStyle(
                                   fontFamily: GmText.display,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   color: GmColors.fg,
                                   height: 1.25,
                                 ),
@@ -765,7 +765,7 @@ class _KakaoOgPreview extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: GmText.display,
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: GmColors.fg,
                     ),
                   ),

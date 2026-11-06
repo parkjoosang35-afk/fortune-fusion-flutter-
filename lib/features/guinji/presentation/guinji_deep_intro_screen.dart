@@ -134,6 +134,7 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: GmText.mono,
+                  fontWeight: FontWeight.w500,
                   fontSize: 10.5,
                   letterSpacing: 3.5,
                   color: GmColors.dim,
@@ -207,7 +208,7 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
                                 meta.hanja,
                                 style: TextStyle(
                                   fontFamily: GmText.display,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   fontSize: 15,
                                   color: color,
                                 ),
@@ -235,7 +236,7 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
                     style: const TextStyle(
                       fontFamily: GmText.display,
                       fontSize: 24,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w800,
                       height: 1.35,
                       letterSpacing: -0.4,
                       color: GmColors.fg,
@@ -356,7 +357,7 @@ class _IntroFace extends StatelessWidget {
                 fallbackText,
                 style: TextStyle(
                   fontFamily: GmText.display,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   fontSize: size * 0.38,
                   color: fallbackColor,
                 ),
@@ -372,7 +373,7 @@ class _IntroFace extends StatelessWidget {
                   fallbackText,
                   style: TextStyle(
                     fontFamily: GmText.display,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     fontSize: size * 0.38,
                     color: fallbackColor,
                   ),
@@ -443,6 +444,7 @@ class _DeepIntroPainter extends CustomPainter {
           text: _ohaengChars[i],
           style: TextStyle(
             fontFamily: GmText.display,
+            fontWeight: FontWeight.w800,
             fontSize: 14,
             color: Colors.white.withValues(alpha: 0.38),
           ),

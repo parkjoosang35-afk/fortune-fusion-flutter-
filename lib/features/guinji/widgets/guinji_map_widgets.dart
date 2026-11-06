@@ -81,7 +81,7 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
                         style: TextStyle(
                           fontFamily: GmText.display,
                           fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           color: GmColors.fg,
                         ),
                       ),
@@ -95,7 +95,7 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                   color: GmColors.fg,
                 ),
                 overflow: TextOverflow.ellipsis,
