@@ -14,6 +14,21 @@
 /// 결과 등)이 흰 바탕이라 메인페이지(다크)와 이어지지 않는 문제를 해결하기
 /// 위해 팔레트를 메인페이지 톤(bg #0B0B0D + 카드 #161618 계열 + 밝은 글자)
 /// 으로 통일했다. 개별 화면의 하드코딩 색은 별도 과제로 남긴다.
+///
+/// [폰트 중앙화 — 2026-11 마이페이지 B시안 폰트 테이블 적용]
+/// "신통방통 전체를 선명하고 진하게" 요청에 대응해, 폰트 패밀리/굵기를
+/// 이 파일 한 곳에서만 정의하고 화면들은 전부 이 토큰을 참조하도록 한다.
+/// 적용 규칙(사용자 제공 폰트 표 기준):
+///   - Pretendard 800(ExtraBold): 페이지 타이틀("마이" 등)/이름/섹션
+///     제목/카드 제목/버튼 — 기존 600에서 상향(더 굵고 선명하게).
+///   - Pretendard 900(Black, 신규 추가): 지갑 "38개" 같은 큰 숫자/강조
+///     수치 전용. `assets/fonts/Pretendard-Black.otf`
+///     (orioncactus/pretendard 공식 배포본, OFL 1.1 — 상업적 이용 무료).
+///   - Pretendard 600~700: 메뉴 아이템 이름/보조 설명 — 기존 500에서 상향.
+///   - NotoSerifKR 900: 한자 아이콘 글자(塔 觀 掌 錄 藏 緣 願 福 印 券 符
+///     瑞 銅 등) 전용. 본문/서사 텍스트에는 사용하지 않는다(기존
+///     GowunBatang 본문체는 이번 1차 적용 범위에서 제외 — 별도 확인 필요).
+///   - IBMPlexMono 500: 날짜 라벨("2026 · 11 · 05")/쿠폰 코드 입력 전용.
 library;
 
 import 'package:flutter/material.dart';
@@ -49,80 +64,97 @@ class UnifiedColors {
   static const Color border = Color(0xFF2A2A2E); // [다크 전환]
 }
 
-/// 폰트 시스템(Pretendard 단일, 홈 화면과 완전 동일한 Type Scale)
+/// 폰트 시스템 — 앱 전체 타이포그래피 "중앙 설정".
+///
+/// family: Pretendard(UI 전반) / NotoSerifKR(한자 아이콘 전용) /
+/// IBMPlexMono(날짜·코드 전용). 이 3개 외 폰트(GowunBatang 등)는 쓰지 않는다.
+/// 굵기(FontWeight)는 전부 이 클래스의 named style을 통해서만 정하고,
+/// 화면 코드에서 `fontFamily:`/`FontWeight:`를 직접 하드코딩하지 않는다.
+/// → 나중에 굵기/폰트를 다시 바꿀 일이 생기면 이 파일만 고치면 된다.
 class UnifiedText {
   UnifiedText._();
 
   static const String family = 'Pretendard';
+  static const String hanjaFamily = 'NotoSerifKR';
+  static const String monoFamily = 'IBMPlexMono';
 
-  /// Title Large 17 / SemiBold — 화면/섹션 헤더
+  /// Title Large 17 / ExtraBold(800) — 페이지 타이틀("마이" 등)/화면 헤더.
+  /// [폰트 중앙화] 기존 600 → 800으로 상향(더 굵고 선명하게).
   static TextStyle titleLarge({Color color = UnifiedColors.textPrimary}) =>
       TextStyle(
         fontFamily: family,
         fontSize: 17,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w800,
         letterSpacing: -0.2,
         height: 1.3,
         color: color,
       );
 
-  /// Title 15 / SemiBold — 카드/섹션 제목
+  /// Title 15 / ExtraBold(800) — 카드/섹션 제목, 이름.
+  /// [폰트 중앙화] 기존 600 → 800으로 상향.
   static TextStyle title({Color color = UnifiedColors.textPrimary}) =>
       TextStyle(
         fontFamily: family,
         fontSize: 15,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w800,
         letterSpacing: -0.2,
         height: 1.3,
         color: color,
       );
 
-  /// Body Strong 14 / SemiBold — 강조 본문
+  /// Number Strong — 지갑 "38개"/적립 "+3" 같은 큰 강조 숫자 전용.
+  /// Pretendard 900(Black). size는 호출부에서 필요에 맞게 override.
+  static TextStyle numberStrong({
+    Color color = UnifiedColors.textPrimary,
+    double fontSize = 22,
+  }) => TextStyle(
+    fontFamily: family,
+    fontSize: fontSize,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.2,
+    height: 1.2,
+    color: color,
+  );
+
+  /// Body Strong 14 / Bold(700) — 버튼 라벨, 메뉴 아이템 이름.
+  /// [폰트 중앙화] 기존 600 → 700으로 상향.
   static TextStyle bodyStrong({Color color = UnifiedColors.textPrimary}) =>
       TextStyle(
         fontFamily: family,
         fontSize: 14,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.2,
         height: 1.4,
         color: color,
       );
 
-  /// Body 14 / Medium — 일반 본문
+  /// Body 14 / SemiBold(600) — 일반 본문/보조 설명.
+  /// [폰트 중앙화] 기존 500 → 600으로 상향.
   static TextStyle body({Color color = UnifiedColors.textSecondary}) =>
       TextStyle(
         fontFamily: family,
         fontSize: 14,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
         letterSpacing: -0.2,
         height: 1.4,
         color: color,
       );
 
-  /// Body Small 13 / Medium
+  /// Body Small 13 / SemiBold(600).
+  /// [폰트 중앙화] 기존 500 → 600으로 상향.
   static TextStyle bodySmall({Color color = UnifiedColors.textSecondary}) =>
       TextStyle(
         fontFamily: family,
         fontSize: 13,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
         letterSpacing: -0.2,
         height: 1.4,
         color: color,
       );
 
-  /// Caption 12 / Medium — 서브 라벨/메타 정보
+  /// Caption 12 / SemiBold(600) — 서브 라벨/메타 정보.
+  /// [폰트 중앙화] 기존 500 → 600으로 상향.
   static TextStyle caption({Color color = UnifiedColors.textCaption}) =>
-      TextStyle(
-        fontFamily: family,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        letterSpacing: -0.2,
-        height: 1.3,
-        color: color,
-      );
-
-  /// Label/Chip 12 / SemiBold
-  static TextStyle chipLabel({Color color = UnifiedColors.textPrimary}) =>
       TextStyle(
         fontFamily: family,
         fontSize: 12,
@@ -131,6 +163,44 @@ class UnifiedText {
         height: 1.3,
         color: color,
       );
+
+  /// Label/Chip 12 / Bold(700).
+  /// [폰트 중앙화] 기존 600 → 700으로 상향.
+  static TextStyle chipLabel({Color color = UnifiedColors.textPrimary}) =>
+      TextStyle(
+        fontFamily: family,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+        height: 1.3,
+        color: color,
+      );
+
+  /// 한자 아이콘 전용(塔 觀 掌 錄 藏 緣 願 福 印 券 符 瑞 銅 등).
+  /// NotoSerifKR 900(Black). 본문/서사 텍스트에는 사용하지 않는다.
+  static TextStyle hanjaIcon({
+    Color color = UnifiedColors.textPrimary,
+    double fontSize = 20,
+  }) => TextStyle(
+    fontFamily: hanjaFamily,
+    fontSize: fontSize,
+    fontWeight: FontWeight.w900,
+    height: 1.0,
+    color: color,
+  );
+
+  /// 날짜 라벨("2026 · 11 · 05")/쿠폰 코드 입력 전용. IBMPlexMono 500.
+  static TextStyle monoLabel({
+    Color color = UnifiedColors.textSecondary,
+    double fontSize = 12,
+  }) => TextStyle(
+    fontFamily: monoFamily,
+    fontSize: fontSize,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.2,
+    height: 1.3,
+    color: color,
+  );
 }
 
 /// spacing / radius / iconSize 토큰(홈 화면과 완전 동일)

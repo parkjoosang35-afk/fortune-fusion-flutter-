@@ -72,7 +72,10 @@ class _BalanceCard extends StatelessWidget {
                   height: 32,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text('${_comma(balance)}개', style: UnifiedText.titleLarge()),
+              : Text(
+                  '${_comma(balance)}개',
+                  style: UnifiedText.numberStrong(fontSize: 26),
+                ),
         ],
       ),
     );
