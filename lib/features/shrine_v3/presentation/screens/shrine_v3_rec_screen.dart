@@ -82,8 +82,21 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
       if (w.$2 == _selectedWish) wish = w;
     }
     final category = wish?.$3;
+    // [試(시험·합격) → suneung 단일 카테고리 고정 문제 수정] 기존에는
+    // "시험·합격"을 고르면 무조건 수능 전용 카테고리(`suneung`)만 보여줘서,
+    // 일반 자격증·시험을 찾는 사용자도 항상 "수능대합격부" 계열만 추천받는
+    // 구조적 오류가 있었다. 이제 `suneung`이 선택되면 더 폭넓은 일반
+    // 시험·학업 카테고리(`exam`: 시험부/학업부/문창부/합격부/결심부/재능부/
+    // 집중부)를 먼저 합쳐서 보여주고, 수능 전용 부적은 "함께 보면 좋은
+    // 부적"에 이어서 노출한다 — 대입 수험생도 여전히 수능 부적을 바로
+    // 찾을 수 있다(알트 목록에 포함).
     final list = category == null
         ? const <TalismanItem>[]
+        : category == 'suneung'
+        ? [
+            ...provider.catalog.where((k) => k.category == 'exam'),
+            ...provider.catalog.where((k) => k.category == 'suneung'),
+          ]
         : provider.catalog.where((k) => k.category == category).toList();
     final k = list.isNotEmpty ? list.first : null;
     final alt = list.length > 1
@@ -249,7 +262,7 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                         ),
                       ),
                       child: Text(
-                        '${kShrineCategoryLabels[category]} ${list.length} ›',
+                        '${category == 'suneung' ? '시험 · 합격' : kShrineCategoryLabels[category]} ${list.length} ›',
                       ),
                     ),
                   ],
