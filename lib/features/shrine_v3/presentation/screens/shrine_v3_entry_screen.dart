@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../theme/shrine_v3_theme.dart';
 import '../widgets/shrine_asset_path.dart';
@@ -43,6 +44,16 @@ class _ShrineV3EntryScreenState extends State<ShrineV3EntryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ShrineV3Colors.ink,
+      // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #1] "만세레나에게
+      // 부탁하고 부적태우기가지는 하단바가 없어도 돼는데 그 후부터는
+      // 있어야 하는거지" — 프로토타입(신당 v3.html)의 <Nav/> 포함 여부를
+      // 화면별로 전수 대조한 결과(README/prototype 교차검증), 01 입장은
+      // Nav 포함 화면이다(02 입장연출 게이트와 07 부탁 연출만 Nav 없음).
+      // 신당은 AppShell의 IndexedStack 밖에서 Navigator.push로 열리는
+      // 화면이라 MainBottomNavBar를 각 화면에 직접 달아줘야 한다
+      // (global_bottom_nav_shell.dart는 named 라우트에만 적용되고 /shrine은
+      // 애초에 제외 목록에 있다 — push 체인인 내부 9개 화면과는 무관).
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: Stack(
         fit: StackFit.expand,
         children: [

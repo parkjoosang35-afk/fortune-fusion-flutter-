@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_order.dart';
@@ -42,6 +43,9 @@ class _ShrineV3BoxScreenState extends State<ShrineV3BoxScreen> {
         elevation: 0,
         title: const Text('신당 부적함'),
       ),
+      // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #1] 09 부적함은
+      // 프로토타입 <Nav/> 포함 화면.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: SafeArea(
         child: provider.isLoading && items.isEmpty
             ? const Center(child: CircularProgressIndicator())

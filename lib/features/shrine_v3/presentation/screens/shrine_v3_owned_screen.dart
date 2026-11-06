@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../../../core/util/image_gallery_saver.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../application/shrine_v3_provider.dart';
@@ -114,6 +115,9 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
         foregroundColor: ShrineV3Colors.ink,
         elevation: 0,
       ),
+      // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #1] 10 부적함 상세는
+      // 프로토타입 <Nav/> 포함 화면.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_categories.dart';
 import '../theme/shrine_v3_theme.dart';
@@ -36,6 +37,9 @@ class _ShrineV3PickScreenState extends State<ShrineV3PickScreen> {
         elevation: 0,
         title: const Text('직접 고르기'),
       ),
+      // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #1] 04 직접 고르기는
+      // 프로토타입 <Nav/> 포함 화면.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: provider.isLoading && catalog.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Column(

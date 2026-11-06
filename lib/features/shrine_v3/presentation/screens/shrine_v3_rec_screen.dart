@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../home/domain/jeontong_eighty_report_builder.dart';
 import '../../../home/domain/saju_engine.dart' show SajuResult;
@@ -111,6 +112,9 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
         elevation: 0,
         title: const Text('추천받기'),
       ),
+      // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #1] 06 추천받기는
+      // 프로토타입 <Nav/> 포함 화면.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),

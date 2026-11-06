@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_categories.dart';
@@ -9,6 +10,7 @@ import '../theme/shrine_v3_theme.dart';
 import '../widgets/serena_intro_sheet.dart';
 import '../widgets/shrine_asset_path.dart';
 import '../widgets/talisman_thumb.dart';
+import 'shrine_v3_box_screen.dart';
 import 'shrine_v3_detail_screen.dart';
 import 'shrine_v3_pick_screen.dart';
 import 'shrine_v3_rec_screen.dart';
@@ -55,6 +57,10 @@ class _ShrineV3MainScreenState extends State<ShrineV3MainScreen> {
 
     return Scaffold(
       backgroundColor: ShrineV3Colors.paper,
+      // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #1] 03 메인은
+      // 프로토타입 <Nav/> 포함 화면이다 — MainBottomNavBar(신당부적=1번
+      // 인덱스, app_shell.dart `_shrineNavIndex`와 동일한 의미)를 달아준다.
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: SafeArea(
         child: provider.isLoading && catalog.isEmpty
             ? const Center(child: CircularProgressIndicator())
@@ -147,7 +153,16 @@ class _ShrineV3MainScreenState extends State<ShrineV3MainScreen> {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: preview.length,
+                    // [사용자 버그 리포트 — 디자인 핸드오프 신규 요청 #3]
+                    // "황재부 옆에 내 부적함을 넣어줘 이쁘게 박스 넣어서"
+                    // (2번째 첨부 이미지 참고 — 재물 7종 미리보기 뒤 빈
+                    // 8번째 칸). 원본 프로토타입(신당 v3.html)에는 이
+                    // 타일이 없었다 — 이번에 신규로 추가하는 UI다. 미리보기
+                    // 목록 맨 끝에 '내 부적함' 숏컷 타일을 1개 덧붙여 09
+                    // 부적함으로 바로 이동하게 한다(결제 게이트를 우회하지
+                    // 않음 — README §2 "07로 가는 길은 결제 게이트뿐" 규칙은
+                    // 그대로 유지, 이 타일은 09만 연다).
+                    itemCount: preview.length + 1,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 4,
@@ -156,6 +171,15 @@ class _ShrineV3MainScreenState extends State<ShrineV3MainScreen> {
                           childAspectRatio: 0.62,
                         ),
                     itemBuilder: (context, i) {
+                      if (i == preview.length) {
+                        return _MyBoxTile(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ShrineV3BoxScreen(),
+                            ),
+                          ),
+                        );
+                      }
                       final k = preview[i];
                       final tint =
                           kShrineCategoryTints[k.category] ??
@@ -198,6 +222,78 @@ class _ShrineV3MainScreenState extends State<ShrineV3MainScreen> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// [사용자 버그 리포트 — 디자인 핸드오프 신규 요청 #3] "내 부적함" 숏컷
+/// 타일. "이쁘게 박스 넣어서"라는 요청에 맞춰 일반 부적 타일(종이질감
+/// 틴트 배경 + 부적 이미지)과는 다른, 금빛 테두리 + 그라데이션의 카드형
+/// 박스로 시각적으로 구분한다. 색은 README §9 디자인 토큰(gold/goldDeep)
+/// 그대로 사용해 기존 팔레트와 어긋나지 않게 한다.
+class _MyBoxTile extends StatelessWidget {
+  const _MyBoxTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    ShrineV3Colors.gold.withValues(alpha: 0.35),
+                    ShrineV3Colors.goldDeep.withValues(alpha: 0.22),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: ShrineV3Colors.goldDeep,
+                  width: 1.2,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    color: ShrineV3Colors.ink2,
+                    size: 26,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '囊',
+                    style: ShrineV3TextStyles.title.copyWith(
+                      fontSize: 16,
+                      color: ShrineV3Colors.ink2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '내 부적함',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: ShrineV3Colors.goldDeep,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

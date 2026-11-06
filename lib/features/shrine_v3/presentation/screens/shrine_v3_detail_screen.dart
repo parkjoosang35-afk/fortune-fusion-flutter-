@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/router/app_navigator_key.dart';
+import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../mypage/presentation/settings_screen.dart';
@@ -245,6 +246,7 @@ class _ShrineV3DetailScreenState extends State<ShrineV3DetailScreen> {
       return Scaffold(
         backgroundColor: ShrineV3Colors.paper,
         appBar: AppBar(backgroundColor: ShrineV3Colors.paper),
+        bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
         body: provider.isLoading
             ? const Center(child: CircularProgressIndicator())
             : const Center(child: Text('부적 정보를 찾을 수 없습니다.')),
@@ -261,6 +263,11 @@ class _ShrineV3DetailScreenState extends State<ShrineV3DetailScreen> {
         foregroundColor: ShrineV3Colors.ink,
         elevation: 0,
       ),
+      // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #1] 05 상세·소망은
+      // 프로토타입 <Nav/> 포함 화면("부탁하기" 버튼이 있는 화면 자체는
+      // 바가 있어야 함 — 사용자 규칙의 "바 없음" 구간은 결제 게이트
+      // 시트+07 의식 단계만 해당).
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
