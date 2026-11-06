@@ -218,6 +218,7 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                         'INVITATION',
                         style: TextStyle(
                           fontFamily: GiFonts.mono,
+                          fontWeight: FontWeight.w500,
                           fontSize: 9,
                           letterSpacing: 9 * 0.2,
                           color: GiColors.hanjiMeta,
@@ -242,6 +243,7 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                           style: const TextStyle(
                             fontFamily: GiFonts.mono,
                             fontFamilyFallback: [GiFonts.body],
+                            fontWeight: FontWeight.w500,
                             fontSize: 9,
                             letterSpacing: 9 * 0.2,
                             color: GiColors.hanjiMeta,
@@ -351,6 +353,7 @@ class _GuinjiInvitationLetterState extends State<GuinjiInvitationLetter>
                       style: const TextStyle(
                         fontFamily: GiFonts.mono,
                         fontFamilyFallback: [GiFonts.body],
+                        fontWeight: FontWeight.w500,
                         fontSize: 9.5,
                         letterSpacing: 9.5 * 0.25,
                         color: GiColors.hanjiMeta,
@@ -403,6 +406,7 @@ class _HostCharacterChip extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: GiFonts.ui,
                   fontFamilyFallback: [GiFonts.body],
+                  fontWeight: FontWeight.w600,
                   fontSize: 12,
                   height: 1.3,
                 ),

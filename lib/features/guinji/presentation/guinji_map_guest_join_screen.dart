@@ -453,6 +453,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
           'YOUR SAJU · 01',
           style: TextStyle(
             fontFamily: GiFonts.mono,
+            fontWeight: FontWeight.w500,
             fontSize: 10,
             letterSpacing: 10 * 0.32,
             color: Color(0xD9F5CF6A), // glow opacity .85
@@ -657,6 +658,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               '회원약관 보기',
               style: TextStyle(
                 fontFamily: GiFonts.ui,
+                fontWeight: FontWeight.w600,
                 fontSize: 12,
                 color: GiColors.muted,
                 decoration: TextDecoration.underline,
@@ -994,6 +996,7 @@ class _GiTextField extends StatelessWidget {
         onChanged: onChanged,
         style: const TextStyle(
           fontFamily: GiFonts.ui,
+          fontWeight: FontWeight.w600,
           fontSize: 14.5,
           color: GiColors.fg,
         ),
@@ -1044,6 +1047,7 @@ class _GiNumberUnit extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: GiFonts.ui,
+                fontWeight: FontWeight.w600,
                 fontSize: 14.5,
                 color: GiColors.fg,
               ),

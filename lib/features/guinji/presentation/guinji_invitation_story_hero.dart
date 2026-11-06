@@ -311,6 +311,7 @@ class _GuinjiInvitationStoryHeroState extends State<GuinjiInvitationStoryHero>
                                   '⟲',
                                   style: TextStyle(
                                     fontFamily: GiFonts.mono,
+                                    fontWeight: FontWeight.w500,
                                     fontSize: 10,
                                     color: GiColors.glow,
                                   ),
