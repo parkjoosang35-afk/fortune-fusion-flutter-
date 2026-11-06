@@ -91,9 +91,10 @@ class FortunePeriodType {
   );
 
   /// `.v2-period-main`
+  // [폰트 중앙화 — 2026-11] '타이틀' 규칙(800)에 맞춰 700 -> 800 상향.
   static const TextStyle periodMain = TextStyle(
     fontFamily: serif,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     fontSize: 21,
     letterSpacing: -0.4,
     height: 1.25,
@@ -135,9 +136,10 @@ class FortunePeriodType {
   );
 
   /// `.v2-h` (섹션 소제목)
+  // [폰트 중앙화] '타이틀' 규칙(800)에 맞춰 700 -> 800 상향.
   static const TextStyle sectionHead = TextStyle(
     fontFamily: serif,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     fontSize: 17,
     letterSpacing: -0.3,
     color: FortunePeriodColors.fg,
@@ -243,8 +245,10 @@ class FortunePeriodType {
   );
 
   /// `.v2-share-note` / `.my-note`
+  // [폰트 중앙화] mono 규칙(500)에 맞춰 기본값(400) -> 500 명시.
   static const TextStyle noteMono = TextStyle(
     fontFamily: mono,
+    fontWeight: FontWeight.w500,
     fontSize: 9,
     letterSpacing: 1.6,
     height: 1.7,
