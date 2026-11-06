@@ -4,6 +4,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/luck_pouch_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
+import '../../shrine_v3/presentation/screens/shrine_v3_detail_screen.dart';
 import '../../fortune_period/domain/fortune_saju_profile.dart';
 import '../../guinji/presentation/guinji_input_screen.dart';
 import '../../guinji/presentation/guinji_join_screen.dart';
@@ -104,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
         replayPendingGuinjiOnboarding();
         replayPendingGuinjiMapEntry();
         replayPendingBokjuCoupon();
+        replayPendingShrineOrder();
         return;
       }
       // [요청 1 - 프로필체크 강제 이동 제거] 이전에는 생년월일 보유 여부와
@@ -134,6 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
       replayPendingGuinjiOnboarding();
       replayPendingGuinjiMapEntry();
       replayPendingBokjuCoupon();
+      replayPendingShrineOrder();
     } else {
       AppToast.show(
         context,
@@ -189,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
           replayPendingGuinjiOnboarding();
           replayPendingGuinjiMapEntry();
           replayPendingBokjuCoupon();
+          replayPendingShrineOrder();
           return;
         }
         // [비로그인 결과보기 복귀 지시서 R2] 기존 회원 재로그인 경로는
@@ -208,6 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
         replayPendingGuinjiMapEntry();
         replayPendingSajuEntry();
         replayPendingBokjuCoupon();
+        replayPendingShrineOrder();
       } else {
         AppToast.show(
           context,

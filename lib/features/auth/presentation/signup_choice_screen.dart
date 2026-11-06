@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
+import '../../shrine_v3/presentation/screens/shrine_v3_detail_screen.dart';
 import '../../fortune_period/domain/fortune_saju_profile.dart';
 import '../../guinji/presentation/guinji_input_screen.dart';
 import '../../guinji/presentation/guinji_join_screen.dart';
@@ -109,6 +110,7 @@ class _SignupChoiceScreenState extends State<SignupChoiceScreen> {
           replayPendingGuinjiOnboarding();
           replayPendingGuinjiMapEntry();
           replayPendingBokjuCoupon();
+          replayPendingShrineOrder();
           return;
         }
         final restoredResultAccess = await restorePendingResultAccessAfterLogin(
@@ -126,6 +128,7 @@ class _SignupChoiceScreenState extends State<SignupChoiceScreen> {
         replayPendingGuinjiMapEntry();
         replayPendingSajuEntry();
         replayPendingBokjuCoupon();
+        replayPendingShrineOrder();
       } else {
         final msg =
             context.read<AuthProvider>().state.errorMessage ??

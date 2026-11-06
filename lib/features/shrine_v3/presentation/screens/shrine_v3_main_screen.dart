@@ -44,10 +44,14 @@ class _ShrineV3MainScreenState extends State<ShrineV3MainScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ShrineV3Provider>();
-    final nickname = context.watch<AuthProvider>().currentUser?.nickname ?? '손님';
+    final nickname =
+        context.watch<AuthProvider>().currentUser?.nickname ?? '손님';
     final catalog = provider.catalog;
     final category = kShrineCategoryOrder[_filterIndex];
-    final preview = catalog.where((k) => k.category == category).take(7).toList();
+    final preview = catalog
+        .where((k) => k.category == category)
+        .take(7)
+        .toList();
 
     return Scaffold(
       backgroundColor: ShrineV3Colors.paper,
@@ -123,7 +127,9 @@ class _ShrineV3MainScreenState extends State<ShrineV3MainScreen> {
                           onSelected: (_) => setState(() => _filterIndex = i),
                           labelStyle: ShrineV3TextStyles.ui.copyWith(
                             fontSize: 12,
-                            color: on ? ShrineV3Colors.paper : ShrineV3Colors.ink2,
+                            color: on
+                                ? ShrineV3Colors.paper
+                                : ShrineV3Colors.ink2,
                           ),
                           selectedColor: ShrineV3Colors.ink,
                           backgroundColor: ShrineV3Colors.card,
@@ -132,33 +138,63 @@ class _ShrineV3MainScreenState extends State<ShrineV3MainScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  SizedBox(
-                    height: 110,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: preview.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 10),
-                      itemBuilder: (context, i) {
-                        final k = preview[i];
-                        return GestureDetector(
-                          onTap: () => _openDetail(k),
-                          child: SizedBox(
-                            width: 50,
-                            child: Column(
-                              children: [
-                                TalismanThumb(talisman: k, width: 44, height: 92),
-                                const SizedBox(height: 4),
-                                Text(
-                                  k.name.length > 5 ? k.name.substring(0, 4) : k.name,
-                                  style: const TextStyle(fontSize: 10),
-                                  overflow: TextOverflow.ellipsis,
+                  // [부적 종류 배치 수정] 프로토타입(신당 v3.html)의
+                  // `KindsMain`/`.kinds`/`.kd` 컴포넌트는 가로 스크롤이
+                  // 아니라 4열 그리드이며, 각 칸은 카테고리별 틴트 배경
+                  // (`--kb`) 위에 실제 부적 이미지(44×92, `PH`)를 올린다.
+                  // 기존 `TalismanThumb` 이미지 위젯은 그대로 쓰고
+                  // 레이아웃만 가로 스크롤 → 4열 그리드로 교체한다.
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: preview.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 8,
+                          childAspectRatio: 0.62,
+                        ),
+                    itemBuilder: (context, i) {
+                      final k = preview[i];
+                      final tint =
+                          kShrineCategoryTints[k.category] ??
+                          ShrineV3Colors.paperDark;
+                      return GestureDetector(
+                        onTap: () => _openDetail(k),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
                                 ),
-                              ],
+                                decoration: BoxDecoration(
+                                  color: tint.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.center,
+                                child: TalismanThumb(
+                                  talisman: k,
+                                  width: 44,
+                                  height: 92,
+                                ),
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                            const SizedBox(height: 4),
+                            Text(
+                              k.name.length > 5
+                                  ? k.name.substring(0, 4)
+                                  : k.name,
+                              style: const TextStyle(fontSize: 10),
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -226,7 +262,10 @@ class _HelloCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('민세레나', style: ShrineV3TextStyles.ui.copyWith(fontSize: 12)),
+                    Text(
+                      '민세레나',
+                      style: ShrineV3TextStyles.ui.copyWith(fontSize: 12),
+                    ),
                     TextButton(
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,

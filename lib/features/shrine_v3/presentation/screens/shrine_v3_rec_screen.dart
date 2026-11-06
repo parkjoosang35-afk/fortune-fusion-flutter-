@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../home/domain/jeontong_eighty_report_builder.dart';
 import '../../../home/domain/saju_engine.dart' show SajuResult;
+import '../../../home/domain/saju_interpreter.dart';
 import '../../../home/domain/user_profile_to_jeontong_adapter.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_categories.dart';
@@ -73,7 +74,8 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ShrineV3Provider>();
-    final nickname = context.watch<AuthProvider>().currentUser?.nickname ?? '손님';
+    final nickname =
+        context.watch<AuthProvider>().currentUser?.nickname ?? '손님';
 
     (String, String, String)? wish;
     for (final w in kShrineWishes) {
@@ -84,7 +86,9 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
         ? const <TalismanItem>[]
         : provider.catalog.where((k) => k.category == category).toList();
     final k = list.isNotEmpty ? list.first : null;
-    final alt = list.length > 1 ? list.skip(1).take(3).toList() : const <TalismanItem>[];
+    final alt = list.length > 1
+        ? list.skip(1).take(3).toList()
+        : const <TalismanItem>[];
 
     return Scaffold(
       backgroundColor: ShrineV3Colors.paper,
@@ -98,7 +102,10 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
           children: [
-            Text('마음에 걸리는 것을\n하나 골라 주세요', style: ShrineV3TextStyles.title.copyWith(fontSize: 22)),
+            Text(
+              '마음에 걸리는 것을\n하나 골라 주세요',
+              style: ShrineV3TextStyles.title.copyWith(fontSize: 22),
+            ),
             const SizedBox(height: 16),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +116,11 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                     width: 44,
                     height: 44,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(width: 44, height: 44, color: ShrineV3Colors.paperDark),
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 44,
+                      height: 44,
+                      color: ShrineV3Colors.paperDark,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -123,7 +134,9 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                     ),
                     child: Text(
                       k != null
-                          ? '$nickname님의 사주를 보니\n${k.name}가 가장 잘 맞아요.'
+                          ? (_saju != null
+                                ? '$nickname님의 사주를 보니\n${k.name}가 가장 잘 맞아요.'
+                                : '고르신 소망엔\n${k.name}를 추천드려요.')
                           : '지금 가장 마음에 걸리는 것은\n무엇인가요?',
                       style: ShrineV3TextStyles.body.copyWith(fontSize: 13),
                     ),
@@ -140,18 +153,39 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                 return GestureDetector(
                   onTap: () => setState(() => _selectedWish = on ? null : w.$2),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: on ? ShrineV3Colors.ink : ShrineV3Colors.card,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: on ? ShrineV3Colors.ink : ShrineV3Colors.line),
+                      border: Border.all(
+                        color: on ? ShrineV3Colors.ink : ShrineV3Colors.line,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(w.$1, style: TextStyle(color: on ? ShrineV3Colors.gold : ShrineV3Colors.seal, fontWeight: FontWeight.w900)),
+                        Text(
+                          w.$1,
+                          style: TextStyle(
+                            color: on
+                                ? ShrineV3Colors.gold
+                                : ShrineV3Colors.seal,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                         const SizedBox(width: 6),
-                        Text(w.$2, style: TextStyle(color: on ? ShrineV3Colors.paper : ShrineV3Colors.ink2, fontSize: 13)),
+                        Text(
+                          w.$2,
+                          style: TextStyle(
+                            color: on
+                                ? ShrineV3Colors.paper
+                                : ShrineV3Colors.ink2,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -177,10 +211,20 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('推 · 가장 잘 맞는 부적', style: ShrineV3TextStyles.mono.copyWith(fontSize: 11)),
-                          Text(k.name, style: ShrineV3TextStyles.title.copyWith(fontSize: 18)),
+                          Text(
+                            '推 · 가장 잘 맞는 부적',
+                            style: ShrineV3TextStyles.mono.copyWith(
+                              fontSize: 11,
+                            ),
+                          ),
+                          Text(
+                            k.name,
+                            style: ShrineV3TextStyles.title.copyWith(
+                              fontSize: 18,
+                            ),
+                          ),
                           const SizedBox(height: 8),
-                          _whyLine('命', '타고난 기운에 맞춰 부족한 기운을 채워요'),
+                          _whyLine('命', _heartLine(category, _saju)),
                           _whyLine('願', '고른 소망 「${wish?.$2 ?? ''}」과 쓰임이 같아요'),
                           _whyLine('用', k.aim),
                         ],
@@ -194,12 +238,19 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('함께 보면 좋은 부적', style: ShrineV3TextStyles.body.copyWith(fontSize: 14)),
+                    Text(
+                      '함께 보면 좋은 부적',
+                      style: ShrineV3TextStyles.body.copyWith(fontSize: 14),
+                    ),
                     TextButton(
                       onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ShrineV3PickScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ShrineV3PickScreen(),
+                        ),
                       ),
-                      child: Text('${kShrineCategoryLabels[category]} ${list.length} ›'),
+                      child: Text(
+                        '${kShrineCategoryLabels[category]} ${list.length} ›',
+                      ),
                     ),
                   ],
                 ),
@@ -214,7 +265,10 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                       final a = alt[i];
                       return GestureDetector(
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => ShrineV3DetailScreen(talismanId: a.id)),
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ShrineV3DetailScreen(talismanId: a.id),
+                          ),
                         ),
                         child: SizedBox(
                           width: 92,
@@ -222,7 +276,12 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                             children: [
                               TalismanThumb(talisman: a, width: 92, height: 96),
                               const SizedBox(height: 4),
-                              Text(a.name, style: ShrineV3TextStyles.body.copyWith(fontSize: 12)),
+                              Text(
+                                a.name,
+                                style: ShrineV3TextStyles.body.copyWith(
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -237,12 +296,16 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => ShrineV3DetailScreen(talismanId: k.id)),
+                    MaterialPageRoute(
+                      builder: (_) => ShrineV3DetailScreen(talismanId: k.id),
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ShrineV3Colors.seal,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   child: Text('${k.name}로 쓰기 ›'),
                 ),
@@ -253,7 +316,9 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
                 height: 48,
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ShrineV3PickScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const ShrineV3PickScreen(),
+                    ),
                   ),
                   child: const Text('다른 부적 직접 고르기'),
                 ),
@@ -270,12 +335,97 @@ class _ShrineV3RecScreenState extends State<ShrineV3RecScreen> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(icon, style: const TextStyle(color: ShrineV3Colors.seal, fontWeight: FontWeight.w900, fontSize: 12)),
+        Text(
+          icon,
+          style: const TextStyle(
+            color: ShrineV3Colors.seal,
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+          ),
+        ),
         const SizedBox(width: 4),
-        Expanded(child: Text(text, style: ShrineV3TextStyles.ui.copyWith(fontSize: 11.5))),
+        Expanded(
+          child: Text(
+            text,
+            style: ShrineV3TextStyles.ui.copyWith(fontSize: 11.5),
+          ),
+        ),
       ],
     ),
   );
+}
+
+/// [정통사주 연결 보강] 카테고리별 "命" 한 줄 — 실제 [SajuInterpreter]
+/// 결과를 사용해 만든다. `_saju`가 null(비로그인/프로필 미완료)이면 절대
+/// "사주를 보니"류의 허위 주장을 하지 않고, 정직하게 프로필 등록을
+/// 안내하는 문구로 대체한다. [SajuRules]가 아직 로드되지 않았거나 해석
+/// 중 예외가 발생해도(드묾) 화면이 깨지지 않도록 안전한 기본 문구로
+/// 폴백한다.
+String _heartLine(String? category, SajuResult? saju) {
+  if (saju == null) {
+    switch (category) {
+      case 'wealth':
+        return '마이페이지에 생년월일을 등록하면 재물 기운까지 맞춰 드려요';
+      case 'biz':
+        return '마이페이지에 생년월일을 등록하면 사업·일 기운까지 맞춰 드려요';
+      case 'love':
+      case 'harmony':
+        return '마이페이지에 생년월일을 등록하면 인연 기운까지 맞춰 드려요';
+      case 'exam':
+      case 'suneung':
+        return '마이페이지에 생년월일을 등록하면 학업·시험 기운까지 맞춰 드려요';
+      case 'health':
+        return '마이페이지에 생년월일을 등록하면 건강 기운까지 맞춰 드려요';
+      case 'ward':
+        return '마이페이지에 생년월일을 등록하면 액운 기운까지 맞춰 드려요';
+      default:
+        return '고르신 소망에 맞춰 골라 드린 부적이에요';
+    }
+  }
+  try {
+    final rules = SajuRules.cachedOrNull;
+    switch (category) {
+      case 'wealth':
+        final w = SajuInterpreter.interpretWealth(saju);
+        return '${w.verdict} 사주 — ${w.message}';
+      case 'biz':
+        if (rules == null) break;
+        final c = SajuInterpreter.interpretCareer(saju, rules);
+        return '${c.structure} — ${c.message}';
+      case 'love':
+      case 'harmony':
+        final l = SajuInterpreter.interpretLove(saju);
+        return l.message;
+      case 'exam':
+      case 'suneung':
+        final sin = SajuInterpreter.interpretSinsal(saju);
+        final munchang = sin.list.where((e) => e.name.contains('文昌'));
+        if (munchang.isNotEmpty) {
+          return '文昌貴人(문창귀인) 보유 — ${munchang.first.meaning}';
+        }
+        if (rules == null) break;
+        final dm = SajuInterpreter.interpretDayMaster(saju, rules);
+        final fit = dm.careerFit.isNotEmpty ? dm.careerFit.first : '학업';
+        return '${dm.title} 기운엔 $fit 분야 집중력이 잘 맞아요';
+      case 'health':
+        if (rules == null) break;
+        final h = SajuInterpreter.interpretHealth(saju, rules);
+        if (h.warnings.isNotEmpty) return h.warnings.first;
+        return '${h.coreOrgans.join(', ')} 계통을 중심으로 기운을 보완해요';
+      case 'ward':
+        if (rules == null) break;
+        final fe = SajuInterpreter.interpretFiveElements(saju, rules);
+        if (fe.analysis.isNotEmpty) return fe.analysis.first;
+        return '오행 균형을 맞춰 액운을 막아 줘요';
+      default:
+        if (rules == null) break;
+        final dm = SajuInterpreter.interpretDayMaster(saju, rules);
+        return dm.personality;
+    }
+  } catch (_) {
+    // 해석 실패 시(드묾) 아래 기본 문구로 폴백.
+  }
+  return '타고난 기운에 맞춰 부족한 기운을 채워요';
 }
 
 /// 소망 미선택 시 노출되는 "회원님의 사주" 카드 — 4주 + 오행 막대 + 일간
@@ -298,7 +448,10 @@ class _SajuCard extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('나의 사주', style: ShrineV3TextStyles.body.copyWith(fontSize: 14)),
+                Text(
+                  '나의 사주',
+                  style: ShrineV3TextStyles.body.copyWith(fontSize: 14),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   '마이페이지에서 실명·생년월일을 입력하면\n사주 기운에 맞는 부적을 보여드려요.',
@@ -312,8 +465,17 @@ class _SajuCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('나의 사주', style: ShrineV3TextStyles.body.copyWith(fontSize: 14)),
-                    Text('정통사주 연동 ✓', style: ShrineV3TextStyles.ui.copyWith(fontSize: 11, color: ShrineV3Colors.jade)),
+                    Text(
+                      '나의 사주',
+                      style: ShrineV3TextStyles.body.copyWith(fontSize: 14),
+                    ),
+                    Text(
+                      '정통사주 연동 ✓',
+                      style: ShrineV3TextStyles.ui.copyWith(
+                        fontSize: 11,
+                        color: ShrineV3Colors.jade,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -341,12 +503,17 @@ class _SajuCard extends StatelessWidget {
                             width: 18,
                             height: (8 + n * 10).toDouble(),
                             decoration: BoxDecoration(
-                              color: n == 0 ? ShrineV3Colors.line : ShrineV3Colors.seal,
+                              color: n == 0
+                                  ? ShrineV3Colors.line
+                                  : ShrineV3Colors.seal,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(_hanjaOf(e), style: ShrineV3TextStyles.ui.copyWith(fontSize: 11)),
+                          Text(
+                            _hanjaOf(e),
+                            style: ShrineV3TextStyles.ui.copyWith(fontSize: 11),
+                          ),
                         ],
                       );
                     }).toList(),
@@ -359,8 +526,12 @@ class _SajuCard extends StatelessWidget {
                     children: [
                       const TextSpan(text: '타고난 기운은 '),
                       TextSpan(
-                        text: '${s.dayMaster.gan}${s.dayMaster.element} · ${s.dayMaster.image}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, color: ShrineV3Colors.ink),
+                        text:
+                            '${s.dayMaster.gan}${s.dayMaster.element} · ${s.dayMaster.image}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: ShrineV3Colors.ink,
+                        ),
                       ),
                       const TextSpan(text: '. 고르신 소망과 함께 보고 부적을 골라 드려요.'),
                     ],
