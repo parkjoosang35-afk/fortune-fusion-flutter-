@@ -77,7 +77,9 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
     setState(() => _p = p);
     if (p == 1) {
       _loadVideo('write');
-      _timers.add(Timer(const Duration(milliseconds: 5200), () => _setPhase(2)));
+      _timers.add(
+        Timer(const Duration(milliseconds: 5200), () => _setPhase(2)),
+      );
     } else if (p == 3) {
       _loadVideo('burn');
       _burn = 0;
@@ -89,12 +91,16 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
         setState(() => _burn = (_burn + 0.018).clamp(0, 1));
         if (_burn >= 1) {
           t.cancel();
-          _timers.add(Timer(const Duration(milliseconds: 900), () => _setPhase(4)));
+          _timers.add(
+            Timer(const Duration(milliseconds: 900), () => _setPhase(4)),
+          );
         }
       });
     } else if (p == 4) {
       _loadVideo('give');
-      _timers.add(Timer(const Duration(milliseconds: 4200), () => _setPhase(5)));
+      _timers.add(
+        Timer(const Duration(milliseconds: 4200), () => _setPhase(5)),
+      );
     }
   }
 
@@ -112,7 +118,9 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
 
   void _goResult() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => ShrineV3ResultScreen(order: widget.order)),
+      MaterialPageRoute(
+        builder: (_) => ShrineV3ResultScreen(order: widget.order),
+      ),
     );
   }
 
@@ -149,25 +157,56 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
               Image.asset(
                 shrineSceneImage(_vidName == 'burn' ? 'paper' : _vidName),
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: ShrineV3Colors.ink),
+                errorBuilder: (_, __, ___) =>
+                    Container(color: ShrineV3Colors.ink),
               ),
-            DecoratedBox(decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4))),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.4),
+              ),
+            ),
+            // 쓰기/다씀/태우기(p 1~3) 구간 — 프로토타입 `GenImg`처럼 실제 부적
+            // 원본 이미지를 그대로 보여준다(§기존 버그: 색상 박스 + 이름
+            // 텍스트 placeholder만 뜨던 것을 수정 — 이미지 로드 실패 시에만
+            // 한자 placeholder로 대체).
             if (_p >= 1 && _p <= 3)
               Center(
-                child: Container(
-                  width: 140,
-                  height: 322,
-                  decoration: BoxDecoration(
-                    color: ShrineV3Colors.paper.withValues(alpha: _p == 3 ? (1 - _burn) : 1),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 20),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    t.name,
-                    style: ShrineV3TextStyles.title.copyWith(fontSize: 18, color: ShrineV3Colors.seal),
+                child: Opacity(
+                  opacity: _p == 3 ? (1 - _burn).clamp(0.0, 1.0) : 1,
+                  child: Container(
+                    width: 140,
+                    height: 322,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        shrineAssetPath(
+                          (t.thumbPath != null && t.thumbPath!.isNotEmpty)
+                              ? t.thumbPath!
+                              : t.imagePath,
+                        ),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: ShrineV3Colors.paper,
+                          alignment: Alignment.center,
+                          child: Text(
+                            t.hanja,
+                            style: ShrineV3TextStyles.title.copyWith(
+                              fontSize: 40,
+                              color: ShrineV3Colors.seal,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -176,12 +215,22 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
                 alignment: Alignment.center,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 200),
-                  child: Text('부적을 눌러 태우기', style: ShrineV3TextStyles.ui.copyWith(color: ShrineV3Colors.paper, fontSize: 13)),
+                  child: Text(
+                    '부적을 눌러 태우기',
+                    style: ShrineV3TextStyles.ui.copyWith(
+                      color: ShrineV3Colors.paper,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ),
             if (_p >= 4)
               Center(
-                child: UniqueTalismanOverlay(order: widget.order, width: 110, useThumb: true),
+                child: UniqueTalismanOverlay(
+                  order: widget.order,
+                  width: 110,
+                  useThumb: true,
+                ),
               ),
             Align(
               alignment: Alignment.bottomCenter,
@@ -192,15 +241,30 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.75),
+                    ],
                   ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('민세레나', style: ShrineV3TextStyles.ui.copyWith(color: ShrineV3Colors.gold, fontSize: 12)),
+                    Text(
+                      '민세레나',
+                      style: ShrineV3TextStyles.ui.copyWith(
+                        color: ShrineV3Colors.gold,
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(_say[_p], style: ShrineV3TextStyles.body.copyWith(color: ShrineV3Colors.paper, fontSize: 14)),
+                    Text(
+                      _say[_p],
+                      style: ShrineV3TextStyles.body.copyWith(
+                        color: ShrineV3Colors.paper,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: List.generate(_lab.length, (i) {
@@ -210,14 +274,18 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
                             children: [
                               Container(
                                 height: 3,
-                                color: on ? ShrineV3Colors.gold : Colors.white24,
+                                color: on
+                                    ? ShrineV3Colors.gold
+                                    : Colors.white24,
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 _lab[i],
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: on ? ShrineV3Colors.gold : Colors.white54,
+                                  color: on
+                                      ? ShrineV3Colors.gold
+                                      : Colors.white54,
                                 ),
                               ),
                             ],
@@ -235,7 +303,9 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: ShrineV3Colors.seal,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           child: const Text('부적 받기 ›'),
                         ),
@@ -245,7 +315,10 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: _skip,
-                          child: const Text('건너뛰기', style: TextStyle(color: Colors.white70)),
+                          child: const Text(
+                            '건너뛰기',
+                            style: TextStyle(color: Colors.white70),
+                          ),
                         ),
                       ),
                   ],
