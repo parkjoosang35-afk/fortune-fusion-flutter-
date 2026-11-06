@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
+import '../../mypage/presentation/theme/mypage_dashed_border.dart';
+import '../../mypage/presentation/theme/mypage_success_celebration.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/pass_provider.dart';
 import '../domain/pass_model.dart';
@@ -291,9 +293,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
               if (policy == null)
                 _buildEmptyState(pass.isLoading)
               else if (_phase == _Phase.success)
-                _SuccessCelebration(
-                  durationLabel: _passAmountLabel(policy),
-                  isCountBased: policy.grantCount != null,
+                MyPageSuccessCelebration(
+                  title: '프리패스가 발급되었어요!',
+                  subtitle: policy.grantCount != null
+                      ? '결과보기 ${_passAmountLabel(policy)}가 지급되었어요'
+                      : '${_passAmountLabel(policy)} 동안 모든 콘텐츠를 자유롭게 이용하세요',
                 )
               else
                 _buildContent(policy),
@@ -539,7 +543,7 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       media = _adPlaceholder(height);
     }
 
-    return _DashedBorderBox(
+    return MyPageDashedBorderBox(
       radius: MyPageRadius.btn,
       height: height,
       child: Stack(
@@ -784,211 +788,6 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// README §S02: 광고 영역의 "1px dashed" 테두리. Flutter에 내장 점선
-/// 테두리가 없어 전용 CustomPainter로 간단히 구현한다(새 패키지 의존성
-/// 추가 없이 이 파일 안에서만 쓰는 가벼운 구현).
-class _DashedBorderBox extends StatelessWidget {
-  const _DashedBorderBox({
-    required this.child,
-    required this.radius,
-    required this.height,
-  });
-
-  final Widget child;
-  final double radius;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedRRectPainter(
-        radius: radius,
-        color: MyPageColors.ink3,
-      ),
-      child: SizedBox(
-        height: height,
-        width: double.infinity,
-        child: Padding(padding: const EdgeInsets.all(1), child: child),
-      ),
-    );
-  }
-}
-
-class _DashedRRectPainter extends CustomPainter {
-  _DashedRRectPainter({required this.radius, required this.color});
-
-  final double radius;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rrect);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    const dashWidth = 5.0;
-    const dashGap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = distance + dashWidth;
-        canvas.drawPath(
-          metric.extractPath(distance, next.clamp(0, metric.length)),
-          paint,
-        );
-        distance = next + dashGap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.radius != radius;
-}
-
-/// §5/§7 지급 완료 축하 애니메이션 — 체크 아이콘 스케일-인 + 반짝임(sparkle) +
-/// 부드러운 Fade. 과하지 않게 900ms 이내로 짧게 재생한다.
-class _SuccessCelebration extends StatefulWidget {
-  const _SuccessCelebration({
-    required this.durationLabel,
-    this.isCountBased = false,
-  });
-
-  final String durationLabel;
-  // [결과보기 통합 권한 시스템 v1.0, 2026-09-28] true면 durationLabel이 "N회"
-  // 형태(횟수제)이므로 하단 안내 문구를 "~동안 이용"이 아니라 "~획득" 형태로 표시한다.
-  final bool isCountBased;
-
-  @override
-  State<_SuccessCelebration> createState() => _SuccessCelebrationState();
-}
-
-class _SuccessCelebrationState extends State<_SuccessCelebration>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  static const _sparkles = [
-    Offset(-42, -30),
-    Offset(38, -34),
-    Offset(-46, 22),
-    Offset(44, 26),
-    Offset(0, -48),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    );
-    final fade = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: MyPageSpacing.sp8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 96,
-            height: 96,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                ..._sparkles.map(
-                  (offset) => AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, child) {
-                      final t = Curves.easeOut.transform(_controller.value);
-                      return Positioned(
-                        left: 48 + offset.dx * t - 7,
-                        top: 48 + offset.dy * t - 7,
-                        child: Opacity(
-                          opacity: (1 - t).clamp(0.0, 1.0),
-                          child: const Icon(
-                            Icons.auto_awesome_rounded,
-                            size: 14,
-                            color: MyPageColors.gold,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                ScaleTransition(
-                  scale: scale,
-                  child: FadeTransition(
-                    opacity: fade,
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: const BoxDecoration(
-                        color: MyPageColors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_rounded,
-                        color: Color(0xFFFBF1DE),
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: MyPageSpacing.sp4),
-          FadeTransition(
-            opacity: fade,
-            child: const Text(
-              '프리패스가 발급되었어요!',
-              style: TextStyle(
-                fontFamily: MyPageFonts.ui,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                color: MyPageColors.ink,
-              ),
-            ),
-          ),
-          const SizedBox(height: MyPageSpacing.sp1),
-          FadeTransition(
-            opacity: fade,
-            child: Text(
-              widget.isCountBased
-                  ? '결과보기 ${widget.durationLabel}가 지급되었어요'
-                  : '${widget.durationLabel} 동안 모든 콘텐츠를 자유롭게 이용하세요',
-              style: MyPageTextStyles.caption,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
-import '../../../core/theme/app_unified_style.dart';
 import '../../ads_test/domain/admob_ad_ids.dart';
+import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
+import '../../mypage/presentation/theme/mypage_dashed_border.dart';
+import '../../mypage/presentation/theme/mypage_success_celebration.dart';
 import '../application/fortune_ad_provider.dart';
 import '../domain/fortune_ad_model.dart';
 
@@ -55,6 +57,17 @@ class FortuneAdWatchResult {
 /// 서버 최종 지급 원칙: 이 다이얼로그는 시청 진행률만 표시할 뿐, 실제 지급은
 /// 전적으로 서버(`POST /api/ads/{adId}/complete`)가 결정한다 — 클라이언트가
 /// "다 봤다"고 판단해도 서버가 자격 재검증에서 거부하면 지급되지 않는다.
+///
+/// [마이페이지 리뉴얼 · DEV 2026-11-06 §S04] 디자인 핸드오프
+/// `design_handoff_mypage_minimal.zip` README §4 "S02 / S04 광고 바텀시트"
+/// 스펙으로 전면 리스킨. 기존 `UnifiedColors`/`UnifiedText`(다크 테마,
+/// `Dialog` 카드) → `MyPageColors`/`MyPageTextStyles`(한지/부적 라이트
+/// 테마) 기반 **바텀시트 형태**(`showModalBottomSheet`, S02와 동일한 톤)로
+/// 교체했을 뿐, 상태 머신(`_Stage`: starting/watching/verifying/granted/
+/// error)·서버 세션 발급(`startWatch`)·AdMob SDK 로드/표시·
+/// `onUserEarnedReward` 콜백 처리(절대 지급량으로 신뢰하지 않음)·서버 최종
+/// 검증(`completeWatch`) 등 기능 로직은 단 한 줄도 바꾸지 않았다(S01/S02와
+/// 동일한 "로직은 그대로, 스킨만 교체" 원칙).
 class FortuneAdWatchDialog extends StatefulWidget {
   final FortuneAdModel ad;
   const FortuneAdWatchDialog({super.key, required this.ad});
@@ -63,9 +76,19 @@ class FortuneAdWatchDialog extends StatefulWidget {
     BuildContext context, {
     required FortuneAdModel ad,
   }) async {
-    final result = await showDialog<FortuneAdWatchResult>(
+    // README §S02/S04: dim rgba(30,18,10,.45), 시트 radius 30 30 0 0.
+    final result = await showModalBottomSheet<FortuneAdWatchResult>(
       context: context,
-      barrierDismissible: false,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: MyPageColors.surface,
+      barrierColor: const Color(0x731E120A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(MyPageRadius.sheet),
+        ),
+      ),
       builder: (_) => FortuneAdWatchDialog(ad: ad),
     );
     return result ?? FortuneAdWatchResult.cancelled();
@@ -288,35 +311,26 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // [반응형 화면 규격 통일 지시서] Dialog 본문은 원래 항상
-    // `SizedBox(height: 420)`로 고정되어 있었다 — watching 단계는 Stack +
-    // Expanded 구조라 레이아웃이 성립하려면 부모가 반드시 "유한한 높이"를
-    // 줘야 하므로 이 420px 고정은 그대로 유지한다(watching 단계 쪽은 아래
-    // _WatchingView에서 제목/안내문구에 maxLines 상한을 둬서 420px 안에서도
-    // 항상 들어가도록 고쳤다).
-    // 반면 starting/verifying/granted/error 단계는 Expanded 없이
-    // `Center + Column(mainAxisSize: min)`만 쓰는 구조라 스크롤이 가능하다 —
-    // 실제로 error 단계의 긴 에러 메시지가 textScale 1.5배 이상에서 420px를
-    // 넘는 실제 세로(Column) 오버플로가 확인됐다(최대 666px). 이 단계들만
-    // `SingleChildScrollView`로 감싸 내용이 420px보다 커지면 스크롤되게
-    // 하고, 기존처럼 내용이 짧으면 지금과 완전히 동일하게 보인다(크기가
-    // 420px보다 작을 때는 SingleChildScrollView가 시각적으로 아무 변화도
-    // 주지 않는다).
-    final body = _stage == _Stage.watching
-        ? SizedBox(height: 420, child: _buildBody())
-        : ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 420),
-            child: SingleChildScrollView(child: _buildBody()),
-          );
-    return PopScope(
-      canPop: false,
-      child: Dialog(
-        backgroundColor: UnifiedColors.black,
-        insetPadding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+    // README §S02/S04: 시트 padding `12 24 40`. starting/verifying/granted/
+    // error 단계는 내용 높이에 맞춰 자연스럽게 커지되(SingleChildScrollView로
+    // 긴 에러 메시지·큰 textScale 대비), watching 단계만 광고 영역(150px) +
+    // 진행률 UI가 들어갈 고정 공간이 필요해 기존 420px 높이 컨테이너를
+    // 그대로 유지한다.
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: MyPageSpacing.sp6,
+          right: MyPageSpacing.sp6,
+          top: MyPageSpacing.sp3,
+          bottom: 40 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: body,
+        child: _stage == _Stage.watching
+            ? SizedBox(height: 420, child: _buildBody())
+            : ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 420),
+                child: SingleChildScrollView(child: _buildBody()),
+              ),
       ),
     );
   }
@@ -324,42 +338,119 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
   Widget _buildBody() {
     switch (_stage) {
       case _Stage.starting:
-        return const Center(
-          child: CircularProgressIndicator(color: UnifiedColors.neon),
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: MyPageSpacing.sp8),
+          child: Center(
+            child: CircularProgressIndicator(color: MyPageColors.red),
+          ),
         );
       case _Stage.watching:
-        return _WatchingView(
-          ad: widget.ad,
-          videoController: _videoController,
-          remaining: _remaining,
-          total: _totalSeconds,
-          onClose: _closeAsCancelled,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHandle(),
+            Expanded(
+              child: _WatchingView(
+                ad: widget.ad,
+                videoController: _videoController,
+                remaining: _remaining,
+                total: _totalSeconds,
+                onClose: _closeAsCancelled,
+              ),
+            ),
+          ],
         );
       case _Stage.verifying:
-        return const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: UnifiedColors.neon),
-              SizedBox(height: UnifiedTokens.spaceMd),
-              Text(
-                '서버에서 시청 결과를 확인하고 있어요...',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
-              ),
-            ],
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: MyPageSpacing.sp8),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: MyPageColors.red),
+                SizedBox(height: MyPageSpacing.sp3),
+                Text(
+                  '서버에서 시청 결과를 확인하고 있어요...',
+                  style: MyPageTextStyles.caption,
+                ),
+              ],
+            ),
           ),
         );
       case _Stage.granted:
-        return _GrantedView(
-          amount: _grantedAmount ?? 0,
-          onDone: _closeAsGranted,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MyPageSuccessCelebration(
+              title: '복주머니가 열렸습니다!',
+              subtitle: '+${_grantedAmount ?? 0}개가 담겼어요',
+            ),
+            _buildDoneButton('확인', _closeAsGranted),
+          ],
         );
       case _Stage.error:
-        return _ErrorView(
-          message: _errorMessage ?? '오류가 발생했습니다.',
-          onDone: _closeAsFailed,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: MyPageSpacing.sp6),
+              child: Icon(
+                Icons.error_outline_rounded,
+                color: MyPageColors.red2,
+                size: 48,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: MyPageSpacing.sp2,
+              ),
+              child: Text(
+                _errorMessage ?? '오류가 발생했습니다.',
+                textAlign: TextAlign.center,
+                style: MyPageTextStyles.body,
+              ),
+            ),
+            _buildDoneButton('확인', _closeAsFailed),
+          ],
         );
     }
+  }
+
+  // README §S02/S04: 그랩바 40×4.
+  Widget _buildHandle() {
+    return Container(
+      width: 40,
+      height: 4,
+      margin: const EdgeInsets.only(bottom: MyPageSpacing.sp3),
+      decoration: BoxDecoration(
+        color: MyPageColors.hair,
+        borderRadius: BorderRadius.circular(MyPageRadius.pill),
+      ),
+    );
+  }
+
+  Widget _buildDoneButton(String label, VoidCallback onPressed) {
+    return Padding(
+      padding: const EdgeInsets.only(top: MyPageSpacing.sp2),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: MyPageColors.red,
+            foregroundColor: const Color(0xFFFBF1DE),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(MyPageRadius.pill),
+            ),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -395,47 +486,98 @@ class _WatchingView extends StatelessWidget {
     return Stack(
       children: [
         Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(child: Center(child: _buildContent())),
-            Padding(
-              padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-              child: Column(
+            // README §S04: 제목 "광고 보고 / 복주머니 받기" 21px/800 2줄,
+            // 리드 "광고를 끝까지 보면 복주머니 3개가 담겨요".
+            const Text(
+              '광고 보고\n복주머니 받기',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w800,
+                fontSize: 21,
+                height: 1.3,
+                color: MyPageColors.ink,
+              ),
+            ),
+            const SizedBox(height: MyPageSpacing.sp2),
+            Text(
+              '광고를 끝까지 보면 복주머니 ${ad.rewardAmount}개가 담겨요',
+              textAlign: TextAlign.center,
+              style: MyPageTextStyles.body,
+            ),
+            const SizedBox(height: MyPageSpacing.sp4),
+            // README §S04: 광고 영역 150px, radius 16, 1px dashed, 하단 3px
+            // 빨강 진행바 — S02와 동일한 공용 위젯 재사용.
+            Expanded(
+              child: MyPageDashedBorderBox(
+                radius: MyPageRadius.btn,
+                height: 150,
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        MyPageRadius.btn - 1,
+                      ),
+                      child: Center(child: _buildContent()),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(MyPageRadius.btn - 1),
+                        ),
+                        child: SizedBox(
+                          height: 3,
+                          child: LinearProgressIndicator(
+                            value: progress.clamp(0.0, 1.0),
+                            minHeight: 3,
+                            backgroundColor: Colors.transparent,
+                            color: MyPageColors.red,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: MyPageSpacing.sp3),
+            // README §S04: CTA가 "광고 재생 중…"으로 바뀌는 동안의 상태 안내.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(MyPageSpacing.sp3),
+              decoration: BoxDecoration(
+                color: MyPageColors.redSoft,
+                borderRadius: BorderRadius.circular(MyPageRadius.btn),
+              ),
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // [반응형 화면 규격 통일 지시서] 광고 제목(ad.title)은
-                  // 관리자가 입력하는 값이라 길이가 보장되지 않는다. 기존에는
-                  // maxLines 제한이 없어, 아주 긴 제목 + 큰 textScale
-                  // 조합에서 줄 수가 한없이 늘어나 Stack의 고정 420px
-                  // 영역 안에서 세로(Column) RenderFlex 오버플로를 일으켰다
-                  // (실측 최대 35px). 다이얼로그 공간이 한정적이므로 2줄까지만
-                  // 보여주고 넘치면 말줄임표로 축약한다 — 짧은 제목은 지금과
-                  // 완전히 동일하게 한 줄로 보인다.
-                  Text(
-                    ad.title,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: UnifiedText.bodyStrong(color: Colors.white),
-                  ),
-                  const SizedBox(height: UnifiedTokens.spaceSm),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      UnifiedTokens.radiusPill,
-                    ),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6,
-                      backgroundColor: const Color(0xFF2A2A2A),
-                      color: UnifiedColors.neon,
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation(MyPageColors.red),
                     ),
                   ),
-                  const SizedBox(height: UnifiedTokens.spaceSm),
-                  Text(
-                    '$remaining초 후 +${ad.rewardAmount}개 지급 (끝까지 시청해야 지급돼요)',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: UnifiedText.caption(color: UnifiedColors.neon),
+                  const SizedBox(width: MyPageSpacing.sp2),
+                  Flexible(
+                    child: Text(
+                      '광고 재생 중... $remaining초 후 +${ad.rewardAmount}개 자동 지급',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: MyPageTextStyles.caption.copyWith(
+                        color: MyPageColors.redDeep,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -443,12 +585,18 @@ class _WatchingView extends StatelessWidget {
           ],
         ),
         Positioned(
-          top: UnifiedTokens.spaceSm,
-          right: UnifiedTokens.spaceSm,
-          child: IconButton(
-            onPressed: onClose,
-            icon: const Icon(Icons.close_rounded, color: Color(0xFFB8B8B8)),
-            tooltip: '중간에 닫으면 보상이 지급되지 않아요',
+          top: 0,
+          right: 0,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, color: MyPageColors.ink3),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: '중간에 닫으면 보상이 지급되지 않아요',
+            ),
           ),
         ),
       ],
@@ -466,29 +614,37 @@ class _WatchingView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: UnifiedColors.neon),
-              const SizedBox(height: UnifiedTokens.spaceLg),
+              const CircularProgressIndicator(color: MyPageColors.red),
+              const SizedBox(height: MyPageSpacing.sp4),
               Text(
                 ad.title,
                 textAlign: TextAlign.center,
-                style: UnifiedText.bodyStrong(color: Colors.white),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: MyPageTextStyles.cardTitle,
               ),
-              const SizedBox(height: UnifiedTokens.spaceSm),
-              const Text(
+              const SizedBox(height: MyPageSpacing.sp2),
+              Text(
                 '광고를 불러오고 있어요...\n끝까지 시청하면 복주머니가 지급돼요',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style: MyPageTextStyles.caption,
               ),
             ],
           ),
         ),
         Positioned(
-          top: UnifiedTokens.spaceSm,
-          right: UnifiedTokens.spaceSm,
-          child: IconButton(
-            onPressed: onClose,
-            icon: const Icon(Icons.close_rounded, color: Color(0xFFB8B8B8)),
-            tooltip: '중간에 닫으면 보상이 지급되지 않아요',
+          top: 0,
+          right: 0,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, color: MyPageColors.ink3),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: '중간에 닫으면 보상이 지급되지 않아요',
+            ),
           ),
         ),
       ],
@@ -506,7 +662,7 @@ class _WatchingView extends StatelessWidget {
     }
     if (ad.adType == 'image' && (ad.imageUrl ?? '').isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+        borderRadius: BorderRadius.circular(MyPageRadius.btn - 1),
         child: Image.network(
           ad.imageUrl!,
           fit: BoxFit.contain,
@@ -520,104 +676,8 @@ class _WatchingView extends StatelessWidget {
   Widget _fallbackIcon() {
     return const Icon(
       Icons.smart_display_rounded,
-      color: UnifiedColors.neon,
-      size: 72,
-    );
-  }
-}
-
-class _GrantedView extends StatelessWidget {
-  final int amount;
-  final VoidCallback onDone;
-  const _GrantedView({required this.amount, required this.onDone});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🧧', style: TextStyle(fontSize: 64)),
-          const SizedBox(height: UnifiedTokens.spaceMd),
-          const Text(
-            '복주머니가 열렸습니다!',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(
-            '+$amount개',
-            style: const TextStyle(
-              color: UnifiedColors.neon,
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: UnifiedTokens.spaceXxl),
-          ElevatedButton(
-            onPressed: onDone,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: UnifiedColors.neon,
-              foregroundColor: UnifiedColors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            ),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onDone;
-  const _ErrorView({required this.message, required this.onDone});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: Colors.redAccent,
-              size: 48,
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
-            ElevatedButton(
-              onPressed: onDone,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: UnifiedColors.neon,
-                foregroundColor: UnifiedColors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
-              ),
-              child: const Text('확인'),
-            ),
-          ],
-        ),
-      ),
+      color: MyPageColors.red,
+      size: 56,
     );
   }
 }
