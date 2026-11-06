@@ -82,9 +82,10 @@ class FeText {
     letterSpacing: -1.2,
     color: FeColors.fg,
   );
+  // [폰트 중앙화 — 2026-11] '타이틀' 규칙(800)에 맞춰 700 -> 800 상향.
   static const sectionTitle = TextStyle(
     fontFamily: FeFonts.display,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     fontSize: 22,
     height: 1.3,
     letterSpacing: -0.4,
@@ -123,15 +124,18 @@ class FeText {
     height: 1.45,
     color: FeColors.fg,
   );
+  // [폰트 중앙화] 보조 라벨 규칙(600~700)에 맞춰 500 -> 600 상향.
   static const ui = TextStyle(
     fontFamily: FeFonts.ui,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w600,
     fontSize: 14,
     height: 1.5,
     color: FeColors.fg,
   );
+  // [폰트 중앙화] Pretendard 보조 라벨 규칙(600~700)에 맞춰 기본값(400) -> 600 상향.
   static const caption = TextStyle(
     fontFamily: FeFonts.ui,
+    fontWeight: FontWeight.w600,
     fontSize: 11.5,
     height: 1.5,
     color: FeColors.muted,
