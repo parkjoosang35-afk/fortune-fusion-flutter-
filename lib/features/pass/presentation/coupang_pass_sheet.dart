@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../application/pass_provider.dart';
 import '../domain/pass_model.dart';
@@ -22,6 +22,15 @@ import 'pass_time_format.dart';
 /// 관리자가 설정한 대기시간(4/10초) 카운트다운 → 자동 지급([PassProvider.claimAd])
 /// — 재탭 없이 자동으로 완료된다. 앱 라이프사이클 감지가 되지 않는 환경(웹 브라우저
 /// 탭 전환 등)을 대비해, 복귀 대기 화면에 수동 확인 버튼도 함께 둔다(이중 안전장치).
+///
+/// [마이페이지 리뉴얼 · DEV 2026-10-11 §S02] 디자인 핸드오프
+/// `design_handoff_mypage_minimal.zip` README §4 "S02 / S04 광고 바텀시트"
+/// 스펙으로 전면 리스킨. 기존 `UnifiedColors`/`UnifiedText`(다크 테마) →
+/// `MyPageColors`/`MyPageTextStyles`(한지/부적 라이트 테마, mypage_minimal_theme.dart)
+/// 로 교체했을 뿐, 상태 머신(`_Phase`)·쿠팡 방문 URL 오픈·앱 복귀 감지·
+/// 폴백 타이머·카운트다운·`claimAd` 지급 API 호출·성공 애니메이션 등
+/// 기능 로직은 단 한 줄도 바꾸지 않았다(S01 my_screen.dart 리뉴얼과 동일한
+/// "로직은 그대로, 스킨만 교체" 원칙).
 Future<void> showCoupangPassSheet(
   BuildContext context, {
   String? categoryTitle,
@@ -29,9 +38,14 @@ Future<void> showCoupangPassSheet(
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: UnifiedColors.bg,
+    backgroundColor: MyPageColors.surface,
+    // README §S02: dim rgba(30,18,10,.45). (blur 2px는 showModalBottomSheet의
+    // barrierColor만으로는 표현할 수 없어 생략 — dim 색상만 적용한다.)
+    barrierColor: const Color(0x731E120A),
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(MyPageRadius.sheet),
+      ),
     ),
     builder: (ctx) => _CoupangPassSheet(categoryTitle: categoryTitle),
   );
@@ -256,17 +270,16 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       return null;
     }();
 
+    // README §S02: 시트 padding `12 24 40`.
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.only(
-            left: UnifiedTokens.spaceXl,
-            right: UnifiedTokens.spaceXl,
-            top: UnifiedTokens.spaceMd,
-            bottom:
-                UnifiedTokens.spaceXl +
-                MediaQuery.of(context).viewInsets.bottom,
+            left: MyPageSpacing.sp6,
+            right: MyPageSpacing.sp6,
+            top: MyPageSpacing.sp3,
+            bottom: 40 + MediaQuery.of(context).viewInsets.bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -274,7 +287,7 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
             children: [
               _buildHandle(),
               _buildHeaderRow(policy),
-              const SizedBox(height: UnifiedTokens.spaceXs),
+              const SizedBox(height: MyPageSpacing.sp1),
               if (policy == null)
                 _buildEmptyState(pass.isLoading)
               else if (_phase == _Phase.success)
@@ -291,20 +304,23 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     );
   }
 
+  // README §S02: 그랩바 40×4.
   Widget _buildHandle() {
     return Center(
       child: Container(
-        width: 36,
+        width: 40,
         height: 4,
-        margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
+        margin: const EdgeInsets.only(bottom: MyPageSpacing.sp4),
         decoration: BoxDecoration(
-          color: UnifiedColors.border,
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+          color: MyPageColors.hair,
+          borderRadius: BorderRadius.circular(MyPageRadius.pill),
         ),
       ),
     );
   }
 
+  // README §S02: 우상단 ✕ 36×36. (좌측 도움말 아이콘은 기존 기능을
+  // 유지하기 위해 그대로 두되, 톤을 --mp-ink-3으로 맞춘다.)
   Widget _buildHeaderRow(PassPolicyModel? policy) {
     return Row(
       children: [
@@ -312,22 +328,23 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
           onPressed: () => _showHelp(policy),
           icon: const Icon(
             Icons.help_outline_rounded,
-            color: UnifiedColors.textCaption,
+            color: MyPageColors.ink3,
           ),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          iconSize: UnifiedTokens.iconLg,
+          iconSize: 22,
         ),
         const Spacer(),
-        IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(
-            Icons.close_rounded,
-            color: UnifiedColors.textCaption,
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded, color: MyPageColors.ink3),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            iconSize: 22,
           ),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          iconSize: UnifiedTokens.iconLg,
         ),
       ],
     );
@@ -335,23 +352,31 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
 
   Widget _buildEmptyState(bool isLoading) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: UnifiedTokens.spaceXxl),
+      padding: const EdgeInsets.symmetric(vertical: MyPageSpacing.sp8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            '프리패스가 필요해요',
-            style: UnifiedText.title(),
+          const Text(
+            '프리패스가\n필요하신가요',
+            style: TextStyle(
+              fontFamily: MyPageFonts.ui,
+              fontWeight: FontWeight.w800,
+              fontSize: 21,
+              height: 1.3,
+              color: MyPageColors.ink,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
+          const SizedBox(height: MyPageSpacing.sp2),
           if (isLoading)
-            const Center(child: CircularProgressIndicator())
+            const Center(
+              child: CircularProgressIndicator(color: MyPageColors.red),
+            )
           else
             Text(
               '아직 프리패스 광고가 준비되지 않았어요. 잠시 후 다시 시도해주세요.',
-              style: UnifiedText.body(),
+              style: MyPageTextStyles.body,
               textAlign: TextAlign.center,
             ),
         ],
@@ -385,65 +410,82 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     final isWaitingReturn = _phase == _Phase.waitingReturn;
 
     // [프리패스 UI 문구 관리자 연동] 관리자가 입력한 안내 제목/문구를 우선
-    // 사용하고, 값이 없으면(null/빈 문자열) 기존 하드코딩 문구로 폴백한다.
+    // 사용하고, 값이 없으면(null/빈 문자열) README §S02 기본 문구로 폴백한다.
+    // README §S02: 기본 타이틀 "프리패스가 / 필요하신가요", 기본 리드
+    // "짧은 광고를 끝까지 보면 결과보기 2회를 무료로 쓸 수 있어요".
     final guideTitle = policy.adGuideTitle?.isNotEmpty == true
         ? policy.adGuideTitle!
         : (widget.categoryTitle != null
-              ? '"${widget.categoryTitle}"는 프리패스로 열람할 수 있어요'
-              : '프리패스가 필요해요');
+              ? '"${widget.categoryTitle}"는\n프리패스로 열람할 수 있어요'
+              : '프리패스가\n필요하신가요');
+    // isCountBased는 현재 항상 true(회수제)지만, 향후 레거시 시간제 정책이
+    // 부활할 가능성에 대비해 분기 구조 자체는 유지한다(기존 로직 그대로 —
+    // 원본 파일에도 동일한 패턴/동일한 dead_code 경고가 있었다).
     final guideText = policy.adGuideText?.isNotEmpty == true
         ? policy.adGuideText!
         : isCountBased
-            ? '쿠팡 파트너스 광고를 확인하면 결과보기 $durationLabel가\n지급되어 무료로 이용할 수 있어요.'
+            ? '짧은 광고를 끝까지 보면 결과보기 $durationLabel를\n무료로 쓸 수 있어요.'
             : '쿠팡 파트너스 광고를 확인하면 $durationLabel 동안\n모든 콘텐츠를 무료로 이용할 수 있어요.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // README §S02: 제목 21px/800 2줄.
         Text(
           guideTitle,
-          style: UnifiedText.title(),
+          style: const TextStyle(
+            fontFamily: MyPageFonts.ui,
+            fontWeight: FontWeight.w800,
+            fontSize: 21,
+            height: 1.3,
+            color: MyPageColors.ink,
+          ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: UnifiedTokens.spaceXs),
-        Text(guideText, style: UnifiedText.body(), textAlign: TextAlign.center),
-        const SizedBox(height: UnifiedTokens.spaceLg),
-
-        // 광고 이미지/스크립트 영역
-        ClipRRect(
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-          child: _buildAdMedia(policy),
+        const SizedBox(height: MyPageSpacing.sp2),
+        Text(
+          guideText,
+          style: MyPageTextStyles.body,
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: UnifiedTokens.spaceMd),
+        const SizedBox(height: MyPageSpacing.sp4),
+
+        // README §S02: 광고 영역 150px, radius 16, 1px dashed, 하단 3px
+        // 빨강 진행바. 여기에 실제 광고 SDK 뷰(스크립트/배너)를 넣는다.
+        _buildAdMedia(policy, isCounting: isCounting),
+        const SizedBox(height: MyPageSpacing.sp3),
 
         // "쿠팡 방문하기" 버튼
         InkWell(
           onTap: isCounting || _claiming ? null : () => _handleVisit(policy),
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusSm),
+          borderRadius: BorderRadius.circular(MyPageRadius.btn),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: UnifiedTokens.spaceSm,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: MyPageSpacing.sp2),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(
                   Icons.open_in_new_rounded,
-                  size: UnifiedTokens.iconMd,
-                  color: UnifiedColors.textPrimary,
+                  size: 18,
+                  color: MyPageColors.ink,
                 ),
-                const SizedBox(width: UnifiedTokens.spaceSm),
-                Text('쿠팡 방문하기', style: UnifiedText.bodyStrong()),
+                const SizedBox(width: MyPageSpacing.sp2),
+                Text(
+                  '쿠팡 방문하기',
+                  style: MyPageTextStyles.row.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
         ),
         Text(
           '파트너스 활동을 통해 일정액의 수수료를 지급받을 수 있어요',
-          style: UnifiedText.caption(),
+          style: MyPageTextStyles.caption,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: UnifiedTokens.spaceLg),
+        const SizedBox(height: MyPageSpacing.sp4),
 
         // 대기/카운트다운 상태 안내
         if (isWaitingReturn) _buildWaitingBanner(policy),
@@ -451,75 +493,118 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
 
         // 이용시간/횟수 뱃지
         _buildDurationPill(durationLabel, isCountBased: isCountBased),
-        const SizedBox(height: UnifiedTokens.spaceLg),
+        const SizedBox(height: MyPageSpacing.sp4),
 
         // 메인 CTA
         _buildMainCta(policy, durationLabel, isCountBased: isCountBased),
 
-        const SizedBox(height: UnifiedTokens.spaceSm),
+        const SizedBox(height: MyPageSpacing.sp2),
         TextButton(
           onPressed: (isCounting || _claiming)
               ? null
               : () => Navigator.of(context).pop(),
-          child: Text('나중에 할게요', style: UnifiedText.caption()),
+          child: Text('나중에 할게요', style: MyPageTextStyles.caption),
         ),
       ],
     );
   }
 
-  Widget _buildAdMedia(PassPolicyModel policy) {
+  // README §S02: 광고 영역 150px, radius 16, 1px dashed border, 하단 3px
+  // 빨강 진행바(카운트다운 진행률을 시각화).
+  Widget _buildAdMedia(PassPolicyModel policy, {required bool isCounting}) {
     const height = 150.0;
+    final progress = isCounting && policy.adWaitSeconds > 0
+        ? (policy.adWaitSeconds - _secondsLeft) / policy.adWaitSeconds
+        : 0.0;
+
+    Widget media;
     if (policy.adType == 'script' &&
         policy.adScript != null &&
         policy.adScript!.isNotEmpty) {
-      return SizedBox(
+      media = SizedBox(
         height: height,
         width: double.infinity,
         child: buildAdScriptView(policy.adScript!, height: height),
       );
-    }
-    if (policy.bannerImageUrl != null && policy.bannerImageUrl!.isNotEmpty) {
-      return Image.network(
+    } else if (policy.bannerImageUrl != null &&
+        policy.bannerImageUrl!.isNotEmpty) {
+      media = Image.network(
         policy.bannerImageUrl!,
         height: height,
         width: double.infinity,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _adPlaceholder(height),
       );
+    } else {
+      media = _adPlaceholder(height);
     }
-    return _adPlaceholder(height);
+
+    return _DashedBorderBox(
+      radius: MyPageRadius.btn,
+      height: height,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(MyPageRadius.btn - 1),
+            child: media,
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(MyPageRadius.btn - 1),
+              ),
+              child: SizedBox(
+                height: 3,
+                child: LinearProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  minHeight: 3,
+                  backgroundColor: Colors.transparent,
+                  color: MyPageColors.red,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _adPlaceholder(double height) {
     return Container(
       height: height,
       width: double.infinity,
-      color: UnifiedColors.cardBanner,
+      color: MyPageColors.paper2,
       alignment: Alignment.center,
       child: const Icon(
         Icons.local_offer_outlined,
         size: 36,
-        color: UnifiedColors.textCaption,
+        color: MyPageColors.ink3,
       ),
     );
   }
 
   Widget _buildWaitingBanner(PassPolicyModel policy) {
     return Container(
-      margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
+      margin: const EdgeInsets.only(bottom: MyPageSpacing.sp3),
+      padding: const EdgeInsets.all(MyPageSpacing.sp3),
       decoration: BoxDecoration(
-        color: UnifiedColors.cardAllMenu,
-        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+        color: MyPageColors.paper2,
+        borderRadius: BorderRadius.circular(MyPageRadius.btn),
       ),
       child: Row(
         children: [
           const SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: MyPageColors.red,
+            ),
           ),
-          const SizedBox(width: UnifiedTokens.spaceSm),
+          const SizedBox(width: MyPageSpacing.sp2),
           Expanded(
             child: Text(
               // [프리패스 "로딩만 돌고 멈춤" 버그 수정] 자동 복귀 감지가 되지
@@ -527,12 +612,13 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
               // 진행된다는 점과, 바로 아래 큰 버튼을 눌러도 된다는 점을
               // 함께 안내한다.
               '쿠팡 페이지를 확인하셨다면 아래 버튼을 눌러주세요.\n잠시 기다리면 자동으로도 진행돼요.',
-              style: UnifiedText.bodySmall(),
+              style: MyPageTextStyles.caption.copyWith(color: MyPageColors.ink2),
               textAlign: TextAlign.center,
             ),
           ),
           TextButton(
             onPressed: () => _startCountdown(policy),
+            style: TextButton.styleFrom(foregroundColor: MyPageColors.red),
             child: const Text('돌아왔어요'),
           ),
         ],
@@ -540,30 +626,34 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     );
   }
 
+  // README §S02: CTA가 "광고 재생 중…"으로 바뀌는 동안의 상태 안내 배너.
   Widget _buildCountingBanner() {
     return Container(
-      margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceMd),
+      margin: const EdgeInsets.only(bottom: MyPageSpacing.sp3),
+      padding: const EdgeInsets.all(MyPageSpacing.sp3),
       decoration: BoxDecoration(
-        color: UnifiedColors.black,
-        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+        color: MyPageColors.redSoft,
+        borderRadius: BorderRadius.circular(MyPageRadius.btn),
       ),
       child: Row(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 20,
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              valueColor: const AlwaysStoppedAnimation(UnifiedColors.neon),
+              valueColor: AlwaysStoppedAnimation(MyPageColors.red),
               value: null,
             ),
           ),
-          const SizedBox(width: UnifiedTokens.spaceSm),
+          const SizedBox(width: MyPageSpacing.sp2),
           Expanded(
             child: Text(
-              '쿠팡 광고 확인 중... $_secondsLeft초 후 자동 지급',
-              style: UnifiedText.bodySmall(color: Colors.white),
+              '광고 재생 중... $_secondsLeft초 후 자동 지급',
+              style: MyPageTextStyles.caption.copyWith(
+                color: MyPageColors.redDeep,
+                fontWeight: FontWeight.w700,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -575,12 +665,12 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
   Widget _buildDurationPill(String durationLabel, {required bool isCountBased}) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: UnifiedTokens.spaceMd,
+        horizontal: MyPageSpacing.sp3,
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: UnifiedColors.cardAllMenu,
-        borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+        color: MyPageColors.paper2,
+        borderRadius: BorderRadius.circular(MyPageRadius.pill),
       ),
       // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
       // 이 뱃지는 시트 폭에 맞춘 Row(mainAxisSize: min)인데, 안의 Text가
@@ -595,8 +685,8 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         children: [
           Icon(
             isCountBased ? Icons.confirmation_num_outlined : Icons.timer_outlined,
-            size: UnifiedTokens.iconSm,
-            color: UnifiedColors.textSecondary,
+            size: 16,
+            color: MyPageColors.ink2,
           ),
           const SizedBox(width: 4),
           Flexible(
@@ -604,7 +694,7 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
               isCountBased
                   ? '프리패스 지급 · $durationLabel'
                   : '프리패스 이용시간 · $durationLabel',
-              style: UnifiedText.chipLabel(color: UnifiedColors.textSecondary),
+              style: MyPageTextStyles.caption.copyWith(color: MyPageColors.ink2),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -613,6 +703,10 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
     );
   }
 
+  // README §S02: CTA "프리패스 N회 받기" → 누르면 "광고 재생 중…"으로
+  // 바뀌고 비활성 → 광고 완료 콜백 → 보상 API → 시트 닫힘 + 토스트.
+  // (카운트다운 숫자는 기존처럼 함께 표시해 사용자가 남은 시간을 알 수
+  // 있게 한다 — 기능 손실 없이 문구만 README 톤에 맞춘다.)
   Widget _buildMainCta(
     PassPolicyModel policy,
     String durationLabel, {
@@ -635,7 +729,7 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         label = '쿠팡 확인했어요, 프리패스 받기';
         break;
       case _Phase.counting:
-        label = '지급 중... $_secondsLeft초';
+        label = '광고 재생 중... $_secondsLeft초';
         break;
       case _Phase.success:
         label = '지급 완료';
@@ -658,11 +752,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         final glow = disabled ? 0.0 : 0.15 + (_glowController.value * 0.25);
         return Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+            borderRadius: BorderRadius.circular(MyPageRadius.pill),
             boxShadow: glow > 0
                 ? [
                     BoxShadow(
-                      color: UnifiedColors.black.withValues(alpha: glow),
+                      color: MyPageColors.red.withValues(alpha: glow),
                       blurRadius: 18,
                       spreadRadius: 1,
                     ),
@@ -678,11 +772,11 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
         child: ElevatedButton(
           onPressed: onTap,
           style: ElevatedButton.styleFrom(
-            backgroundColor: UnifiedColors.black,
-            disabledBackgroundColor: UnifiedColors.black.withValues(alpha: 0.6),
-            foregroundColor: Colors.white,
+            backgroundColor: MyPageColors.red,
+            disabledBackgroundColor: MyPageColors.red.withValues(alpha: 0.5),
+            foregroundColor: const Color(0xFFFBF1DE),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+              borderRadius: BorderRadius.circular(MyPageRadius.pill),
             ),
           ),
           child: Text(
@@ -693,6 +787,74 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
       ),
     );
   }
+}
+
+/// README §S02: 광고 영역의 "1px dashed" 테두리. Flutter에 내장 점선
+/// 테두리가 없어 전용 CustomPainter로 간단히 구현한다(새 패키지 의존성
+/// 추가 없이 이 파일 안에서만 쓰는 가벼운 구현).
+class _DashedBorderBox extends StatelessWidget {
+  const _DashedBorderBox({
+    required this.child,
+    required this.radius,
+    required this.height,
+  });
+
+  final Widget child;
+  final double radius;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedRRectPainter(
+        radius: radius,
+        color: MyPageColors.ink3,
+      ),
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: Padding(padding: const EdgeInsets.all(1), child: child),
+      ),
+    );
+  }
+}
+
+class _DashedRRectPainter extends CustomPainter {
+  _DashedRRectPainter({required this.radius, required this.color});
+
+  final double radius;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    const dashWidth = 5.0;
+    const dashGap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 /// §5/§7 지급 완료 축하 애니메이션 — 체크 아이콘 스케일-인 + 반짝임(sparkle) +
@@ -751,7 +913,7 @@ class _SuccessCelebrationState extends State<_SuccessCelebration>
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: UnifiedTokens.spaceXxl),
+      padding: const EdgeInsets.symmetric(vertical: MyPageSpacing.sp8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -774,7 +936,7 @@ class _SuccessCelebrationState extends State<_SuccessCelebration>
                           child: const Icon(
                             Icons.auto_awesome_rounded,
                             size: 14,
-                            color: UnifiedColors.neon,
+                            color: MyPageColors.gold,
                           ),
                         ),
                       );
@@ -789,12 +951,12 @@ class _SuccessCelebrationState extends State<_SuccessCelebration>
                       width: 72,
                       height: 72,
                       decoration: const BoxDecoration(
-                        color: UnifiedColors.black,
+                        color: MyPageColors.red,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.check_rounded,
-                        color: UnifiedColors.neon,
+                        color: Color(0xFFFBF1DE),
                         size: 40,
                       ),
                     ),
@@ -803,19 +965,27 @@ class _SuccessCelebrationState extends State<_SuccessCelebration>
               ],
             ),
           ),
-          const SizedBox(height: UnifiedTokens.spaceLg),
+          const SizedBox(height: MyPageSpacing.sp4),
           FadeTransition(
             opacity: fade,
-            child: Text('프리패스가 발급되었어요!', style: UnifiedText.title()),
+            child: const Text(
+              '프리패스가 발급되었어요!',
+              style: TextStyle(
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: MyPageColors.ink,
+              ),
+            ),
           ),
-          const SizedBox(height: UnifiedTokens.spaceXs),
+          const SizedBox(height: MyPageSpacing.sp1),
           FadeTransition(
             opacity: fade,
             child: Text(
               widget.isCountBased
                   ? '결과보기 ${widget.durationLabel}가 지급되었어요'
                   : '${widget.durationLabel} 동안 모든 콘텐츠를 자유롭게 이용하세요',
-              style: UnifiedText.caption(),
+              style: MyPageTextStyles.caption,
             ),
           ),
         ],
