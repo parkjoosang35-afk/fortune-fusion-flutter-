@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 import '../../domain/shrine_order.dart';
 import '../theme/shrine_v3_theme.dart';
 import '../widgets/shrine_asset_path.dart';
+import '../widgets/unique_talisman_overlay.dart';
 import 'shrine_v3_result_screen.dart';
 
 /// 신당(THE SHRINE) v3 — 07 부탁 연출.
@@ -180,7 +181,7 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
               ),
             if (_p >= 4)
               Center(
-                child: TalismanThumbByRef(ref: t, width: 110),
+                child: UniqueTalismanOverlay(order: widget.order, width: 110, useThumb: true),
               ),
             Align(
               alignment: Alignment.bottomCenter,

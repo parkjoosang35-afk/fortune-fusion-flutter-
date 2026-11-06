@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/shrine_order.dart';
 import '../theme/shrine_v3_theme.dart';
+import '../widgets/unique_talisman_overlay.dart';
 import 'shrine_v3_box_screen.dart';
 
 /// 신당(THE SHRINE) v3 — 08 결과. [order]는 서버가 이미 계산한 唯一
@@ -24,30 +25,13 @@ class ShrineV3ResultScreen extends StatelessWidget {
               children: [
                 Text('成 · 부적이 완성되었어요', style: ShrineV3TextStyles.mono.copyWith(fontSize: 12)),
                 const SizedBox(height: 16),
-                TalismanThumbByRef(ref: t, width: 112),
+                UniqueTalismanOverlay(order: order, width: 112),
                 const SizedBox(height: 16),
                 Text(t.name, style: ShrineV3TextStyles.title.copyWith(fontSize: 22)),
                 const SizedBox(height: 4),
                 Text('唯一 · 세상에 한 장뿐인 부적', style: ShrineV3TextStyles.ui.copyWith(fontSize: 12)),
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: ShrineV3Colors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: ShrineV3Colors.line),
-                  ),
-                  child: Column(
-                    children: [
-                      _row('이름', order.ownerName),
-                      _row('사주 팔자', order.sajuPillars),
-                      _row('담은 소망', order.wish),
-                      _row('지은 날', order.issuedDateKey),
-                      _row('일련번호', order.serial),
-                    ],
-                  ),
-                ),
+                UniqueRecordCard(order: order),
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
@@ -99,43 +83,4 @@ class ShrineV3ResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 72, child: Text(label, style: ShrineV3TextStyles.ui.copyWith(fontSize: 12))),
-        Expanded(child: Text(value, style: ShrineV3TextStyles.body.copyWith(fontSize: 13))),
-      ],
-    ),
-  );
-}
-
-/// [ShrineOrderTalismanRef]용 썸네일(카탈로그 [TalismanItem] 전체 로드 없이
-/// 주문 응답에 포함된 축약 필드만으로 그릴 수 있게 하는 보조 위젯).
-class TalismanThumbByRef extends StatelessWidget {
-  const TalismanThumbByRef({super.key, required this.ref, required this.width});
-  final ShrineOrderTalismanRef ref;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    final path = ref.thumbPath ?? ref.imagePath;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Image.asset(
-        'assets/shrine_v3/$path',
-        width: width,
-        height: width * 2.3,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          width: width,
-          height: width * 2.3,
-          color: ShrineV3Colors.paperDark,
-          alignment: Alignment.center,
-          child: Text(ref.hanja, style: ShrineV3TextStyles.title.copyWith(fontSize: width * 0.4, color: ShrineV3Colors.seal)),
-        ),
-      ),
-    );
-  }
 }

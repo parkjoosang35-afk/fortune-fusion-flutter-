@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_order.dart';
 import '../theme/shrine_v3_theme.dart';
+import '../widgets/incense_rite_overlay.dart';
+import '../widgets/unique_talisman_overlay.dart';
 import 'shrine_v3_detail_screen.dart';
 
 /// 신당(THE SHRINE) v3 — 10 부적함 · 부적 상세. 서버 상세 응답
@@ -49,8 +51,11 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
   }
 
   Future<void> _lightIncense() async {
+    final order = _detail?.order;
+    if (order == null) return;
     setState(() => _lighting = true);
-    final result = await context.read<ShrineV3Provider>().lightIncense(widget.orderId);
+    final provider = context.read<ShrineV3Provider>();
+    final result = await showIncenseRiteDialog(context, provider: provider, order: order);
     if (!mounted) return;
     setState(() => _lighting = false);
     if (result != null) {
@@ -59,8 +64,10 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
       );
       _load();
     } else {
-      final err = context.read<ShrineV3Provider>().error ?? '향을 올리지 못했어요.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      final err = provider.error;
+      if (err != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      }
     }
   }
 
@@ -101,40 +108,20 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
         Center(
           child: Column(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  'assets/shrine_v3/${o.talisman.imagePath}',
-                  width: 112,
-                  height: 258,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(width: 112, height: 258, color: ShrineV3Colors.paperDark),
-                ),
-              ),
+              UniqueTalismanOverlay(order: o, width: 112, height: 258),
               const SizedBox(height: 10),
               Text('${o.talisman.hanja} · 내 부적', style: ShrineV3TextStyles.mono.copyWith(fontSize: 11)),
               Text(o.talisman.name, style: ShrineV3TextStyles.title.copyWith(fontSize: 22)),
+              const SizedBox(height: 6),
+              Text(
+                '부적을 누르면 크게 볼 수 있어요',
+                style: ShrineV3TextStyles.ui.copyWith(fontSize: 11, color: ShrineV3Colors.ink3),
+              ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: ShrineV3Colors.card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: ShrineV3Colors.line),
-          ),
-          child: Column(
-            children: [
-              _row('이름', o.ownerName),
-              _row('사주 팔자', o.sajuPillars),
-              _row('담은 소망', o.wish),
-              _row('지은 날', o.issuedDateKey),
-              _row('일련번호', o.serial),
-            ],
-          ),
-        ),
+        UniqueRecordCard(order: o),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(14),
@@ -208,17 +195,6 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
       ],
     );
   }
-
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 72, child: Text(label, style: ShrineV3TextStyles.ui.copyWith(fontSize: 12))),
-        Expanded(child: Text(value, style: ShrineV3TextStyles.body.copyWith(fontSize: 13))),
-      ],
-    ),
-  );
 
   Widget _row2(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),

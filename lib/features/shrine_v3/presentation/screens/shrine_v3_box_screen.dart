@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_order.dart';
 import '../theme/shrine_v3_theme.dart';
+import '../widgets/incense_rite_overlay.dart';
 import 'shrine_v3_owned_screen.dart';
 
 /// 신당(THE SHRINE) v3 — 09 부적함. 서버가 계산한 daysRemaining/
@@ -142,17 +143,36 @@ class _BoxItemTile extends StatelessWidget {
               ),
             ),
             if (order.isActive)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: order.incenseLitToday ? ShrineV3Colors.paperDark : const Color(0xFF2A1A10),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  order.incenseLitToday ? '오늘 올림' : '香 향 올리기',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: order.incenseLitToday ? ShrineV3Colors.ink3 : const Color(0xFFFFD98A),
+              GestureDetector(
+                onTap: order.incenseLitToday
+                    ? null
+                    : () async {
+                        final provider = context.read<ShrineV3Provider>();
+                        final result = await showIncenseRiteDialog(
+                          context,
+                          provider: provider,
+                          order: order,
+                        );
+                        if (!context.mounted) return;
+                        if (result != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('향을 올렸습니다 · ${result.daysAfter}일 남음')),
+                          );
+                          provider.loadBox();
+                        }
+                      },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: order.incenseLitToday ? ShrineV3Colors.paperDark : const Color(0xFF2A1A10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    order.incenseLitToday ? '오늘 올림' : '香 향 올리기',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: order.incenseLitToday ? ShrineV3Colors.ink3 : const Color(0xFFFFD98A),
+                    ),
                   ),
                 ),
               )
