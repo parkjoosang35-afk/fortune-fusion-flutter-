@@ -326,6 +326,11 @@ flutter:
           weight: 700
         - asset: assets/fonts/Pretendard-ExtraBold.ttf
           weight: 800
+        # [마이페이지 B시안 폰트 중앙화] 900(Black) 추가 — orioncactus/pretendard
+        # 공식 저장소 배포본(OFL 1.1, 상업적 이용 무료). 지갑 큰 숫자(예: "38개")
+        # 등 가장 굵은 강조 텍스트 전용.
+        - asset: assets/fonts/Pretendard-Black.otf
+          weight: 900
     # [관상·손금 신통방통 "새벽 한지" 리스킨 + 상담(Midnight Comfort)] 전용 폰트 3종.
     # [용량 최적화 2026-09-15] wish_room과 100% 동일한 바이트의 .ttf 파일이
     # assets/fonts/sintong/ 에도 중복 보관되어 있어 APK/웹 빌드에 약 45MB가
