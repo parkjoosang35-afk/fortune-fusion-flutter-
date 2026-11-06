@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/web_ads/web_ad_config.dart';
 import '../../../../core/web_ads/widgets/web_ad_in_page.dart';
-import '../../../../core/widgets/app_empty_state.dart';
+import '../../../mypage/presentation/theme/mypage_archive_widgets.dart';
 import '../application/tarot_provider.dart';
 
 /// 03단계 §3.3 - TarotHistoryScreen (히스토리형 패턴)
+///
+/// [마이페이지 리뉴얼 · DEV 2026-11-06 §S06/S08] design_handoff_mypage_
+/// minimal.zip README "S06 운세 보관함 목록(공용)"/"S08 빈 상태" 스펙에
+/// 따라 Minimal 테마 공용 위젯으로 리스킨한다. [TarotProvider.loadHistory]
+/// 데이터 조회 로직 및 하단 광고([WebAdInPage]) 배치는 그대로 유지한다 —
+/// "로직은 그대로, 스킨만 교체" 원칙.
 class TarotHistoryScreen extends StatefulWidget {
   const TarotHistoryScreen({super.key});
 
@@ -27,87 +32,41 @@ class _TarotHistoryScreenState extends State<TarotHistoryScreen> {
   Widget build(BuildContext context) {
     final history = context.watch<TarotProvider>().history;
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('타로 히스토리', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: history.isEmpty
-            ? const AppEmptyState(
-                icon: Icons.style_outlined,
-                title: '아직 타로 기록이 없어요',
-                description: '타로를 뽑아보세요',
-              )
-            : ListView.separated(
-                padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-                // [웹 광고 STEP G] 히스토리 리스트 끝에 광고 1개를 추가
-                // 아이템으로 덧붙인다(itemCount+1). 각 기록 탭의 CTA(상세
-                // 이동)와는 분리된 별도 아이템이라 혼동 우려가 없다.
-                itemCount: history.length + 1,
-                separatorBuilder: (_, __) =>
-                    SizedBox(height: UnifiedTokens.spaceMd),
-                itemBuilder: (context, index) {
-                  if (index == history.length) {
-                    return const WebAdInPage(
-                      surface: WebAdSurface.tarot,
-                      adSlot: '',
-                    );
-                  }
-                  final item = history[index];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-                    onTap: () => Navigator.of(
-                      context,
-                    ).pushNamed('/ai-fortune/tarot/result', arguments: item.id),
-                    child: Container(
-                      padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-                      decoration: BoxDecoration(
-                        color: UnifiedColors.cardSection,
-                        borderRadius: BorderRadius.circular(
-                          UnifiedTokens.radiusMd,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.style_rounded,
-                            size: UnifiedTokens.iconLg,
-                            color: UnifiedColors.textPrimary,
-                          ),
-                          SizedBox(width: UnifiedTokens.spaceMd),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.question,
-                                  style: UnifiedText.bodyStrong(),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '${item.createdAt.year}.${item.createdAt.month}.${item.createdAt.day}',
-                                  style: UnifiedText.bodySmall(
-                                    color: UnifiedColors.textCaption,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: UnifiedColors.textCaption,
-                          ),
-                        ],
-                      ),
+    return MyPageArchiveScaffold(
+      title: '타로 히스토리',
+      itemCount: history.length,
+      isLoading: false,
+      body: history.isEmpty
+          ? MyPageArchiveEmptyState(
+              glyph: '塔\n羅',
+              title: '아직 타로 기록이 없어요',
+              subtitle: '타로를 뽑아보면 이곳에 차곡차곡 쌓여요',
+              ctaLabel: '타로 보러 가기 ›',
+              onCta: () => Navigator.of(context).pushNamed('/tarot/home'),
+            )
+          : Column(
+              children: [
+                for (final item in history)
+                  MyPageArchiveRow(
+                    glyph: '塔',
+                    tileIndex: 1,
+                    dateLabel:
+                        '${item.createdAt.year} · ${item.createdAt.month.toString().padLeft(2, '0')} · ${item.createdAt.day.toString().padLeft(2, '0')}',
+                    title: item.question,
+                    summary: item.summary,
+                    onTap: () => Navigator.of(context).pushNamed(
+                      '/ai-fortune/tarot/result',
+                      arguments: item.id,
                     ),
-                  );
-                },
-              ),
-      ),
+                  ),
+                // [웹 광고 STEP G] 히스토리 리스트 끝에 광고 1개를
+                // 그대로 유지한다(기록 탭 CTA와 분리된 별도 아이템).
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: WebAdInPage(surface: WebAdSurface.tarot, adSlot: ''),
+                ),
+              ],
+            ),
     );
   }
 }

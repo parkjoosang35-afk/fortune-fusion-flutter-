@@ -4,13 +4,19 @@
 // 열면 세부 풀이(부위별 해석)를 보여주고, "지금 내 소원에 봉인하기"를 눌러
 // seal_reading_flow.dart의 sealReadingToWishRoom()을 그대로 재사용한다(로직
 // 중복 금지 — 총결과 화면과 동일한 분기를 탄다).
+//
+// [마이페이지 리뉴얼 · DEV 2026-11-06 §S06/S08] design_handoff_mypage_
+// minimal.zip README "S06 운세 보관함 목록(공용)" 스펙에 따라 바깥 틀
+// ([MyPageArchiveScaffold]/[MyPageArchiveEmptyState])을 Minimal 테마로
+// 리스킨한다. 확장/삭제/소원 봉인 등 이 화면만의 고유 상호작용이 있는
+// 카드(`_ArchiveTile`)는 README의 범용 행 레이아웃으로 단순화하지 않고
+// 구조를 유지한 채 Minimal 색상 토큰만 입힌다 — "로직은 그대로" 원칙.
 library;
 
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_unified_style.dart';
-import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/premium_button.dart';
-import '../../../../core/widgets/premium_card.dart';
+import '../../../mypage/presentation/theme/mypage_archive_widgets.dart';
+import '../../../mypage/presentation/theme/mypage_minimal_theme.dart';
 import '../data/reading_artifact_store.dart';
 import '../domain/reading_artifact.dart';
 import 'reading_disclosure_widgets.dart';
@@ -45,39 +51,36 @@ class _ReadingArchiveScreenState extends State<ReadingArchiveScreen> {
   @override
   Widget build(BuildContext context) {
     final items = _items;
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('보관한 풀이', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: items == null
-            ? const Center(child: CircularProgressIndicator())
-            : items.isEmpty
-            ? const AppEmptyState(
-                icon: Icons.inventory_2_outlined,
-                title: '아직 보관한 풀이가 없어요',
-                description: '관상·손금 결과 화면에서 "풀이만 보관하고 나가기"를\n누르면 여기에 모여요(최대 12개).',
-              )
-            : ListView.separated(
-                padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-                itemCount: items.length + 1,
-                separatorBuilder: (_, __) =>
-                    SizedBox(height: UnifiedTokens.spaceMd),
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return const Padding(
-                      padding: EdgeInsets.only(bottom: 4),
-                      child: ReadingFunDisclaimer(),
-                    );
-                  }
-                  final artifact = items[index - 1];
-                  return _ArchiveTile(artifact: artifact, onRemove: _remove);
-                },
-              ),
-      ),
+    final isLoading = items == null;
+
+    return MyPageArchiveScaffold(
+      title: '보관한 풀이',
+      itemCount: isLoading ? null : items.length,
+      isLoading: isLoading,
+      body: isLoading
+          ? const MyPageArchiveLoadingPlaceholder()
+          : items.isEmpty
+          ? MyPageArchiveEmptyState(
+              glyph: '藏\n解',
+              title: '아직 보관한 풀이가 없어요',
+              subtitle: '관상·손금 결과 화면에서 "풀이만 보관하고 나가기"를\n누르면 여기에 모여요(최대 12개)',
+              ctaLabel: '풀이 보러 가기 ›',
+              onCta: () =>
+                  Navigator.of(context).pushNamed('/ai-fortune/face/capture'),
+            )
+          : Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: ReadingFunDisclaimer(),
+                ),
+                for (final artifact in items)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _ArchiveTile(artifact: artifact, onRemove: _remove),
+                  ),
+              ],
+            ),
     );
   }
 }
@@ -98,12 +101,13 @@ class _ArchiveTileState extends State<_ArchiveTile> {
   Widget build(BuildContext context) {
     final artifact = widget.artifact;
     final onRemove = widget.onRemove;
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardSection,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: MyPageColors.surface,
+        borderRadius: BorderRadius.circular(MyPageRadius.card),
+        boxShadow: MyPageShadows.card,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -114,16 +118,16 @@ class _ArchiveTileState extends State<_ArchiveTile> {
                 height: 36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFC94A3B),
+                  color: MyPageColors.red,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   artifact.total.key,
                   style: const TextStyle(
-                    fontFamily: 'NotoSerifKR',
+                    fontFamily: MyPageFonts.hanja,
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
-                    color: Color(0xFFFFF9E8),
+                    color: Color(0xFFFBF1DE),
                   ),
                 ),
               ),
@@ -134,19 +138,21 @@ class _ArchiveTileState extends State<_ArchiveTile> {
                   children: [
                     Text(
                       '${artifact.kind.label} · ${artifact.total.title}',
-                      style: UnifiedText.bodyStrong(),
+                      style: MyPageTextStyles.row.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     Text(
                       '${artifact.createdAt.year}.${artifact.createdAt.month}.${artifact.createdAt.day} · 해석 ${artifact.interpretedCount}건 · 사진 없이 보관',
-                      style: UnifiedText.caption(),
+                      style: MyPageTextStyles.caption,
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: Icon(
+                icon: const Icon(
                   Icons.delete_outline_rounded,
-                  color: UnifiedColors.textCaption,
+                  color: MyPageColors.ink3,
                 ),
                 onPressed: () => onRemove(artifact.id),
                 tooltip: '보관함에서 삭제',
@@ -160,8 +166,8 @@ class _ArchiveTileState extends State<_ArchiveTile> {
               children: [
                 Text(
                   _expanded ? '세부 풀이 접기' : '세부 풀이 펼치기',
-                  style: UnifiedText.caption().copyWith(
-                    fontWeight: FontWeight.w600,
+                  style: MyPageTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 Icon(
@@ -169,7 +175,7 @@ class _ArchiveTileState extends State<_ArchiveTile> {
                       ? Icons.expand_less_rounded
                       : Icons.expand_more_rounded,
                   size: 18,
-                  color: UnifiedColors.textCaption,
+                  color: MyPageColors.ink3,
                 ),
               ],
             ),
@@ -187,7 +193,9 @@ class _ArchiveTileState extends State<_ArchiveTile> {
                         Expanded(
                           child: Text(
                             '${step.chip} ${step.title}',
-                            style: UnifiedText.bodyStrong(),
+                            style: MyPageTextStyles.row.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                         ReadingDetectionBadge(
@@ -196,7 +204,7 @@ class _ArchiveTileState extends State<_ArchiveTile> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(step.body, style: UnifiedText.body()),
+                    Text(step.body, style: MyPageTextStyles.body),
                     if (step.cite != null) ReadingCiteCard(cite: step.cite!),
                   ],
                 ),
