@@ -497,7 +497,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                                         child: Text(
                                           '소원방 캐릭터',
                                           style: TextStyle(
-                                            fontFamily: 'GowunBatang',
+                                            fontFamily: 'Pretendard',
                                             fontWeight: FontWeight.w700,
                                             fontSize: 15,
                                             color: Colors.white,
@@ -1264,7 +1264,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                     child: Text(
                       '"${c.line}"',
                       style: const TextStyle(
-                        fontFamily: 'GowunBatang',
+                        fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                         color: Color(0xFFFFE6D0),

@@ -268,7 +268,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
           child: _step == _CapStep.rewish
             ? TextField(controller: _rewishCtrl,
                 maxLength: 100, maxLines: 4, onChanged: (v) => setState(() => _text = v),
-                style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, height: 1.65, color: Color(0xFF4A2A1C)),
+                style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, height: 1.65, color: Color(0xFF4A2A1C)),
                 decoration: const InputDecoration(border: InputBorder.none, counterText: ''))
             // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 두루마리(top:150)는
             // 소원 글자 수(최대 100자)에 따라 높이가 그대로 늘어나는 구조라,
@@ -290,7 +290,7 @@ class _CapsuleOpenScreenState extends State<CapsuleOpenScreen> {
                   // 스크롤 콘텐츠라 전체 텍스트 높이 그대로 레이아웃되므로,
                   // 겹침 여부는 Text가 아니라 이 뷰포트 기준으로 확인해야 한다.
                   key: const Key('wr_capsule_wish_scroll'),
-                  child: Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.75, color: Color(0xFF4A2A1C))),
+                  child: Text(room.text, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 17, height: 1.75, color: Color(0xFF4A2A1C))),
                 )),
                 const SizedBox(height: 8),
                 Align(alignment: Alignment.centerRight, child: Container(width: 30, height: 30, alignment: Alignment.center,
@@ -504,7 +504,7 @@ class _AchieveCinematicScreenState extends State<AchieveCinematicScreen> with Si
               child: Text(hanja, style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 34, color: Color(0xFFFFF4E0))))));
           },
         ))),
-        if (_t < 2) const Positioned(left: 0, right: 0, top: 370, child: Center(child: Text('🔐 봉인된 소원', style: TextStyle(fontFamily: 'GowunBatang', fontSize: 13, color: Color(0xB3FFEBD2))))),
+        if (_t < 2) const Positioned(left: 0, right: 0, top: 370, child: Center(child: Text('🔐 봉인된 소원', style: TextStyle(fontFamily: 'Pretendard', fontSize: 13, color: Color(0xB3FFEBD2))))),
         // STEP2 — 해제의 빛
         if (_t >= 2 && _t < 4) ...[
           Positioned(left: 0, right: 0, top: 100, child: Center(child: Container(width: 400, height: 400, decoration: const BoxDecoration(
@@ -523,7 +523,7 @@ class _AchieveCinematicScreenState extends State<AchieveCinematicScreen> with Si
               decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
                 colors: [_hex((pp['bg'] as List)[0] as String), _hex((pp['bg'] as List)[1] as String)]),
                 boxShadow: [BoxShadow(color: color.withValues(alpha: .53), blurRadius: 40), const BoxShadow(color: Color(0x80000000), blurRadius: 30, offset: Offset(0, 14))]),
-              child: Text('"${room.text}"', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.7, color: Color(0xFF4A2A1C)))),
+              child: Text('"${room.text}"', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 17, height: 1.7, color: Color(0xFF4A2A1C)))),
             Container(height: 12, decoration: BoxDecoration(borderRadius: BorderRadius.circular(6),
               gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF5A3418), Color(0xFF8A5A34)]))),
           ]),

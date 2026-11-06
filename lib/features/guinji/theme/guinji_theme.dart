@@ -86,7 +86,8 @@ class GuinjiFonts {
   GuinjiFonts._();
 
   static const display = GmText.display; // 'NotoSerifKR' — 타이틀·이름·점수·한자
-  static const body = GmText.body; // 'GowunBatang' — 장문 풀이 본문
+  // [폰트 전환 — 2026-11] GmText.body 자체가 Pretendard로 전환됨(장문 풀이 본문).
+  static const body = GmText.body;
   static const ui = GmText.ui; // 'Pretendard' — 버튼·라벨·노드 이름
   static const mono = GmText.mono; // 'IBMPlexMono' — S1~S5 배지·영문 메타
 }

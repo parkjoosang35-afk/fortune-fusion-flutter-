@@ -142,7 +142,7 @@ class _AttachedReadingsPanelState extends State<AttachedReadingsPanel> {
           const Text(
             '◈ 담겨온 풀이',
             style: TextStyle(
-              fontFamily: 'GowunBatang',
+              fontFamily: 'Pretendard',
               fontWeight: FontWeight.w700,
               fontSize: 11,
               color: Color(0xFFF5CF6A),
@@ -172,7 +172,7 @@ class _AttachedReadingsPanelState extends State<AttachedReadingsPanel> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontFamily: 'GowunBatang',
+                          fontFamily: 'Pretendard',
                           fontWeight: FontWeight.w700,
                           fontSize: 10.5,
                           color: Color(0xFF3A1A14),

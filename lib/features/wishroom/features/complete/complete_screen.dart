@@ -670,7 +670,7 @@ class _BottomCard extends StatelessWidget {
                     Text(
                       room.text,
                       style: const TextStyle(
-                        fontFamily: 'GowunBatang',
+                        fontFamily: 'Pretendard',
                         fontSize: 14,
                         color: Color(0xFF4A2A1C),
                       ),

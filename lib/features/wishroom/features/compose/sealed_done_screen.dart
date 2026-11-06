@@ -79,7 +79,7 @@ class _SealedDoneScreenState extends State<SealedDoneScreen> with SingleTickerPr
                     gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBF1DC), Color(0xFFF1E0BD)]),
                     boxShadow: const [BoxShadow(color: Color(0x80000000), blurRadius: 30, offset: Offset(0, 10))]),
                   child: Text(widget.text, maxLines: 5, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 14, height: 1.6, color: Color(0xFF4A2A1C))),
+                    style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 14, height: 1.6, color: Color(0xFF4A2A1C))),
                 )));
             },
           )),

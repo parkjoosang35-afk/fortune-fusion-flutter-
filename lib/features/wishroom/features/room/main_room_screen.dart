@@ -507,7 +507,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             if (busyCooldown) Positioned(left: 16, right: 16, top: 640, child: Center(child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(color: const Color(0x8C1E0A18), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x40FFC8A0))),
-              child: Text(_prayLine(ritual, charge), style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFFFF4E0))),
+              child: Text(_prayLine(ritual, charge), style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFFFF4E0))),
             ))),
             // devote() 0.7s — 아이템 기운 보너스 pill(top 236) `✦ 아이템 기운 +n%` + 아이템별 칩 최대 4개.
             if (_lastGain != null && _lastGain!.bonus > 0) Positioned(left: 0, right: 0, top: 236, child: Center(child: _GainPill(gain: _lastGain!))),
@@ -594,8 +594,8 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
               Text(room.sealUntil != null && room.capsule == Capsule.LOCKED
                   ? '🔐 ${fmtSealDot(room.sealUntil)}까지 봉인 · D-${room.sealDaysLeft}'
                   : '오늘의 소원 · ${room.daysLit}일째 밝히는 중',
-                style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 11, color: subColor)),
-              if (W != null) Text('${W['label']}의 소원', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 12, color: _hex(W['deep'] as String))),
+                style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11, color: subColor)),
+              if (W != null) Text('${W['label']}의 소원', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: _hex(W['deep'] as String))),
             ])),
             GestureDetector(onTap: () => setState(() => _wishOpen = false), child: Container(
               width: 30, height: 30, alignment: Alignment.center,
@@ -604,7 +604,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
           ]),
           const SizedBox(height: 12),
           ConstrainedBox(constraints: const BoxConstraints(maxHeight: 150), child: SingleChildScrollView(
-            child: Text(room.text, style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, height: 1.7, color: inkColor)),
+            child: Text(room.text, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, height: 1.7, color: inkColor)),
           )),
           if (effSrc.isNotEmpty) Container(
             margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.only(top: 10),
@@ -617,7 +617,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text('${s.name} · ${_effectShort(s.type, s.v)}',
-                style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 10.5, color: s.match ? const Color(0xFF3A1A14) : inkColor)),
+                style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 10.5, color: s.match ? const Color(0xFF3A1A14) : inkColor)),
             )).toList()),
           ),
           // [v7 통합] 관상·손금 결과 화면에서 "이 풀이를 내 소원에
@@ -763,7 +763,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisSize: MainAxisSize.min, children: [
               Flexible(child: Text(labelText, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 10, color: isDim ? const Color(0xFFB8442F) : subColor))),
+                style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 10, color: isDim ? const Color(0xFFB8442F) : subColor))),
               // [명세] jsx 313줄 1:1 — n(= effects.src.length) > 0 && !dim 일 때만 "기운 {n} · {...}" 칩.
               // 우선순위: devo > support > cool > (그 외) '켜짐'.
               if (room.effects.src.isNotEmpty && !isDim) Padding(
@@ -774,13 +774,13 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                   child: Text(
                     '기운 ${room.effects.src.length} · ${room.effects.devo > 0 ? '정성 +${room.effects.devo}%' : room.effects.support > 0 ? '응원 +${room.effects.support}%' : room.effects.cool > 0 ? '−${room.effects.cool}초' : '켜짐'}',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w800, fontSize: 9.5, color: inkColor)),
+                    style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 9.5, color: inkColor)),
                 ),
               ),
             ]),
             const SizedBox(height: 2),
             Text(room.text, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 13.5, color: inkColor)),
+              style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13.5, color: inkColor)),
           ]))),
           Icon(Icons.keyboard_arrow_up, size: 16, color: inkColor.withValues(alpha: .5)),
         ]),
@@ -816,21 +816,21 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             child: FittedBox(fit: BoxFit.scaleDown, child: isDim
               ? Column(mainAxisSize: MainAxisSize.min, children: [
                   const Text('🕯', style: TextStyle(fontSize: 20, height: 1)),
-                  Text('다시 밝히기', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w800, fontSize: 9.5, color: const Color(0xFF4A2A10))),
+                  Text('다시 밝히기', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 9.5, color: const Color(0xFF4A2A10))),
                 ])
               : busy
                 ? Column(mainAxisSize: MainAxisSize.min, children: [
                     Text('$_cooldownRemain', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 19, color: Colors.white, height: 1)),
-                    const Text('머금는 중', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 9, color: Colors.white70)),
+                    const Text('머금는 중', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 9, color: Colors.white70)),
                   ])
                 : done
                   ? Column(mainAxisSize: MainAxisSize.min, children: const [
                       Text('✓', style: TextStyle(fontSize: 17, color: Colors.white70, height: 1)),
-                      Text('오늘 완료', style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 9, color: Colors.white70)),
+                      Text('오늘 완료', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 9, color: Colors.white70)),
                     ])
                   : Column(mainAxisSize: MainAxisSize.min, children: [
                       Text(ritual['icon'] as String? ?? '🙏', style: const TextStyle(fontSize: 20, height: 1)),
-                      Text('${ritual['verb']} $used/$lim', style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w800, fontSize: 10, color: Colors.white)),
+                      Text('${ritual['verb']} $used/$lim', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 10, color: Colors.white)),
                     ]),
             ),
           ),
@@ -1038,7 +1038,7 @@ class _GainPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
           decoration: BoxDecoration(color: const Color(0x8C1E0C18), borderRadius: BorderRadius.circular(999),
             border: it.match ? Border.all(color: const Color(0xFFFFE08A)) : null),
-          child: Text('${it.name} +${it.v}%${it.match ? ' · 궁합' : ''}', style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 10, color: Colors.white)),
+          child: Text('${it.name} +${it.v}%${it.match ? ' · 궁합' : ''}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 10, color: Colors.white)),
         )).toList(),
       )),
     ]);
@@ -1104,7 +1104,7 @@ class _QuoteCardState extends State<_QuoteCard> with SingleTickerProviderStateMi
               Text(head[widget.theme] ?? '', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.5, color: inkC.withValues(alpha: .7))),
               const SizedBox(height: 10),
               Text('"${widget.text}"', textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: inkC)),
+                style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 17, height: 1.65, color: inkC)),
               if (widget.src.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10),
                 child: Text('— ${widget.src}', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: inkC.withValues(alpha: .7)))),
               const SizedBox(height: 16),
@@ -1695,7 +1695,7 @@ class _ShareSheetState extends State<_ShareSheet> {
           boxShadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 14)]),
         child: Text(icon, style: const TextStyle(fontSize: 22))),
       const SizedBox(height: 6),
-      Text(label, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
+      Text(label, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
     ]),
   ));
 }

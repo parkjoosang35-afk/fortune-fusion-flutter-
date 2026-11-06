@@ -130,7 +130,7 @@ class _ReviewWriteScreenState extends State<ReviewWriteScreen> {
                   child: Column(children: [
                     TextField(controller: _ctrl, maxLength: 500, maxLines: 6, minLines: 6, onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(border: InputBorder.none, counterText: '', hintText: '소원이 이루어진 이야기를 자유롭게 적어주세요.', hintStyle: TextStyle(color: Color(0x994A2A1C))),
-                      style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 15, height: 1.7, color: Color(0xFF4A2A1C))),
+                      style: const TextStyle(fontFamily: 'Pretendard', fontSize: 15, height: 1.7, color: Color(0xFF4A2A1C))),
                     // [반응형 화면 규격 통일 — 잘림 현상 수정] 왼쪽 안내 문구
                     // ('N자 더 적어주세요')와 오른쪽 글자 수 카운터가 모두
                     // 고정 크기 Text라서, 좁은 화면(360x640)+글자 확대(1.3배

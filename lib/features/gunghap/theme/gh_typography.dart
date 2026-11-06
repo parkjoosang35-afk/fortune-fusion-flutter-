@@ -12,7 +12,8 @@ import 'gh_tokens.dart';
 
 abstract final class GHText {
   static const _serif = 'NotoSerifKR';
-  static const _body = 'GowunBatang';
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard.
+  static const _body = 'Pretendard';
   static const _mono = 'IBMPlexMono';
   static const _ui = 'Pretendard';
 

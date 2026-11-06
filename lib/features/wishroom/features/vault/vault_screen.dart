@@ -328,7 +328,7 @@ class _ReplayOverlay extends StatelessWidget {
       const Positioned(left: 0, right: 0, top: 58, child: Center(child: Column(children: [
         Text('이루어진 소원방', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white)),
         SizedBox(height: 1),
-        Text('그날의 모습 그대로', style: TextStyle(fontFamily: 'GowunBatang', fontSize: 11, color: Color(0xA8FFECDC))),
+        Text('그날의 모습 그대로', style: TextStyle(fontFamily: 'Pretendard', fontSize: 11, color: Color(0xA8FFECDC))),
       ]))),
       Positioned(left: 16, right: 16, bottom: 44, child: Container(
         padding: const EdgeInsets.all(16), decoration: WrDeco.hanji,
@@ -345,7 +345,7 @@ class _ReplayOverlay extends StatelessWidget {
             Expanded(child: Text('${_d(room.createdAt)} → ${_d(room.completedAt)} · ${room.daysLit}일', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11.5, color: Color(0xA65A321E)))),
           ]),
           const SizedBox(height: 10),
-          Text(room.text, style: const TextStyle(fontFamily: 'GowunBatang', fontWeight: FontWeight.w700, fontSize: 16, color: WrC.hanjiInk, height: 1.5)),
+          Text(room.text, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: WrC.hanjiInk, height: 1.5)),
           const SizedBox(height: 10),
           // [반응형 화면 규격 통일 — 잘림 현상 수정] 레벨/정성/응원/福 4개
           // 고정폭 항목이 Flexible·스크롤 보호 없는 Row에 그대로 들어있어,

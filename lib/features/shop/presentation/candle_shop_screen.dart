@@ -206,7 +206,7 @@ class _CandleTile extends StatelessWidget {
                   Text(
                     item.nameKo,
                     style: const TextStyle(
-                      fontFamily: 'GowunBatang',
+                      fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: WishRoomColors.textPrimary,

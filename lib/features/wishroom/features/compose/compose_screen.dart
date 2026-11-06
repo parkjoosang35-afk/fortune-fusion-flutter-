@@ -561,7 +561,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                 child: Text(
                   '오늘의 소원 · ${_dateLabel()}',
                   style: TextStyle(
-                    fontFamily: 'GowunBatang',
+                    fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w700,
                     fontSize: 11,
                     color: sub,
@@ -585,7 +585,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
             child: Text(
               '${paper['label']} 종이',
               style: TextStyle(
-                fontFamily: 'GowunBatang',
+                fontFamily: 'Pretendard',
                 fontSize: 10,
                 color: sub,
               ),
@@ -601,7 +601,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
               cursorColor: wishColor,
               onChanged: (_) => setState(() {}),
               style: TextStyle(
-                fontFamily: 'GowunBatang',
+                fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w700,
                 fontSize: 17,
                 height: 1.65,
@@ -611,7 +611,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                 border: InputBorder.none,
                 hintText: '마음속 바람을 적어주세요\n예) 우리 가족 모두 건강하고 행복하게 해주세요.',
                 hintStyle: TextStyle(
-                  fontFamily: 'GowunBatang',
+                  fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                   height: 1.5,

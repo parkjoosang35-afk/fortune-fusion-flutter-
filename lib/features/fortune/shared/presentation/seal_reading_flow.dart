@@ -158,7 +158,7 @@ class _AttachToExistingWishSheet extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontFamily: 'GowunBatang',
+                  fontFamily: 'Pretendard',
                   fontSize: 14,
                   height: 1.6,
                   color: Color(0xFFF8F2E6),

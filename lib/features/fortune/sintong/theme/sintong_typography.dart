@@ -15,7 +15,8 @@ class SintongType {
 
   // ── Font families (pubspec.yaml에 등록된 이름과 일치해야 함) ──
   static const String display = 'NotoSerifKR';  // 900 · Hero, hanja seals
-  static const String body    = 'GowunBatang';  // 400/700 · Poetic body, wish content
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard.
+  static const String body    = 'Pretendard';  // 400/700 · Poetic body, wish content
   static const String ui      = 'Pretendard';   // 400-700 · Buttons, chips
   static const String monoFamily = 'IBMPlexMono';  // 500 · UPPERCASE meta labels
 

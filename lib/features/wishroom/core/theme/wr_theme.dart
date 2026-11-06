@@ -40,8 +40,10 @@ class WrC {
 class WrF {
   static TextStyle display(double size, {Color color = WrC.fg, double? height}) => TextStyle(
       fontFamily: 'NotoSerifKR', fontSize: size, fontWeight: FontWeight.w900, letterSpacing: -.02 * size, color: color, height: height);
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard. 258곳 호출부가
+  // 이 함수를 거치므로 패밀리 하나만 바꾸면 전체 전환됨.
   static TextStyle body(double size, {FontWeight w = FontWeight.w400, Color color = WrC.fg, double? height}) =>
-      TextStyle(fontFamily: 'GowunBatang', fontSize: size, fontWeight: w, color: color, height: height);
+      TextStyle(fontFamily: 'Pretendard', fontSize: size, fontWeight: w, color: color, height: height);
   static TextStyle ui(double size, {FontWeight w = FontWeight.w500, Color color = WrC.fg}) =>
       TextStyle(fontFamily: 'Pretendard', fontSize: size, fontWeight: w, color: color);
   /// .mono — 500 10px IBM Plex Mono, letter-spacing .28em, 대문자

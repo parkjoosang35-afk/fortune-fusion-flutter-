@@ -179,7 +179,7 @@ class ShopSubNav extends StatelessWidget {
               child: Text(
                 tab.$2,
                 style: TextStyle(
-                  fontFamily: 'GowunBatang',
+                  fontFamily: 'Pretendard',
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                   color: isActive
@@ -273,7 +273,7 @@ class ShortageDialog extends StatelessWidget {
                     child: const Text(
                       '확인',
                       style: TextStyle(
-                        fontFamily: 'GowunBatang',
+                        fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF2A1A3A),
                       ),
@@ -388,7 +388,7 @@ class PurchaseConfirmSheet extends StatelessWidget {
                   child: const Text(
                     '구매하기',
                     style: TextStyle(
-                      fontFamily: 'GowunBatang',
+                      fontFamily: 'Pretendard',
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: Color(0xFF2A1A3A),
@@ -648,7 +648,7 @@ class ShopGuideDialog extends StatelessWidget {
                               Text(
                                 step.title,
                                 style: const TextStyle(
-                                  fontFamily: 'GowunBatang',
+                                  fontFamily: 'Pretendard',
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
                                   color: WishRoomColors.textPrimary,
@@ -684,7 +684,7 @@ class ShopGuideDialog extends StatelessWidget {
                     child: const Text(
                       '알겠어요',
                       style: TextStyle(
-                        fontFamily: 'GowunBatang',
+                        fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF2A1A3A),
                       ),

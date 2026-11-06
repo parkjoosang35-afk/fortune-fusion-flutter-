@@ -109,7 +109,8 @@ class WishRoomTextStyles {
   WishRoomTextStyles._();
 
   static const _serif = 'NotoSerifKR';
-  static const _batang = 'GowunBatang';
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard.
+  static const _batang = 'Pretendard';
   static const _mono = 'IBMPlexMono';
 
   static const heroTitle = TextStyle(

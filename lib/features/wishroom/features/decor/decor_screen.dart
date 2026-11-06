@@ -396,7 +396,7 @@ class _DecorScreenState extends State<DecorScreen> {
                                           child: Text(
                                             '내 소원방 꾸미기',
                                             style: TextStyle(
-                                              fontFamily: 'GowunBatang',
+                                              fontFamily: 'Pretendard',
                                               fontWeight: FontWeight.w700,
                                               fontSize: 15,
                                               color: Colors.white,
@@ -533,7 +533,7 @@ class _DecorScreenState extends State<DecorScreen> {
                                   '방 미리보기 · 탭하면 크게 보기',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    fontFamily: 'GowunBatang',
+                                    fontFamily: 'Pretendard',
                                     fontWeight: FontWeight.w700,
                                     fontSize: 10.5,
                                     color: Color(0xFFFFE6B8),

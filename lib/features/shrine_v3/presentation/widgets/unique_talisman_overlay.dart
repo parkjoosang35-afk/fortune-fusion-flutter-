@@ -144,7 +144,7 @@ class _VerticalText extends StatelessWidget {
               ch,
               style: TextStyle(
                 color: ShrineV3Colors.seal,
-                fontFamily: 'GowunBatang',
+                fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w900,
                 fontSize: fontSize,
                 height: 1.25,

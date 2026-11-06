@@ -149,7 +149,7 @@ class _ShopPurchaseEffectOverlayState extends State<_ShopPurchaseEffectOverlay>
                         widget.label,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontFamily: 'GowunBatang',
+                          fontFamily: 'Pretendard',
                           fontWeight: FontWeight.w700,
                           fontSize: 17,
                           color: WishRoomColors.textPrimary,

@@ -217,7 +217,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(
-          fontFamily: 'GowunBatang',
+          fontFamily: 'Pretendard',
           fontWeight: FontWeight.w700,
           fontSize: 13,
           color: WishRoomColors.textPrimary,

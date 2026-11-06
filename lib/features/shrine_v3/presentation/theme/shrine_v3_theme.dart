@@ -28,8 +28,9 @@ class ShrineV3TextStyles {
     color: ShrineV3Colors.ink,
   );
 
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard.
   static const body = TextStyle(
-    fontFamily: 'GowunBatang',
+    fontFamily: 'Pretendard',
     fontWeight: FontWeight.w700,
     color: ShrineV3Colors.ink2,
   );

@@ -536,7 +536,7 @@ class _Header extends StatelessWidget {
           stepTitle.$3,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'GowunBatang',
+            fontFamily: 'Pretendard',
             fontSize: 13,
             color: p.muted,
             letterSpacing: -0.1,
@@ -830,7 +830,7 @@ class _ResultBanner extends StatelessWidget {
       return Text(
         error!,
         textAlign: TextAlign.center,
-        style: TextStyle(fontFamily: 'GowunBatang', fontSize: 13, color: p.errorColor),
+        style: TextStyle(fontFamily: 'Pretendard', fontSize: 13, color: p.errorColor),
       );
     }
     if (!complete || y == null || m == null || d == null) {
@@ -855,7 +855,7 @@ class _ResultBanner extends StatelessWidget {
             children: [
               TextSpan(
                 text: '${kBirthdayDayKoKr[wIdx]}요일',
-                style: TextStyle(fontFamily: 'GowunBatang', fontSize: 14, color: p.fg.withValues(alpha: 0.9)),
+                style: TextStyle(fontFamily: 'Pretendard', fontSize: 14, color: p.fg.withValues(alpha: 0.9)),
               ),
               TextSpan(
                 text: '  ${kBirthdayDayHanjaKr[wIdx]}',
@@ -936,7 +936,7 @@ class _Keypad extends StatelessWidget {
             ),
             child: Text(
               ctaLabel,
-              style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontFamily: 'Pretendard', fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -1055,7 +1055,7 @@ class _Step2 extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '$y년 $m월 $d일',
-                      style: TextStyle(fontFamily: 'GowunBatang', fontSize: 15, fontWeight: FontWeight.bold, color: p.fg),
+                      style: TextStyle(fontFamily: 'Pretendard', fontSize: 15, fontWeight: FontWeight.bold, color: p.fg),
                     ),
                   ],
                 ),
@@ -1099,7 +1099,7 @@ class _Step2 extends StatelessWidget {
             ),
             child: Text(
               ctaLabel,
-              style: const TextStyle(fontFamily: 'GowunBatang', fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontFamily: 'Pretendard', fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -1169,7 +1169,7 @@ class _ZhiTimeGrid extends StatelessWidget {
                     const Text('◈ ', style: TextStyle(fontSize: 11)),
                     Text(
                       '태어난 시간을 잘 모르겠어요',
-                      style: TextStyle(fontFamily: 'GowunBatang', fontSize: 13, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontFamily: 'Pretendard', fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -1225,7 +1225,7 @@ class _ZhiCell extends StatelessWidget {
                   Text(
                     z.label,
                     style: TextStyle(
-                      fontFamily: 'GowunBatang',
+                      fontFamily: 'Pretendard',
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       color: active ? p.ctaText : p.fg,
@@ -1342,7 +1342,7 @@ class _SavedToastState extends State<_SavedToast> with TickerProviderStateMixin 
                   const SizedBox(height: 6),
                   Text(
                     widget.timeLabel!,
-                    style: TextStyle(fontFamily: 'GowunBatang', fontSize: 14, color: p.muted),
+                    style: TextStyle(fontFamily: 'Pretendard', fontSize: 14, color: p.muted),
                   ),
                 ],
               ],

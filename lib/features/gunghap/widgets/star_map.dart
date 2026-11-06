@@ -216,7 +216,7 @@ class _StarMapPainter extends CustomPainter {
       text: TextSpan(
         text: s,
         style: TextStyle(
-          fontFamily: 'GowunBatang',
+          fontFamily: 'Pretendard',
           fontSize: badge ? 11 : 12.5,
           fontWeight: FontWeight.w700,
           color: badge ? color : GHColors.ivory,
