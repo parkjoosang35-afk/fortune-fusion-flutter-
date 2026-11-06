@@ -184,9 +184,10 @@ class SajuType {
   );
 
   /// T-display2 — 페이지 타이틀(02/04 카피 등).
+  /// [폰트 중앙화 — 2026-11] '타이틀' 규칙(800)에 맞춰 700 -> 800 상향.
   static const TextStyle display2 = TextStyle(
     fontFamily: serif,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     fontSize: 26,
     height: 1.2,
     letterSpacing: -0.02 * 26,
@@ -204,9 +205,10 @@ class SajuType {
   );
 
   /// T-h2 — 카드/서브 타이틀.
+  /// [폰트 중앙화] '타이틀' 규칙(800)에 맞춰 700 -> 800 상향.
   static const TextStyle h2 = TextStyle(
     fontFamily: serif,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     fontSize: 18,
     height: 1.3,
     letterSpacing: -0.02 * 18,
@@ -249,16 +251,18 @@ class SajuType {
     color: SajuInk.i900,
   );
 
+  /// [폰트 중앙화] 보조 라벨 규칙(600~700)에 맞춰 500 -> 600 상향.
   static const TextStyle ui14 = TextStyle(
     fontFamily: ui,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w600,
     fontSize: 14,
     color: SajuText.muted,
   );
 
+  /// [폰트 중앙화] 보조 라벨 규칙에 맞춰 500 -> 600 상향.
   static const TextStyle ui12 = TextStyle(
     fontFamily: ui,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w600,
     fontSize: 12,
     color: SajuText.muted,
   );
