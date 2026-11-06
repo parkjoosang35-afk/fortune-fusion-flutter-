@@ -92,109 +92,127 @@ class SHomeV2Spacing {
 class SHomeV2Text {
   SHomeV2Text._();
 
-  /// Hero title — Pretendard 500 30/1.15/-2%
+  /// Hero title — Pretendard 30/1.15/-2%
+  /// [폰트 중앙화 — 2026-11 마이페이지 B시안] '타이틀' 규칙(800)에
+  /// 맞춰 500 -> 800로 상향. (현재 코드베이스에서 실사용처 없음 —
+  /// 추후 이 토큰을 쓰는 화면이 생겨도 일관된 굵기를 갖도록 선반영)
   static TextStyle heroTitle({Color color = SHomeV2Colors.heroFg}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 30,
         height: 1.15,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w800,
         letterSpacing: -0.6,
         color: color,
       );
 
-  /// Hero eyebrow — Pretendard 500 11/1, tracking .30em uppercase
+  /// Hero eyebrow — Pretendard 11/1, tracking .30em uppercase
+  /// [폰트 중앙화] 보조 라벨 규칙(600~700)에 맞춰 500 -> 600로 상향.
   static TextStyle heroEyebrow({Color color = SHomeV2Colors.heroFg}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 11,
         height: 1,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
         letterSpacing: 3.3,
         color: color,
       );
 
-  /// Hero sub — Pretendard 400 13/1.55
+  /// Hero sub — Pretendard 13/1.55
+  /// [폰트 중앙화] 본문/설명 규칙에 맞춰 400 -> 600로 상향.
   static TextStyle heroSub({Color color = SHomeV2Colors.heroFg}) => TextStyle(
     fontFamily: 'Pretendard',
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 13,
     height: 1.55,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w600,
     color: color,
   );
 
-  /// Sheet title — 700 15/1.2/-0.5%
+  /// Sheet title — 15/1.2/-0.5%
+  /// [폰트 중앙화] '섹션/카드 타이틀' 규칙(800)에 맞춰 700 -> 800로
+  /// 상향 (하단 시트 '운세 엔진' 타이틀에 실사용 중).
   static TextStyle sheetTitle({Color color = SHomeV2Colors.sheetTitleFg}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 15,
         height: 1.2,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         letterSpacing: -0.075,
         color: color,
       );
 
-  /// Sheet meta — 500 12/1
+  /// Sheet meta — 12/1
+  /// [폰트 중앙화] 보조 라벨 규칙에 맞춰 500 -> 600로 상향.
   static TextStyle sheetMeta({Color color = SHomeV2Colors.sheetMetaFg}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 12,
         height: 1,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
         color: color,
       );
 
-  /// Card title — 700 13/1.3/-0.5%
+  /// Card title — 13/1.3/-0.5%
+  /// [폰트 중앙화] '카드 타이틀' 규칙(800)에 맞춰 700 -> 800로 상향
+  /// (하단 시트 카드 제목에 실사용 중).
   static TextStyle cardTitle({Color color = SHomeV2Colors.cardTitle}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 13,
         height: 1.3,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         letterSpacing: -0.065,
         color: color,
       );
 
-  /// Chip label — 500(active 600) 12.5/1
+  /// Chip label — 12.5/1
+  /// [폰트 중앙화] '메뉴 아이템' 규칙(600~700)에 맞춰
+  /// 비활성 500 -> 600, 활성 600 -> 700로 상향.
   static TextStyle chip({Color color = Colors.white, bool active = false}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 12.5,
         height: 1,
-        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+        fontWeight: active ? FontWeight.w700 : FontWeight.w600,
         color: color,
       );
 
-  /// CTA — 600 14.5/1/-0.5%
+  /// CTA — 14.5/1/-0.5%
+  /// [폰트 중앙화] '버튼' 규칙(700)에 맞춰 600 -> 700로 상향.
   static TextStyle cta({Color color = SHomeV2Colors.ctaFg}) => TextStyle(
     fontFamily: 'Pretendard',
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 14.5,
     height: 1,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: -0.0725,
     color: color,
   );
 
-  /// Brand mono — Pretendard 600 10.5, tracking .12em uppercase
+  /// Brand mono — Pretendard 10.5, tracking .12em uppercase
+  /// [폰트 중앙화] 상단바 '신통방통' 브랜드 텍스트 — 메뉴/라벨급
+  /// 강조 규칙(700)에 맞춰 600 -> 700로 상향.
   static TextStyle brandMono({Color color = Colors.white}) => TextStyle(
     fontFamily: 'Pretendard',
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 10.5,
     height: 1,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: 1.26,
     color: color,
   );
 
-  /// Nav label — 500(active 700) 10/1/-2%
+  /// Nav label — 10/1/-2%
+  /// [폰트 중앙화] midnight_bottom_nav.dart와 동일한 규칙 —
+  /// 비선택 500 -> 600로 상향(선택 700은 유지, 현재 코드베이스에서
+  /// 실사용처 없음 — 추후 대비 선반영).
   static TextStyle navLabel({
     Color color = SHomeV2Colors.navOff,
     bool active = false,
@@ -203,89 +221,101 @@ class SHomeV2Text {
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 10,
     height: 1,
-    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    fontWeight: active ? FontWeight.w700 : FontWeight.w600,
     letterSpacing: -0.2,
     color: color,
   );
 
   // ── 서브 스크린(_shared.css) 전용 ──
 
-  /// Sub header title (hdr-title) — 600 10.5, tracking .22em uppercase
+  /// Sub header title (hdr-title) — 10.5, tracking .22em uppercase
+  /// [폰트 중앙화] 600 -> 700로 상향 (현재 실사용처 없음 — 선반영).
   static TextStyle subHeaderTitle({Color color = Colors.white}) => TextStyle(
     fontFamily: 'Pretendard',
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 10.5,
     height: 1,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: 2.31,
     color: color,
   );
 
-  /// Hero strip eyebrow (.eb) — 500 10/1, tracking .28em uppercase
+  /// Hero strip eyebrow (.eb) — 10/1, tracking .28em uppercase
+  /// [폰트 중앙화] 500 -> 600로 상향 (현재 실사용처 없음 — 선반영).
   static TextStyle subHeroEyebrow({Color color = Colors.white}) => TextStyle(
     fontFamily: 'Pretendard',
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 10,
     height: 1,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w600,
     letterSpacing: 2.8,
     color: color,
   );
 
-  /// Hero strip title (.ti) — 700 22/1.2/-1%
+  /// Hero strip title (.ti) — 22/1.2/-1%
+  /// [폰트 중앙화] '타이틀' 규칙에 맞춰 700 -> 800로 상향
+  /// (현재 실사용처 없음 — 선반영).
   static TextStyle subHeroTitle({Color color = Colors.white}) => TextStyle(
     fontFamily: 'Pretendard',
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 22,
     height: 1.2,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     letterSpacing: -0.22,
     color: color,
   );
 
-  /// Section head — 700 15/1.2/-0.5%
+  /// Section head — 15/1.2/-0.5%
+  /// [폰트 중앙화] '섹션 타이틀' 규칙(800)에 맞춰 700 -> 800로 상향
+  /// (현재 실사용처 없음 — 선반영).
   static TextStyle sectionHead({Color color = SHomeV2Colors.sheetTitleFg}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 15,
         height: 1.2,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         letterSpacing: -0.075,
         color: color,
       );
 
-  /// Section sub — 400 12.5/1.6
+  /// Section sub — 12.5/1.6
+  /// [폰트 중앙화] 본문/설명 규칙에 맞춰 400 -> 600로 상향
+  /// (현재 실사용처 없음 — 선반영).
   static TextStyle sectionSub({Color color = const Color(0x9EFAF9F9)}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 12.5,
         height: 1.6,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w600,
         color: color,
       );
 
-  /// Option title — 600 13.5/1.2/-0.5%
+  /// Option title — 13.5/1.2/-0.5%
+  /// [폰트 중앙화] '메뉴 아이템' 규칙에 맞춰 600 -> 700로 상향
+  /// (현재 실사용처 없음 — 선반영).
   static TextStyle optTitle({Color color = SHomeV2Colors.sheetTitleFg}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 13.5,
         height: 1.2,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.0675,
         color: color,
       );
 
-  /// Option sub — 400 11.5/1.4
+  /// Option sub — 11.5/1.4
+  /// [폰트 중앙화] 본문/설명 규칙에 맞춰 400 -> 600로 상향
+  /// (현재 실사용처 없음 — 선반영).
   static TextStyle optSub({Color color = const Color(0x8CFAF9F9)}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 11.5,
         height: 1.4,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w600,
         color: color,
       );
 
@@ -303,13 +333,15 @@ class SHomeV2Text {
         color: color,
       );
 
-  /// Quote body — 400 13/1.65/-0.5%
+  /// Quote body — 13/1.65/-0.5%
+  /// [폰트 중앙화] 본문/설명 규칙에 맞춰 400 -> 600로 상향
+  /// (현재 실사용처 없음 — 선반영).
   static TextStyle quote({Color color = const Color(0xD9FAF9F9)}) => TextStyle(
     fontFamily: 'Pretendard',
     fontFamilyFallback: _kHanjaFallback,
     fontSize: 13,
     height: 1.65,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w600,
     letterSpacing: -0.065,
     color: color,
   );
@@ -320,12 +352,16 @@ class SHomeV2Text {
   /// 위해 로컬 Pretendard 이탤릭으로 대체한다(영문/한자 전용이라 큰
   /// 시각적 차이 없음 — Pretendard는 fontStyle.italic을 합성 이탤릭으로
   /// 렌더링한다).
+  /// [폰트 중앙화] 이탤릭 강조용 장식 텍스트라 다른 항목만큼 굵게
+  /// 올리진 않고 보수적으로 기본(400) -> 500만 상향(현재 실사용처
+  /// 없음 — 선반영).
   static TextStyle quoteEmphasis({Color color = SHomeV2Colors.glow}) =>
       TextStyle(
         fontFamily: 'Pretendard',
         fontFamilyFallback: _kHanjaFallback,
         fontSize: 15,
         height: 1,
+        fontWeight: FontWeight.w500,
         fontStyle: FontStyle.italic,
         color: color,
       );
