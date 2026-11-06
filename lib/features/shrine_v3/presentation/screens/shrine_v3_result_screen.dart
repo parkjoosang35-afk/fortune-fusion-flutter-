@@ -59,6 +59,7 @@ class _ShrineV3ResultScreenState extends State<ShrineV3ResultScreen> {
     final t = order.talisman;
     return Scaffold(
       backgroundColor: ShrineV3Colors.paper,
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
