@@ -77,7 +77,8 @@ class FortunePeriodType {
   const FortunePeriodType._();
 
   static const String serif = 'NotoSerifKR'; // --font-display
-  static const String body = 'GowunBatang'; // --font-body
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard. (구) --font-body
+  static const String body = 'Pretendard';
   static const String ui = 'Pretendard'; // --font-ui
   static const String mono = 'IBMPlexMono'; // --font-mono
 
@@ -102,8 +103,11 @@ class FortunePeriodType {
   );
 
   /// `.v2-period-sub`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle periodSub = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 13,
     color: FortunePeriodColors.muted,
   );
@@ -128,8 +132,11 @@ class FortunePeriodType {
   );
 
   /// `.v2-summary-body` (가독성 강화: 16.5px)
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle summaryBody = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 16.5,
     height: 1.9,
     color: FortunePeriodColors.fg,
@@ -146,9 +153,11 @@ class FortunePeriodType {
   );
 
   /// `.v2-flow-name`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '타이틀' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle flowName = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 15,
     color: FortunePeriodColors.glow,
   );
@@ -163,40 +172,54 @@ class FortunePeriodType {
   );
 
   /// `.v2-flow-text`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle flowText = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 15,
     height: 1.75,
     color: FortunePeriodColors.fg,
   );
 
   /// `.v2-field-name`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '타이틀' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle fieldName = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 15,
     color: FortunePeriodColors.fg,
   );
 
   /// `.v2-field-text` (가독성 강화: 14.5px, opacity 1)
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle fieldText = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 14.5,
     height: 1.7,
     color: FortunePeriodColors.fg,
   );
 
   /// `.v2-caution li` (가독성 강화: 15px)
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle caution = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 15,
     height: 1.6,
     color: FortunePeriodColors.fg,
   );
 
   /// `.pstamp`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle stamp = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 12.5,
     color: FortunePeriodColors.fg,
   );
@@ -211,17 +234,21 @@ class FortunePeriodType {
   );
 
   /// `.archive-title`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '타이틀' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle archiveTitle = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 13.5,
     color: FortunePeriodColors.fg,
   );
 
   /// `.archive-go`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '버튼' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle archiveGo = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 12,
     color: FortunePeriodColors.glow,
   );
@@ -237,8 +264,11 @@ class FortunePeriodType {
   );
 
   /// `.dlg-body`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle dialogBody = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 13.5,
     height: 1.7,
     color: FortunePeriodColors.fg,
@@ -256,48 +286,61 @@ class FortunePeriodType {
   );
 
   /// `.btn-primary` 글자
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '버튼' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle btnPrimary = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 15,
     color: FortunePeriodColors.onGlow,
   );
 
   /// `.btn-ghost` 글자
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '버튼' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle btnGhost = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 14,
     color: FortunePeriodColors.muted,
   );
 
   /// `.btn-secondary` 글자
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '버튼' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle btnSecondary = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 14,
     color: FortunePeriodColors.fg,
   );
 
   /// `.my-saju dt`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const TextStyle dt = TextStyle(
-    fontFamily: body,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 13.5,
     color: FortunePeriodColors.muted,
   );
 
   /// `.my-saju dd`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '타이틀' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle dd = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 14,
     color: FortunePeriodColors.fg,
   );
 
   /// `.past-banner`
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '타이틀' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const TextStyle pastBanner = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 13,
     color: FortunePeriodColors.fg,
   );

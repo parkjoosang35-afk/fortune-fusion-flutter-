@@ -67,7 +67,10 @@ class FeFonts {
   // 앱 pubspec.yaml에 이미 family로 등록되어 있는 폰트들을 그대로 재사용한다
   // (NotoSerifKR/GowunBatang/IBMPlexMono — 관상·손금 섹션과 동일 패밀리명).
   static const display = 'NotoSerifKR';
-  static const body = 'GowunBatang';
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard. 이 화면의 36곳
+  // 위젯 파일에서 FeFonts.body를 직접 인라인으로 참조하므로, 상수
+  // 자체를 Pretendard로 바꿔 전체 전환되도록 한다.
+  static const body = 'Pretendard';
   static const ui = 'Pretendard';
   static const mono = 'IBMPlexMono';
 }
@@ -99,27 +102,38 @@ class FeText {
     letterSpacing: -0.5,
     color: FeColors.fg,
   );
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const lead = TextStyle(
-    fontFamily: FeFonts.body,
+    fontFamily: FeFonts.ui,
+    fontWeight: FontWeight.w600,
     fontSize: 15,
     height: 1.7,
     color: FeColors.fg,
   );
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const body = TextStyle(
-    fontFamily: FeFonts.body,
+    fontFamily: FeFonts.ui,
+    fontWeight: FontWeight.w600,
     fontSize: 13.5,
     height: 1.65,
     color: FeColors.fg,
   );
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 기본값(400) -> 600 상향.
   static const bodyMuted = TextStyle(
-    fontFamily: FeFonts.body,
+    fontFamily: FeFonts.ui,
+    fontWeight: FontWeight.w600,
     fontSize: 13.5,
     height: 1.65,
     color: FeColors.muted,
   );
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '카드타이틀' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const cardTitle = TextStyle(
-    fontFamily: FeFonts.body,
-    fontWeight: FontWeight.w700,
+    fontFamily: FeFonts.ui,
+    fontWeight: FontWeight.w800,
     fontSize: 14,
     height: 1.45,
     color: FeColors.fg,
@@ -149,9 +163,11 @@ class FeText {
     letterSpacing: 2.6,
     color: FeColors.muted,
   );
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '타이틀' 규칙(800)에
+  // 맞춰 패밀리 변경, 700 -> 800 상향.
   static const topBar = TextStyle(
-    fontFamily: FeFonts.body,
-    fontWeight: FontWeight.w700,
+    fontFamily: FeFonts.ui,
+    fontWeight: FontWeight.w800,
     fontSize: 16,
     letterSpacing: 0.3,
     color: FeColors.fg,

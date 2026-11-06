@@ -169,7 +169,12 @@ class SajuType {
   SajuType._();
 
   static const String serif = 'NotoSerifKR';
-  static const String body = 'GowunBatang';
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard. 이 파일 내 명명된
+  // body 계열 스타일(h3/body16/body14)은 이미 ui(Pretendard)로 직접
+  // 전환했으나, 이 상수를 인라인으로 직접 참조하는 다른 화면 파일들
+  // (analysis_complete_screen.dart 등 9곳)까지 전부 전환되도록 상수
+  // 자체도 Pretendard로 변경한다.
+  static const String body = 'Pretendard';
   static const String ui = 'Pretendard';
   static const String mono = 'IBMPlexMono';
 
@@ -216,27 +221,32 @@ class SajuType {
   );
 
   /// T-h3 — 07 블록 타이틀.
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '타이틀' 규칙(800)에
+  // 맞춰 패밀리를 body(GowunBatang) -> ui(Pretendard)로 변경, 700 -> 800 상향.
   static const TextStyle h3 = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w700,
+    fontFamily: ui,
+    fontWeight: FontWeight.w800,
     fontSize: 18,
     height: 1.3,
     letterSpacing: -0.02 * 18,
     color: SajuGold.g100,
   );
 
-  /// T-body — Gowun Batang 본문(이야기/카피).
+  /// T-body — 본문(이야기/카피). [폰트 중앙화 — GowunBatang -> Pretendard
+  /// 전환] '본문' 규칙(600)에 맞춰 패밀리 변경, 400 -> 600 상향.
   static const TextStyle body16 = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w400,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 16,
     height: 1.8,
     color: SajuText.fg2,
   );
 
+  // [폰트 중앙화 — GowunBatang -> Pretendard 전환] '본문' 규칙(600)에
+  // 맞춰 패밀리 변경, 400 -> 600 상향.
   static const TextStyle body14 = TextStyle(
-    fontFamily: body,
-    fontWeight: FontWeight.w400,
+    fontFamily: ui,
+    fontWeight: FontWeight.w600,
     fontSize: 14,
     height: 1.6,
     color: SajuText.muted,

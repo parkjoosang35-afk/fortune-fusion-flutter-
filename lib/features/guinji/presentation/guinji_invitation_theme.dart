@@ -53,7 +53,8 @@ class GiColors {
 class GiFonts {
   GiFonts._();
   static const display = 'NotoSerifKR'; // 제목 · 인장 · CTA
-  static const body = 'GowunBatang'; // 캡션 · 편지 본문 · 인용구
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard. 캡션 · 편지 본문 · 인용구
+  static const body = 'Pretendard';
   static const ui = 'Pretendard'; // 입력 · 라벨 · 칩
   static const mono = 'IBMPlexMono'; // 메타 라벨(대문자 · 넓은 자간)
 }

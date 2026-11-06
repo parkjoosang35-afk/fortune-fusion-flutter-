@@ -34,7 +34,8 @@ class GmColors {
 
 class GmText {
   static const display = 'NotoSerifKR'; // 타이틀 · 이름(카드) · 점수 숫자 · 한자
-  static const body = 'GowunBatang'; // 장문 풀이 본문 16/1.85
+  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard. 장문 풀이 본문 16/1.85
+  static const body = 'Pretendard';
   static const ui = 'Pretendard'; // 버튼 · 라벨 · 노드 이름
   static const mono = 'IBMPlexMono'; // S1~S5 배지 · 영문 메타 (대문자, 자간 0.3em)
 
