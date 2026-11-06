@@ -224,12 +224,53 @@ class _ShrineV3AskScreenState extends State<ShrineV3AskScreen> {
                   ),
                 ),
               ),
+            // [사용자 버그 리포트 — 디자인 핸드오프 불일치 #4] "부적 받기
+            // 버튼 위치가 이상하게 바뀌었어요" — 원인은 부적 자체가 HTML
+            // `.recv3`(top:150px, 화면 상단 고정)와 달리 `Center`로 화면
+            // 수직 중앙에 떠 있었기 때문(그 아래 캡션/스테퍼/버튼까지 전부
+            // 밀려 보임). `top: 150`에 가깝게 비율로 고정하고, HTML
+            // `.seal3`(부적 우측하단에 겹치는 44×44px, -8deg 회전, 글자
+            // 1자 배지 — 재물부 계열이면 '財')도 추가로 재현한다.
             if (_p >= 4)
-              Center(
-                child: UniqueTalismanOverlay(
-                  order: widget.order,
-                  width: 110,
-                  useThumb: true,
+              Positioned(
+                top: 150,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      UniqueTalismanOverlay(
+                        order: widget.order,
+                        width: 110,
+                        useThumb: true,
+                      ),
+                      Positioned(
+                        right: -16,
+                        bottom: -12,
+                        child: Transform.rotate(
+                          angle: -8 * 3.1415926535 / 180,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: ShrineV3Colors.seal,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              t.hanja.isNotEmpty ? t.hanja.characters.first : '符',
+                              style: ShrineV3TextStyles.title.copyWith(
+                                color: const Color(0xFFFFF8EC),
+                                fontSize: 21,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             Align(
