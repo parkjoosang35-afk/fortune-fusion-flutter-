@@ -45,7 +45,11 @@ import '../../features/compatibility/presentation/compatibility_input_screen.dar
 import '../../features/compatibility/presentation/compatibility_result_screen.dart';
 // [엔진 통합 지시문 STEP 3] 교차검증 결과 화면.
 import '../orchestrator/presentation/cross_check_result_screen.dart';
-import '../../features/wallet/presentation/wallet_screen.dart';
+// [마이페이지 리뉴얼 · DEV 2026-11-06 §S03] 구 WalletScreen(다크 테마, 미사용)을
+// 신규 WalletMinimalScreen으로 교체. WalletScreen 파일 자체는 프로젝트 관례에
+// 따라 삭제하지 않고 코드베이스에 유지하되, 더 이상 라우팅되지 않으므로
+// import는 제거한다.
+import '../../features/wallet/presentation/wallet_minimal_screen.dart';
 import '../../features/attendance/presentation/attendance_calendar_screen.dart';
 import '../../features/mission/presentation/mission_screen.dart';
 import '../../features/ranking/presentation/ranking_screen.dart';
@@ -845,7 +849,10 @@ class AppRouter {
 
       // ── 리워드 ──
       case '/reward/wallet':
-        return _pageNamed('/reward/wallet', const WalletScreen());
+        // [마이페이지 리뉴얼 · DEV 2026-11-06 §S03] 구 WalletScreen(다크 테마) →
+        // 신규 WalletMinimalScreen으로 교체. 기존 WalletScreen/WalletContent
+        // 파일 자체는 프로젝트 관례에 따라 삭제하지 않고 코드베이스에 유지한다.
+        return _pageNamed('/reward/wallet', const WalletMinimalScreen());
       case '/reward/attendance':
         // [복주머니 화면 재구성] 미션/복주머니열기/개봉이력 삭제 후
         // 출석체크만 남기면서 신설한 "이번 달 출석 달력" 화면.
