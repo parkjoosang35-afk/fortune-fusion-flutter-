@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/widgets/app_toast.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_order.dart';
 import '../theme/shrine_v3_theme.dart';
@@ -155,9 +156,7 @@ class _BoxItemTile extends StatelessWidget {
                         );
                         if (!context.mounted) return;
                         if (result != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('향을 올렸습니다 · ${result.daysAfter}일 남음')),
-                          );
+                          AppToast.show(context, '향을 올렸습니다 · ${result.daysAfter}일 남음');
                           provider.loadBox();
                         }
                       },

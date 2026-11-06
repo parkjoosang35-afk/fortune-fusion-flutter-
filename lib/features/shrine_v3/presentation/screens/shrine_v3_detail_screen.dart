@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/widgets/app_toast.dart';
 import '../../../auth/application/auth_provider.dart';
 import '../../../mypage/presentation/settings_screen.dart';
 import '../../../result_access/domain/result_access_model.dart';
@@ -9,6 +10,7 @@ import '../../application/shrine_v3_provider.dart';
 import '../../domain/talisman_item.dart';
 import '../theme/shrine_v3_theme.dart';
 import '../widgets/talisman_thumb.dart';
+import '../widgets/talisman_zoom_overlay.dart';
 import 'shrine_v3_ask_screen.dart';
 
 /// 신당(THE SHRINE) v3 — 05 상세 · 소망 입력. 부적 설명 6섹션(의미/효능/
@@ -49,18 +51,14 @@ class _ShrineV3DetailScreenState extends State<ShrineV3DetailScreen> {
   Future<void> _submit(TalismanItem k) async {
     final wish = _wishController.text.trim();
     if (wish.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('부적에 담을 소망을 적어주세요.')),
-      );
+      AppToast.show(context, '부적에 담을 소망을 적어주세요.', isError: true);
       return;
     }
 
     final auth = context.read<AuthProvider>();
     final user = auth.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인이 필요합니다.')),
-      );
+      AppToast.show(context, '로그인이 필요합니다.', isError: true);
       return;
     }
     if (user.realName == null || user.realName!.isEmpty || user.birthDate == null) {
@@ -116,7 +114,7 @@ class _ShrineV3DetailScreenState extends State<ShrineV3DetailScreen> {
 
     if (order == null) {
       final err = context.read<ShrineV3Provider>().error ?? '부적을 짓지 못했습니다.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      AppToast.show(context, err, isError: true);
       return;
     }
 
@@ -157,7 +155,10 @@ class _ShrineV3DetailScreenState extends State<ShrineV3DetailScreen> {
             Center(
               child: Column(
                 children: [
-                  TalismanThumb(talisman: k, width: 92, useThumb: false),
+                  GestureDetector(
+                    onTap: () => showTalismanZoomOverlay(context, talisman: k),
+                    child: TalismanThumb(talisman: k, width: 92, useThumb: false),
+                  ),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

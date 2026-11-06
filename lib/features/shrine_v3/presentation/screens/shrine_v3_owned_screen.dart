@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/util/image_gallery_saver.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../application/shrine_v3_provider.dart';
 import '../../domain/shrine_order.dart';
 import '../theme/shrine_v3_theme.dart';
 import '../widgets/incense_rite_overlay.dart';
+import '../widgets/talisman_save_image.dart';
+import '../widgets/talisman_zoom_overlay.dart';
 import '../widgets/unique_talisman_overlay.dart';
 import 'shrine_v3_detail_screen.dart';
 
@@ -25,6 +29,7 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
   bool _loading = true;
   String? _error;
   bool _lighting = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -59,15 +64,44 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
     if (!mounted) return;
     setState(() => _lighting = false);
     if (result != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('향을 올렸습니다 · ${result.daysAfter}일 남음')),
-      );
+      AppToast.show(context, '향을 올렸습니다 · ${result.daysAfter}일 남음');
       _load();
     } else {
       final err = provider.error;
       if (err != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+        AppToast.show(context, err, isError: true);
       }
+    }
+  }
+
+  /// README §6/§7 "사진첩 저장" — HTML `saveTalisman()`의 Canvas 합성을
+  /// [buildTalismanSaveImageBytes]로 그대로 재현한 뒤, 기존
+  /// [saveImageBytesToGalleryDetailed](Android: gal 갤러리 저장, Web: 파일
+  /// 다운로드)에 그대로 넘긴다 — 저장 경로 자체는 귀인지도 등 기존 화면과
+  /// 완전히 동일하게 재사용한다(§3 저장 단일 경로 유지 원칙).
+  Future<void> _saveToGallery(ShrineOrder order) async {
+    setState(() => _saving = true);
+    try {
+      final bytes = await buildTalismanSaveImageBytes(order);
+      final result = await saveImageBytesToGalleryDetailed(
+        bytes,
+        name: '신당_${order.talisman.name}_${order.serial.replaceFirst('神堂 ', '')}',
+      );
+      if (!mounted) return;
+      if (result.isSuccess) {
+        AppToast.show(context, gallerySaveSuccessMessage());
+      } else {
+        AppToast.show(
+          context,
+          result.failureMessage ?? '저장하지 못했어요 · 잠시 뒤 다시',
+          isError: true,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      AppToast.show(context, '저장하지 못했어요 · 잠시 뒤 다시', isError: true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -108,7 +142,10 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
         Center(
           child: Column(
             children: [
-              UniqueTalismanOverlay(order: o, width: 112, height: 258),
+              GestureDetector(
+                onTap: () => showTalismanZoomOverlay(context, talisman: info, order: o),
+                child: UniqueTalismanOverlay(order: o, width: 112, height: 258),
+              ),
               const SizedBox(height: 10),
               Text('${o.talisman.hanja} · 내 부적', style: ShrineV3TextStyles.mono.copyWith(fontSize: 11)),
               Text(o.talisman.name, style: ShrineV3TextStyles.title.copyWith(fontSize: 22)),
@@ -160,7 +197,7 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        if (o.isActive)
+        if (o.isActive) ...[
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -175,8 +212,22 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : Text(o.incenseLitToday ? '香 오늘 향을 올렸어요' : '香 향 올리기 · 기운 +3일 ›'),
             ),
-          )
-        else if (o.isExpired)
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: () => showTalismanZoomOverlay(context, talisman: info, order: o),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ShrineV3Colors.ink,
+                side: const BorderSide(color: ShrineV3Colors.line),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text('부적 크게 보기'),
+            ),
+          ),
+        ] else if (o.isExpired)
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -191,7 +242,37 @@ class _ShrineV3OwnedScreenState extends State<ShrineV3OwnedScreen> {
               ),
               child: const Text('같은 부적 다시 부탁하기 ›'),
             ),
+          )
+        else
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => showTalismanZoomOverlay(context, talisman: info, order: o),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2A1A10),
+                foregroundColor: const Color(0xFFFFD98A),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text('부적 크게 보기 ›'),
+            ),
           ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton(
+            onPressed: _saving ? null : () => _saveToGallery(o),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ShrineV3Colors.seal,
+              side: const BorderSide(color: ShrineV3Colors.seal),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: _saving
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('⤓ 사진첩에 저장'),
+          ),
+        ),
       ],
     );
   }
