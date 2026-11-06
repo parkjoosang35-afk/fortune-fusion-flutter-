@@ -89,7 +89,10 @@ class _AttendanceCalendarScreenState extends State<AttendanceCalendarScreen> {
                         UnifiedTokens.spaceXxl,
                       ),
                       children: [
-                        _StreakHeader(streak: calendar.streak),
+                        _StreakHeader(
+                          streak: calendar.streak,
+                          checkedToday: calendar.checkedToday,
+                        ),
                         const SizedBox(height: UnifiedTokens.spaceXl),
                         _CalendarGrid(calendar: calendar),
                         const SizedBox(height: UnifiedTokens.spaceXl),
@@ -141,9 +144,27 @@ class _ErrorState extends StatelessWidget {
 }
 
 /// 연속출석일수 요약 헤더 카드.
+///
+/// [2026 출석 연속보너스 재설계] 1~30일차가 "N일차=N×10개" 선형 보상표로
+/// 채워지면서, 오늘 출석 시 정확히 몇 개를 받는지(또는 이미 받았는지)를
+/// 바로 보여주는 것이 사용자에게 더 명확하다고 판단해 추가한 영역.
+/// (서버가 실제로 계산한 금액은 체크인 시점의 /checkin 응답으로만 확정되며,
+/// 여기서는 어디까지나 "다음 출석 시 예상 지급량"을 미리 보여주는 용도다.)
 class _StreakHeader extends StatelessWidget {
-  const _StreakHeader({required this.streak});
+  const _StreakHeader({required this.streak, required this.checkedToday});
   final int streak;
+  final bool checkedToday;
+
+  /// calendar.streak는 "가장 최근 출석의 연속일수"다(오늘 체크인했으면
+  /// 오늘 포함, 아니면 어제까지 기준). 따라서 다음 체크인(오늘 미출석 시
+  /// 오늘, 이미 출석했다면 내일)의 일차는 항상 streak+1이다.
+  /// 1~30일차는 N×10, 31일차 이후는 서버가 30일차 보상(300개)을 계속
+  /// 유지 지급하므로 동일 공식을 클라이언트 미리보기에도 반영한다.
+  int get _nextDayNumber => streak + 1;
+  int get _expectedReward {
+    final day = _nextDayNumber.clamp(1, 30);
+    return day * 10;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +194,27 @@ class _StreakHeader extends StatelessWidget {
                 Text('연속 출석', style: UnifiedText.caption()),
                 const SizedBox(height: 2),
                 Text('$streak일째', style: UnifiedText.titleLarge()),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: UnifiedColors.black,
+              borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  checkedToday ? '내일 받을 보상' : '오늘 받을 보상',
+                  style: UnifiedText.caption(color: Colors.white70),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '+$_expectedReward개',
+                  style: UnifiedText.bodyStrong(color: Colors.white),
+                ),
               ],
             ),
           ),
@@ -294,13 +336,58 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-/// 연속출석 마일스톤 보상 트랙(1/3/7/14/21/30일차 등, 관리자 등록값 그대로 사용).
-class _MilestoneTrack extends StatelessWidget {
+/// 연속출석 마일스톤 보상 트랙.
+///
+/// [2026 출석 연속보너스 재설계] 기존엔 관리자가 등록한 6개 포인트
+/// (1/3/7/14/21/30일차)만 듬성듬성 보여줬지만, 이제 1~30일차 전부가
+/// "N일차=N×10개" 선형 보상표로 채워져 있으므로 30칸을 전부 가로
+/// 스크롤로 보여준다. 항목이 많아진 만큼 화면을 열자마자 "오늘/다음
+/// 목표" 근처로 자동 스크롤해 사용자가 직접 30칸을 끝까지 넘기지
+/// 않아도 되게 한다(사용자가 요청한 "더 좋은 출석 아이템" 개선 아이디어).
+class _MilestoneTrack extends StatefulWidget {
   const _MilestoneTrack({required this.calendar});
   final AttendanceCalendarModel calendar;
 
   @override
+  State<_MilestoneTrack> createState() => _MilestoneTrackState();
+}
+
+class _MilestoneTrackState extends State<_MilestoneTrack> {
+  final _scrollController = ScrollController();
+  static const double _itemWidth = 84;
+  static const double _itemGap = UnifiedTokens.spaceMd;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
+  }
+
+  void _scrollToCurrent() {
+    if (!_scrollController.hasClients) return;
+    final milestones = widget.calendar.milestones;
+    if (milestones.isEmpty) return;
+    // 다음 목표(아직 안 받은 가장 가까운 일차)를 화면 가운데쯤 오도록 스크롤.
+    final nextIndex = milestones.indexWhere(
+      (m) => m.streakDay > widget.calendar.streak,
+    );
+    final targetIndex = nextIndex == -1 ? milestones.length - 1 : nextIndex;
+    final targetOffset =
+        (targetIndex * (_itemWidth + _itemGap)) - (_itemWidth * 1.5);
+    _scrollController.jumpTo(
+      targetOffset.clamp(0, _scrollController.position.maxScrollExtent),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final calendar = widget.calendar;
     if (calendar.milestones.isEmpty) return const SizedBox.shrink();
 
     return PremiumCard(
@@ -312,26 +399,42 @@ class _MilestoneTrack extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('연속출석 보상', style: UnifiedText.title()),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('연속출석 보상', style: UnifiedText.title()),
+              Text(
+                '1일 10개 → 30일 300개',
+                style: UnifiedText.caption(color: UnifiedColors.textCaption),
+              ),
+            ],
+          ),
           const SizedBox(height: UnifiedTokens.spaceMd),
           SizedBox(
             height: 76,
             child: ListView.separated(
+              controller: _scrollController,
               scrollDirection: Axis.horizontal,
               itemCount: calendar.milestones.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: UnifiedTokens.spaceMd),
+              separatorBuilder: (_, __) => const SizedBox(width: _itemGap),
               itemBuilder: (context, index) {
                 final m = calendar.milestones[index];
                 final reached = calendar.streak >= m.streakDay;
+                final isNextTarget =
+                    !reached &&
+                    (index == 0 ||
+                        calendar.streak >= calendar.milestones[index - 1].streakDay);
                 return Container(
-                  width: 84,
+                  width: _itemWidth,
                   padding: const EdgeInsets.symmetric(
                     vertical: UnifiedTokens.spaceSm,
                   ),
                   decoration: BoxDecoration(
                     color: reached ? UnifiedColors.black : UnifiedColors.bg,
                     borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+                    border: isNextTarget
+                        ? Border.all(color: UnifiedColors.black, width: 1.5)
+                        : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
