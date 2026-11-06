@@ -309,13 +309,16 @@ class _MidnightNavTabState extends State<_MidnightNavTab> {
                       duration: MidnightNavTokens.colorTransition,
                       curve: MidnightNavTokens.colorCurve,
                       style: TextStyle(
+                        // [폰트 중앙화 — 2026-11 마이페이지 B시안] 하단 탭
+                        // 라벨도 "메뉴 아이템 이름" 규칙(600~700)을 따르도록
+                        // 비선택 상태를 500 -> 600으로 상향.
                         fontFamily: 'Pretendard',
                         fontSize: 11,
                         height: 1,
                         letterSpacing: -0.11,
                         fontWeight: selected
                             ? FontWeight.w700
-                            : FontWeight.w500,
+                            : FontWeight.w600,
                         color: selected
                             ? MidnightNavTokens.active
                             : MidnightNavTokens.inactive,
