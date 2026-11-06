@@ -78,17 +78,36 @@ export async function POST(request: NextRequest) {
       });
       const streakCount = (yesterdayAttendance?.streakCount ?? 0) + 1;
 
-      // 3) streak_day에 맞는 보상 규칙 조회, 없으면 point_policies.attendance로 폴백
+      // 3) streak_day에 맞는 보상 규칙 조회.
+      // [2026 출석 연속보너스 재설계] 1~30일차는 "N일차 = N×10개"
+      // 선형 보상표(attendance_reward_rules에 1~30 전부 등록됨)를 그대로
+      // 따른다. 31일차 이후(연속출석을 계속 이어가는 경우)는 규칙 테이블에
+      // 해당 streak_day가 없어 예전에는 point_policies.attendance의
+      // 일반 폴백값(3개)으로 뚝 떨어졌는데, 30일째 300개를 받던 사용자가
+      // 31일째에 3개로 급락하는 것은 보상 체계상 부자연스러운 "절벽" 현상이라
+      // 판단해 — 최고 등록된 streak_day(현재 30일차=300개)의 보상을 계속
+      // 유지(sustain)하도록 개선한다. 연속출석이 끊기면 §4의 리셋 로직에
+      // 따라 어차피 1일차(10개)부터 다시 시작하므로 악용 소지는 없다.
       const rule = await tx.attendanceRewardRule.findFirst({
         where: { streakDay: streakCount, status: "active", deletedAt: null },
       });
       let rewardPoint = rule?.rewardPoint;
       if (rewardPoint == null) {
-        const fallbackPolicy = await tx.pointPolicy.findUnique({
-          where: { sourceType: "attendance" },
+        const maxRule = await tx.attendanceRewardRule.findFirst({
+          where: { status: "active", deletedAt: null },
+          orderBy: { streakDay: "desc" },
         });
-        // [복주머니 정책표 재정리 - 2026] 정책표 §3 "출석 체크 3개/1일 1회" 기준 폴백값.
-        rewardPoint = fallbackPolicy?.amount ?? 3;
+        if (maxRule && streakCount > maxRule.streakDay) {
+          // 등록된 보상표의 마지막 날짜(예: 30일차)를 넘어서도 계속
+          // 출석 중이라면, 마지막 날짜의 보상을 그대로 유지 지급한다.
+          rewardPoint = maxRule.rewardPoint;
+        } else {
+          const fallbackPolicy = await tx.pointPolicy.findUnique({
+            where: { sourceType: "attendance" },
+          });
+          // [복주머니 정책표 재정리 - 2026] 정책표 §3 "출석 체크 3개/1일 1회" 기준 폴백값.
+          rewardPoint = fallbackPolicy?.amount ?? 3;
+        }
       }
 
       const attendance = await tx.attendance.create({
