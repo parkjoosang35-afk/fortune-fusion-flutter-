@@ -119,8 +119,13 @@ import '../../features/saju_renewal/navigation/saju_dimension_transition.dart';
 // [복주머니 마케팅 쿠폰] QR 스캔/딥링크/수동입력 공용 흐름. `/g/`·`/r/`·
 // `/w/`와 동일한 와일드카드 선매칭 패턴으로 `/coupon/{token}`을 처리한다.
 import '../../features/bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
-import '../../features/bokju_coupon/presentation/bokju_coupon_scan_screen.dart';
 import '../../features/bokju_coupon/presentation/bokju_coupon_history_screen.dart';
+// [마이페이지 리뉴얼 · DEV 2026-11-06 §S05] 구 BokjuCouponScanScreen(QR
+// 우선, 다크 테마) → 신규 BokjuCouponEntryMinimalScreen(직접 입력 우선,
+// Minimal 테마)으로 교체. BokjuCouponScanScreen 파일 자체는 프로젝트 관례에
+// 따라 삭제하지 않고 유지하며, 신규 화면의 QR 보조 버튼에서 계속 사용된다
+// (이 파일에서는 더 이상 직접 참조하지 않으므로 import는 생략).
+import '../../features/bokju_coupon/presentation/bokju_coupon_entry_minimal_screen.dart';
 import '../../features/fortune_period/presentation/saju_input_screen.dart';
 import '../../features/fortune_period/presentation/my_saju_info_screen.dart';
 import '../../features/fortune_period/presentation/fortune_period_screen.dart';
@@ -902,12 +907,18 @@ class AppRouter {
       case '/reward/giftcard/my':
         return _pageNamed('/reward/giftcard/my', const MyGiftcardsScreen());
 
-      // ── [복주머니 마케팅 쿠폰] QR 스캔 진입점 + 내 쿠폰함 ──
-      // 지갑 화면("쿠폰 등록" 버튼 등)에서 이 라우트로 진입해 카메라
-      // 스캔(실패 시 수동 코드입력으로 자동 폴백)을 시작한다. 스캔/입력
-      // 완료 후에는 '/coupon/{token}' 경로(위 와일드카드 분기)로 이어진다.
+      // ── [복주머니 마케팅 쿠폰] 쿠폰 등록 진입점 + 내 쿠폰함 ──
+      // 지갑 화면("쿠폰 등록하기" 버튼 등)에서 이 라우트로 진입한다.
+      // [마이페이지 리뉴얼 · DEV 2026-11-06 §S05] README §3-2 "직접 입력을
+      // 기본으로, QR은 보조 버튼" 스펙에 따라 신규 BokjuCouponEntryMinimalScreen
+      // (직접 입력 우선, 내부에서 loadPreview+redeem을 바로 실행)으로 교체.
+      // 구 BokjuCouponScanScreen(QR 우선, 카메라 실패 시 수동입력 폴백)은
+      // 신규 화면의 QR 보조 버튼을 통해 계속 호출된다.
       case '/reward/coupon/scan':
-        return _pageNamed('/reward/coupon/scan', const BokjuCouponScanScreen());
+        return _pageNamed(
+          '/reward/coupon/scan',
+          const BokjuCouponEntryMinimalScreen(),
+        );
       case '/reward/coupon/my':
         return _pageNamed(
           '/reward/coupon/my',
