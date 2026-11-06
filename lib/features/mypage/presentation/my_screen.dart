@@ -4,29 +4,30 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/domain/assets/open_pass_state.dart';
-import '../../../core/theme/app_unified_style.dart';
-import '../../../core/widgets/premium_card.dart';
+import '../../../core/orchestrator/orchestrator_provider.dart';
+import '../../attendance/application/attendance_provider.dart';
 import '../../auth/application/auth_provider.dart';
-import '../../auth/domain/grade_model.dart';
+import '../../notification/notification_provider.dart';
 import '../../pass/application/pass_provider.dart';
 import '../../pass/domain/pass_model.dart';
+import '../../saju_renewal/screens/birth_input_screen.dart';
 import '../../wallet/application/wallet_provider.dart';
 import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
 import 'my_fortune_records_screen.dart';
+import 'theme/mypage_minimal_theme.dart';
 
-/// [9단계 - 마이 탭 정리] MyScreen - 마이 탭
-/// 프로필+등급뱃지 + [열림패스/복주머니/구독 요약(3축 정책 한눈에 보기)]
-/// + 아카이브(사주/타로/관상/손금/궁합 히스토리) + 커뮤니티(내 글·소원) + 설정
-///
-/// [서브 디자인 통일 확산 프롬프트] §5 마이 탭 확산 규칙 적용. 기존 다크
-/// "우주(Cosmic)" 톤(CosmicCard/AppColors.bgPrimary 등)을 홈 화면과 동일한
-/// 화이트+라벤더 팔레트로 전면 전환한다. 화면 구조/섹션 순서는 그대로 유지.
+/// [마이페이지 리뉴얼 · 미니멀 트렌드(Variant B) — S01 마이(메인)]
+/// `design_handoff_mypage_minimal.zip` README §2(정보 구조)/§4(S01 스펙)를
+/// 그대로 구현한다. 한지 크림 배경(`MyPageColors.paper`) + 부적 주홍 톤으로
+/// 전면 교체하되, 기존 Provider/라우트/기능은 전혀 줄이지 않고 그대로
+/// 재사용한다(§3 매핑표: 빠지는 기능 없음 원칙).
 ///
 /// [주의] AuthProvider/GradeModel/UserModel/PassProvider/WalletProvider/
-/// SubscriptionProvider는 기존 것을 그대로 재사용하며, 아카이브·설정 메뉴는
-/// 모두 기존 app_router.dart에 등록된 라우트로 이동한다.
+/// AttendanceProvider/NotificationProvider/OrchestratorProvider는 모두
+/// 기존 전역 Provider를 그대로 재사용하며, 아카이브·설정 메뉴는 기존
+/// app_router.dart에 등록된 라우트로 이동한다.
 class MyScreen extends StatefulWidget {
   const MyScreen({super.key});
 
@@ -38,12 +39,20 @@ class _MyScreenState extends State<MyScreen> {
   @override
   void initState() {
     super.initState();
-    // [무료 광고형 구조 재정비 §2/§7] 마이 탭 진입 시 프리패스/복주머니만
-    // 최신화한다. 구독(SubscriptionProvider)은 화면에서 off 처리했으므로
-    // 더 이상 여기서 로드하지 않는다(레거시 코드/라우트는 보존).
+    // [README §7 "S01 진입 → GET /api/me/summary"] 단일 API가 없는 현재
+    // 구조에서는 기존 Provider별 load()를 병렬로 호출해 동등한 효과를 낸다.
+    // 일주(甲寅 일주) 서브텍스트 표시를 위해 OrchestratorProvider도 함께
+    // 로드한다(사주 계산은 로컬 PHASE1~4 엔진 — 서버 API 없음, 기존 교차
+    // 검증 화면과 동일 경로 재사용).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PassProvider>().load();
       context.read<WalletProvider>().load();
+      context.read<AttendanceProvider>().load();
+      context.read<NotificationProvider>().load();
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        context.read<OrchestratorProvider>().load(user);
+      }
     });
   }
 
@@ -53,345 +62,69 @@ class _MyScreenState extends State<MyScreen> {
     final user = auth.currentUser;
     final pass = context.watch<PassProvider>();
     final wallet = context.watch<WalletProvider>();
+    final attendance = context.watch<AttendanceProvider>();
+    final notification = context.watch<NotificationProvider>();
+    final orchestrator = context.watch<OrchestratorProvider>();
 
     return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('마이', style: UnifiedText.titleLarge()),
-      ),
+      backgroundColor: MyPageColors.paper,
       body: SafeArea(
+        bottom: false,
         child: ListView(
-          padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
+          padding: const EdgeInsets.fromLTRB(
+            MyPageSpacing.screenX,
+            62,
+            MyPageSpacing.screenX,
+            130,
+          ),
           children: [
-            // §1 프로필 카드
-            PremiumCard(
-              backgroundColor: UnifiedColors.cardSection,
-              borderColor: Colors.transparent,
-              showShadow: false,
-              borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
-              padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-              child: Row(
-                children: [
-                  Container(
-                    width: UnifiedTokens.iconCircleLg + 24,
-                    height: UnifiedTokens.iconCircleLg + 24,
-                    decoration: const BoxDecoration(
-                      color: UnifiedColors.cardAllMenu,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.person_outline_rounded,
-                      color: UnifiedColors.textPrimary,
-                      size: UnifiedTokens.iconXl,
-                    ),
-                  ),
-                  const SizedBox(width: UnifiedTokens.spaceLg),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                user?.nickname ?? '로그인이 필요해요',
-                                style: UnifiedText.title(),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (auth.currentGrade != null) ...[
-                              const SizedBox(width: UnifiedTokens.spaceSm),
-                              _GradeBadge(grade: auth.currentGrade!),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          user?.email ?? '로그인 후 모든 기능을 이용할 수 있어요',
-                          style: UnifiedText.caption(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // [2026-11 마이 화면 정리] 프로필 카드 우측의 연필(수정) 아이콘
-                  // 버튼을 완전히 제거했다(사용자 요청: "게스트 프로필 설정 삭제").
-                  // "/signup/profile-check" 라우트/화면 자체는 로그인·회원가입
-                  // 플로우에서 여전히 쓰이므로 그대로 보존한다 — 이 마이 화면
-                  // 진입점만 없앤다.
-                  //
-                  // [버그 수정] 비로그인 상태에서 "게스트"라는 텍스트만 있고
-                  // 로그인으로 갈 방법이 전혀 없었다(사용자 항의: "게스트 글씨
-                  // 없애고 로그인이라도 넣어 놔야지"). 닉네임 자리를
-                  // "로그인이 필요해요"로 바꾸고, 비로그인 상태에서만
-                  // 우측에 "로그인" 버튼을 추가로 노출한다.
-                  if (!auth.isLoggedIn)
-                    OutlinedButton(
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed('/login'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: UnifiedColors.textPrimary,
-                        side: const BorderSide(color: UnifiedColors.border),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: UnifiedTokens.spaceMd,
-                          vertical: UnifiedTokens.spaceSm,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            UnifiedTokens.radiusPill,
-                          ),
-                        ),
-                      ),
-                      child: Text('로그인', style: UnifiedText.bodyStrong()),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
+            // ── 상단바 ──
+            _TopBar(unreadCount: notification.unreadCount),
+            const SizedBox(height: 22),
 
-            // [9단계] §1.5 열림패스/복주머니/구독 요약 - 3축 정책을 한 화면에서
-            // 확인할 수 있도록 마이 탭에 요약 카드 3개를 배치한다.
-            // [무료 광고형 구조 재정비 §2/§7] 사용자에게는 "프리패스 + 복주머니"
-            // 2축만 보이게 정리한다. 구독 요약 카드는 삭제하지 않고 렌더링만
-            // 끈다(off — §13 레거시 단계적 처리 원칙: 삭제보다 숨김을 우선).
-            //
-            // [마이페이지 리뉴얼 · DEV 2026-10-11 §2] 시안 "바뀐 점" 1행:
-            // "혜택 카드가 세로 2줄이라 스크롤이 김" → "가로 2열 컴팩트
-            // 카드"로 교체해 스크롤 길이를 줄인다. 카드 내부 구성(버튼/문구)
-            // 자체는 그대로 유지하고, 두 카드를 Row로 나란히 배치하도록
-            // _PassSummaryCard/_WalletSummaryCard 내부 레이아웃만 컴팩트
-            // 세로형으로 바꾼다.
-            const _SectionTitle(title: '내 혜택'),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _PassSummaryCard(
-                    pass: pass,
-                    isLoading: pass.isLoading,
-                    onAcquireTap: () => showPassRequiredSheet(
-                      context,
-                      categoryTitle: '마이페이지',
-                    ),
-                  ),
-                ),
-                const SizedBox(width: UnifiedTokens.spaceMd),
-                Expanded(
-                  child: _WalletSummaryCard(
-                    balance: wallet.balance,
-                    isLoading: wallet.isLoading,
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/reward/wallet'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
+            // ── 프로필 행 ──
+            _ProfileRow(auth: auth, user: user, orchestrator: orchestrator),
+            const SizedBox(height: 24),
 
-            // §2 아카이브 섹션
-            const _SectionTitle(title: '나의 운세 아카이브'),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: UnifiedTokens.spaceMd,
-              crossAxisSpacing: UnifiedTokens.spaceMd,
-              childAspectRatio: 2.2,
-              children: [
-                // [마이페이지 리뉴얼 · DEV 2026-10-11 버그 수정] 기존에는
-                // 이 카드를 누르면 정통사주 "실행 화면"(`/saju-renewal`)으로
-                // 바로 이동해, 지금까지 본 기록 목록이 전혀 보이지 않는
-                // 버그가 있었다(시안 §"꼭 고쳐야 할 것 - 사주 히스토리
-                // 연결"). 타로/관상/손금과 동일한 패턴으로 "전용 기록
-                // 목록 화면"으로 연결하도록 수정한다. 정통사주 실행
-                // 화면으로 가는 길은 그 목록이 비어있을 때 뜨는 빈 상태의
-                // "정통사주 보러가기" 버튼으로만 남긴다
-                // (MyFortuneRecordsScreen._buildEmptyState 참고).
-                _ArchiveCard(
-                  icon: Icons.auto_stories_outlined,
-                  label: '사주 히스토리',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const MyFortuneRecordsScreen(categoryFilter: '사주'),
-                    ),
-                  ),
-                ),
-                _ArchiveCard(
-                  icon: Icons.style_outlined,
-                  label: '타로 히스토리',
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/tarot/history'),
-                ),
-                _ArchiveCard(
-                  icon: Icons.face_outlined,
-                  label: '관상 히스토리',
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/face/history'),
-                ),
-                _ArchiveCard(
-                  icon: Icons.back_hand_outlined,
-                  label: '손금 히스토리',
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/palm/history'),
-                ),
-                // [오늘의 운세 표준 플로우 §6] 저장한 운세 카드 기록 진입점
-                _ArchiveCard(
-                  icon: Icons.bookmark_outline_rounded,
-                  label: '내 운세 기록',
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/my/fortune-records'),
-                ),
-                // [v7 통합 — 관상·손금 결과화면 + 소원방 봉인] "풀이만
-                // 보관하고 나가기"로 쌓인 로컬 보관함(최대 12개) 진입점.
-                _ArchiveCard(
-                  icon: Icons.inventory_2_outlined,
-                  label: '보관한 풀이',
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pushNamed('/ai-fortune/reading-archive'),
-                ),
-                // [궁합지도 Phase 4 §3] 마이페이지 궁합스토리 메뉴.
-                // DIRECT(직접 입력)+INVITE(초대장) 궁합 결과를 서버에서
-                // 실제로 조회해 보여주는 화면으로 이동한다(로컬 더미 아님,
-                // GunghapStoryScreen → GunghapProvider.fetchMyResults()).
-                _ArchiveCard(
-                  icon: Icons.favorite_outline,
-                  label: '궁합스토리',
-                  onTap: () =>
-                      Navigator.of(context).pushNamed('/gunghap/story'),
-                ),
-              ],
+            // ── 지갑 카드 (프리패스 + 복주머니 통합) ──
+            _WalletCard(
+              pass: pass,
+              wallet: wallet,
+              isLoggedIn: auth.isLoggedIn,
             ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
+            const SizedBox(height: 12),
 
-            // [커뮤니티 완전 삭제 + 소원벽 신설] 구 커뮤니티 허브(자유게시판 등)는
-            // 완전히 삭제되었고, 소원방 생태계의 "소원벽"이 그 자리를 대신한다.
-            const _SectionTitle(title: '나의 소원'),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            _MenuTile(
-              icon: Icons.local_fire_department_outlined,
-              title: '소원방 보러가기',
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
-              ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            // [마이페이지 진입점 추가] 이미 구현되어 있던 출석체크 달력
-            // 화면(`AttendanceCalendarScreen`, `/reward/attendance` 라우트,
-            // 30일 그리드 + 연속출석 마일스톤 + 출석하기 버튼)이 지금까지
-            // 이 마이 탭에서는 진입할 방법이 전혀 없었다(기존에는
-            // `luckybag_hub_screen.dart`의 바로가기 카드에서만 접근
-            // 가능했음). 화면/라우트/Provider는 전혀 새로 만들지 않고,
-            // 기존 라우트로 이동하는 메뉴 항목만 하나 추가한다.
-            _MenuTile(
-              icon: Icons.calendar_month_outlined,
-              title: '출석체크',
-              // [버그 수정] 비로그인 상태에서도 그냥 출석체크 화면으로
-              // 들어가버려(내부적으로 로그인 체크가 없음) 정상 동작하지
-              // 않는 문제가 있었다(사용자 피드백). 로그인 여부를 먼저
-              // 확인해 비로그인이면 로그인 화면으로 보낸다.
+            // ── 출석 배너 ──
+            _AttendanceBanner(
+              streak: attendance.streak,
+              checkedToday: attendance.checkedToday,
               onTap: () {
-                if (!context.read<AuthProvider>().isLoggedIn) {
+                if (!auth.isLoggedIn) {
                   Navigator.of(context).pushNamed('/login');
                   return;
                 }
                 Navigator.of(context).pushNamed('/reward/attendance');
               },
             ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
 
-            // §3 설정 섹션
-            const _SectionTitle(title: '설정'),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            PremiumCard(
-              backgroundColor: UnifiedColors.bg,
-              borderColor: UnifiedColors.border,
-              showShadow: false,
-              borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  // [무료 광고형 구조 재정비 §7/§13] "프리미엄 구독" 메뉴는
-                  // off 처리(라우트/화면 파일은 보존, 진입점만 제거).
-                  _MenuRow(
-                    icon: Icons.notifications_none_rounded,
-                    title: '알림',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/my/notifications'),
-                  ),
-                  _MenuRow(
-                    icon: Icons.settings_outlined,
-                    title: '설정',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/my/settings'),
-                  ),
-                  // [6-5-A 발견사항 수정] 아직 실제 기능(버전/약관 등)이
-                  // 없으므로 클릭 가능한 것처럼 보이지 않도록 비활성 표시로
-                  // 전환한다(신규 앱 정보 기능 개발은 범위 밖).
-                  _MenuRow(
-                    icon: Icons.info_outline_rounded,
-                    title: '앱 정보',
-                    onTap: null,
-                    showDivider: false,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
-            // [버그 수정] 비로그인 상태에서도 이 버튼이 "로그아웃"으로
-            // 표시되어 있었다(로그아웃해도 이미 로그인 안 된 상태라
-            // 눌러도 의미가 없는 죽은 버튼). 로그인 여부에 따라
-            // 로그인/로그아웃 버튼을 전환한다.
-            OutlinedButton(
-              onPressed: auth.isLoggedIn
-                  ? () async {
-                      // [로그아웃 시 프리패스 서버측 강제 만료] 반드시 인증
-                      // 토큰이 살아있는 동안(= AuthProvider.logout()으로
-                      // 토큰을 지우기 전에) PassProvider.resetOnLogout()을
-                      // 먼저 호출해야 한다. 이 메서드는 서버 UserPass를
-                      // revoked 처리한 뒤 화면 상태도 초기화한다. 순서를
-                      // 바꾸면 userId를 얻을 수 없어 서버측 만료가 누락되고,
-                      // 재로그인 시 프리패스 잔여시간이 그대로 복원되는
-                      // 문제가 재발한다.
-                      await context.read<PassProvider>().resetOnLogout();
-                      if (context.mounted) {
-                        await context.read<AuthProvider>().logout();
-                      }
-                      if (context.mounted) {
-                        Navigator.of(
-                          context,
-                        ).pushNamedAndRemoveUntil('/login', (route) => false);
-                      }
-                    }
-                  : () => Navigator.of(context).pushNamed('/login'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: UnifiedColors.textSecondary,
-                side: const BorderSide(color: UnifiedColors.border),
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                ),
-              ),
-              child: Text(
-                auth.isLoggedIn ? '로그아웃' : '로그인',
-                style: UnifiedText.bodyStrong(),
-              ),
-            ),
-            // [열림패스/복주머니/복주머니 통합정책 §5/§7] "열림패스 테스트 모드
-            // 구현: 강제 ON/OFF, 만료 상태 테스트, 남은 시간 표시 테스트"에
-            // 대응하는 QA 전용 패널. 실 사용자에게는 노출되지 않도록
-            // kDebugMode로 가드한다(릴리즈 빌드에서는 완전히 제거됨).
+            // ── 운세 보관함 ──
+            const _SectionHeader(title: '운세 보관함'),
+            _ArchiveGrid(isLoggedIn: auth.isLoggedIn),
+
+            // ── 설정 리스트 ──
+            const _SectionHeader(title: '설정'),
+            _SettingsList(isLoggedIn: auth.isLoggedIn, auth: auth),
+            const SizedBox(height: 24),
+
+            // ── 푸터 ──
+            _Footer(auth: auth),
+
+            // [열림패스/복주머니/복주머니 통합정책 §5/§7] 열림패스 테스트 모드
+            // 패널. 실 사용자에게는 노출되지 않도록 kDebugMode로 가드한다
+            // (릴리즈 빌드에서는 완전히 제거됨).
             if (kDebugMode) ...[
-              const SizedBox(height: UnifiedTokens.spaceXxl),
-              const _SectionTitle(title: '개발자 테스트'),
-              const SizedBox(height: UnifiedTokens.spaceMd),
+              const SizedBox(height: MyPageSpacing.sp8),
+              const _SectionHeader(title: '개발자 테스트'),
               const _OpenPassTestPanel(),
             ],
           ],
@@ -401,123 +134,28 @@ class _MyScreenState extends State<MyScreen> {
   }
 }
 
-/// [9단계] §1.5 열림패스 요약 카드 - 활성 여부와 남은 시간을 한눈에 보여준다.
-/// [서브 디자인 통일 확산 프롬프트] §5 "열림패스 요약은 잔여 시간만 담백하게".
-class _PassSummaryCard extends StatelessWidget {
-  const _PassSummaryCard({
-    required this.pass,
-    required this.isLoading,
-    required this.onAcquireTap,
-  });
+/// **상단바** README §4-S01: "마이" 30px/800 + 우측 ◔/⚙ 아이콘 버튼 2개.
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.unreadCount});
 
-  final PassProvider pass;
-  final bool isLoading;
-  final VoidCallback onAcquireTap;
-
-  String _formatExpiry(DateTime dt) {
-    return '${dt.month}월 ${dt.day}일 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  }
-
-  // [프리패스 2회지급 전환 지시서 §5.4, 2026-09-28] 쿠팡 정책(passType=='ad')이
-  // grantCount(회수제)를 쓰는지 확인한다. coupang_pass_sheet.dart의 _adPolicy와
-  // 동일한 판정 방식을 재사용해, "1시간" 하드코딩 문구가 이 카드에만 남지
-  // 않도록 한다(§5.3 중복 구현 금지 원칙).
-  PassPolicyModel? _adPolicy() {
-    for (final p in pass.policies) {
-      if (p.passType == PassType.ad) return p;
-    }
-    return null;
-  }
+  final int unreadCount;
 
   @override
   Widget build(BuildContext context) {
-    // [재잠금 정확도] pass.status(서버 스냅샷) 대신 OpenPassState.fromModel의
-    // 실시간 계산값을 사용해 만료 시점 이후 즉시 잠금 상태로 반영된다.
-    final liveState = OpenPassState.fromModel(pass.status);
-    final status = pass.status;
-    final isActive = liveState.isActive;
-    final adPolicy = _adPolicy();
-    final grantCount = adPolicy?.grantCount;
-    final isCountBased = grantCount != null;
-    final acquireLabel = isCountBased
-        ? '광고 보고 ${formatPassGrantCount(grantCount)} 받기'
-        : '프리패스 지급 준비 중';
-    final guideText = isCountBased
-        ? '쿠팡 파트너스 광고를 확인하면 결과보기 ${formatPassGrantCount(grantCount)}가 지급되어 무료로 이용할 수 있어요.'
-        : '지급 횟수 설정이 준비되면 프리패스를 받을 수 있어요.';
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardAllMenu,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 6, 2, 0),
+      child: Row(
         children: [
-          // [DEV-2026-1011 benefit-card] AppShortcutRow(좌측 아이콘 + 제목/
-          // 부제목 + 우측 화살표가 한 줄로 늘어서는 가로형)는 Row 폭이 좁은
-          // Expanded 안에 들어가면 글자가 잘리거나 레이아웃이 깨지는 위험이
-          // 있어, 시안의 .benefit-card 패턴(아이콘 작은 원 -> 제목 -> 상태
-          // 문구를 세로로 쌓는 컴팩트형)으로 교체한다.
-          Container(
-            width: UnifiedTokens.iconCircleMd,
-            height: UnifiedTokens.iconCircleMd,
-            decoration: const BoxDecoration(
-              color: UnifiedColors.bg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.lock_clock_outlined,
-              size: UnifiedTokens.iconMd,
-              color: UnifiedColors.textPrimary,
-            ),
+          Expanded(child: Text('마이', style: MyPageTextStyles.page)),
+          _TopBarIconButton(
+            glyph: '◔',
+            showDot: unreadCount > 0,
+            onTap: () => Navigator.of(context).pushNamed('/my/notifications'),
           ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text('프리패스', style: UnifiedText.bodyStrong()),
-          const SizedBox(height: 2),
-          Text(
-            isLoading
-                ? '불러오는 중...'
-                : isActive
-                ? liveState.remainingLabel ?? '기존 시간제 이용권 보유'
-                : '보유한 프리패스가 없어요',
-            style: UnifiedText.caption(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: UnifiedTokens.spaceMd),
-          // [무료 광고형 구조 재정비 §2 / 프리패스 2회지급 전환 §5.4]
-          // 프리패스는 쿠팡 파트너스 광고 확인 단일 획득 경로만 노출한다
-          // (복주머니로 구매 버튼은 off). 문구는 정책이 회수제(grantCount)인지
-          // 여부에 따라 자동 전환된다 — "1시간" 하드코딩 금지.
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: grantCount != null && grantCount > 0 ? onAcquireTap : null,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: UnifiedColors.textPrimary,
-                side: const BorderSide(color: UnifiedColors.border),
-                padding: const EdgeInsets.symmetric(
-                  vertical: UnifiedTokens.spaceSm,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                ),
-              ),
-              child: Text(
-                acquireLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(
-            isActive && status.expiresAt != null && !isCountBased
-                ? '만료 예정: ${_formatExpiry(status.expiresAt!)}'
-                : guideText,
-            style: UnifiedText.caption(),
+          const SizedBox(width: 4),
+          _TopBarIconButton(
+            glyph: '⚙',
+            onTap: () => Navigator.of(context).pushNamed('/my/settings'),
           ),
         ],
       ),
@@ -525,18 +163,286 @@ class _PassSummaryCard extends StatelessWidget {
   }
 }
 
-/// [9단계] §1.5 복주머니 요약 카드 - 현재 잔액을 한눈에 보여준다.
-/// [서브 디자인 통일 확산 프롬프트] §5 "복주머니 요약은 잔액 + 짧은 안내".
-class _WalletSummaryCard extends StatelessWidget {
-  const _WalletSummaryCard({
-    required this.balance,
-    required this.isLoading,
+class _TopBarIconButton extends StatelessWidget {
+  const _TopBarIconButton({
+    required this.glyph,
     required this.onTap,
+    this.showDot = false,
   });
 
-  final int balance;
-  final bool isLoading;
+  final String glyph;
   final VoidCallback onTap;
+  final bool showDot;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: MyPageColors.surface,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                glyph,
+                style: const TextStyle(fontSize: 18, color: MyPageColors.ink),
+              ),
+            ),
+            if (showDot)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: MyPageColors.red2,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// **프로필 행** README §4-S01: 아바타 60×60 + 등급뱃지(우하단) + 이름/서브 +
+/// 우측 "프로필 ›" pill. 비로그인 시 회색 아바타 + "로그인" Primary pill.
+class _ProfileRow extends StatelessWidget {
+  const _ProfileRow({
+    required this.auth,
+    required this.user,
+    required this.orchestrator,
+  });
+
+  final AuthProvider auth;
+  final dynamic user;
+  final OrchestratorProvider orchestrator;
+
+  /// 등급 코드(bronze/silver/gold)에 대응하는 한자 글리프.
+  String _gradeGlyph(String? code) {
+    switch (code) {
+      case 'silver':
+        return '銀';
+      case 'gold':
+        return '金';
+      case 'bronze':
+      default:
+        return '銅';
+    }
+  }
+
+  Color _gradeColor(String? code) {
+    switch (code) {
+      case 'silver':
+        return const Color(0xFF9AA0A6);
+      case 'gold':
+        return const Color(0xFFC9A227);
+      case 'bronze':
+      default:
+        return MyPageColors.bronze;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoggedIn = auth.isLoggedIn;
+    final grade = auth.currentGrade;
+    // README §4-S01: "브론즈 · 甲寅 일주" — 사주 엔진이 계산한 일주(日柱)를
+    // 서브텍스트로 노출한다. 아직 로드되지 않았거나 생년월일 미입력이면
+    // 일주 부분은 생략하고 등급명만 보여준다(값이 없을 때 임의 표기 금지).
+    final dayPillar = orchestrator.profile.sajuProfile?.dayPillar;
+    final dayPillarLabel = dayPillar != null
+        ? '${dayPillar.stemHanja}${dayPillar.branchHanja} 일주'
+        : null;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 4, 2, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 아바타 + 등급 뱃지
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(MyPageRadius.avatar),
+                  gradient: isLoggedIn
+                      ? const LinearGradient(
+                          begin: Alignment(-0.5, -1),
+                          end: Alignment(0.5, 1),
+                          colors: [Color(0xFFC4583C), Color(0xFF7A2418)],
+                        )
+                      : null,
+                  color: isLoggedIn ? null : const Color(0x14140C06),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  isLoggedIn ? '瑞' : '?',
+                  style: TextStyle(
+                    fontFamily: isLoggedIn ? MyPageFonts.hanja : null,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                    color: isLoggedIn
+                        ? const Color(0xFFFBEFD6)
+                        : MyPageColors.ink3,
+                  ),
+                ),
+              ),
+              if (isLoggedIn && grade != null)
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: _gradeColor(grade.code),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: MyPageColors.paper,
+                        width: 2.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _gradeGlyph(grade.code),
+                      style: const TextStyle(
+                        fontFamily: MyPageFonts.hanja,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isLoggedIn
+                      ? '${user?.nickname ?? ''}님'
+                      : '로그인이 필요해요',
+                  style: MyPageTextStyles.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isLoggedIn
+                      ? [
+                          grade?.name ?? '브론즈',
+                          if (dayPillarLabel != null) dayPillarLabel,
+                        ].join('  ·  ')
+                      : '로그인 후 모든 기능을 이용할 수 있어요',
+                  style: const TextStyle(
+                    fontFamily: MyPageFonts.ui,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: MyPageColors.ink2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 우측 pill: 로그인 상태 "프로필 ›" / 비로그인 상태 "로그인"(Primary)
+          isLoggedIn
+              ? InkWell(
+                  borderRadius: BorderRadius.circular(MyPageRadius.pill),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const BirthInputScreen(isEditMode: true),
+                    ),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0x14140C06),
+                      borderRadius: BorderRadius.circular(MyPageRadius.pill),
+                    ),
+                    child: const Text(
+                      '프로필 ›',
+                      style: TextStyle(
+                        fontFamily: MyPageFonts.ui,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: MyPageColors.ink,
+                      ),
+                    ),
+                  ),
+                )
+              : InkWell(
+                  borderRadius: BorderRadius.circular(MyPageRadius.pill),
+                  onTap: () => Navigator.of(context).pushNamed('/login'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: MyPageColors.red,
+                      borderRadius: BorderRadius.circular(MyPageRadius.pill),
+                    ),
+                    child: const Text(
+                      '로그인',
+                      style: TextStyle(
+                        fontFamily: MyPageFonts.ui,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: Color(0xFFFBF1DE),
+                      ),
+                    ),
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+/// **지갑 카드** README §4-S01 `WalletCard` — 복주머니 + 프리패스를 한 카드로
+/// 통합(기존 2개 분리 카드 → 1개). 상단 2열 그리드 + 하단 버튼 바.
+class _WalletCard extends StatelessWidget {
+  const _WalletCard({
+    required this.pass,
+    required this.wallet,
+    required this.isLoggedIn,
+  });
+
+  final PassProvider pass;
+  final WalletProvider wallet;
+  final bool isLoggedIn;
+
+  PassPolicyModel? _adPolicy() {
+    for (final p in pass.policies) {
+      if (p.passType == PassType.ad) return p;
+    }
+    return null;
+  }
 
   String _formatBalance(int value) {
     final str = value.toString();
@@ -550,265 +456,800 @@ class _WalletSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardAllMenu,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
+    final liveState = OpenPassState.fromModel(pass.status);
+    final adPolicy = _adPolicy();
+    final grantCount = adPolicy?.grantCount;
+    final acquireLabel = grantCount != null
+        ? '광고 보고 ${formatPassGrantCount(grantCount)} 받기'
+        : '프리패스 지급 준비 중';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: MyPageColors.surface,
+        borderRadius: BorderRadius.circular(MyPageRadius.card),
+        boxShadow: MyPageShadows.card,
+      ),
+      padding: const EdgeInsets.all(6),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // [DEV-2026-1011 benefit-card] 프리패스 카드와 동일하게 세로형
-          // 컴팩트 레이아웃으로 교체(가로형 AppShortcutRow 제거).
-          Container(
-            width: UnifiedTokens.iconCircleMd,
-            height: UnifiedTokens.iconCircleMd,
-            decoration: const BoxDecoration(
-              color: UnifiedColors.bg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.eco_outlined,
-              size: UnifiedTokens.iconMd,
-              color: UnifiedColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text('복주머니', style: UnifiedText.bodyStrong()),
-          const SizedBox(height: 2),
-          Text(
-            isLoading ? '불러오는 중...' : '${_formatBalance(balance)}개 보유 중',
-            style: UnifiedText.caption(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: UnifiedTokens.spaceMd),
-          // [무료 광고형 구조 재정비 §4] "충전"(유료 결제) 버튼은 off — 복주머니는
-          // 광고/활동으로만 적립되는 무료 재화이므로 결제 진입점을 남기지 않는다.
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: UnifiedColors.textPrimary,
-                side: const BorderSide(color: UnifiedColors.border),
-                padding: const EdgeInsets.symmetric(
-                  vertical: UnifiedTokens.spaceSm,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+          Row(
+            children: [
+              Expanded(
+                child: _WalletCell(
+                  tileGlyph: '福',
+                  tileBg: MyPageColors.tile1Bg,
+                  tileFg: MyPageColors.tile1Fg,
+                  label: '복주머니',
+                  valueText: isLoggedIn
+                      ? _formatBalance(wallet.balance)
+                      : '–',
+                  unit: '개',
+                  isZero: !isLoggedIn || wallet.balance == 0,
+                  onTap: () {
+                    if (!isLoggedIn) {
+                      Navigator.of(context).pushNamed('/login');
+                      return;
+                    }
+                    Navigator.of(context).pushNamed('/reward/wallet');
+                  },
                 ),
               ),
-              child: const Text(
-                '내역 보기',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+              Container(width: 1, height: 44, color: MyPageColors.hair),
+              Expanded(
+                child: _WalletCell(
+                  tileGlyph: '✦',
+                  tileBg: MyPageColors.tile2Bg,
+                  tileFg: MyPageColors.tile2Fg,
+                  label: '프리패스',
+                  valueText: isLoggedIn
+                      ? (grantCount != null
+                            ? '${pass.status.remainingCount ?? 0}'
+                            : (liveState.isActive ? '1' : '0'))
+                      : '–',
+                  unit: '회',
+                  isZero:
+                      !isLoggedIn ||
+                      (grantCount != null
+                          ? (pass.status.remainingCount ?? 0) == 0
+                          : !liveState.isActive),
+                  onTap: () {
+                    if (!isLoggedIn) {
+                      Navigator.of(context).pushNamed('/login');
+                      return;
+                    }
+                  },
+                ),
               ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _WalletButton(
+                    label: '내역 보기',
+                    variant: _WalletButtonVariant.soft,
+                    onTap: () {
+                      if (!isLoggedIn) {
+                        Navigator.of(context).pushNamed('/login');
+                        return;
+                      }
+                      Navigator.of(context).pushNamed('/reward/wallet');
+                    },
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _WalletButton(
+                    label: acquireLabel,
+                    variant: _WalletButtonVariant.primary,
+                    onTap: (grantCount != null && grantCount > 0)
+                        ? () => showPassRequiredSheet(
+                            context,
+                            categoryTitle: '마이페이지',
+                          )
+                        : null,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text('광고 보기, 출석, 커뮤니티 활동으로 모을 수 있어요.', style: UnifiedText.caption()),
         ],
       ),
     );
   }
 }
 
-// [무료 광고형 구조 재정비 §2/§7/§13 - 자율 정리 갱신] "구독 요약 카드"는
-// 마이페이지 화면 진입점에서 제거했다(off). 기반 기능 자체(SubscriptionProvider,
-// 구독 라우트 /my/subscription 등)는 실사용자 결제 데이터(user_subscriptions)와
-// 연결되어 있어 삭제하지 않고 그대로 보존한다 — 필요 시 다시 진입점만 연결하면
-// 복원 가능하다(유지→수정→통합→off→삭제 원칙, 삭제 아님).
-// [자율 정리] "복주머니로 프리패스 구매" 바텀시트 + 기반 기능
-// (PassProvider.purchaseWithLuckPouch())은 애초에 UI 호출부가 전혀 없던
-// 순수 죽은 코드였으므로(사용자 데이터 영향 없음) Provider/Repository/Model
-// 자체를 완전히 제거했다 — 위 구독과 달리 "off 보존"이 아니라 "삭제" 대상이었다.
+class _WalletCell extends StatelessWidget {
+  const _WalletCell({
+    required this.tileGlyph,
+    required this.tileBg,
+    required this.tileFg,
+    required this.label,
+    required this.valueText,
+    required this.unit,
+    required this.isZero,
+    required this.onTap,
+  });
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
+  final String tileGlyph;
+  final Color tileBg;
+  final Color tileFg;
+  final String label;
+  final String valueText;
+  final String unit;
+  final bool isZero;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(MyPageRadius.card),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: tileBg,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    tileGlyph,
+                    style: TextStyle(
+                      fontFamily: MyPageFonts.hanja,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      color: tileFg,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: MyPageFonts.ui,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: MyPageColors.ink2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  valueText,
+                  style: TextStyle(
+                    fontFamily: MyPageFonts.ui,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 30,
+                    letterSpacing: -0.9,
+                    color: isZero ? MyPageColors.ink3 : MyPageColors.ink,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  unit,
+                  style: const TextStyle(
+                    fontFamily: MyPageFonts.ui,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: MyPageColors.ink2,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum _WalletButtonVariant { soft, primary }
+
+class _WalletButton extends StatelessWidget {
+  const _WalletButton({
+    required this.label,
+    required this.variant,
+    required this.onTap,
+  });
+
+  final String label;
+  final _WalletButtonVariant variant;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPrimary = variant == _WalletButtonVariant.primary;
+    final enabled = onTap != null;
+    final bg = !enabled
+        ? const Color(0x1F140C06)
+        : (isPrimary ? MyPageColors.red : MyPageColors.redSoft);
+    final fg = !enabled
+        ? MyPageColors.ink3
+        : (isPrimary ? const Color(0xFFFBF1DE) : MyPageColors.red);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(MyPageRadius.btn),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(MyPageRadius.btn),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: MyPageFonts.ui,
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: fg,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// **출석 배너** README §4-S01 `AttendanceBanner` — 금색 그라데이션, 좌측
+/// "印" 아이콘, 우측 7칸 진행바. 마이페이지 진입점이 없었던 기존 출석체크
+/// 기능을 매일 쓰는 기능으로 승격해 지갑 카드 바로 아래 배치한다.
+class _AttendanceBanner extends StatelessWidget {
+  const _AttendanceBanner({
+    required this.streak,
+    required this.checkedToday,
+    required this.onTap,
+  });
+
+  final int streak;
+  final bool checkedToday;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // README: 진행바 7칸 — 이번 주 연속 출석 진행도를 7일 주기로 보여준다.
+    final filled = (streak % 7 == 0 && streak > 0) ? 7 : streak % 7;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment(-0.8, -0.6),
+              end: Alignment(0.8, 0.6),
+              colors: [MyPageColors.attendFrom, MyPageColors.attendTo],
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  '印',
+                  style: TextStyle(
+                    fontFamily: MyPageFonts.hanja,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: MyPageColors.red,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      checkedToday ? '오늘 출석을 마쳤어요' : '오늘 출석하고 복주머니 +10',
+                      style: const TextStyle(
+                        fontFamily: MyPageFonts.ui,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: Color(0xFF4A2A0C),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$streak일 연속 출석 중',
+                      style: const TextStyle(
+                        fontFamily: MyPageFonts.ui,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: Color(0xFF4A2A0C),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Row(
+                children: List.generate(7, (i) {
+                  final isFilled = i < filled;
+                  return Padding(
+                    padding: EdgeInsets.only(left: i == 0 ? 0 : 3),
+                    child: Container(
+                      width: 6,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: isFilled
+                            ? MyPageColors.red
+                            : const Color(0x2E5E1A12),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// **섹션 헤더** README §4-S01: 18px/800, margin 32 2 14.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
 
   final String title;
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: UnifiedText.titleLarge());
-  }
-}
-
-/// Phase2-1: 04A §A-5 `user_grades` 등급 배지
-class _GradeBadge extends StatelessWidget {
-  final GradeModel grade;
-
-  const _GradeBadge({required this.grade});
-
-  @override
-  Widget build(BuildContext context) {
-    // [서브 디자인 통일 확산 프롬프트] §9 컬러 남용 금지 - 등급 색상 구분 대신
-    // 블랙 텍스트 + 라벤더 배경 단일 톤으로 통일하고, 강조는 굵기로만 표현한다.
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: UnifiedColors.cardAllMenu,
-        borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-      ),
-      child: Text(grade.name, style: UnifiedText.chipLabel()),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 32, 2, 14),
+      child: Text(title, style: MyPageTextStyles.section),
     );
   }
 }
 
-class _ArchiveCard extends StatelessWidget {
-  const _ArchiveCard({
-    required this.icon,
+/// **운세 보관함 그리드** README §4-S01: 4열×2행, 순서/톤 고정.
+/// 四사주(1) 塔타로(2) 觀관상(3) 掌손금(4) / 錄운세 기록(4) 藏보관한 풀이(3)
+/// 緣궁합(1) 願소원방(2) — 기존 7개 아카이브 메뉴 + 소원방을 하나의
+/// 그리드로 통합한다(§3-1 매핑표: "소원방"을 8번째 타일로 흡수).
+class _ArchiveGrid extends StatelessWidget {
+  const _ArchiveGrid({required this.isLoggedIn});
+
+  final bool isLoggedIn;
+
+  void _goOrLogin(BuildContext context, VoidCallback go) {
+    if (!isLoggedIn) {
+      Navigator.of(context).pushNamed('/login');
+      return;
+    }
+    go();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <_ArchiveItem>[
+      _ArchiveItem(
+        glyph: '四',
+        label: '사주',
+        tileIndex: 0,
+        onTap: () => _goOrLogin(
+          context,
+          () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  const MyFortuneRecordsScreen(categoryFilter: '사주'),
+            ),
+          ),
+        ),
+      ),
+      _ArchiveItem(
+        glyph: '塔',
+        label: '타로',
+        tileIndex: 1,
+        onTap: () => _goOrLogin(
+          context,
+          () => Navigator.of(context).pushNamed('/ai-fortune/tarot/history'),
+        ),
+      ),
+      _ArchiveItem(
+        glyph: '觀',
+        label: '관상',
+        tileIndex: 2,
+        onTap: () => _goOrLogin(
+          context,
+          () => Navigator.of(context).pushNamed('/ai-fortune/face/history'),
+        ),
+      ),
+      _ArchiveItem(
+        glyph: '掌',
+        label: '손금',
+        tileIndex: 3,
+        onTap: () => _goOrLogin(
+          context,
+          () => Navigator.of(context).pushNamed('/ai-fortune/palm/history'),
+        ),
+      ),
+      _ArchiveItem(
+        glyph: '錄',
+        label: '운세 기록',
+        tileIndex: 3,
+        onTap: () => _goOrLogin(
+          context,
+          () => Navigator.of(context).pushNamed('/my/fortune-records'),
+        ),
+      ),
+      _ArchiveItem(
+        glyph: '藏',
+        label: '보관한 풀이',
+        tileIndex: 2,
+        onTap: () => _goOrLogin(
+          context,
+          () =>
+              Navigator.of(context).pushNamed('/ai-fortune/reading-archive'),
+        ),
+      ),
+      _ArchiveItem(
+        glyph: '緣',
+        label: '궁합',
+        tileIndex: 0,
+        onTap: () => _goOrLogin(
+          context,
+          () => Navigator.of(context).pushNamed('/gunghap/story'),
+        ),
+      ),
+      _ArchiveItem(
+        glyph: '願',
+        label: '소원방',
+        tileIndex: 1,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
+        ),
+      ),
+    ];
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 4,
+      mainAxisSpacing: 18,
+      crossAxisSpacing: 8,
+      childAspectRatio: 0.78,
+      children: items,
+    );
+  }
+}
+
+class _ArchiveItem extends StatefulWidget {
+  const _ArchiveItem({
+    required this.glyph,
     required this.label,
+    required this.tileIndex,
     required this.onTap,
   });
 
+  final String glyph;
+  final String label;
+  final int tileIndex;
+  final VoidCallback onTap;
+
+  @override
+  State<_ArchiveItem> createState() => _ArchiveItemState();
+}
+
+class _ArchiveItemState extends State<_ArchiveItem> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = MyPageColors.tileBg[widget.tileIndex % 4];
+    final fg = MyPageColors.tileFg[widget.tileIndex % 4];
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedScale(
+            scale: _pressed ? 0.92 : 1.0,
+            duration: const Duration(milliseconds: 120),
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(MyPageRadius.tile),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                widget.glyph,
+                style: TextStyle(
+                  fontFamily: MyPageFonts.hanja,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  color: fg,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.label,
+            style: const TextStyle(
+              fontFamily: MyPageFonts.ui,
+              fontWeight: FontWeight.w700,
+              fontSize: 12.5,
+              color: MyPageColors.ink2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// **설정 리스트** README §4-S01: 3항목(알림 받기 토글 / 계정·출생정보 /
+/// 앱 정보). [6-5-A 버그 수정] "앱 정보"는 과거 onTap: null로 완전히
+/// 비활성화되어 있었다 — 이번 리뉴얼에서 `/my/settings/about` 같은 신규
+/// 화면을 만들지는 않되(범위 외), 최소한 기존 설정 화면(SettingsScreen)
+/// 버전 정보 섹션으로 이동하도록 눌림을 되살린다.
+class _SettingsList extends StatefulWidget {
+  const _SettingsList({required this.isLoggedIn, required this.auth});
+
+  final bool isLoggedIn;
+  final AuthProvider auth;
+
+  @override
+  State<_SettingsList> createState() => _SettingsListState();
+}
+
+class _SettingsListState extends State<_SettingsList> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: MyPageColors.surface,
+        borderRadius: BorderRadius.circular(MyPageRadius.list),
+        boxShadow: MyPageShadows.list,
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        children: [
+          _SettingsToggleRow(isLoggedIn: widget.isLoggedIn),
+          const Divider(height: 1, color: MyPageColors.rowDiv, indent: 18, endIndent: 18),
+          _SettingsRow(
+            icon: Icons.account_circle_outlined,
+            title: '계정 · 출생정보',
+            onTap: () {
+              if (!widget.isLoggedIn) {
+                Navigator.of(context).pushNamed('/login');
+                return;
+              }
+              Navigator.of(context).pushNamed('/my/settings');
+            },
+          ),
+          const Divider(height: 1, color: MyPageColors.rowDiv, indent: 18, endIndent: 18),
+          _SettingsRow(
+            icon: Icons.info_outline_rounded,
+            title: '앱 정보',
+            trailing: '',
+            onTap: () => Navigator.of(context).pushNamed('/my/settings'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// README: "알림 받기" 토글. S12 '앱 푸시 알림'과 같은 상태를 쓴다
+/// (NotificationPreferenceRepository의 'fortune_update' 등은 카테고리별
+/// 토글이라 "전체 알림 on/off"에 해당하는 서버 단일 필드가 없으므로,
+/// 여기서는 3개 카테고리 전체 on/off를 하나의 토글로 대표 표시한다 —
+/// 실제 반영은 설정 화면(SettingsScreen)의 세부 카테고리 토글을 그대로
+/// 따른다. 범위 밖의 새 서버 필드를 만들지 않는다).
+class _SettingsToggleRow extends StatefulWidget {
+  const _SettingsToggleRow({required this.isLoggedIn});
+
+  final bool isLoggedIn;
+
+  @override
+  State<_SettingsToggleRow> createState() => _SettingsToggleRowState();
+}
+
+class _SettingsToggleRowState extends State<_SettingsToggleRow> {
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.of(context).pushNamed('/my/notifications'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0x0D2A1F14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.notifications_none_rounded,
+                size: 18,
+                color: MyPageColors.ink2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('알림함 보기', style: MyPageTextStyles.row),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: MyPageColors.ink3,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.trailing,
+  });
+
   final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0x0D2A1F14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 18, color: MyPageColors.ink2),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title, style: MyPageTextStyles.row)),
+            if (trailing != null && trailing!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Text(
+                  trailing!,
+                  style: const TextStyle(
+                    fontFamily: MyPageFonts.ui,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: MyPageColors.ink3,
+                  ),
+                ),
+              ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: MyPageColors.ink3,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// **푸터** README §4-S01: 가운데 정렬, "로그아웃 · 이용약관 · 개인정보처리방침".
+class _Footer extends StatelessWidget {
+  const _Footer({required this.auth});
+
+  final AuthProvider auth;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <Widget>[
+      _FooterLink(
+        label: auth.isLoggedIn ? '로그아웃' : '로그인',
+        onTap: () async {
+          if (!auth.isLoggedIn) {
+            Navigator.of(context).pushNamed('/login');
+            return;
+          }
+          // [로그아웃 시 프리패스 서버측 강제 만료] 반드시 인증 토큰이
+          // 살아있는 동안(= AuthProvider.logout()으로 토큰을 지우기 전에)
+          // PassProvider.resetOnLogout()을 먼저 호출해야 한다.
+          await context.read<PassProvider>().resetOnLogout();
+          if (context.mounted) {
+            await context.read<AuthProvider>().logout();
+          }
+          if (context.mounted) {
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/login', (route) => false);
+          }
+        },
+      ),
+      _FooterLink(
+        label: '이용약관',
+        onTap: () => Navigator.of(context).pushNamed('/my/settings'),
+      ),
+      _FooterLink(
+        label: '개인정보처리방침',
+        onTap: () => Navigator.of(context).pushNamed('/my/settings'),
+      ),
+    ];
+
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 14,
+        runSpacing: 6,
+        children: items,
+      ),
+    );
+  }
+}
+
+class _FooterLink extends StatelessWidget {
+  const _FooterLink({required this.label, required this.onTap});
+
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardAllMenu,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.symmetric(
-        horizontal: UnifiedTokens.spaceMd,
-        vertical: UnifiedTokens.spaceSm,
-      ),
-      onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: UnifiedTokens.iconCircleMd,
-            height: UnifiedTokens.iconCircleMd,
-            decoration: const BoxDecoration(
-              color: UnifiedColors.bg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: UnifiedTokens.iconMd,
-              color: UnifiedColors.textPrimary,
-            ),
-          ),
-          const SizedBox(width: UnifiedTokens.spaceSm),
-          Expanded(
-            child: Text(
-              label,
-              style: UnifiedText.bodyStrong(),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _MenuTile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardAllMenu,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: UnifiedColors.textPrimary,
-            size: UnifiedTokens.iconLg,
-          ),
-          const SizedBox(width: UnifiedTokens.spaceMd),
-          Expanded(child: Text(title, style: UnifiedText.bodyStrong())),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: UnifiedColors.textCaption,
-            size: UnifiedTokens.iconMd,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// [서브 디자인 통일 확산 프롬프트] §5 "리스트 아이템 높이 균일 48~56, 좌측
-/// 아이콘 20(iconSize.lg), 우측 화살표 16(iconSize.md) 색상 #9A9AA2,
-/// 라벨 BodyStrong14 SemiBold, 하단 구분선 #ECECEF" - 설정 리스트 전용 행.
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.showDivider = true,
-  });
-
-  final IconData icon;
-  final String title;
-  // [6-5-A 발견사항 수정] null이면 아직 기능이 없는 메뉴로 간주해 비활성
-  // 표시(회색톤 + 화살표 숨김)로 렌더링한다. 기존 알림/설정 메뉴는 그대로
-  // VoidCallback을 전달하므로 동작에 변화가 없다.
-  final VoidCallback? onTap;
-  final bool showDivider;
-
-  @override
-  Widget build(BuildContext context) {
-    final isEnabled = onTap != null;
     return InkWell(
       onTap: onTap,
-      child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: UnifiedTokens.spaceLg),
-        decoration: BoxDecoration(
-          border: showDivider
-              ? const Border(
-                  bottom: BorderSide(color: UnifiedColors.border, width: 1),
-                )
-              : null,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isEnabled
-                  ? UnifiedColors.textPrimary
-                  : UnifiedColors.textCaption,
-              size: UnifiedTokens.iconLg,
-            ),
-            const SizedBox(width: UnifiedTokens.spaceMd),
-            Expanded(
-              child: Text(
-                title,
-                style: isEnabled
-                    ? UnifiedText.bodyStrong()
-                    : UnifiedText.bodyStrong(color: UnifiedColors.textCaption),
-              ),
-            ),
-            if (isEnabled)
-              Icon(
-                Icons.chevron_right_rounded,
-                color: UnifiedColors.textCaption,
-                size: UnifiedTokens.iconMd,
-              ),
-          ],
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontFamily: MyPageFonts.ui,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          color: MyPageColors.ink3,
         ),
       ),
     );
@@ -818,7 +1259,8 @@ class _MenuRow extends StatelessWidget {
 /// [열림패스/복주머니/복주머니 통합정책 §5/§7] 열림패스 테스트 모드 패널.
 /// 실 서버 호출 없이 PassProvider.debugForceState()로 강제 ON/OFF/만료
 /// 상태를 만들고, 1초마다 남은 시간을 갱신해 카운트다운을 눈으로 QA할 수
-/// 있게 한다. kDebugMode 빌드에서만 마이페이지에 노출된다.
+/// 있게 한다. kDebugMode 빌드에서만 마이페이지에 노출된다. (기존 로직
+/// 그대로 유지, 새 토큰 스타일로만 재도색)
 class _OpenPassTestPanel extends StatefulWidget {
   const _OpenPassTestPanel();
 
@@ -832,8 +1274,6 @@ class _OpenPassTestPanelState extends State<_OpenPassTestPanel> {
   @override
   void initState() {
     super.initState();
-    // 남은 시간 라벨이 실시간으로 줄어드는 것을 QA 화면에서 바로 확인할 수
-    // 있도록 1초마다 rebuild한다(PassProvider 자체 상태는 그대로).
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -856,57 +1296,59 @@ class _OpenPassTestPanelState extends State<_OpenPassTestPanel> {
     final pass = context.watch<PassProvider>();
     final state = pass.openPassState;
 
-    return PremiumCard(
-      backgroundColor: UnifiedColors.cardSection,
-      borderColor: Colors.transparent,
-      showShadow: false,
-      borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
-      padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
+    return Container(
+      decoration: BoxDecoration(
+        color: MyPageColors.surface,
+        borderRadius: BorderRadius.circular(MyPageRadius.card),
+        boxShadow: MyPageShadows.list,
+      ),
+      padding: const EdgeInsets.all(MyPageSpacing.sp4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.science_outlined,
-                size: UnifiedTokens.iconMd,
-                color: UnifiedColors.textSecondary,
+                size: 18,
+                color: MyPageColors.ink2,
               ),
-              const SizedBox(width: UnifiedTokens.spaceSm),
-              Text('프리패스 테스트 모드', style: UnifiedText.title()),
+              const SizedBox(width: MyPageSpacing.sp2),
+              const Text('프리패스 테스트 모드', style: MyPageTextStyles.cardTitle),
               if (pass.isDebugOverrideActive) ...[
-                const SizedBox(width: UnifiedTokens.spaceSm),
+                const SizedBox(width: MyPageSpacing.sp2),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: UnifiedTokens.spaceSm,
+                    horizontal: MyPageSpacing.sp2,
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: UnifiedColors.neon,
-                    borderRadius: BorderRadius.circular(
-                      UnifiedTokens.radiusPill,
-                    ),
+                    color: MyPageColors.gold2,
+                    borderRadius: BorderRadius.circular(MyPageRadius.pill),
                   ),
-                  child: Text(
+                  child: const Text(
                     'TEST',
-                    style: UnifiedText.caption(
-                      color: UnifiedColors.textPrimary,
+                    style: TextStyle(
+                      fontFamily: MyPageFonts.ui,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                      color: MyPageColors.redDeep,
                     ),
                   ),
                 ),
               ],
             ],
           ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
+          const SizedBox(height: MyPageSpacing.sp2),
           Text(
             '상태: ${_statusLabel(state.status)}'
             '${state.remainingLabel != null ? ' · ${state.remainingLabel}' : ''}',
-            style: UnifiedText.body(),
+            style: MyPageTextStyles.body,
           ),
-          const SizedBox(height: UnifiedTokens.spaceMd),
+          const SizedBox(height: MyPageSpacing.sp3),
           Wrap(
-            spacing: UnifiedTokens.spaceSm,
-            runSpacing: UnifiedTokens.spaceSm,
+            spacing: MyPageSpacing.sp2,
+            runSpacing: MyPageSpacing.sp2,
             children: [
               _TestButton(
                 label: '강제 ON(60분)',
@@ -953,20 +1395,17 @@ class _TestButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: UnifiedColors.textPrimary,
-        side: const BorderSide(color: UnifiedColors.border),
-        padding: const EdgeInsets.symmetric(
-          horizontal: UnifiedTokens.spaceMd,
-          vertical: UnifiedTokens.spaceSm,
+    return InkWell(
+      borderRadius: BorderRadius.circular(MyPageRadius.pill),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: MyPageColors.redSoft,
+          borderRadius: BorderRadius.circular(MyPageRadius.pill),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-        ),
+        child: Text(label, style: MyPageTextStyles.caption),
       ),
-      child: Text(label, style: UnifiedText.caption()),
     );
   }
 }
