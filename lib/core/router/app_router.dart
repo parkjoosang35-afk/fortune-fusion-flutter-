@@ -54,7 +54,7 @@ import '../../features/attendance/presentation/attendance_minimal_screen.dart';
 import '../../features/mission/presentation/mission_screen.dart';
 import '../../features/ranking/presentation/ranking_screen.dart';
 import '../../features/notification/presentation/notifications_minimal_screen.dart';
-import '../../features/mypage/presentation/settings_screen.dart';
+import '../../features/mypage/presentation/settings_minimal_screen.dart';
 import '../../features/luckybag/domain/luckybag_product_model.dart';
 import '../../features/luckybag/domain/luckybag_reward_model.dart';
 import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
@@ -952,7 +952,10 @@ class AppRouter {
           const NotificationsMinimalScreen(),
         );
       case '/my/settings':
-        return _pageNamed('/my/settings', const SettingsScreen());
+        // [마이페이지 미니멀 리뉴얼 S12] 기존 SettingsScreen(다크 테마)을
+        // SettingsMinimalScreen으로 교체. 기존 파일은 프로젝트
+        // 관례에 따라 삭제하지 않고 코드베이스에 유지한다.
+        return _pageNamed('/my/settings', const SettingsMinimalScreen());
       case '/my/subscription/plans':
         return _pageNamed(
           '/my/subscription/plans',
