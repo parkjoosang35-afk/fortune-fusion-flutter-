@@ -15,6 +15,10 @@ class SavedFortuneRecord {
     required this.date,
     required this.savedAt,
     this.cardImageAssetPath,
+    this.sajuTopicId,
+    this.sajuScene,
+    this.sajuEvidenceFactKeys,
+    this.genericCategoryId,
   });
 
   final String id;
@@ -38,6 +42,27 @@ class SavedFortuneRecord {
   /// 하위 호환되도록 [fromJson]에서 안전하게 파싱한다.
   final String? cardImageAssetPath;
 
+  /// [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] 사주(saju_renewal)
+  /// 기록을 탭했을 때 그 이야기로 다시 들어갈 수 있도록 [TopicCard] 복원에
+  /// 필요한 최소 정보를 함께 저장한다. 기존에는 title/summary만 저장돼
+  /// 있어 "저장은 되는데 다시 열 방법이 없는" 구조였다 — 목록 화면이
+  /// `onTap: null`로 고정돼 있던 것도 같은 원인(복원할 데이터 자체가
+  /// 없었음)의 결과였다. 사주가 아닌 다른 카테고리(타로 등)는 각자 전용
+  /// id로 이미 재열람이 되므로 이 필드들은 항상 null이다. 기존 저장된
+  /// 레코드(이 필드가 없던 시절 JSON)와도 하위 호환되도록 전부 nullable로
+  /// 두고 [fromJson]에서 안전하게 파싱한다.
+  final String? sajuTopicId;
+  final String? sajuScene;
+  final List<String>? sajuEvidenceFactKeys;
+
+  /// [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] 카테고리 운세
+  /// (generic_fortune_result_screen.dart, `/fortune/category` 라우트)
+  /// 재열람용 [FortuneCategoryEntry.id](예: 'T-001'). id 문자열 자체(
+  /// `category_{categoryId}_{날짜}`)에서 역파싱하지 않고 별도 필드로
+  /// 명시적으로 저장해, 카테고리 id에 포함될 수 있는 하이픈/언더스코어와
+  /// 날짜 구분자가 섞여 파싱이 깨지는 일을 구조적으로 방지한다.
+  final String? genericCategoryId;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'categoryLabel': categoryLabel,
@@ -47,9 +72,15 @@ class SavedFortuneRecord {
     'date': date.toIso8601String(),
     'savedAt': savedAt.toIso8601String(),
     if (cardImageAssetPath != null) 'cardImageAssetPath': cardImageAssetPath,
+    if (sajuTopicId != null) 'sajuTopicId': sajuTopicId,
+    if (sajuScene != null) 'sajuScene': sajuScene,
+    if (sajuEvidenceFactKeys != null)
+      'sajuEvidenceFactKeys': sajuEvidenceFactKeys,
+    if (genericCategoryId != null) 'genericCategoryId': genericCategoryId,
   };
 
   factory SavedFortuneRecord.fromJson(Map<String, dynamic> json) {
+    final rawEvidence = json['sajuEvidenceFactKeys'];
     return SavedFortuneRecord(
       id: json['id'] as String,
       categoryLabel: json['categoryLabel'] as String,
@@ -59,6 +90,12 @@ class SavedFortuneRecord {
       date: DateTime.parse(json['date'] as String),
       savedAt: DateTime.parse(json['savedAt'] as String),
       cardImageAssetPath: json['cardImageAssetPath'] as String?,
+      sajuTopicId: json['sajuTopicId'] as String?,
+      sajuScene: json['sajuScene'] as String?,
+      sajuEvidenceFactKeys: rawEvidence is List
+          ? rawEvidence.map((e) => e.toString()).toList()
+          : null,
+      genericCategoryId: json['genericCategoryId'] as String?,
     );
   }
 }

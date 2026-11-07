@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/data/my_fortune_record_store.dart';
+import '../../saju_renewal/data/models/topic_card.dart';
 import '../../saju_renewal/navigation/saju_dimension_transition.dart';
+import '../../saju_renewal/screens/story_preview_screen.dart';
+import '../../saju_renewal/state/saju_renewal_provider.dart';
 import 'theme/mypage_archive_widgets.dart';
 
 /// [오늘의 운세 표준 플로우] §6 후속연결 "저장 → 마이 → 내 운세 기록에 카드 저장"의
@@ -83,6 +87,50 @@ class _MyFortuneRecordsScreenState extends State<MyFortuneRecordsScreen> {
     );
   }
 
+  /// 서버가 내려주는 값과 동일한 문자열 이름 — [SajuRecentStoryStore]의
+  /// `_sceneFromName`과 동일한 패턴(알 수 없는 값은 life로 안전 폴백).
+  SajuRenewalScene _sceneFromName(String? raw) {
+    for (final s in SajuRenewalScene.values) {
+      if (s.name == raw) return s;
+    }
+    return SajuRenewalScene.life;
+  }
+
+  /// [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] 사주 기록을 탭하면
+  /// 저장된 topic 정보로 [TopicCard]를 복원해 "최근 본 이야기" 재방문
+  /// 카드(`saju_renewal_home_screen.dart`의 `_openRecentStory`)와 완전히
+  /// 동일한 경로로 그 이야기를 다시 연다 — `loadPreview` → 05 미리보기
+  /// (이미 해제된 주제면 05가 게이트 없이 바로 07로 보낸다). 결제 게이트를
+  /// 다시 거치게 하지 않는다("게이트 재통과 요구 금지" 원칙 유지).
+  /// 복원에 필요한 정보가 없는 과거 레코드(이 필드 추가 이전에 저장된
+  /// 것)는 안전하게 탭을 무시한다.
+  void _openSajuRecord(BuildContext context, SavedFortuneRecord r) {
+    final topicId = r.sajuTopicId;
+    if (topicId == null || topicId.isEmpty) return;
+    final topic = TopicCard(
+      topicId: topicId,
+      scene: _sceneFromName(r.sajuScene),
+      title: r.title,
+      isTiming: false,
+      evidenceFactKeys: r.sajuEvidenceFactKeys ?? const [],
+    );
+    context.read<SajuRenewalProvider>().loadPreview(topic);
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const StoryPreviewScreen()));
+  }
+
+  /// [버그 수정 — 2026-12] "내 운세 기록"(사주 외 카테고리 운세) 탭 —
+  /// 저장된 [genericCategoryId]로 공용 결과 화면(`/fortune/category`)을
+  /// 다시 연다.
+  void _openGenericRecord(BuildContext context, SavedFortuneRecord r) {
+    final categoryId = r.genericCategoryId;
+    if (categoryId == null || categoryId.isEmpty) return;
+    Navigator.of(
+      context,
+    ).pushNamed('/fortune/category', arguments: categoryId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSaju = widget.categoryFilter == '사주';
@@ -109,7 +157,9 @@ class _MyFortuneRecordsScreenState extends State<MyFortuneRecordsScreen> {
                         '${r.date.year} · ${r.date.month.toString().padLeft(2, '0')} · ${r.date.day.toString().padLeft(2, '0')}',
                     title: r.title,
                     summary: r.summary,
-                    onTap: null,
+                    onTap: isSaju
+                        ? () => _openSajuRecord(context, r)
+                        : () => _openGenericRecord(context, r),
                   ),
               ],
             ),

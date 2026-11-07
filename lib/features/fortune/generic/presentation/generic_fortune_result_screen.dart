@@ -112,6 +112,10 @@ class _GenericFortuneResultScreenState
         score: report.hero.score,
         date: report.hero.date,
         savedAt: DateTime.now(),
+        // [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] 재열람 시
+        // `/fortune/category` 라우트로 복원할 수 있도록 categoryId를
+        // 명시적으로 저장한다.
+        genericCategoryId: entry.id,
       ),
     );
     if (!mounted) return;

@@ -132,6 +132,14 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   /// 기록을 저장한다(신규 저장소/신규 화면을 따로 만들지 않고 기존
   /// 인프라를 재사용 — B안 범위 최소화 원칙). saju_renewal에는 점수
   /// 개념이 없으므로 score는 전달하지 않는다(nullable).
+  ///
+  /// [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] 기존에는 title/
+  /// summary만 저장해 마이페이지 "사주 히스토리"에서 항목을 탭해도 그
+  /// 이야기로 되돌아갈 방법이 없었다(목록 화면이 `onTap: null`로 고정돼
+  /// 있던 근본 원인도 이것 — 복원할 데이터 자체가 없었음). [TopicCard]
+  /// 복원에 필요한 topic_id/scene/evidence_fact_keys를 함께 저장해,
+  /// 목록에서 탭하면 "최근 본 이야기" 카드와 동일한 경로
+  /// (loadPreview → 05/07)로 다시 열 수 있게 한다.
   void _persistFortuneRecord() {
     final provider = context.read<SajuRenewalProvider>();
     final topic = provider.currentTopic;
@@ -151,6 +159,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         summary: firstBlockBody,
         date: DateTime.now(),
         savedAt: DateTime.now(),
+        sajuTopicId: topic.topicId,
+        sajuScene: topic.scene.name,
+        sajuEvidenceFactKeys: topic.evidenceFactKeys,
       ),
     );
   }

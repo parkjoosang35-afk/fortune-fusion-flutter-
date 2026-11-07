@@ -167,6 +167,11 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
         return;
       }
       final isGuest = !context.read<AuthProvider>().isLoggedIn;
+      // [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] story_detail_
+      // screen.dart와 동일하게 TopicCard 복원 정보를 함께 저장해, 마이
+      // 페이지 "사주 히스토리"에서 이 항목을 탭하면 다시 열 수 있게 한다
+      // (이 시점은 아직 상세를 보지 않은 후보 단계이므로 재열람 시
+      // loadPreview로 05 미리보기부터 다시 시작한다).
       await MyFortuneRecordStore.save(
         SavedFortuneRecord(
           id: id,
@@ -177,6 +182,9 @@ class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
               '${candidate.isTiming ? ' · 시기' : ''}',
           date: DateTime.now(),
           savedAt: DateTime.now(),
+          sajuTopicId: candidate.topicId,
+          sajuScene: candidate.scene.name,
+          sajuEvidenceFactKeys: candidate.evidenceFactKeys,
         ),
         asGuest: isGuest,
       );
