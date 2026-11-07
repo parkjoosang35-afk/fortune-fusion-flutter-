@@ -5,6 +5,7 @@ import '../../../../core/web_ads/web_ad_config.dart';
 import '../../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/result_card_stack.dart';
+import '../../../../core/widgets/result_text_scale_overlay.dart';
 import '../../sintong/theme/sintong_colors.dart';
 import '../../sintong/theme/sintong_typography.dart';
 import '../../sintong/widgets/hanja_stamp.dart';
@@ -71,68 +72,70 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
     final state = provider.state;
     final canGoBack = Navigator.canPop(context);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          const Positioned.fill(child: SintongScreenBg()),
-          SafeArea(
-            child: Column(
-              children: [
-                OriginalResultScene(
-                  captureKey: _originalHeaderKey,
-                  background: SintongColors.bg1,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: ClipRect(
-                          child: OverflowBox(
-                            alignment: Alignment.topCenter,
-                            minHeight: MediaQuery.sizeOf(context).height,
-                            maxHeight: MediaQuery.sizeOf(context).height,
-                            child: const SintongScreenBg(),
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            const Positioned.fill(child: SintongScreenBg()),
+            SafeArea(
+              child: Column(
+                children: [
+                  OriginalResultScene(
+                    captureKey: _originalHeaderKey,
+                    background: SintongColors.bg1,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRect(
+                            child: OverflowBox(
+                              alignment: Alignment.topCenter,
+                              minHeight: MediaQuery.sizeOf(context).height,
+                              maxHeight: MediaQuery.sizeOf(context).height,
+                              child: const SintongScreenBg(),
+                            ),
                           ),
                         ),
-                      ),
-                      _ResultTopBar(
-                        hanja: '紋',
-                        hanjaColor: SintongColors.stampMun,
-                        title: '手紋 · REPORT',
-                        onBack: canGoBack
-                            ? () => Navigator.of(context).pop()
-                            : null,
-                        onShare: state.isSuccess
-                            ? () => _shareResult(context, state.data!)
-                            : null,
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: state.isSuccess
-                      ? _buildResult(context, state.data!)
-                      : _PaperSheet(
-                          child: switch (state.status) {
-                            LoadStatus.loading => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            LoadStatus.error => AppErrorState(
-                              message: state.errorMessage ?? '분석에 실패했습니다.',
-                              onRetry: () => provider.retry(),
-                            ),
-                            LoadStatus.success => _buildResult(
-                              context,
-                              state.data!,
-                            ),
-                            LoadStatus.initial => const AppErrorState(
-                              message: '입력 정보가 없습니다.',
-                            ),
-                          },
+                        _ResultTopBar(
+                          hanja: '紋',
+                          hanjaColor: SintongColors.stampMun,
+                          title: '手紋 · REPORT',
+                          onBack: canGoBack
+                              ? () => Navigator.of(context).pop()
+                              : null,
+                          onShare: state.isSuccess
+                              ? () => _shareResult(context, state.data!)
+                              : null,
                         ),
-                ),
-              ],
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: state.isSuccess
+                        ? _buildResult(context, state.data!)
+                        : _PaperSheet(
+                            child: switch (state.status) {
+                              LoadStatus.loading => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                              LoadStatus.error => AppErrorState(
+                                message: state.errorMessage ?? '분석에 실패했습니다.',
+                                onRetry: () => provider.retry(),
+                              ),
+                              LoadStatus.success => _buildResult(
+                                context,
+                                state.data!,
+                              ),
+                              LoadStatus.initial => const AppErrorState(
+                                message: '입력 정보가 없습니다.',
+                              ),
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

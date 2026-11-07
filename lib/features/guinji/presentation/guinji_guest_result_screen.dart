@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../core/widgets/zoomable_content.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
@@ -104,51 +105,35 @@ class GuinjiGuestResultScreen extends StatelessWidget {
         ? '나'
         : guestName!;
 
-    return Scaffold(
-      backgroundColor: GmColors.bg,
-      appBar: GmTopBar(
-        back: true,
-        title: '게스트 결과',
-        onBack: () => Navigator.of(context).maybePop(),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Column(
-          children: [
-            SizedBox(
-              width: 120,
-              height: 120,
-              child: _BobbingHostMascot(gender: hostGender),
-            ),
-            const SizedBox(height: 4),
-            GmLabelMini(
-              hostGender == 'male' ? '▸ 방통도령 · RESULT' : '▸ 방통선녀 · RESULT',
-            ),
-            const SizedBox(height: 10),
-            // [렌더 버그 방지] 줄바꿈이 들어가는 첫 줄과 색상이 다른
-            // TextSpan을 한 Text.rich 트리에 섞으면 Flutter Web(CanvasKit)
-            // 에서 첫 줄 글리프가 깨지는 문제가 있어, 줄바꿈이 들어가는
-            // 첫 줄을 별도 Text로 분리한다.
-            Text(
-              '당신은 $hostName에게',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: GmText.display,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                height: 1.3,
-                color: GmColors.fg,
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: GmColors.bg,
+        appBar: GmTopBar(
+          back: true,
+          title: '게스트 결과',
+          onBack: () => Navigator.of(context).maybePop(),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            children: [
+              SizedBox(
+                width: 120,
+                height: 120,
+                child: _BobbingHostMascot(gender: hostGender),
               ),
-            ),
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: label,
-                    style: TextStyle(color: color, fontWeight: FontWeight.w700),
-                  ),
-                  const TextSpan(text: '이에요'),
-                ],
+              const SizedBox(height: 4),
+              GmLabelMini(
+                hostGender == 'male' ? '▸ 방통도령 · RESULT' : '▸ 방통선녀 · RESULT',
+              ),
+              const SizedBox(height: 10),
+              // [렌더 버그 방지] 줄바꿈이 들어가는 첫 줄과 색상이 다른
+              // TextSpan을 한 Text.rich 트리에 섞으면 Flutter Web(CanvasKit)
+              // 에서 첫 줄 글리프가 깨지는 문제가 있어, 줄바꿈이 들어가는
+              // 첫 줄을 별도 Text로 분리한다.
+              Text(
+                '당신은 $hostName에게',
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: GmText.display,
                   fontSize: 20,
@@ -157,63 +142,84 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                   color: GmColors.fg,
                 ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            _GuestResultCard(
-              label: label,
-              hanja: hanja,
-              score: score,
-              color: color,
-              evidenceSummary: evidenceSummary,
-              body: body,
-            ),
-            const SizedBox(height: 24),
-            const Divider(color: GmColors.line, height: 1),
-            const SizedBox(height: 16),
-            Text(
-              mapTotal != null
-                  ? '$hostName님의 지도에 지금 $mapTotal명이 함께해요'
-                  : '당신의 지도에는 누가 있을까요',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: GmText.ui,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: GmColors.fg,
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: label,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const TextSpan(text: '이에요'),
+                  ],
+                  style: const TextStyle(
+                    fontFamily: GmText.display,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                    color: GmColors.fg,
+                  ),
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '노드를 눌러 관계 상세를 확인하세요',
-              style: TextStyle(fontSize: 10.5, color: GmColors.dim),
-            ),
-            const SizedBox(height: 12),
-            // [바이럴 페이지 개편] 회원가입한 사용자의 "내 귀인지도"(M화면)와
-            // 동일한 애니메이션 관계 그래프. 게스트 본인이 중심, 호스트가
-            // 관계 노드 1개로 표시된다.
-            GuinjiAnimatedRelationGraph(
-              centerTitle: '$centerName님',
-              centerSubtitle: '나',
-              people: [hostNode],
-              interactive: true,
-              showControls: false,
-              height: 260,
-            ),
-            const SizedBox(height: 24),
-            // [절대 원칙] 이 버튼은 게스트가 직접 탭했을 때만
-            // onCreateOwnMap을 호출한다. 자동 실행되는 타이머/딜레이는
-            // 존재하지 않는다.
-            GmRoseButton(
-              label: '내 지도 만들기 · 무료',
-              icon: Icons.arrow_forward,
-              onPressed:
-                  onCreateOwnMap ??
-                  () => Navigator.of(context).pushNamed('/guinji-map'),
-            ),
-            const SizedBox(height: 24),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 20),
+              _GuestResultCard(
+                label: label,
+                hanja: hanja,
+                score: score,
+                color: color,
+                evidenceSummary: evidenceSummary,
+                body: body,
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: GmColors.line, height: 1),
+              const SizedBox(height: 16),
+              Text(
+                mapTotal != null
+                    ? '$hostName님의 지도에 지금 $mapTotal명이 함께해요'
+                    : '당신의 지도에는 누가 있을까요',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: GmColors.fg,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '노드를 눌러 관계 상세를 확인하세요',
+                style: TextStyle(fontSize: 10.5, color: GmColors.dim),
+              ),
+              const SizedBox(height: 12),
+              // [바이럴 페이지 개편] 회원가입한 사용자의 "내 귀인지도"(M화면)와
+              // 동일한 애니메이션 관계 그래프. 게스트 본인이 중심, 호스트가
+              // 관계 노드 1개로 표시된다.
+              GuinjiAnimatedRelationGraph(
+                centerTitle: '$centerName님',
+                centerSubtitle: '나',
+                people: [hostNode],
+                interactive: true,
+                showControls: false,
+                height: 260,
+              ),
+              const SizedBox(height: 24),
+              // [절대 원칙] 이 버튼은 게스트가 직접 탭했을 때만
+              // onCreateOwnMap을 호출한다. 자동 실행되는 타이머/딜레이는
+              // 존재하지 않는다.
+              GmRoseButton(
+                label: '내 지도 만들기 · 무료',
+                icon: Icons.arrow_forward,
+                onPressed:
+                    onCreateOwnMap ??
+                    () => Navigator.of(context).pushNamed('/guinji-map'),
+              ),
+              const SizedBox(height: 24),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

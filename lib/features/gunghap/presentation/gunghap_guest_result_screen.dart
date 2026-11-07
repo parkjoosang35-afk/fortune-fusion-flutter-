@@ -19,6 +19,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../domain/gunghap_data.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
@@ -51,71 +52,80 @@ class GunghapGuestResultScreen extends StatelessWidget {
         ? categoriesRaw.whereType<Map>().toList()
         : const <Map>[];
 
-    return GHScreen(
-      bottomNav: const MainBottomNavBar(currentIndex: 0),
-      appBar: const GHAppBar(title: '우리 둘의 궁합'),
-      footer: GHButton(
-        label: '나도 궁합지도 만들기',
-        onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const GunghapHomeScreen()),
-          (route) => false,
+    return ResultTextScaleOverlay(
+      child: GHScreen(
+        bottomNav: const MainBottomNavBar(currentIndex: 0),
+        appBar: const GHAppBar(title: '우리 둘의 궁합'),
+        footer: GHButton(
+          label: '나도 궁합지도 만들기',
+          onPressed: () => Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const GunghapHomeScreen()),
+            (route) => false,
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const GHSteps(step: 4, labels: ['분야', '나', '상대', '분석']),
-          GHTitle(
-            mono: 'STEP 04 · RESULT',
-            title: '$ownerName님과 $guestName님의\n궁합 결과예요',
-            center: true,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
-              child: StarMap(aName: ownerName, bName: guestName, draw: true),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const GHSteps(step: 4, labels: ['분야', '나', '상대', '분석']),
+            GHTitle(
+              mono: 'STEP 04 · RESULT',
+              title: '$ownerName님과 $guestName님의\n궁합 결과예요',
+              center: true,
             ),
-          ),
-          const SizedBox(height: 10),
-          _SummaryCard(
-            relationTypeLabel: relationTypeLabel,
-            relationTypeDesc: relationTypeDesc,
-            grade: grade,
-            chemistryScore: chemistryScore,
-          ),
-          const SizedBox(height: 22),
-          const GHSectionHead(mono: 'FREE RESULT', title: '8개 분야 궁합 등급'),
-          for (final c in categories) ...[
-            _CategoryGradeRow(
-              categoryId: c['categoryId'] as String?,
-              grade: c['grade'] as String?,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: StarMap(aName: ownerName, bName: guestName, draw: true),
+              ),
             ),
             const SizedBox(height: 10),
-          ],
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: GHColors.lineSoft),
+            _SummaryCard(
+              relationTypeLabel: relationTypeLabel,
+              relationTypeDesc: relationTypeDesc,
+              grade: grade,
+              chemistryScore: chemistryScore,
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('✦', style: TextStyle(fontSize: 13, color: GHColors.gold)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '분야별 상세 보고서는 초대를 보낸 $ownerName님이 복주머니로\n'
-                    '잠금해제한 뒤 확인할 수 있어요.',
-                    style: GHText.ui(size: 12, height: 1.6, color: GHColors.gray),
+            const SizedBox(height: 22),
+            const GHSectionHead(mono: 'FREE RESULT', title: '8개 분야 궁합 등급'),
+            for (final c in categories) ...[
+              _CategoryGradeRow(
+                categoryId: c['categoryId'] as String?,
+                grade: c['grade'] as String?,
+              ),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: GHColors.lineSoft),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '✦',
+                    style: TextStyle(fontSize: 13, color: GHColors.gold),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '분야별 상세 보고서는 초대를 보낸 $ownerName님이 복주머니로\n'
+                      '잠금해제한 뒤 확인할 수 있어요.',
+                      style: GHText.ui(
+                        size: 12,
+                        height: 1.6,
+                        color: GHColors.gray,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -142,7 +152,10 @@ class _SummaryCard extends StatelessWidget {
           children: [
             if (grade != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: GHColors.gold.withValues(alpha: .14),
                   borderRadius: BorderRadius.circular(999),
@@ -150,7 +163,11 @@ class _SummaryCard extends StatelessWidget {
                 ),
                 child: Text(
                   grade!,
-                  style: GHText.ui(size: 13, weight: FontWeight.w800, color: GHColors.gold),
+                  style: GHText.ui(
+                    size: 13,
+                    weight: FontWeight.w800,
+                    color: GHColors.gold,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -158,7 +175,11 @@ class _SummaryCard extends StatelessWidget {
             if (chemistryScore != null)
               Text(
                 '$chemistryScore점',
-                style: GHText.ui(size: 13, weight: FontWeight.w700, color: GHColors.ivory),
+                style: GHText.ui(
+                  size: 13,
+                  weight: FontWeight.w700,
+                  color: GHColors.ivory,
+                ),
               ),
           ],
         ),
@@ -217,7 +238,11 @@ class _CategoryGradeRow extends StatelessWidget {
               ),
               child: Text(
                 grade!,
-                style: GHText.ui(size: 12.5, weight: FontWeight.w700, color: GHColors.gold),
+                style: GHText.ui(
+                  size: 12.5,
+                  weight: FontWeight.w700,
+                  color: GHColors.gold,
+                ),
               ),
             ),
         ],

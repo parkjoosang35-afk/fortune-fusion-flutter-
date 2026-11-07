@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_unified_style.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../domain/luckybag_product_model.dart';
 import '../domain/luckybag_reward_model.dart';
 
@@ -87,129 +88,133 @@ class _LuckyBagResultScreenState extends State<LuckyBagResultScreen>
   Widget build(BuildContext context) {
     final isWin = widget.result.grade.code != 'none';
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(UnifiedTokens.spaceXxl),
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final fade = CurvedAnimation(
-                  parent: _controller,
-                  curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-                ).value.clamp(0.0, 1.0);
-                final scale = CurvedAnimation(
-                  parent: _controller,
-                  curve: const Interval(0.0, 0.7, curve: Curves.elasticOut),
-                ).value.clamp(0.0, 1.3);
-                final sparkleT = _controller.value;
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: UnifiedColors.bg,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(UnifiedTokens.spaceXxl),
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  final fade = CurvedAnimation(
+                    parent: _controller,
+                    curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+                  ).value.clamp(0.0, 1.0);
+                  final scale = CurvedAnimation(
+                    parent: _controller,
+                    curve: const Interval(0.0, 0.7, curve: Curves.elasticOut),
+                  ).value.clamp(0.0, 1.3);
+                  final sparkleT = _controller.value;
 
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 160,
-                      height: 160,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          if (_sparkleCount > 0) ..._buildSparkles(sparkleT),
-                          Transform.scale(
-                            scale: scale,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              alignment: Alignment.center,
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 160,
+                        height: 160,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (_sparkleCount > 0) ..._buildSparkles(sparkleT),
+                            Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isWin
+                                      ? UnifiedColors.cardMain
+                                      : UnifiedColors.chipInactiveBg,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  _resultEmoji,
+                                  style: const TextStyle(fontSize: 52),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: UnifiedTokens.spaceXxl),
+                      Opacity(
+                        opacity: fade,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: isWin
-                                    ? UnifiedColors.cardMain
-                                    : UnifiedColors.chipInactiveBg,
-                                shape: BoxShape.circle,
+                                color: _gradeColor.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(
+                                  UnifiedTokens.radiusPill,
+                                ),
                               ),
                               child: Text(
-                                _resultEmoji,
-                                style: const TextStyle(fontSize: 52),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: UnifiedTokens.spaceXxl),
-                    Opacity(
-                      opacity: fade,
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _gradeColor.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(
-                                UnifiedTokens.radiusPill,
-                              ),
-                            ),
-                            child: Text(
-                              widget.result.grade.name,
-                              style: UnifiedText.chipLabel(color: _gradeColor),
-                            ),
-                          ),
-                          const SizedBox(height: UnifiedTokens.spaceMd),
-                          Text(
-                            isWin ? '축하해요, 좋은 행운을 발견했어요' : '다음 기회에 만나요',
-                            style: UnifiedText.titleLarge(),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: UnifiedTokens.spaceSm),
-                          Text(
-                            widget.result.rewardLabel,
-                            style: UnifiedText.title(
-                              color: UnifiedColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: UnifiedTokens.spaceSm),
-                          Text(
-                            '남은 복주머니 ${widget.result.remainingBalance}개',
-                            style: UnifiedText.caption(),
-                          ),
-                          const SizedBox(height: UnifiedTokens.spaceXxl),
-                          SizedBox(
-                            width: 200,
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.of(
-                                context,
-                              ).popUntil((r) => r.settings.name == '/home'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: UnifiedColors.black,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
+                                widget.result.grade.name,
+                                style: UnifiedText.chipLabel(
+                                  color: _gradeColor,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    UnifiedTokens.radiusPill,
+                              ),
+                            ),
+                            const SizedBox(height: UnifiedTokens.spaceMd),
+                            Text(
+                              isWin ? '축하해요, 좋은 행운을 발견했어요' : '다음 기회에 만나요',
+                              style: UnifiedText.titleLarge(),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: UnifiedTokens.spaceSm),
+                            Text(
+                              widget.result.rewardLabel,
+                              style: UnifiedText.title(
+                                color: UnifiedColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: UnifiedTokens.spaceSm),
+                            Text(
+                              '남은 복주머니 ${widget.result.remainingBalance}개',
+                              style: UnifiedText.caption(),
+                            ),
+                            const SizedBox(height: UnifiedTokens.spaceXxl),
+                            SizedBox(
+                              width: 200,
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.of(
+                                  context,
+                                ).popUntil((r) => r.settings.name == '/home'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: UnifiedColors.black,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      UnifiedTokens.radiusPill,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  '확인',
+                                  style: UnifiedText.chipLabel(
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),
-                              child: Text(
-                                '확인',
-                                style: UnifiedText.chipLabel(
-                                  color: Colors.white,
-                                ),
-                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

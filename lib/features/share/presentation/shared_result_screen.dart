@@ -3,6 +3,7 @@ import '../../../core/config/env_config.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_error_state.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../core/widgets/zoomable_content.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
@@ -94,33 +95,37 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
     final isRelationship =
         shared != null && shared.resultType == ShareResultType.relationship;
     if (isRelationship) {
-      return Scaffold(
-        backgroundColor: GmColors.bg,
-        appBar: GmTopBar(back: true, title: shared.title),
-        body: SafeArea(
-          child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: GmColors.gold),
-                )
-              : _error != null
-              ? AppErrorState(message: _error!, onRetry: _load)
-              : _buildRelationshipResult(context, shared),
+      return ResultTextScaleOverlay(
+        child: Scaffold(
+          backgroundColor: GmColors.bg,
+          appBar: GmTopBar(back: true, title: shared.title),
+          body: SafeArea(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: GmColors.gold),
+                  )
+                : _error != null
+                ? AppErrorState(message: _error!, onRetry: _load)
+                : _buildRelationshipResult(context, shared),
+          ),
         ),
       );
     }
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
+    return ResultTextScaleOverlay(
+      child: Scaffold(
         backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('공유된 결과', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? AppErrorState(message: _error!, onRetry: _load)
-            : _buildResult(context, _shared!),
+        appBar: AppBar(
+          backgroundColor: UnifiedColors.bg,
+          elevation: 0,
+          title: Text('공유된 결과', style: UnifiedText.titleLarge()),
+        ),
+        body: SafeArea(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+              ? AppErrorState(message: _error!, onRetry: _load)
+              : _buildResult(context, _shared!),
+        ),
       ),
     );
   }

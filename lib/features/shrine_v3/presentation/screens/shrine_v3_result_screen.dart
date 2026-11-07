@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/main_bottom_nav_bar.dart';
 import '../../../../core/util/image_gallery_saver.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/result_text_scale_overlay.dart';
 import '../../domain/shrine_order.dart';
 import '../theme/shrine_v3_theme.dart';
 import '../widgets/talisman_save_image.dart';
@@ -33,7 +34,8 @@ class _ShrineV3ResultScreenState extends State<ShrineV3ResultScreen> {
       final bytes = await buildTalismanSaveImageBytes(order);
       final result = await saveImageBytesToGalleryDetailed(
         bytes,
-        name: '신당_${order.talisman.name}_${order.serial.replaceFirst('神堂 ', '')}',
+        name:
+            '신당_${order.talisman.name}_${order.serial.replaceFirst('神堂 ', '')}',
       );
       if (!mounted) return;
       if (result.isSuccess) {
@@ -57,84 +59,121 @@ class _ShrineV3ResultScreenState extends State<ShrineV3ResultScreen> {
   Widget build(BuildContext context) {
     final order = widget.order;
     final t = order.talisman;
-    return Scaffold(
-      backgroundColor: ShrineV3Colors.paper,
-      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Text('成 · 부적이 완성되었어요', style: ShrineV3TextStyles.mono.copyWith(fontSize: 12)),
-                const SizedBox(height: 16),
-                UniqueTalismanOverlay(order: order, width: 112),
-                const SizedBox(height: 16),
-                Text(t.name, style: ShrineV3TextStyles.title.copyWith(fontSize: 22)),
-                const SizedBox(height: 4),
-                Text('唯一 · 세상에 한 장뿐인 부적', style: ShrineV3TextStyles.ui.copyWith(fontSize: 12)),
-                const SizedBox(height: 16),
-                UniqueRecordCard(order: order),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: ShrineV3Colors.card,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: ShrineV3Colors.line),
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: ShrineV3Colors.paper,
+        bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Text(
+                    '成 · 부적이 완성되었어요',
+                    style: ShrineV3TextStyles.mono.copyWith(fontSize: 12),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('소지 기간', style: ShrineV3TextStyles.ui.copyWith(fontSize: 11)),
-                          Text(
-                            '${order.daysRemaining}일 · ${order.expiresDateKey}까지',
-                            style: ShrineV3TextStyles.body.copyWith(fontSize: 13),
+                  const SizedBox(height: 16),
+                  UniqueTalismanOverlay(order: order, width: 112),
+                  const SizedBox(height: 16),
+                  Text(
+                    t.name,
+                    style: ShrineV3TextStyles.title.copyWith(fontSize: 22),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '唯一 · 세상에 한 장뿐인 부적',
+                    style: ShrineV3TextStyles.ui.copyWith(fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  UniqueRecordCard(order: order),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: ShrineV3Colors.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: ShrineV3Colors.line),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '소지 기간',
+                              style: ShrineV3TextStyles.ui.copyWith(
+                                fontSize: 11,
+                              ),
+                            ),
+                            Text(
+                              '${order.daysRemaining}일 · ${order.expiresDateKey}까지',
+                              style: ShrineV3TextStyles.body.copyWith(
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '소지 중',
+                          style: ShrineV3TextStyles.body.copyWith(
+                            fontSize: 13,
+                            color: ShrineV3Colors.jade,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: _saving ? null : _saveToGallery,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ShrineV3Colors.seal,
+                        side: const BorderSide(color: ShrineV3Colors.seal),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
-                      Text('소지 중', style: ShrineV3TextStyles.body.copyWith(fontSize: 13, color: ShrineV3Colors.jade)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton(
-                    onPressed: _saving ? null : _saveToGallery,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: ShrineV3Colors.seal,
-                      side: const BorderSide(color: ShrineV3Colors.seal),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('⤓ 사진첩에 저장'),
                     ),
-                    child: _saving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('⤓ 사진첩에 저장'),
                   ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const ShrineV3BoxScreen()),
-                      (route) => route.isFirst,
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const ShrineV3BoxScreen(),
+                        ),
+                        (route) => route.isFirst,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ShrineV3Colors.seal,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text('부적함에 보관하기 ›'),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ShrineV3Colors.seal,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: const Text('부적함에 보관하기 ›'),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

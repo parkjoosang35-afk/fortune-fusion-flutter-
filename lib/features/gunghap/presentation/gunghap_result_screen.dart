@@ -33,6 +33,7 @@ import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../application/gunghap_provider.dart';
 import '../domain/gunghap_data.dart';
@@ -184,70 +185,72 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
     final result = provider.result;
     final showResult = !_loading && result != null;
 
-    return GHScreen(
-      bottomNav: const MainBottomNavBar(currentIndex: 0),
-      appBar: GHAppBar(
-        title: '궁합 결과',
-        onBack: () => Navigator.of(context).pop(),
-      ),
-      // [Phase 4 §5] 저장 버튼은 캡처 범위(RepaintBoundary) 밖인 footer에
-      // 둔다 — 귀인지도와 동일하게 버튼 자체가 저장 이미지에 찍히지 않게
-      // 하기 위함. 결과가 아직 없거나(로딩/에러) 보이지 않을 때는 저장할
-      // 것이 없으므로 footer를 아예 숨긴다.
-      footer: showResult
-          ? GHButton(
-              label: _savingImage ? '이미지를 준비하는 중…' : '결과 이미지로 저장하기',
-              variant: GHButtonVariant.secondary,
-              leading: _savingImage
-                  ? null
-                  : const Icon(
-                      Icons.download_rounded,
-                      size: 16,
-                      color: GHColors.ivory,
-                    ),
-              onPressed: _savingImage ? null : _saveImage,
-            )
-          : null,
-      child: _loading
-          ? const Padding(
-              padding: EdgeInsets.only(top: 80),
-              child: Center(
-                child: CircularProgressIndicator(color: GHColors.gold),
-              ),
-            )
-          : result == null
-          ? (_deletedNotFound
-                ? _ErrorState(
-                    message: '이미 삭제된 궁합 결과예요.\n궁합스토리 목록으로 돌아가 주세요.',
-                    retryLabel: '목록으로 돌아가기',
-                    onRetry: () => Navigator.of(context).pop(),
-                  )
-                : _ErrorState(
-                    onRetry: () {
-                      setState(() => _loading = true);
-                      _load();
-                    },
-                  ))
-          // [Phase 4 §5] RepaintBoundary로 결과 콘텐츠 전체를 감싼다.
-          // GHScreen.child는 이미 SingleChildScrollView 안에 배치되므로
-          // (gh_screen.dart 참고) 별도 스크롤뷰를 추가하지 않고, 이
-          // RepaintBoundary 레이어 자체가 "화면에 실제로 그려진 전체
-          // 높이"를 그대로 캡처 대상으로 갖는다 — 8개 분야 등급 카드와
-          // (해금 후) 8개 상세 리포트까지 더해져 화면보다 훨씬 길어져도
-          // 스크롤 뷰포트가 아니라 콘텐츠 전체 높이 기준으로 캡처되어
-          // 잘리지 않는다(ColoredBox로 배경색을 명시해 투명 영역이
-          // PNG에서 검게 찍히지 않도록 한다).
-          : RepaintBoundary(
-              key: _originalResultKey,
-              child: ColoredBox(
-                color: GHColors.bg2,
-                child: _ResultBody(
-                  result: result,
-                  unlocking: _unlocking,
-                  onUnlock: _unlock,
+    return ResultTextScaleOverlay(
+      child: GHScreen(
+        bottomNav: const MainBottomNavBar(currentIndex: 0),
+        appBar: GHAppBar(
+          title: '궁합 결과',
+          onBack: () => Navigator.of(context).pop(),
+        ),
+        // [Phase 4 §5] 저장 버튼은 캡처 범위(RepaintBoundary) 밖인 footer에
+        // 둔다 — 귀인지도와 동일하게 버튼 자체가 저장 이미지에 찍히지 않게
+        // 하기 위함. 결과가 아직 없거나(로딩/에러) 보이지 않을 때는 저장할
+        // 것이 없으므로 footer를 아예 숨긴다.
+        footer: showResult
+            ? GHButton(
+                label: _savingImage ? '이미지를 준비하는 중…' : '결과 이미지로 저장하기',
+                variant: GHButtonVariant.secondary,
+                leading: _savingImage
+                    ? null
+                    : const Icon(
+                        Icons.download_rounded,
+                        size: 16,
+                        color: GHColors.ivory,
+                      ),
+                onPressed: _savingImage ? null : _saveImage,
+              )
+            : null,
+        child: _loading
+            ? const Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Center(
+                  child: CircularProgressIndicator(color: GHColors.gold),
+                ),
+              )
+            : result == null
+            ? (_deletedNotFound
+                  ? _ErrorState(
+                      message: '이미 삭제된 궁합 결과예요.\n궁합스토리 목록으로 돌아가 주세요.',
+                      retryLabel: '목록으로 돌아가기',
+                      onRetry: () => Navigator.of(context).pop(),
+                    )
+                  : _ErrorState(
+                      onRetry: () {
+                        setState(() => _loading = true);
+                        _load();
+                      },
+                    ))
+            // [Phase 4 §5] RepaintBoundary로 결과 콘텐츠 전체를 감싼다.
+            // GHScreen.child는 이미 SingleChildScrollView 안에 배치되므로
+            // (gh_screen.dart 참고) 별도 스크롤뷰를 추가하지 않고, 이
+            // RepaintBoundary 레이어 자체가 "화면에 실제로 그려진 전체
+            // 높이"를 그대로 캡처 대상으로 갖는다 — 8개 분야 등급 카드와
+            // (해금 후) 8개 상세 리포트까지 더해져 화면보다 훨씬 길어져도
+            // 스크롤 뷰포트가 아니라 콘텐츠 전체 높이 기준으로 캡처되어
+            // 잘리지 않는다(ColoredBox로 배경색을 명시해 투명 영역이
+            // PNG에서 검게 찍히지 않도록 한다).
+            : RepaintBoundary(
+                key: _originalResultKey,
+                child: ColoredBox(
+                  color: GHColors.bg2,
+                  child: _ResultBody(
+                    result: result,
+                    unlocking: _unlocking,
+                    onUnlock: _unlock,
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 }

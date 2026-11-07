@@ -15,6 +15,7 @@ import '../../../../core/widgets/fortune/lucky_elements_grid.dart';
 import '../../../../core/widgets/fortune/primary_cta.dart';
 import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../../core/widgets/fortune/section_card.dart';
+import '../../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../home/domain/fortune_matrix.dart';
 import '../../../pass/presentation/pass_gate_helper.dart';
 import '../../shared/domain/fortune_report_model.dart';
@@ -77,22 +78,24 @@ class _GenericFortuneResultScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _entry == null
-            ? const _NotFoundView()
-            : _allowed
-            ? _ResultBody(
-                entry: _entry!,
-                saved: _saved,
-                captureKey: _originalResultKey,
-                onSaveDevice: () => _onSaveDevice(_entry!),
-                onSaveRecord: () => _onSaveRecord(_entry!),
-              )
-            : _LockedView(entry: _entry!, reasonLabel: _reasonLabel),
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: UnifiedColors.bg,
+        body: SafeArea(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _entry == null
+              ? const _NotFoundView()
+              : _allowed
+              ? _ResultBody(
+                  entry: _entry!,
+                  saved: _saved,
+                  captureKey: _originalResultKey,
+                  onSaveDevice: () => _onSaveDevice(_entry!),
+                  onSaveRecord: () => _onSaveRecord(_entry!),
+                )
+              : _LockedView(entry: _entry!, reasonLabel: _reasonLabel),
+        ),
       ),
     );
   }

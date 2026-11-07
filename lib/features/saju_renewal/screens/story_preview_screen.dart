@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_banner.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../auth/application/auth_provider.dart';
 import '../data/models/topic_card.dart';
 import '../data/saju_term_dictionary.dart';
@@ -178,216 +179,227 @@ class _StoryPreviewScreenState extends State<StoryPreviewScreen> {
     // C-05c/docs/03 §05 "해제됨" 분기 — 원본 jsx `unlocked`에 대응.
     final unlocked = topic != null && provider.isTopicUnlocked(topic.topicId);
 
-    return Scaffold(
-      body: SajuTermScope(
-        onOpenTerm: (termKey) {
-          final term = sajuTermLookup(termKey);
-          if (term == null) return;
-          showSajuTermSheet(
-            context,
-            termLabel: term.sheetTitle,
-            definition: term.note,
-          );
-        },
-        child: Container(
-          color: SajuInk.i900,
-          child: Stack(
-            children: [
-              if (scene != null)
-                Positioned.fill(child: SajuSceneBg(scene: scene)),
-              SafeArea(
-                child: Column(
-                  children: [
-                    SajuTopBar(
-                      left: SajuIconButton(
-                        icon: '←',
-                        onTap: () => Navigator.of(context).maybePop(),
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        body: SajuTermScope(
+          onOpenTerm: (termKey) {
+            final term = sajuTermLookup(termKey);
+            if (term == null) return;
+            showSajuTermSheet(
+              context,
+              termLabel: term.sheetTitle,
+              definition: term.note,
+            );
+          },
+          child: Container(
+            color: SajuInk.i900,
+            child: Stack(
+              children: [
+                if (scene != null)
+                  Positioned.fill(child: SajuSceneBg(scene: scene)),
+                SafeArea(
+                  child: Column(
+                    children: [
+                      SajuTopBar(
+                        left: SajuIconButton(
+                          icon: '←',
+                          onTap: () => Navigator.of(context).maybePop(),
+                        ),
+                        title: ordinal > 1 ? 'STORY · 09' : 'PREVIEW · 05',
                       ),
-                      title: ordinal > 1 ? 'STORY · 09' : 'PREVIEW · 05',
-                    ),
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          if (previewState.isLoading ||
-                              previewState.isInitial) {
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: SajuGold.g300,
-                              ),
-                            );
-                          }
-                          if (previewState.isError) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(28),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      previewState.errorMessage ??
-                                          '이야기를 불러오지 못했습니다.',
-                                      style: SajuType.body14,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 20),
-                                    SajuButton(
-                                      label: '다시 시도',
-                                      variant: SajuButtonVariant.secondary,
-                                      height: 48,
-                                      onTap: () {
-                                        if (topic != null) {
-                                          provider.loadPreview(topic);
-                                        }
-                                      },
-                                    ),
-                                  ],
+                      Expanded(
+                        child: Builder(
+                          builder: (context) {
+                            if (previewState.isLoading ||
+                                previewState.isInitial) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: SajuGold.g300,
                                 ),
-                              ),
-                            );
-                          }
+                              );
+                            }
+                            if (previewState.isError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(28),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        previewState.errorMessage ??
+                                            '이야기를 불러오지 못했습니다.',
+                                        style: SajuType.body14,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      SajuButton(
+                                        label: '다시 시도',
+                                        variant: SajuButtonVariant.secondary,
+                                        height: 48,
+                                        onTap: () {
+                                          if (topic != null) {
+                                            provider.loadPreview(topic);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
 
-                          final summary = previewState.data!;
-                          // [재열람 UX 보강 2026-10-12 — "짜르륵" 연출]
-                          // 본문 섹션(장면 태그 → 제목 → 본문 → 근거
-                          // 카드)이 90ms 간격으로 순차적으로 떠오른다.
-                          // 첫 조회든 캐시로 즉시 반환되는 재열람이든
-                          // 동일하게 재생된다 — 카드를 눌러 들어온
-                          // 사용자에게 "전에 본 내용이 펼쳐지는" 감각을
-                          // 준다. 모션 스펙은 docs/04 카드 rise(600ms,
-                          // ease-sj)와 동일.
-                          return SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(22, 24, 22, 200),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            final summary = previewState.data!;
+                            // [재열람 UX 보강 2026-10-12 — "짜르륵" 연출]
+                            // 본문 섹션(장면 태그 → 제목 → 본문 → 근거
+                            // 카드)이 90ms 간격으로 순차적으로 떠오른다.
+                            // 첫 조회든 캐시로 즉시 반환되는 재열람이든
+                            // 동일하게 재생된다 — 카드를 눌러 들어온
+                            // 사용자에게 "전에 본 내용이 펼쳐지는" 감각을
+                            // 준다. 모션 스펙은 docs/04 카드 rise(600ms,
+                            // ease-sj)와 동일.
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(
+                                22,
+                                24,
+                                22,
+                                200,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (scene != null)
+                                    _StaggerIn(
+                                      delay: Duration.zero,
+                                      child: _SceneTag(
+                                        scene: scene,
+                                        ordinal: ordinal,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 14),
+                                  _StaggerIn(
+                                    delay: const Duration(milliseconds: 90),
+                                    child: Text(
+                                      summary.title,
+                                      style: SajuType.h1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  _StaggerIn(
+                                    delay: const Duration(milliseconds: 180),
+                                    child: SajuTermText(
+                                      text: summary.summary,
+                                      style: SajuType.body16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 26),
+                                  if (_profile != null)
+                                    _StaggerIn(
+                                      delay: const Duration(milliseconds: 270),
+                                      child: SajuEvidenceCard(
+                                        evidence: summary.evidence,
+                                        profile: _profile!,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 28),
+                                  // [웹 AdSense — STEP E] 사주 이야기 본문과
+                                  // 하단 고정 "자세히 보기" CTA 사이, 충분한
+                                  // 여백을 두고 배치한다. CTA 버튼은 화면
+                                  // 최하단에 별도 고정되어 있어 이 배너와
+                                  // 겹치거나 혼동될 위치가 아니다.
+                                  const WebAdBanner(
+                                    surface: WebAdSurface.sajuRenewal,
+                                    adSlot: '',
+                                  ),
+                                  const SizedBox(height: 28),
+                                  const Text(
+                                    '더 자세한 이유와 시기를 확인해보세요.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: SajuType.body,
+                                      fontSize: 14.5,
+                                      height: 1.6,
+                                      color: SajuText.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 하단 고정 CTA — 스크롤 콘텐츠 위로 그라데이션 페이드.
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    ignoring: previewState.data == null,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, SajuInk.i900],
+                          stops: [0.0, 0.5],
+                        ),
+                      ),
+                      child: unlocked
+                          // C-05c "해제됨(05-C)" — Primary [자세히 보기] →
+                          // 게이트 없이 07 직행(docs/06 C-05-6).
+                          ? SajuButton(
+                              label: '자세히 보기',
+                              loading: _gateOpening,
+                              onTap: (previewState.data == null || _gateOpening)
+                                  ? null
+                                  : _openUnlockedDetail,
+                            )
+                          // C-05c "미해제(05-A)" — Primary [자세한 이야기
+                          // 열어 보기](C-05-4) + 안내(C-05-5).
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (scene != null)
-                                  _StaggerIn(
-                                    delay: Duration.zero,
-                                    child: _SceneTag(
-                                      scene: scene,
-                                      ordinal: ordinal,
-                                    ),
-                                  ),
-                                const SizedBox(height: 14),
-                                _StaggerIn(
-                                  delay: const Duration(milliseconds: 90),
-                                  child: Text(summary.title, style: SajuType.h1),
+                                SajuButton(
+                                  label: '자세한 이야기 열어 보기',
+                                  loading: _gateOpening,
+                                  onTap:
+                                      (previewState.data == null ||
+                                          _gateOpening)
+                                      ? null
+                                      : _openAccessGate,
                                 ),
-                                const SizedBox(height: 18),
-                                _StaggerIn(
-                                  delay: const Duration(milliseconds: 180),
-                                  child: SajuTermText(
-                                    text: summary.summary,
-                                    style: SajuType.body16,
-                                  ),
-                                ),
-                                const SizedBox(height: 26),
-                                if (_profile != null)
-                                  _StaggerIn(
-                                    delay: const Duration(milliseconds: 270),
-                                    child: SajuEvidenceCard(
-                                      evidence: summary.evidence,
-                                      profile: _profile!,
-                                    ),
-                                  ),
-                                const SizedBox(height: 28),
-                                // [웹 AdSense — STEP E] 사주 이야기 본문과
-                                // 하단 고정 "자세히 보기" CTA 사이, 충분한
-                                // 여백을 두고 배치한다. CTA 버튼은 화면
-                                // 최하단에 별도 고정되어 있어 이 배너와
-                                // 겹치거나 혼동될 위치가 아니다.
-                                const WebAdBanner(
-                                  surface: WebAdSurface.sajuRenewal,
-                                  adSlot: '',
-                                ),
-                                const SizedBox(height: 28),
+                                const SizedBox(height: 10),
                                 const Text(
-                                  '더 자세한 이유와 시기를 확인해보세요.',
+                                  '프리패스 · 복주머니 · 광고 중 하나로 열 수 있어요',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    fontFamily: SajuType.body,
-                                    fontSize: 14.5,
-                                    height: 1.6,
-                                    color: SajuText.muted,
+                                    fontFamily: SajuType.ui,
+                                    fontSize: 11.5,
+                                    color: SajuText.faint,
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
                     ),
-                  ],
-                ),
-              ),
-              // 하단 고정 CTA — 스크롤 콘텐츠 위로 그라데이션 페이드.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: IgnorePointer(
-                  ignoring: previewState.data == null,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, SajuInk.i900],
-                        stops: [0.0, 0.5],
-                      ),
-                    ),
-                    child: unlocked
-                        // C-05c "해제됨(05-C)" — Primary [자세히 보기] →
-                        // 게이트 없이 07 직행(docs/06 C-05-6).
-                        ? SajuButton(
-                            label: '자세히 보기',
-                            loading: _gateOpening,
-                            onTap: (previewState.data == null || _gateOpening)
-                                ? null
-                                : _openUnlockedDetail,
-                          )
-                        // C-05c "미해제(05-A)" — Primary [자세한 이야기
-                        // 열어 보기](C-05-4) + 안내(C-05-5).
-                        : Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SajuButton(
-                                label: '자세한 이야기 열어 보기',
-                                loading: _gateOpening,
-                                onTap:
-                                    (previewState.data == null || _gateOpening)
-                                    ? null
-                                    : _openAccessGate,
-                              ),
-                              const SizedBox(height: 10),
-                              const Text(
-                                '프리패스 · 복주머니 · 광고 중 하나로 열 수 있어요',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: SajuType.ui,
-                                  fontSize: 11.5,
-                                  color: SajuText.faint,
-                                ),
-                              ),
-                            ],
-                          ),
                   ),
                 ),
-              ),
-              // [버그 수정 — 결제 후 로딩 공백] detail interpret(LLM) 생성
-              // 중에는 Stack 최상단에 전체화면 오버레이를 띄워 "진행
-              // 중"임을 명확히 알린다.
-              if (_generatingDetail) const SajuDetailGeneratingOverlay(),
-            ],
+                // [버그 수정 — 결제 후 로딩 공백] detail interpret(LLM) 생성
+                // 중에는 Stack 최상단에 전체화면 오버레이를 띄워 "진행
+                // 중"임을 명확히 알린다.
+                if (_generatingDetail) const SajuDetailGeneratingOverlay(),
+              ],
+            ),
           ),
         ),
+        // [버그 수정 — "정통사주에도 하단바 다넣어"] push 화면이라 이름 있는
+        // 라우트 전용 전역 래퍼(wrapWithGlobalBottomNav)를 거치지 않는다.
+        // 다른 공용 화면과 동일한 MainBottomNavBar를 그대로 재사용한다
+        // (디자인/기능 변경 없음, 탭 0=홈 고정).
+        bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       ),
-      // [버그 수정 — "정통사주에도 하단바 다넣어"] push 화면이라 이름 있는
-      // 라우트 전용 전역 래퍼(wrapWithGlobalBottomNav)를 거치지 않는다.
-      // 다른 공용 화면과 동일한 MainBottomNavBar를 그대로 재사용한다
-      // (디자인/기능 변경 없음, 탭 0=홈 고정).
-      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
     );
   }
 }
@@ -405,7 +417,11 @@ class _StaggerIn extends StatefulWidget {
   // 하므로 super.key는 그대로 두고, "한 번도 공급되지 않음"만 감지하는
   // unused_element_parameter의 이 지점 오탐만 좁게 억제한다.
   // ignore: unused_element_parameter
-  const _StaggerIn({super.key, required this.child, this.delay = Duration.zero});
+  const _StaggerIn({
+    super.key,
+    required this.child,
+    this.delay = Duration.zero,
+  });
 
   final Widget child;
   final Duration delay;

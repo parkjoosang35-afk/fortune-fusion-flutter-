@@ -1,16 +1,14 @@
 import 'dart:typed_data';
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
-
-
 
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
@@ -110,7 +108,6 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   /// 안내를 구체적으로 담는다. 기존 '나의 귀인지도 · 신통방통' 한 줄만으로는
   /// "뭘 공유한 건지 모르겠다"는 사용자 불만으로 이어졌었다.
 
-
   /// [2026-11 버그수정 — "이미지 저장이 뭘 하는지 모르겠다"] 캡처한 카드를
   /// 곧바로 기기 갤러리(Android: gal / Web: 브라우저 다운로드)에 저장한다.
   /// 이전에는 이 버튼도 공유 시트를 여는 것과 동일하게 동작해, "저장"을
@@ -165,7 +162,11 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
       }
 
       if (!mounted) return;
-      await ShareService.shareImageDirectly(context, '${widget.ownerName}님의 귀인지도', bytes);
+      await ShareService.shareImageDirectly(
+        context,
+        '${widget.ownerName}님의 귀인지도',
+        bytes,
+      );
     } catch (_) {
       // [근본 수정 — 2026-12] 이미지 첨부 공유(shareXFiles)가 실패했을 때의
       // 텍스트 전용 폴백에서 예전에는 `Share.share()`를 직접 호출했다.
@@ -277,71 +278,73 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     final oreunpal = people.where((p) => p.relation == 'SANG_SAENG').length;
     final horang = people.where((p) => p.relation == 'SANG_GEUK').length;
 
-    return Scaffold(
-      backgroundColor: GuinjiColors.backgroundDeep,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: GuinjiBgAtmosphere()),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _IconButton(
-                        icon: Icons.arrow_back,
-                        onPressed: () => Navigator.of(context).maybePop(),
-                      ),
-                      const _MonoLabel('RESULT · SHARE CARD'),
-                      _IconButton(
-                        icon: Icons.more_horiz,
-                        onPressed: () =>
-                            AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
-                      ),
-                    ],
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: RepaintBoundary(
-                        key: _cardKey,
-                        child: _TheCard(
-                          ownerName: widget.ownerName,
-                          guin: guin,
-                          oreunpal: oreunpal,
-                          horang: horang,
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: GuinjiColors.backgroundDeep,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: GuinjiBgAtmosphere()),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _IconButton(
+                          icon: Icons.arrow_back,
+                          onPressed: () => Navigator.of(context).maybePop(),
+                        ),
+                        const _MonoLabel('RESULT · SHARE CARD'),
+                        _IconButton(
+                          icon: Icons.more_horiz,
+                          onPressed: () =>
+                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
+                        ),
+                      ],
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: RepaintBoundary(
+                          key: _cardKey,
+                          child: _TheCard(
+                            ownerName: widget.ownerName,
+                            guin: guin,
+                            oreunpal: oreunpal,
+                            horang: horang,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면
-                        // 공통 "이미지로 저장" + download_rounded로 통일.
-                        child: _GhostButton(
-                          label: _capturing ? '준비하는 중' : '이미지로 저장',
-                          icon: _capturing ? null : Icons.download_rounded,
-                          onPressed: _capturing ? () {} : _saveImage,
+                    Row(
+                      children: [
+                        Expanded(
+                          // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면
+                          // 공통 "이미지로 저장" + download_rounded로 통일.
+                          child: _GhostButton(
+                            label: _capturing ? '준비하는 중' : '이미지로 저장',
+                            icon: _capturing ? null : Icons.download_rounded,
+                            onPressed: _capturing ? () {} : _saveImage,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _PrimaryButton(
-                          label: _capturing ? '준비하는 중' : '공유하기',
-                          onPressed: _capturing
-                              ? () {}
-                              : () => _showShareOptions(guin),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _PrimaryButton(
+                            label: _capturing ? '준비하는 중' : '공유하기',
+                            onPressed: _capturing
+                                ? () {}
+                                : () => _showShareOptions(guin),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

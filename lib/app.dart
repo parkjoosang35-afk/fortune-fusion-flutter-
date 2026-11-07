@@ -8,7 +8,6 @@ import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/widgets/web_mobile_frame.dart';
-import 'core/widgets/text_scale_fab.dart';
 import 'core/sound/sintong_sound_service.dart';
 import 'core/sound/sound_navigator_observer.dart';
 
@@ -422,20 +421,19 @@ class App extends StatelessWidget {
                         ),
                         child: framed,
                       );
-                // [결과페이지 글씨 확대 기능] "결과페이지 전체 다"라는
-                // 요청을 화면별로 일일이 손대지 않고 확실히 만족시키기
-                // 위해, 글씨 크기 조절 캡슐을 앱 전체 화면 위에 공통으로
-                // 얹는다(작은 반투명 캡슐이라 콘텐츠를 가리지 않고, 캡슐
-                // 바깥 영역의 터치는 그대로 하단 화면으로 전달된다). QA
-                // ?ts= 오버라이드가 걸린 자동화 캡처 중에는 혼란을 막기
-                // 위해 컨트롤 자체를 숨긴다.
-                if (qaScale != null) return scaled;
-                return Stack(
-                  children: [
-                    Positioned.fill(child: scaled),
-                    const Positioned.fill(child: SafeArea(child: TextScaleFab())),
-                  ],
-                );
+                // [결과페이지 글씨 확대 기능 — 배치 수정, 2026-11] 처음에는
+                // "결과페이지 전체 다"라는 요청을 화면별로 일일이 손대지
+                // 않고 만족시키려고 글씨 크기 조절 캡슐을 앱 전체 화면
+                // 위에 공통으로 얹었으나, 그 결과 홈 화면을 포함한 모든
+                // 화면에 캡슐이 떠서 메인 하단 네비게이션 바를 가리는
+                // 문제가 발생했다(사용자 리포트: "메인 하단바에 이렇게
+                // 해놓으면 어떻게해 하단바가 가리잔아 결과페이지에
+                // 해놔야지"). 캡슐은 전역이 아니라 각 결과 화면이
+                // ResultTextScaleOverlay로 개별 적용하도록 바꾸고, 여기서는
+                // 글씨 배율 자체(TextScaler)만 앱 전체에 적용한다 — 결과
+                // 화면에서 올린 배율이 그 위에서 열리는 다이얼로그/시트에도
+                // 그대로 반영되어야 하기 때문이다.
+                return scaled;
               },
             );
           },
@@ -533,9 +531,7 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     // [신당(THE SHRINE) v3 계정 격리] 부적함/추천 조회 상태는 서버
     // (admin_web ShrineOrder 등)가 userId 기준으로 관리하므로, 로그아웃 시
     // 클라이언트 캐시(ShrineV3Provider 내부 state)만 비워주면 된다.
-    auth.registerLogoutCallback(
-      context.read<ShrineV3Provider>().clearOnLogout,
-    );
+    auth.registerLogoutCallback(context.read<ShrineV3Provider>().clearOnLogout);
   }
 
   @override

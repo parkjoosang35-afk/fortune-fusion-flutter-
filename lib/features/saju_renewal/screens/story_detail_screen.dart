@@ -5,6 +5,7 @@ import '../../../core/data/my_fortune_record_store.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../data/models/interpret_result.dart';
 import '../data/models/topic_card.dart';
 import '../data/saju_recent_story_store.dart';
@@ -278,145 +279,423 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     final ordinal = topic != null ? provider.ordinalOf(topic.topicId) : 1;
     final scene = topic?.scene;
 
-    return Scaffold(
-      body: SajuTermScope(
-        onOpenTerm: (termKey) {
-          final term = sajuTermLookup(termKey);
-          if (term == null) return;
-          showSajuTermSheet(
-            context,
-            termLabel: term.sheetTitle,
-            definition: term.note,
-          );
-        },
-        child: Container(
-          color: SajuInk.i900,
-          child: Stack(
-            children: [
-              if (scene != null)
-                Positioned.fill(
-                  child: SajuSceneBg(scene: scene, strength: 0.55),
-                ),
-              SafeArea(
-                child: Builder(
-                  builder: (context) {
-                    if (detailState.isLoading || detailState.isInitial) {
-                      return Column(
-                        children: [
-                          SajuTopBar(
-                            left: SajuIconButton(
-                              icon: '←',
-                              onTap: () => Navigator.of(context).maybePop(),
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        body: SajuTermScope(
+          onOpenTerm: (termKey) {
+            final term = sajuTermLookup(termKey);
+            if (term == null) return;
+            showSajuTermSheet(
+              context,
+              termLabel: term.sheetTitle,
+              definition: term.note,
+            );
+          },
+          child: Container(
+            color: SajuInk.i900,
+            child: Stack(
+              children: [
+                if (scene != null)
+                  Positioned.fill(
+                    child: SajuSceneBg(scene: scene, strength: 0.55),
+                  ),
+                SafeArea(
+                  child: Builder(
+                    builder: (context) {
+                      if (detailState.isLoading || detailState.isInitial) {
+                        return Column(
+                          children: [
+                            SajuTopBar(
+                              left: SajuIconButton(
+                                icon: '←',
+                                onTap: () => Navigator.of(context).maybePop(),
+                              ),
+                              title: 'DETAIL · 07',
                             ),
-                            title: 'DETAIL · 07',
-                          ),
-                          const Expanded(
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: SajuGold.g300,
+                            const Expanded(
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: SajuGold.g300,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    }
-                    if (detailState.isError) {
-                      // [버그 수정 — E-07(docs/07) 결함 발견]
-                      // docs/03_화면명세.md §07 "규칙": "상세 실패 →
-                      // 템플릿 상주 상세 문구로 대체. 그것도 없으면 05의
-                      // 요약 + 근거 + "잠시 후 다시 열어 주세요"(C-07-9)
-                      // + [다시 시도]. 게이트 재통과 요구 금지(이미
-                      // 해제됨)." — 서버가 템플릿 상세조차 못 내려준
-                      // 경우(=이 detailState.isError 분기)에 대한 처리가
-                      // 전혀 없이 에러 메시지만 보여주고 재시도 버튼이
-                      // 없어 막다른 길에 갇히는 결함이었다(05/06에서는
-                      // 이미 재시도 버튼이 있는데 07에만 누락).
-                      //
-                      // [수정] 05에서 이미 받아둔 요약(previewState) +
-                      // 근거가 있으면 그대로 재사용해 보여주고, 그 아래
-                      // C-07-9 문구 + [다시 시도] 버튼을 추가한다.
-                      // [SajuRenewalProvider.retry]는 이미
-                      // `_detailState.isError`일 때 `onAccessGranted()`만
-                      // 재호출하므로(Access Gate 재오픈 없음) "게이트
-                      // 재통과 요구 금지" 요건도 자동으로 지켜진다.
-                      final summary = previewState.data;
+                          ],
+                        );
+                      }
+                      if (detailState.isError) {
+                        // [버그 수정 — E-07(docs/07) 결함 발견]
+                        // docs/03_화면명세.md §07 "규칙": "상세 실패 →
+                        // 템플릿 상주 상세 문구로 대체. 그것도 없으면 05의
+                        // 요약 + 근거 + "잠시 후 다시 열어 주세요"(C-07-9)
+                        // + [다시 시도]. 게이트 재통과 요구 금지(이미
+                        // 해제됨)." — 서버가 템플릿 상세조차 못 내려준
+                        // 경우(=이 detailState.isError 분기)에 대한 처리가
+                        // 전혀 없이 에러 메시지만 보여주고 재시도 버튼이
+                        // 없어 막다른 길에 갇히는 결함이었다(05/06에서는
+                        // 이미 재시도 버튼이 있는데 07에만 누락).
+                        //
+                        // [수정] 05에서 이미 받아둔 요약(previewState) +
+                        // 근거가 있으면 그대로 재사용해 보여주고, 그 아래
+                        // C-07-9 문구 + [다시 시도] 버튼을 추가한다.
+                        // [SajuRenewalProvider.retry]는 이미
+                        // `_detailState.isError`일 때 `onAccessGranted()`만
+                        // 재호출하므로(Access Gate 재오픈 없음) "게이트
+                        // 재통과 요구 금지" 요건도 자동으로 지켜진다.
+                        final summary = previewState.data;
+                        return Column(
+                          children: [
+                            SajuTopBar(
+                              left: SajuIconButton(
+                                icon: '←',
+                                onTap: () => Navigator.of(context).maybePop(),
+                              ),
+                              title: 'DETAIL · 07',
+                            ),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(
+                                  22,
+                                  24,
+                                  22,
+                                  40,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (summary != null) ...[
+                                      Text(summary.title, style: SajuType.h1),
+                                      const SizedBox(height: 18),
+                                      SajuTermText(
+                                        text: summary.summary,
+                                        style: SajuType.body16,
+                                      ),
+                                      const SizedBox(height: 26),
+                                      if (_profile != null)
+                                        SajuEvidenceCard(
+                                          evidence: summary.evidence,
+                                          profile: _profile!,
+                                          heroTagSuffix: 'preview',
+                                        ),
+                                      const SizedBox(height: 32),
+                                    ] else ...[
+                                      Text(
+                                        detailState.errorMessage ??
+                                            '이야기를 불러오지 못했습니다.',
+                                        style: SajuType.body14,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                    // C-07-9 "잠시 후 다시 열어 주세요".
+                                    Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            '잠시 후 다시 열어 주세요',
+                                            style: SajuType.body14,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 20),
+                                          SajuButton(
+                                            label: '다시 시도',
+                                            variant:
+                                                SajuButtonVariant.secondary,
+                                            height: 48,
+                                            loading: _detailRetrying,
+                                            onTap: _detailRetrying
+                                                ? null
+                                                : () async {
+                                                    setState(
+                                                      () => _detailRetrying =
+                                                          true,
+                                                    );
+                                                    await provider.retry();
+                                                    if (mounted) {
+                                                      setState(
+                                                        () => _detailRetrying =
+                                                            false,
+                                                      );
+                                                    }
+                                                  },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+
+                      final detail = detailState.data!;
+                      // JSX: n===4인데 timing(luckIndex)이 없으면 그 블록은
+                      // 서버가 애초에 시기 Fact를 못 찾은 것이므로 제외한다.
+                      final blocks = detail.blocks
+                          .where((b) => !(b.n == 4 && b.luckIndex == null))
+                          .toList();
+                      _ensureBlockKeys(blocks.length);
+
                       return Column(
                         children: [
-                          SajuTopBar(
-                            left: SajuIconButton(
-                              icon: '←',
-                              onTap: () => Navigator.of(context).maybePop(),
+                          // 스크롤 아래에서도 떠 있는 상단바(JSX position:sticky
+                          // + backdrop-blur(6px)). [버그 수정] 이전에는
+                          // ColorFilter.mode(transparent, multiply)를 썼는데,
+                          // 이 필터는 실질적으로 아무 흐림 효과를 내지 않는다
+                          // (투명 색 x multiply = 결과가 항상 변화 없음) —
+                          // 실제 블러는 ImageFilter.blur로만 구현된다.
+                          OriginalResultScene(
+                            captureKey: _originalHeaderKey,
+                            background: SajuInk.i900,
+                            child: ClipRect(
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0xEB111111),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                  child: SajuTopBar(
+                                    left: SajuIconButton(
+                                      icon: '←',
+                                      onTap: () =>
+                                          Navigator.of(context).maybePop(),
+                                    ),
+                                    title: 'DETAIL · 07',
+                                    right: SajuIconButton(
+                                      icon: '⤴',
+                                      onTap: () =>
+                                          _shareResult(context, detail),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            title: 'DETAIL · 07',
                           ),
                           Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(
-                                22,
-                                24,
-                                22,
-                                40,
-                              ),
+                            child: OriginalResultBody(
+                              captureKey: _originalResultKey,
+                              background: SajuInk.i900,
+                              padding: const EdgeInsets.only(bottom: 160),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (summary != null) ...[
-                                    Text(summary.title, style: SajuType.h1),
-                                    const SizedBox(height: 18),
-                                    SajuTermText(
-                                      text: summary.summary,
-                                      style: SajuType.body16,
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      22,
+                                      18,
+                                      22,
+                                      0,
                                     ),
-                                    const SizedBox(height: 26),
-                                    if (_profile != null)
-                                      SajuEvidenceCard(
-                                        evidence: summary.evidence,
-                                        profile: _profile!,
-                                        heroTagSuffix: 'preview',
-                                      ),
-                                    const SizedBox(height: 32),
-                                  ] else ...[
-                                    Text(
-                                      detailState.errorMessage ??
-                                          '이야기를 불러오지 못했습니다.',
-                                      style: SajuType.body14,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 20),
-                                  ],
-                                  // C-07-9 "잠시 후 다시 열어 주세요".
-                                  Center(
                                     child: Column(
-                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
+                                        if (scene != null)
+                                          _SceneTag(
+                                            scene: scene,
+                                            ordinal: ordinal,
+                                          ),
+                                        const SizedBox(height: 12),
                                         Text(
-                                          '잠시 후 다시 열어 주세요',
-                                          style: SajuType.body14,
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 20),
-                                        SajuButton(
-                                          label: '다시 시도',
-                                          variant: SajuButtonVariant.secondary,
-                                          height: 48,
-                                          loading: _detailRetrying,
-                                          onTap: _detailRetrying
-                                              ? null
-                                              : () async {
-                                                  setState(
-                                                    () =>
-                                                        _detailRetrying = true,
-                                                  );
-                                                  await provider.retry();
-                                                  if (mounted) {
-                                                    setState(
-                                                      () => _detailRetrying =
-                                                          false,
-                                                    );
-                                                  }
-                                                },
+                                          detail.title,
+                                          style: const TextStyle(
+                                            fontFamily: SajuType.serif,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 26,
+                                            height: 1.35,
+                                            color: SajuGold.g100,
+                                            letterSpacing: -0.03 * 26,
+                                          ),
                                         ),
                                       ],
+                                    ),
+                                  ),
+                                  // 목차 칩.
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      22,
+                                      18,
+                                      22,
+                                      6,
+                                    ),
+                                    child: Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: List.generate(blocks.length, (
+                                        i,
+                                      ) {
+                                        final b = blocks[i];
+                                        final label = (b.n >= 1 && b.n <= 5)
+                                            ? _kChipLabels[b.n - 1]
+                                            : '';
+                                        return GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () => _scrollToBlock(i),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 9,
+                                              vertical: 5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                              border: Border.all(
+                                                color: SajuText.line,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '${(i + 1).toString().padLeft(2, '0')} $label',
+                                              style: const TextStyle(
+                                                fontFamily: SajuType.ui,
+                                                fontSize: 11,
+                                                color: SajuText.muted,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      22,
+                                      10,
+                                      22,
+                                      0,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: List.generate(blocks.length, (
+                                        i,
+                                      ) {
+                                        final b = blocks[i];
+                                        return _DetailBlockView(
+                                          key: _blockKeys[i],
+                                          index: i,
+                                          block: b,
+                                          sceneTint: scene != null
+                                              ? _tintOf(scene)
+                                              : SajuGold.g300,
+                                          profile: _profile,
+                                          isLast: i == blocks.length - 1,
+                                          daeunTimeline: detail.daeunTimeline,
+                                        );
+                                      }),
+                                    ),
+                                  ),
+                                  // [웹 AdSense — STEP E] 5단 서사 블록이 모두
+                                  // 끝난 뒤, "이 이야기는 당신의 원국에서..."
+                                  // 마무리 문구보다 앞에 배치한다. 해석 본문
+                                  // 블록 사이에는 넣지 않아 콘텐츠 가독 흐름을
+                                  // 끊지 않는다(지시서 §5 콘텐츠 비가림 원칙).
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      22,
+                                      36,
+                                      22,
+                                      0,
+                                    ),
+                                    child: const WebAdInPage(
+                                      surface: WebAdSurface.sajuRenewal,
+                                      adSlot: '',
+                                    ),
+                                  ),
+                                  // [UI 개선 — 2026-12 저장/공유 통합 박스]
+                                  // 기존에는 "이미지로 저장"/"다른 운세와
+                                  // 비교해보기"가 각각 TextButton.icon으로
+                                  // 따로 떨어져 있었는데, 테마 기본
+                                  // TextButton 색(보라 계열)을 그대로 써서
+                                  // 검은 배경 위에서 글씨가 거의 보이지 않는
+                                  // 문제가 있었다("글씨가 안보이고 디자인을
+                                  // 개판으로했어" 피드백). 디자인 토큰
+                                  // (SajuGold/SajuText)을 명시적으로 적용한
+                                  // 테두리 박스 하나로 통합해 저장+공유하기
+                                  // 두 액션만 남긴다. 저장 로직
+                                  // (saveOriginalResult/buildSaveFileName)과
+                                  // 공유 로직(_shareResult, REQ-08/REQ-09
+                                  // 계약)은 그대로 재사용한다 — "다른 운세와
+                                  // 비교해보기" 교차검증 진입점은 사용자가
+                                  // 요청한 박스 구성(저장+공유하기)에
+                                  // 포함되지 않아 이 화면에서 제거한다.
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      22,
+                                      24,
+                                      22,
+                                      0,
+                                    ),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(
+                                          SajuRadius.lg,
+                                        ),
+                                        color: SajuText.card,
+                                        border: Border.all(
+                                          color: SajuText.lineGold,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: _SaveShareAction(
+                                              icon: Icons.download_rounded,
+                                              label: '저장',
+                                              onTap: () => saveOriginalResult(
+                                                context,
+                                                _originalResultKey,
+                                                // [REQ-09] 파일명 규칙 통일.
+                                                name: buildSaveFileName(
+                                                  'saju',
+                                                  detail.topicId,
+                                                ),
+                                                leadingKeys: [
+                                                  _originalHeaderKey,
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 1,
+                                            height: 28,
+                                            color: SajuText.line,
+                                          ),
+                                          Expanded(
+                                            child: _SaveShareAction(
+                                              icon: Icons.ios_share_rounded,
+                                              label: '공유하기',
+                                              onTap: () =>
+                                                  _shareResult(context, detail),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      22,
+                                      28,
+                                      22,
+                                      0,
+                                    ),
+                                    child: Text(
+                                      '◆ 이 이야기는 당신의 원국에서 찾은 근거로만 쓰였어요',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontFamily: SajuType.body,
+                                        fontSize: 13.5,
+                                        color: SajuText.muted,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -425,321 +704,50 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                           ),
                         ],
                       );
-                    }
-
-                    final detail = detailState.data!;
-                    // JSX: n===4인데 timing(luckIndex)이 없으면 그 블록은
-                    // 서버가 애초에 시기 Fact를 못 찾은 것이므로 제외한다.
-                    final blocks = detail.blocks
-                        .where((b) => !(b.n == 4 && b.luckIndex == null))
-                        .toList();
-                    _ensureBlockKeys(blocks.length);
-
-                    return Column(
-                      children: [
-                        // 스크롤 아래에서도 떠 있는 상단바(JSX position:sticky
-                        // + backdrop-blur(6px)). [버그 수정] 이전에는
-                        // ColorFilter.mode(transparent, multiply)를 썼는데,
-                        // 이 필터는 실질적으로 아무 흐림 효과를 내지 않는다
-                        // (투명 색 x multiply = 결과가 항상 변화 없음) —
-                        // 실제 블러는 ImageFilter.blur로만 구현된다.
-                        OriginalResultScene(
-                          captureKey: _originalHeaderKey,
-                          background: SajuInk.i900,
-                          child: ClipRect(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0xEB111111),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                ),
-                                child: SajuTopBar(
-                                  left: SajuIconButton(
-                                    icon: '←',
-                                    onTap: () =>
-                                        Navigator.of(context).maybePop(),
-                                  ),
-                                  title: 'DETAIL · 07',
-                                  right: SajuIconButton(
-                                    icon: '⤴',
-                                    onTap: () => _shareResult(context, detail),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: OriginalResultBody(
-                            captureKey: _originalResultKey,
-                            background: SajuInk.i900,
-                            padding: const EdgeInsets.only(bottom: 160),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    22,
-                                    18,
-                                    22,
-                                    0,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (scene != null)
-                                        _SceneTag(
-                                          scene: scene,
-                                          ordinal: ordinal,
-                                        ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        detail.title,
-                                        style: const TextStyle(
-                                          fontFamily: SajuType.serif,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 26,
-                                          height: 1.35,
-                                          color: SajuGold.g100,
-                                          letterSpacing: -0.03 * 26,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // 목차 칩.
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    22,
-                                    18,
-                                    22,
-                                    6,
-                                  ),
-                                  child: Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: List.generate(blocks.length, (i) {
-                                      final b = blocks[i];
-                                      final label = (b.n >= 1 && b.n <= 5)
-                                          ? _kChipLabels[b.n - 1]
-                                          : '';
-                                      return GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () => _scrollToBlock(i),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 9,
-                                            vertical: 5,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              999,
-                                            ),
-                                            border: Border.all(
-                                              color: SajuText.line,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            '${(i + 1).toString().padLeft(2, '0')} $label',
-                                            style: const TextStyle(
-                                              fontFamily: SajuType.ui,
-                                              fontSize: 11,
-                                              color: SajuText.muted,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    22,
-                                    10,
-                                    22,
-                                    0,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: List.generate(blocks.length, (i) {
-                                      final b = blocks[i];
-                                      return _DetailBlockView(
-                                        key: _blockKeys[i],
-                                        index: i,
-                                        block: b,
-                                        sceneTint: scene != null
-                                            ? _tintOf(scene)
-                                            : SajuGold.g300,
-                                        profile: _profile,
-                                        isLast: i == blocks.length - 1,
-                                        daeunTimeline: detail.daeunTimeline,
-                                      );
-                                    }),
-                                  ),
-                                ),
-                                // [웹 AdSense — STEP E] 5단 서사 블록이 모두
-                                // 끝난 뒤, "이 이야기는 당신의 원국에서..."
-                                // 마무리 문구보다 앞에 배치한다. 해석 본문
-                                // 블록 사이에는 넣지 않아 콘텐츠 가독 흐름을
-                                // 끊지 않는다(지시서 §5 콘텐츠 비가림 원칙).
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    22,
-                                    36,
-                                    22,
-                                    0,
-                                  ),
-                                  child: const WebAdInPage(
-                                    surface: WebAdSurface.sajuRenewal,
-                                    adSlot: '',
-                                  ),
-                                ),
-                                // [UI 개선 — 2026-12 저장/공유 통합 박스]
-                                // 기존에는 "이미지로 저장"/"다른 운세와
-                                // 비교해보기"가 각각 TextButton.icon으로
-                                // 따로 떨어져 있었는데, 테마 기본
-                                // TextButton 색(보라 계열)을 그대로 써서
-                                // 검은 배경 위에서 글씨가 거의 보이지 않는
-                                // 문제가 있었다("글씨가 안보이고 디자인을
-                                // 개판으로했어" 피드백). 디자인 토큰
-                                // (SajuGold/SajuText)을 명시적으로 적용한
-                                // 테두리 박스 하나로 통합해 저장+공유하기
-                                // 두 액션만 남긴다. 저장 로직
-                                // (saveOriginalResult/buildSaveFileName)과
-                                // 공유 로직(_shareResult, REQ-08/REQ-09
-                                // 계약)은 그대로 재사용한다 — "다른 운세와
-                                // 비교해보기" 교차검증 진입점은 사용자가
-                                // 요청한 박스 구성(저장+공유하기)에
-                                // 포함되지 않아 이 화면에서 제거한다.
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    22,
-                                    24,
-                                    22,
-                                    0,
-                                  ),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(
-                                        SajuRadius.lg,
-                                      ),
-                                      color: SajuText.card,
-                                      border: Border.all(
-                                        color: SajuText.lineGold,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: _SaveShareAction(
-                                            icon: Icons.download_rounded,
-                                            label: '저장',
-                                            onTap: () => saveOriginalResult(
-                                              context,
-                                              _originalResultKey,
-                                              // [REQ-09] 파일명 규칙 통일.
-                                              name: buildSaveFileName(
-                                                'saju',
-                                                detail.topicId,
-                                              ),
-                                              leadingKeys: [
-                                                _originalHeaderKey,
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 1,
-                                          height: 28,
-                                          color: SajuText.line,
-                                        ),
-                                        Expanded(
-                                          child: _SaveShareAction(
-                                            icon: Icons.ios_share_rounded,
-                                            label: '공유하기',
-                                            onTap: () =>
-                                                _shareResult(context, detail),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    22,
-                                    28,
-                                    22,
-                                    0,
-                                  ),
-                                  child: Text(
-                                    '◆ 이 이야기는 당신의 원국에서 찾은 근거로만 쓰였어요',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontFamily: SajuType.body,
-                                      fontSize: 13.5,
-                                      color: SajuText.muted,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, SajuInk.i900],
-                      stops: [0.0, 0.55],
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(20, 36, 20, 40),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, SajuInk.i900],
+                        stops: [0.0, 0.55],
+                      ),
+                    ),
+                    child: SajuButton(
+                      label: '또 다른 이야기 보기',
+                      onTap: detailState.data == null
+                          ? null
+                          : () {
+                              provider.showMoreTopics();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const MoreStoriesScreen(),
+                                ),
+                              );
+                            },
                     ),
                   ),
-                  child: SajuButton(
-                    label: '또 다른 이야기 보기',
-                    onTap: detailState.data == null
-                        ? null
-                        : () {
-                            provider.showMoreTopics();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const MoreStoriesScreen(),
-                              ),
-                            );
-                          },
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+        // [버그 수정 — "정통사주에도 하단바 다넣어"] push 화면이라 이름 있는
+        // 라우트 전용 전역 래퍼(wrapWithGlobalBottomNav)를 거치지 않는다.
+        // 다른 공용 화면과 동일한 MainBottomNavBar를 그대로 재사용한다
+        // (디자인/기능 변경 없음, 탭 0=홈 고정). 로딩·에러·성공 세 분기
+        // 모두 이 바깥쪽 Scaffold 하나를 공유하므로 분기마다 따로 추가할
+        // 필요가 없다.
+        bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
       ),
-      // [버그 수정 — "정통사주에도 하단바 다넣어"] push 화면이라 이름 있는
-      // 라우트 전용 전역 래퍼(wrapWithGlobalBottomNav)를 거치지 않는다.
-      // 다른 공용 화면과 동일한 MainBottomNavBar를 그대로 재사용한다
-      // (디자인/기능 변경 없음, 탭 0=홈 고정). 로딩·에러·성공 세 분기
-      // 모두 이 바깥쪽 Scaffold 하나를 공유하므로 분기마다 따로 추가할
-      // 필요가 없다.
-      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
     );
   }
 

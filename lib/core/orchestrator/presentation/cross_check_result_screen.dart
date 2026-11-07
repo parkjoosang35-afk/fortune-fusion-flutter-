@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../features/auth/application/auth_provider.dart';
 import '../../theme/app_unified_style.dart';
 import '../../widgets/app_error_state.dart';
+import '../../widgets/result_text_scale_overlay.dart';
 import '../cross_check_engine.dart';
 import '../interpretation_narrator.dart';
 import '../orchestrator_provider.dart';
@@ -22,8 +23,7 @@ class CrossCheckResultScreen extends StatefulWidget {
   const CrossCheckResultScreen({super.key});
 
   @override
-  State<CrossCheckResultScreen> createState() =>
-      _CrossCheckResultScreenState();
+  State<CrossCheckResultScreen> createState() => _CrossCheckResultScreenState();
 }
 
 class _CrossCheckResultScreenState extends State<CrossCheckResultScreen> {
@@ -42,27 +42,26 @@ class _CrossCheckResultScreenState extends State<CrossCheckResultScreen> {
   Widget build(BuildContext context) {
     final orchestrator = context.watch<OrchestratorProvider>();
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
+    return ResultTextScaleOverlay(
+      child: Scaffold(
         backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('교차 검증 결과', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: switch (orchestrator.status) {
-          OrchestratorStatus.initial ||
-          OrchestratorStatus.loading => const Center(
-            child: CircularProgressIndicator(),
-          ),
-          OrchestratorStatus.error => AppErrorState(
-            message: orchestrator.errorMessage ?? '불러오지 못했습니다.',
-            onRetry: () => orchestrator.load(
-              context.read<AuthProvider>().currentUser,
+        appBar: AppBar(
+          backgroundColor: UnifiedColors.bg,
+          elevation: 0,
+          title: Text('교차 검증 결과', style: UnifiedText.titleLarge()),
+        ),
+        body: SafeArea(
+          child: switch (orchestrator.status) {
+            OrchestratorStatus.initial || OrchestratorStatus.loading =>
+              const Center(child: CircularProgressIndicator()),
+            OrchestratorStatus.error => AppErrorState(
+              message: orchestrator.errorMessage ?? '불러오지 못했습니다.',
+              onRetry: () =>
+                  orchestrator.load(context.read<AuthProvider>().currentUser),
             ),
-          ),
-          OrchestratorStatus.loaded => _buildBody(context, orchestrator),
-        },
+            OrchestratorStatus.loaded => _buildBody(context, orchestrator),
+          },
+        ),
       ),
     );
   }
@@ -193,9 +192,7 @@ class _EvidenceExpanderState extends State<_EvidenceExpander> {
         TextButton.icon(
           onPressed: () => setState(() => _expanded = !_expanded),
           icon: Icon(
-            _expanded
-                ? Icons.expand_less_rounded
-                : Icons.expand_more_rounded,
+            _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
             size: 18,
           ),
           label: Text(_expanded ? '근거 접기' : '근거 보기'),

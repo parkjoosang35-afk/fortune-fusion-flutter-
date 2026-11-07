@@ -4,6 +4,7 @@ import '../../../core/theme/app_unified_style.dart';
 import '../../../core/utils/load_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/result_card_stack.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../application/name_fortune_provider.dart';
 import '../domain/name_fortune_model.dart';
 
@@ -21,23 +22,25 @@ class NameFortuneResultScreen extends StatelessWidget {
     final provider = context.watch<NameFortuneProvider>();
     final state = provider.state;
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
+    return ResultTextScaleOverlay(
+      child: Scaffold(
         backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('이름 운세 결과', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: switch (state.status) {
-          LoadStatus.loading => const _NameFortuneLoading(),
-          LoadStatus.error => AppErrorState(
-            message: state.errorMessage ?? '분석에 실패했습니다.',
-            onRetry: () => provider.retry(),
-          ),
-          LoadStatus.success => _buildResult(context, state.data!),
-          LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
-        },
+        appBar: AppBar(
+          backgroundColor: UnifiedColors.bg,
+          elevation: 0,
+          title: Text('이름 운세 결과', style: UnifiedText.titleLarge()),
+        ),
+        body: SafeArea(
+          child: switch (state.status) {
+            LoadStatus.loading => const _NameFortuneLoading(),
+            LoadStatus.error => AppErrorState(
+              message: state.errorMessage ?? '분석에 실패했습니다.',
+              onRetry: () => provider.retry(),
+            ),
+            LoadStatus.success => _buildResult(context, state.data!),
+            LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
+          },
+        ),
       ),
     );
   }

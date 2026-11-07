@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_owner_saju_summary.dart';
 import '../domain/guinji_person.dart';
@@ -323,231 +324,233 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
   }
 
   Widget _buildScaffold(int total, List<GuinjiPerson> topThree) {
-    return Scaffold(
-      backgroundColor: GmColors.bg,
-      appBar: GmTopBar(
-        back: true,
-        title: '${widget.ownerName}님의 귀인 지도',
-        onShare: _openShareSheet,
-      ),
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 헤더
-              // [핸드오프 `CMain` 헤더 1:1 이식] 원본은 "{members.length}명과
-              // 연결되어 있어요" 문구 + 버튼 2개(♛ 랭킹 / ＋ 초대)만 있다.
-              // "목록 보기"는 CMain 헤더에 없는 버튼이었다(유형별 목록은
-              // 랭킹 화면의 두 번째 탭으로만 진입 가능) — ＋ 초대로 교체.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '$total명과 연결되어 있어요',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          color: GmColors.muted,
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: GmColors.bg,
+        appBar: GmTopBar(
+          back: true,
+          title: '${widget.ownerName}님의 귀인 지도',
+          onShare: _openShareSheet,
+        ),
+        body: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 헤더
+                // [핸드오프 `CMain` 헤더 1:1 이식] 원본은 "{members.length}명과
+                // 연결되어 있어요" 문구 + 버튼 2개(♛ 랭킹 / ＋ 초대)만 있다.
+                // "목록 보기"는 CMain 헤더에 없는 버튼이었다(유형별 목록은
+                // 랭킹 화면의 두 번째 탭으로만 진입 가능) — ＋ 초대로 교체.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$total명과 연결되어 있어요',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            color: GmColors.muted,
+                          ),
                         ),
                       ),
-                    ),
-                    // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한
-                    // 개념] 초대 링크 없이 소유자가 지인 정보를 직접
-                    // 입력해 즉시 등록하는 진입점. 기존 2버튼(랭킹/초대)
-                    // 레이아웃을 깨지 않도록 아이콘 전용 컴팩트 버튼으로
-                    // 추가한다.
-                    Tooltip(
-                      message: '지인 직접 추가',
-                      child: OutlinedButton(
-                        onPressed: _openDirectAdd,
+                      // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한
+                      // 개념] 초대 링크 없이 소유자가 지인 정보를 직접
+                      // 입력해 즉시 등록하는 진입점. 기존 2버튼(랭킹/초대)
+                      // 레이아웃을 깨지 않도록 아이콘 전용 컴팩트 버튼으로
+                      // 추가한다.
+                      Tooltip(
+                        message: '지인 직접 추가',
+                        child: OutlinedButton(
+                          onPressed: _openDirectAdd,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: GmColors.fg,
+                            side: const BorderSide(color: GmColors.line),
+                            shape: const CircleBorder(),
+                            minimumSize: const Size(32, 32),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Icon(
+                            Icons.person_add_alt_1,
+                            size: 15,
+                            color: GmColors.fg,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      OutlinedButton(
+                        onPressed: _openRanking,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: GmColors.fg,
                           side: const BorderSide(color: GmColors.line),
-                          shape: const CircleBorder(),
-                          minimumSize: const Size(32, 32),
-                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.person_add_alt_1,
-                          size: 15,
-                          color: GmColors.fg,
+                        child: const Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '♛ ',
+                                style: TextStyle(color: GmColors.gold),
+                              ),
+                              TextSpan(text: '랭킹'),
+                            ],
+                          ),
+                          style: TextStyle(fontSize: 13),
                         ),
                       ),
+                      const SizedBox(width: 6),
+                      ElevatedButton(
+                        onPressed: _openShareSheet,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: GmColors.fg,
+                          foregroundColor: GmColors.onFg,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 4,
+                          ),
+                        ),
+                        child: const Text(
+                          '＋ 초대',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // [흐름 정합성] "나는 어떤 사람인지" — 관계 그래프(아직 지인이
+                // 없으면 비어 있음)보다 먼저, 실계산된 내 사주 요약을 보여준다.
+                if (widget.ownerSajuSummary != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                    child: _GmOwnerSajuCard(
+                      ownerName: widget.ownerName,
+                      summary: widget.ownerSajuSummary!,
                     ),
-                    const SizedBox(width: 6),
-                    OutlinedButton(
-                      onPressed: _openRanking,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: GmColors.fg,
-                        side: const BorderSide(color: GmColors.line),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9999),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                      ),
-                      child: const Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '♛ ',
-                              style: TextStyle(color: GmColors.gold),
-                            ),
-                            TextSpan(text: '랭킹'),
-                          ],
-                        ),
-                        style: TextStyle(fontSize: 13),
-                      ),
+                  ),
+
+                // 인터랙티브 애니메이션 노드 그래프(pan/zoom/drag/tap +
+                // 회전 궤도/레이더 펄스/호흡/에너지 흐름 애니메이션).
+                GuinjiAnimatedRelationGraph(
+                  centerTitle: '${widget.ownerName}님',
+                  centerSubtitle: '나',
+                  ownerFacePath: widget.ownerFacePath,
+                  people: widget.people,
+                  onSelect: _handleNodeTap,
+                  // [핸드오프 `CEmpty` 안내문구 1:1 이식]
+                  emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
+                  filter: _filter,
+                ),
+
+                // [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한 관계유형만
+                // 칩으로 노출하고, 탭하면 지도에서 해당 유형만 강조한다.
+                if (widget.people.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                    child: _GmTypeFilterRow(
+                      people: widget.people,
+                      selected: _filter,
+                      onSelect: (key) =>
+                          setState(() => _filter = _filter == key ? null : key),
                     ),
-                    const SizedBox(width: 6),
-                    ElevatedButton(
-                      onPressed: _openShareSheet,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: GmColors.fg,
-                        foregroundColor: GmColors.onFg,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9999),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 4,
-                        ),
-                      ),
-                      child: const Text(
-                        '＋ 초대',
+                  ),
+
+                // [핸드오프 `CMain` 3명 미만 배너 이식, `top:584`] 원본은
+                // 고정 캔버스(CW×CH) 위에 절대좌표로 지도와 겹쳐 배치되지만,
+                // 이 화면은 스크롤 레이아웃이라 같은 의도(지도 바로 아래,
+                // "가장 강한 인연" 리스트보다 먼저)로 그래프 직후에 둔다.
+                if (widget.people.isNotEmpty && widget.people.length < 3)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: _GmFewMembersBanner(count: widget.people.length),
+                  ),
+
+                // [웹 일반 AdSense 전체 확장 — 귀인지도] 노드 그래프(콘텐츠)와
+                // "가장 강한 인연" 리스트(콘텐츠) 사이 — CTA("친구 초대하고
+                // 지도 완성하기")와는 충분히 떨어져 있어 혼동 우려가 없다.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: const WebAdInPage(
+                    surface: WebAdSurface.guinji,
+                    adSlot: '',
+                  ),
+                ),
+
+                // 상위 3명
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                  child: Row(
+                    children: [
+                      const Text(
+                        '가장 강한 인연',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
+                          color: GmColors.fg,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // [흐름 정합성] "나는 어떤 사람인지" — 관계 그래프(아직 지인이
-              // 없으면 비어 있음)보다 먼저, 실계산된 내 사주 요약을 보여준다.
-              if (widget.ownerSajuSummary != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                  child: _GmOwnerSajuCard(
-                    ownerName: widget.ownerName,
-                    summary: widget.ownerSajuSummary!,
-                  ),
-                ),
-
-              // 인터랙티브 애니메이션 노드 그래프(pan/zoom/drag/tap +
-              // 회전 궤도/레이더 펄스/호흡/에너지 흐름 애니메이션).
-              GuinjiAnimatedRelationGraph(
-                centerTitle: '${widget.ownerName}님',
-                centerSubtitle: '나',
-                ownerFacePath: widget.ownerFacePath,
-                people: widget.people,
-                onSelect: _handleNodeTap,
-                // [핸드오프 `CEmpty` 안내문구 1:1 이식]
-                emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
-                filter: _filter,
-              ),
-
-              // [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한 관계유형만
-              // 칩으로 노출하고, 탭하면 지도에서 해당 유형만 강조한다.
-              if (widget.people.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                  child: _GmTypeFilterRow(
-                    people: widget.people,
-                    selected: _filter,
-                    onSelect: (key) =>
-                        setState(() => _filter = _filter == key ? null : key),
-                  ),
-                ),
-
-              // [핸드오프 `CMain` 3명 미만 배너 이식, `top:584`] 원본은
-              // 고정 캔버스(CW×CH) 위에 절대좌표로 지도와 겹쳐 배치되지만,
-              // 이 화면은 스크롤 레이아웃이라 같은 의도(지도 바로 아래,
-              // "가장 강한 인연" 리스트보다 먼저)로 그래프 직후에 둔다.
-              if (widget.people.isNotEmpty && widget.people.length < 3)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                  child: _GmFewMembersBanner(count: widget.people.length),
-                ),
-
-              // [웹 일반 AdSense 전체 확장 — 귀인지도] 노드 그래프(콘텐츠)와
-              // "가장 강한 인연" 리스트(콘텐츠) 사이 — CTA("친구 초대하고
-              // 지도 완성하기")와는 충분히 떨어져 있어 혼동 우려가 없다.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: const WebAdInPage(
-                  surface: WebAdSurface.guinji,
-                  adSlot: '',
-                ),
-              ),
-
-              // 상위 3명
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
-                  children: [
-                    const Text(
-                      '가장 강한 인연',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: GmColors.fg,
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _openFriends,
+                        child: const Text(
+                          '전체 보기',
+                          style: TextStyle(fontSize: 11, color: GmColors.gold),
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: _openFriends,
-                      child: const Text(
-                        '전체 보기',
-                        style: TextStyle(fontSize: 11, color: GmColors.gold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (topThree.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text(
-                    '지인을 초대하면 여기에 표시돼요',
-                    style: TextStyle(fontSize: 12, color: GmColors.dim),
+                    ],
                   ),
-                )
-              else
+                ),
+                if (topThree.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Text(
+                      '지인을 초대하면 여기에 표시돼요',
+                      style: TextStyle(fontSize: 12, color: GmColors.dim),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: topThree
+                          .map(
+                            (p) => _GmFriendRow(
+                              person: p,
+                              onTap: () => _handleNodeTap(p),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+
+                // 공유 CTA
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children: topThree
-                        .map(
-                          (p) => _GmFriendRow(
-                            person: p,
-                            onTap: () => _handleNodeTap(p),
-                          ),
-                        )
-                        .toList(),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                  child: GmRoseButton(
+                    label: '친구 초대하고 지도 완성하기',
+                    onPressed: _openShareSheet,
                   ),
                 ),
 
-              // 공유 CTA
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                child: GmRoseButton(
-                  label: '친구 초대하고 지도 완성하기',
-                  onPressed: _openShareSheet,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-            ],
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../domain/giftcard_model.dart';
 
 /// 03단계 §7.6 카탈로그형 표준패턴 "완료화면" - GiftcardResultScreen(발급 결과)
@@ -21,110 +22,112 @@ class GiftcardResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 120,
-                    height: 120,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: _succeeded ? AppColors.goldGradient : null,
-                      color: _succeeded
-                          ? null
-                          : Colors.white.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      _succeeded ? issue.product.imageEmoji : '😢',
-                      style: const TextStyle(fontSize: 52),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    _succeeded ? '교환이 완료되었어요!' : '발급에 실패했어요',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    issue.product.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  if (_succeeded) ...[
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        body: Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(gradient: AppColors.mysticGradient),
+          child: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      width: 120,
+                      height: 120,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        gradient: _succeeded ? AppColors.goldGradient : null,
+                        color: _succeeded
+                            ? null
+                            : Colors.white.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
                       ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            '발급 코드',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            issue.issuedCode ?? '-',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            '유효기간 $_dateLabel',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        _succeeded ? issue.product.imageEmoji : '😢',
+                        style: const TextStyle(fontSize: 52),
                       ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Text(
+                      _succeeded ? '교환이 완료되었어요!' : '발급에 실패했어요',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(color: Colors.white),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      '내 상품권함에서 언제든 다시 확인할 수 있어요',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                      textAlign: TextAlign.center,
+                    Text(
+                      issue.product.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
-                  ] else
-                    const Text(
-                      '사용한 복주머니는 자동으로 환불되었습니다',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: AppSpacing.xl),
+                    if (_succeeded) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              '발급 코드',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              issue.issuedCode ?? '-',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              '유효기간 $_dateLabel',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      const Text(
+                        '내 상품권함에서 언제든 다시 확인할 수 있어요',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ] else
+                      const Text(
+                        '사용한 복주머니는 자동으로 환불되었습니다',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    SizedBox(
+                      width: 200,
+                      child: AppButton(
+                        label: '확인',
+                        onPressed: () => Navigator.of(context).popUntil(
+                          (r) => r.settings.name == '/reward/giftcard',
+                        ),
+                      ),
                     ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  SizedBox(
-                    width: 200,
-                    child: AppButton(
-                      label: '확인',
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).popUntil((r) => r.settings.name == '/reward/giftcard'),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

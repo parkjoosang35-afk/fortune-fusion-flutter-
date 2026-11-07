@@ -6,6 +6,7 @@ import '../../../core/util/save_filename.dart';
 import '../../../core/utils/load_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/result_card_stack.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
 import '../../result_access/presentation/result_access_gate_sheet.dart';
@@ -33,8 +34,7 @@ class CompatibilityResultScreen extends StatefulWidget {
       _CompatibilityResultScreenState();
 }
 
-class _CompatibilityResultScreenState
-    extends State<CompatibilityResultScreen> {
+class _CompatibilityResultScreenState extends State<CompatibilityResultScreen> {
   final _originalResultKey = GlobalKey();
 
   Future<void> _retry(
@@ -76,23 +76,25 @@ class _CompatibilityResultScreenState
     final provider = context.watch<CompatibilityProvider>();
     final state = provider.state;
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
+    return ResultTextScaleOverlay(
+      child: Scaffold(
         backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('궁합 결과', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: switch (state.status) {
-          LoadStatus.loading => const _CompatibilityLoading(),
-          LoadStatus.error => AppErrorState(
-            message: state.errorMessage ?? '분석에 실패했습니다.',
-            onRetry: () => _retry(context, provider),
-          ),
-          LoadStatus.success => _buildResult(context, state.data!),
-          LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
-        },
+        appBar: AppBar(
+          backgroundColor: UnifiedColors.bg,
+          elevation: 0,
+          title: Text('궁합 결과', style: UnifiedText.titleLarge()),
+        ),
+        body: SafeArea(
+          child: switch (state.status) {
+            LoadStatus.loading => const _CompatibilityLoading(),
+            LoadStatus.error => AppErrorState(
+              message: state.errorMessage ?? '분석에 실패했습니다.',
+              onRetry: () => _retry(context, provider),
+            ),
+            LoadStatus.success => _buildResult(context, state.data!),
+            LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
+          },
+        ),
       ),
     );
   }

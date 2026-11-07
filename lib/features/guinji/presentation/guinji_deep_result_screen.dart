@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
+import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../core/widgets/zoomable_content.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
@@ -56,7 +57,10 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   Future<void> _savePageToGallery(BuildContext context) async {
     final bytes = await _captureFullPagePng(context);
     if (bytes == null) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('전체 결과 이미지를 준비하지 못했어요. 다시 시도해주세요.')));
+      if (context.mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('전체 결과 이미지를 준비하지 못했어요. 다시 시도해주세요.')),
+        );
       return;
     }
     // [REQ-05] 원인별 안내로 교체.
@@ -124,7 +128,9 @@ class GuinjiDeepResultScreen extends StatelessWidget {
       );
     } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('결과 공유에 실패했어요. 다시 시도해주세요.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('결과 공유에 실패했어요. 다시 시도해주세요.')),
+        );
       }
     }
   }
@@ -159,134 +165,292 @@ class GuinjiDeepResultScreen extends StatelessWidget {
         )
         .toList();
 
-    return Scaffold(
-      backgroundColor: GmColors.bg,
-      body: Stack(
-        children: [
-          // 본문 스크롤 영역. [P4-hotfix] RepaintBoundary로 감싸 '저장'
-          // 버튼이 캡처할 대상을 명확히 지정한다.
-          SingleChildScrollView(
-            child: RepaintBoundary(
-              key: _captureKey,
-              child: ColoredBox(color: GmColors.bg, child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _DeepHero(
-                    character: character,
-                    initial: person.name.isNotEmpty
-                        ? person.name.substring(0, 1)
-                        : '?',
-                    color: color,
-                    hanja: meta.hanja,
-                    label: meta.label,
-                    title: deep.title,
-                    bandCaption:
-                        '${person.name}님의 캐릭터 · ${character?.band ?? ''} · '
-                        '케미 ${person.score}점',
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 6, 24, 130),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 440),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 키워드 칩.
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: [
-                                for (final k in deep.keywords)
-                                  Container(
-                                    height: 30,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: GmColors.fg.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      border: Border.all(color: GmColors.hair),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: Text(
-                                      '# $k',
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: GmColors.muted,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-
-                          _DeepChapter(
-                            no: 1,
-                            title: '한눈에 보는 두 사람',
-                            color: color,
-                            child: _ParaGroup(
-                              texts: deep.summary.map(_fill).toList(),
-                            ),
-                          ),
-
-                          _DeepChapter(
-                            no: 2,
-                            title: '관계를 이루는 다섯 가지 힘',
-                            color: color,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Column(
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: GmColors.bg,
+        body: Stack(
+          children: [
+            // 본문 스크롤 영역. [P4-hotfix] RepaintBoundary로 감싸 '저장'
+            // 버튼이 캡처할 대상을 명확히 지정한다.
+            SingleChildScrollView(
+              child: RepaintBoundary(
+                key: _captureKey,
+                child: ColoredBox(
+                  color: GmColors.bg,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _DeepHero(
+                        character: character,
+                        initial: person.name.isNotEmpty
+                            ? person.name.substring(0, 1)
+                            : '?',
+                        color: color,
+                        hanja: meta.hanja,
+                        label: meta.label,
+                        title: deep.title,
+                        bandCaption:
+                            '${person.name}님의 캐릭터 · ${character?.band ?? ''} · '
+                            '케미 ${person.score}점',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 6, 24, 130),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 440),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 키워드 칩.
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
                                   children: [
-                                    for (final bar in bars)
-                                      Padding(
+                                    for (final k in deep.keywords)
+                                      Container(
+                                        height: 30,
                                         padding: const EdgeInsets.symmetric(
-                                          vertical: 6,
+                                          horizontal: 12,
+                                        ),
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: GmColors.fg.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          border: Border.all(
+                                            color: GmColors.hair,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            15,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '# $k',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: GmColors.muted,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+
+                              _DeepChapter(
+                                no: 1,
+                                title: '한눈에 보는 두 사람',
+                                color: color,
+                                child: _ParaGroup(
+                                  texts: deep.summary.map(_fill).toList(),
+                                ),
+                              ),
+
+                              _DeepChapter(
+                                no: 2,
+                                title: '관계를 이루는 다섯 가지 힘',
+                                color: color,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Column(
+                                      children: [
+                                        for (final bar in bars)
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 6,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 70,
+                                                  child: Text(
+                                                    bar.$1,
+                                                    style: const TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: GmColors.muted,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  child: ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          2,
+                                                        ),
+                                                    child: LinearProgressIndicator(
+                                                      value: bar.$2 / 100,
+                                                      minHeight: 4,
+                                                      backgroundColor: GmColors
+                                                          .fg
+                                                          .withValues(
+                                                            alpha: 0.08,
+                                                          ),
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation(
+                                                            color,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                SizedBox(
+                                                  width: 24,
+                                                  child: Text(
+                                                    '${bar.$2.round()}',
+                                                    textAlign: TextAlign.right,
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: GmColors.fg,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const _Para(
+                                      '다섯 가지 힘은 엔진이 판정에 사용한 S1~S5 단계를 '
+                                      '쉽게 풀어 본 것이에요. 막대가 길수록 그 부분이 '
+                                      '관계를 받쳐 주는 힘이 크다는 뜻이에요.',
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              _DeepChapter(
+                                no: 3,
+                                title: '처음 만났을 때의 느낌',
+                                color: color,
+                                child: _ParaGroup(
+                                  texts: deep.first.map(_fill).toList(),
+                                ),
+                              ),
+                              _DeepChapter(
+                                no: 4,
+                                title: '서로에게 흐르는 기운',
+                                color: color,
+                                child: _ParaGroup(
+                                  texts: deep.energy.map(_fill).toList(),
+                                ),
+                              ),
+                              _DeepChapter(
+                                no: 5,
+                                title: '마음 깊은 곳의 결',
+                                color: color,
+                                child: _ParaGroup(
+                                  texts: deep.bond.map(_fill).toList(),
+                                ),
+                              ),
+
+                              _DeepChapter(
+                                no: 6,
+                                title: '서로에게 어떤 사람인가',
+                                color: color,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: _RoleCard(
+                                            character: character,
+                                            heading: '${person.name}님은 나에게',
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: _RoleCard(
+                                            character: null,
+                                            heading: '나는 ${person.name}님에게',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 18),
+                                    _ParaGroup(
+                                      texts: deep.role.map(_fill).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              _DeepChapter(
+                                no: 7,
+                                title: '함께하면 좋은 일',
+                                color: color,
+                                child: _ParaGroup(
+                                  texts: deep.together.map(_fill).toList(),
+                                ),
+                              ),
+                              _DeepChapter(
+                                no: 8,
+                                title: '조심하면 좋은 것',
+                                color: color,
+                                child: _ParaGroup(
+                                  texts: deep.caution.map(_fill).toList(),
+                                ),
+                              ),
+
+                              _DeepChapter(
+                                no: 9,
+                                title: '계절마다 달라지는 관계의 흐름',
+                                color: color,
+                                child: Column(
+                                  children: [
+                                    for (
+                                      var i = 0;
+                                      i < deep.seasons.length;
+                                      i++
+                                    )
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          border: i == 0
+                                              ? null
+                                              : const Border(
+                                                  top: BorderSide(
+                                                    color: GmColors.hair,
+                                                  ),
+                                                ),
                                         ),
                                         child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             SizedBox(
-                                              width: 70,
+                                              width: 34,
                                               child: Text(
-                                                bar.$1,
-                                                style: const TextStyle(
-                                                  fontSize: 13.5,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: GmColors.muted,
+                                                deep.seasons[i][0],
+                                                style: TextStyle(
+                                                  fontFamily: GmText.display,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w800,
+                                                  height: 1.6,
+                                                  color: color,
                                                 ),
                                               ),
                                             ),
                                             Expanded(
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(2),
-                                                child: LinearProgressIndicator(
-                                                  value: bar.$2 / 100,
-                                                  minHeight: 4,
-                                                  backgroundColor: GmColors.fg
-                                                      .withValues(alpha: 0.08),
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation(
-                                                        color,
-                                                      ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            SizedBox(
-                                              width: 24,
                                               child: Text(
-                                                '${bar.$2.round()}',
-                                                textAlign: TextAlign.right,
+                                                _fill(deep.seasons[i][1]),
                                                 style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: GmColors.fg,
+                                                  fontSize: 15,
+                                                  height: 1.7,
+                                                  color: Color(0xD6F2F0EC),
                                                 ),
                                               ),
                                             ),
@@ -295,367 +459,239 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                                       ),
                                   ],
                                 ),
-                                const SizedBox(height: 14),
-                                const _Para(
-                                  '다섯 가지 힘은 엔진이 판정에 사용한 S1~S5 단계를 '
-                                  '쉽게 풀어 본 것이에요. 막대가 길수록 그 부분이 '
-                                  '관계를 받쳐 주는 힘이 크다는 뜻이에요.',
-                                ),
-                              ],
-                            ),
-                          ),
+                              ),
 
-                          _DeepChapter(
-                            no: 3,
-                            title: '처음 만났을 때의 느낌',
-                            color: color,
-                            child: _ParaGroup(
-                              texts: deep.first.map(_fill).toList(),
-                            ),
-                          ),
-                          _DeepChapter(
-                            no: 4,
-                            title: '서로에게 흐르는 기운',
-                            color: color,
-                            child: _ParaGroup(
-                              texts: deep.energy.map(_fill).toList(),
-                            ),
-                          ),
-                          _DeepChapter(
-                            no: 5,
-                            title: '마음 깊은 곳의 결',
-                            color: color,
-                            child: _ParaGroup(
-                              texts: deep.bond.map(_fill).toList(),
-                            ),
-                          ),
-
-                          _DeepChapter(
-                            no: 6,
-                            title: '서로에게 어떤 사람인가',
-                            color: color,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              _DeepChapter(
+                                no: 10,
+                                title: '관계를 이어가는 네 가지 방법',
+                                color: color,
+                                child: Column(
                                   children: [
-                                    Expanded(
-                                      child: _RoleCard(
-                                        character: character,
-                                        heading: '${person.name}님은 나에게',
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: _RoleCard(
-                                        character: null,
-                                        heading: '나는 ${person.name}님에게',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 18),
-                                _ParaGroup(
-                                  texts: deep.role.map(_fill).toList(),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          _DeepChapter(
-                            no: 7,
-                            title: '함께하면 좋은 일',
-                            color: color,
-                            child: _ParaGroup(
-                              texts: deep.together.map(_fill).toList(),
-                            ),
-                          ),
-                          _DeepChapter(
-                            no: 8,
-                            title: '조심하면 좋은 것',
-                            color: color,
-                            child: _ParaGroup(
-                              texts: deep.caution.map(_fill).toList(),
-                            ),
-                          ),
-
-                          _DeepChapter(
-                            no: 9,
-                            title: '계절마다 달라지는 관계의 흐름',
-                            color: color,
-                            child: Column(
-                              children: [
-                                for (var i = 0; i < deep.seasons.length; i++)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: i == 0
-                                          ? null
-                                          : const Border(
-                                              top: BorderSide(
-                                                color: GmColors.hair,
+                                    for (var i = 0; i < deep.tips.length; i++)
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              width: 26,
+                                              height: 26,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: color,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                '${i + 1}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: color,
+                                                ),
                                               ),
                                             ),
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        SizedBox(
-                                          width: 34,
-                                          child: Text(
-                                            deep.seasons[i][0],
-                                            style: TextStyle(
-                                              fontFamily: GmText.display,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w800,
-                                              height: 1.6,
-                                              color: color,
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: Text(
+                                                _fill(deep.tips[i]),
+                                                style: const TextStyle(
+                                                  fontSize: 15.5,
+                                                  height: 1.7,
+                                                  color: Color(0xE0F2F0EC),
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                        Expanded(
-                                          child: Text(
-                                            _fill(deep.seasons[i][1]),
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              height: 1.7,
-                                              color: Color(0xD6F2F0EC),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                                      ),
+                                  ],
+                                ),
+                              ),
 
-                          _DeepChapter(
-                            no: 10,
-                            title: '관계를 이어가는 네 가지 방법',
-                            color: color,
-                            child: Column(
-                              children: [
-                                for (var i = 0; i < deep.tips.length; i++)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          width: 26,
-                                          height: 26,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: color),
-                                          ),
-                                          child: Text(
-                                            '${i + 1}',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: color,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Text(
-                                            _fill(deep.tips[i]),
-                                            style: const TextStyle(
-                                              fontSize: 15.5,
-                                              height: 1.7,
-                                              color: Color(0xE0F2F0EC),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-
-                          // 귀인의 한마디(편지).
-                          Container(
-                            margin: const EdgeInsets.only(top: 18),
-                            padding: const EdgeInsets.fromLTRB(22, 26, 22, 26),
-                            decoration: BoxDecoration(
-                              color: GmColors.card,
-                              border: Border.all(color: GmColors.hair),
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                              // 귀인의 한마디(편지).
+                              Container(
+                                margin: const EdgeInsets.only(top: 18),
+                                padding: const EdgeInsets.fromLTRB(
+                                  22,
+                                  26,
+                                  22,
+                                  26,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: GmColors.card,
+                                  border: Border.all(color: GmColors.hair),
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _FaceAvatar(
-                                      character: character,
-                                      initial: person.name.isNotEmpty
-                                          ? person.name.substring(0, 1)
-                                          : '?',
-                                      size: 44,
-                                      ringColor: color,
-                                      color: color,
+                                    Row(
+                                      children: [
+                                        _FaceAvatar(
+                                          character: character,
+                                          initial: person.name.isNotEmpty
+                                              ? person.name.substring(0, 1)
+                                              : '?',
+                                          size: 44,
+                                          ringColor: color,
+                                          color: color,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '${person.name}님이 전하는 한마디',
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: GmColors.fg,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              const Text(
+                                                '관계의 결로 써 본 편지',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: GmColors.dim,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '${person.name}님이 전하는 한마디',
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                              color: GmColors.fg,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          const Text(
-                                            '관계의 결로 써 본 편지',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: GmColors.dim,
-                                            ),
-                                          ),
-                                        ],
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      '"${_fill(pickLetter(defaultLetter: deep.letter, seedKey: person.id.toString()))}"',
+                                      style: const TextStyle(
+                                        fontFamily: GmText.body,
+                                        fontSize: 16,
+                                        height: 1.9,
+                                        color: Color(0xE6F2F0EC),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  '"${_fill(pickLetter(defaultLetter: deep.letter, seedKey: person.id.toString()))}"',
-                                  style: const TextStyle(
-                                    fontFamily: GmText.body,
-                                    fontSize: 16,
-                                    height: 1.9,
-                                    color: Color(0xE6F2F0EC),
+                              ),
+
+                              const Padding(
+                                padding: EdgeInsets.only(top: 26),
+                                child: Text(
+                                  '이 풀이는 두 사람의 사주를 바탕으로 한 참고용 이야기예요.\n'
+                                  '관계를 만드는 건 결국 두 사람의 마음이에요.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    height: 1.6,
+                                    color: GmColors.dim,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-
-                          const Padding(
-                            padding: EdgeInsets.only(top: 26),
-                            child: Text(
-                              '이 풀이는 두 사람의 사주를 바탕으로 한 참고용 이야기예요.\n'
-                              '관계를 만드는 건 결국 두 사람의 마음이에요.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                height: 1.6,
-                                color: GmColors.dim,
                               ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 상단 고정 바(뒤로가기).
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 14,
+              child: _RoundIconButton(
+                icon: Icons.arrow_back,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+
+            // 하단 고정 CTA.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  28,
+                  20,
+                  MediaQuery.of(context).padding.bottom + 20,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      GmColors.bg.withValues(alpha: 0),
+                      GmColors.bg.withValues(alpha: 0.96),
+                    ],
+                    stops: const [0.0, 0.45],
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
+                        // 기기 저장 버튼 문구/아이콘을 전 화면 공통
+                        // "이미지로 저장" + download_rounded로 통일.
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            try {
+                              await _savePageToGallery(context);
+                            } catch (_) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('저장에 실패했어요. 다시 시도해 주세요.'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: GmColors.line),
+                            foregroundColor: GmColors.fg,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: const StadiumBorder(),
+                          ),
+                          icon: const Icon(Icons.download_rounded, size: 18),
+                          label: const Text(
+                            '이미지로 저장',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 3,
+                        child: ElevatedButton(
+                          onPressed: () => _shareDeep(context),
+                          style: gmPrimary(),
+                          child: const Text('결과 공유하기'),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              )),
-            ),
-          ),
-
-          // 상단 고정 바(뒤로가기).
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 14,
-            child: _RoundIconButton(
-              icon: Icons.arrow_back,
-              onTap: () => Navigator.of(context).maybePop(),
-            ),
-          ),
-
-          // 하단 고정 CTA.
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                28,
-                20,
-                MediaQuery.of(context).padding.bottom + 20,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    GmColors.bg.withValues(alpha: 0),
-                    GmColors.bg.withValues(alpha: 0.96),
-                  ],
-                  stops: const [0.0, 0.45],
-                ),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    Expanded(
-                      // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
-                      // 기기 저장 버튼 문구/아이콘을 전 화면 공통
-                      // "이미지로 저장" + download_rounded로 통일.
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          try {
-                            await _savePageToGallery(context);
-                          } catch (_) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('저장에 실패했어요. 다시 시도해 주세요.'),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: GmColors.line),
-                          foregroundColor: GmColors.fg,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: const StadiumBorder(),
-                        ),
-                        icon: const Icon(Icons.download_rounded, size: 18),
-                        label: const Text(
-                          '이미지로 저장',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 3,
-                      child: ElevatedButton(
-                        onPressed: () => _shareDeep(context),
-                        style: gmPrimary(),
-                        child: const Text('결과 공유하기'),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

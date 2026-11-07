@@ -13,6 +13,7 @@ import '../../../../core/utils/load_state.dart';
 import '../../../../core/web_ads/web_ad_config.dart';
 import '../../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../../../../core/widgets/app_error_state.dart';
+import '../../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/zoomable_content.dart';
 import '../application/tarot_audio_controller.dart';
@@ -421,127 +422,131 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     final provider = context.watch<TarotProvider>();
     final state = provider.state;
 
-    return Scaffold(
-      backgroundColor: OzColors.bgDeep,
-      extendBody: true,
-      body: Stack(
-        children: [
-          const OzBackground(),
-          SafeArea(
-            bottom: false,
-            child: switch (state.status) {
-              LoadStatus.loading => const Center(
-                child: CircularProgressIndicator(color: OzColors.gold),
-              ),
-              LoadStatus.error => AppErrorState(
-                message: state.errorMessage ?? '타로 리딩에 실패했습니다.',
-                onRetry: () => provider.retry(),
-              ),
-              LoadStatus.success => _TarotResultCinematic(
-                key: ValueKey(state.data!.id),
-                result: state.data!,
-                captureKey: _originalResultKey,
-              ),
-              LoadStatus.initial => const AppErrorState(
-                message: '입력 정보가 없습니다.',
-              ),
-            },
-          ),
-          // [8가지 버그 리포트 §6 — 뒤로가기/홈 없음 수정] 사용자 지적("뒤로가기나
-          // 홈으로 가기가 없어") 대응. 기존 5액션 하단 바(다시 뽑기/저장/공유/
-          // 심화해석/히스토리)는 기획상 100% 그대로 유지하고, 대신 상단에
-          // 작은 원형 뒤로가기/홈 버튼을 얹어 이 화면에서 항상 벗어날 수 있게
-          // 한다. 카드 리빌 연출(OzBackground/_TarotResultCinematic) 위에
-          // 얹히므로 기존 애니메이션 타이밍에는 전혀 영향을 주지 않는다.
-          if (state.isSuccess || state.isError)
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: OzColors.bgDeep,
+        extendBody: true,
+        body: Stack(
+          children: [
+            const OzBackground(),
             SafeArea(
               bottom: false,
-              child: RepaintBoundary(
-                key: _originalOverlayKey,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    OzTokens.spaceMd,
-                    OzTokens.spaceSm,
-                    OzTokens.spaceMd,
-                    0,
-                  ),
-                  child: Row(
-                    children: [
-                      _TopCircleIconButton(
-                        icon: Icons.arrow_back_ios_new_rounded,
-                        tooltip: '뒤로가기',
-                        onTap: () => _handleBack(context),
-                      ),
-                      const SizedBox(width: OzTokens.spaceSm),
-                      _TopCircleIconButton(
-                        icon: Icons.home_rounded,
-                        tooltip: '홈으로 가기',
-                        onTap: () => _handleHome(context),
-                      ),
-                    ],
-                  ),
+              child: switch (state.status) {
+                LoadStatus.loading => const Center(
+                  child: CircularProgressIndicator(color: OzColors.gold),
                 ),
-              ),
+                LoadStatus.error => AppErrorState(
+                  message: state.errorMessage ?? '타로 리딩에 실패했습니다.',
+                  onRetry: () => provider.retry(),
+                ),
+                LoadStatus.success => _TarotResultCinematic(
+                  key: ValueKey(state.data!.id),
+                  result: state.data!,
+                  captureKey: _originalResultKey,
+                ),
+                LoadStatus.initial => const AppErrorState(
+                  message: '입력 정보가 없습니다.',
+                ),
+              },
             ),
-        ],
-      ),
-      bottomNavigationBar: state.isSuccess
-          ? OriginalResultScene(
-              captureKey: _originalFooterKey,
-              background: OzColors.bgDeep,
-              child: SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: OzTokens.spaceSm,
-                    vertical: OzTokens.spaceSm,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        OzColors.bgDeep.withValues(alpha: 0.7),
-                        OzColors.bgDeep.withValues(alpha: 0.97),
+            // [8가지 버그 리포트 §6 — 뒤로가기/홈 없음 수정] 사용자 지적("뒤로가기나
+            // 홈으로 가기가 없어") 대응. 기존 5액션 하단 바(다시 뽑기/저장/공유/
+            // 심화해석/히스토리)는 기획상 100% 그대로 유지하고, 대신 상단에
+            // 작은 원형 뒤로가기/홈 버튼을 얹어 이 화면에서 항상 벗어날 수 있게
+            // 한다. 카드 리빌 연출(OzBackground/_TarotResultCinematic) 위에
+            // 얹히므로 기존 애니메이션 타이밍에는 전혀 영향을 주지 않는다.
+            if (state.isSuccess || state.isError)
+              SafeArea(
+                bottom: false,
+                child: RepaintBoundary(
+                  key: _originalOverlayKey,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      OzTokens.spaceMd,
+                      OzTokens.spaceSm,
+                      OzTokens.spaceMd,
+                      0,
+                    ),
+                    child: Row(
+                      children: [
+                        _TopCircleIconButton(
+                          icon: Icons.arrow_back_ios_new_rounded,
+                          tooltip: '뒤로가기',
+                          onTap: () => _handleBack(context),
+                        ),
+                        const SizedBox(width: OzTokens.spaceSm),
+                        _TopCircleIconButton(
+                          icon: Icons.home_rounded,
+                          tooltip: '홈으로 가기',
+                          onTap: () => _handleHome(context),
+                        ),
                       ],
                     ),
-                    border: Border(top: BorderSide(color: OzColors.borderSoft)),
-                  ),
-                  child: Row(
-                    // [버그 수정 — 하단바 버튼 축소 요청] "다시 뽑기"/"운세비교"
-                    // 두 버튼을 하단바에서 제거한다(사용자 요청). enum 값과
-                    // _handleAction()의 분기 로직 자체는 그대로 둔다 —
-                    // 다른 곳(cross_check_cta_navigation_test.dart 등)에서
-                    // 참조할 수 있어 범위를 벗어난 추가 변경을 피하기 위함.
-                    // 여기서는 "화면에 그릴 버튼 목록"만 필터링한다.
-                    children: TarotResultAction.values
-                        .where(
-                          (action) =>
-                              action != TarotResultAction.redraw &&
-                              action != TarotResultAction.compare,
-                        )
-                        .map(
-                          (action) => Expanded(
-                            child: _ResultActionButton(
-                              action: action,
-                              saved:
-                                  (action == TarotResultAction.save &&
-                                      _justSaved) ||
-                                  (action == TarotResultAction.saveDevice &&
-                                      _justSavedDevice),
-                              onTap: () => _handleAction(
-                                action,
-                                TarotResultView.fromResult(state.data!),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
                   ),
                 ),
               ),
-            )
-          : null,
+          ],
+        ),
+        bottomNavigationBar: state.isSuccess
+            ? OriginalResultScene(
+                captureKey: _originalFooterKey,
+                background: OzColors.bgDeep,
+                child: SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: OzTokens.spaceSm,
+                      vertical: OzTokens.spaceSm,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          OzColors.bgDeep.withValues(alpha: 0.7),
+                          OzColors.bgDeep.withValues(alpha: 0.97),
+                        ],
+                      ),
+                      border: Border(
+                        top: BorderSide(color: OzColors.borderSoft),
+                      ),
+                    ),
+                    child: Row(
+                      // [버그 수정 — 하단바 버튼 축소 요청] "다시 뽑기"/"운세비교"
+                      // 두 버튼을 하단바에서 제거한다(사용자 요청). enum 값과
+                      // _handleAction()의 분기 로직 자체는 그대로 둔다 —
+                      // 다른 곳(cross_check_cta_navigation_test.dart 등)에서
+                      // 참조할 수 있어 범위를 벗어난 추가 변경을 피하기 위함.
+                      // 여기서는 "화면에 그릴 버튼 목록"만 필터링한다.
+                      children: TarotResultAction.values
+                          .where(
+                            (action) =>
+                                action != TarotResultAction.redraw &&
+                                action != TarotResultAction.compare,
+                          )
+                          .map(
+                            (action) => Expanded(
+                              child: _ResultActionButton(
+                                action: action,
+                                saved:
+                                    (action == TarotResultAction.save &&
+                                        _justSaved) ||
+                                    (action == TarotResultAction.saveDevice &&
+                                        _justSavedDevice),
+                                onTap: () => _handleAction(
+                                  action,
+                                  TarotResultView.fromResult(state.data!),
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ),
+              )
+            : null,
+      ),
     );
   }
 }
