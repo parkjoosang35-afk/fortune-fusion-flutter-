@@ -7,6 +7,7 @@ import '../../auth/application/auth_provider.dart';
 import '../../notification/data/notification_preference_repository.dart';
 import '../../pass/application/pass_provider.dart';
 import 'birth_info_minimal_screen.dart';
+import 'real_name_minimal_screen.dart';
 import 'theme/mypage_minimal_theme.dart';
 import 'theme/mypage_toast.dart';
 
@@ -34,15 +35,14 @@ import 'theme/mypage_toast.dart';
 ///   명시적으로 남아 있는 사항이라 새 서버 필드를 임의로 만들지 않는다
 ///   ("로직은 그대로, 스킨만 교체" 원칙).
 ///
-/// [범위 결정] README S14(실명 등록)/S15(약관 문서)/S16(앱 정보)/S17(회원탈퇴)
-/// 서브 화면은 이번 S12 작업 범위가 아니다. 이 화면에서는 기존 인프라를
-/// 그대로 재사용한다:
-/// - "실명 등록·수정": AuthProvider.updateProfile 다이얼로그 흐름을 그대로
-///   호출(S14 전용 신규 화면이 아직 없으므로 임시로 기존 진입점 재사용)
+/// [범위 결정] README S15(약관 문서)/S16(앱 정보)/S17(회원탈퇴) 서브 화면은
+/// 이번 작업 범위가 아니다. 이 화면에서는 기존 인프라를 그대로 재사용한다:
 /// - "약관"/"앱 정보": 외부 브라우저 또는 안내 토스트로 임시 대체
 ///   (S15/S16 전용 화면 완성 전까지)
 /// - "출생정보 수정": README S13 전용 신규 화면 [BirthInfoMinimalScreen]
-///   (이번 작업에서 완성, `birth_info_minimal_screen.dart`)으로 연결한다.
+///   (`birth_info_minimal_screen.dart`)으로 연결한다.
+/// - "실명 등록·수정": README S14 전용 신규 화면 [RealNameMinimalScreen]
+///   (`real_name_minimal_screen.dart`)으로 연결한다.
 class SettingsMinimalScreen extends StatefulWidget {
   const SettingsMinimalScreen({super.key});
 
@@ -150,117 +150,6 @@ class _SettingsMinimalScreenState extends State<SettingsMinimalScreen> {
     if (hour < 0 || hour > 23) return null;
     final index = ((hour + 1) ~/ 2) % 12;
     return _hourZhiNames[index];
-  }
-
-  Future<void> _editRealName(BuildContext context) async {
-    final auth = context.read<AuthProvider>();
-    final controller = TextEditingController(
-      text: auth.currentUser?.realName ?? '',
-    );
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: MyPageColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(MyPageRadius.card),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('실명 등록', style: MyPageTextStyles.cardTitle),
-              const SizedBox(height: 10),
-              const Text(
-                '신당(THE SHRINE)에서 발급하는 부적에 새길 이름입니다.\n'
-                '닉네임과는 별도로 실명을 입력해 주세요.',
-                style: MyPageTextStyles.caption,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                style: MyPageTextStyles.row,
-                decoration: InputDecoration(
-                  hintText: '예) 홍길동',
-                  filled: true,
-                  fillColor: MyPageColors.paper2,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: const Color(0x122A1F14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        '취소',
-                        style: TextStyle(
-                          fontFamily: MyPageFonts.ui,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: MyPageColors.ink2,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () =>
-                          Navigator.of(ctx).pop(controller.text.trim()),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: MyPageColors.red,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        '저장',
-                        style: TextStyle(
-                          fontFamily: MyPageFonts.ui,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (result == null || !context.mounted) return;
-    if (result.isEmpty) {
-      showMyPageToast(context, '실명을 입력해 주세요.');
-      return;
-    }
-    final ok = await auth.updateProfile(realName: result);
-    if (!context.mounted) return;
-    showMyPageToast(
-      context,
-      ok ? '실명이 저장되었어요' : (auth.lastProfileUpdateError ?? '실명 저장에 실패했습니다.'),
-    );
   }
 
   Future<void> _openPolicyLink(BuildContext context, String path) async {
@@ -482,7 +371,11 @@ class _SettingsMinimalScreenState extends State<SettingsMinimalScreen> {
                               user!.realName!.trim().isEmpty)
                           ? '미등록'
                           : user.realName,
-                      onTap: () => _editRealName(context),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const RealNameMinimalScreen(),
+                        ),
+                      ),
                     ),
                     _SettingsRow(
                       title: '출생정보 수정',
