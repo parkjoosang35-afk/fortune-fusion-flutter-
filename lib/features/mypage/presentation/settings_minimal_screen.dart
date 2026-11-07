@@ -3,13 +3,13 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../notification/data/notification_preference_repository.dart';
-import '../../pass/application/pass_provider.dart';
 import 'app_info_minimal_screen.dart';
 import 'birth_info_minimal_screen.dart';
 import 'policy_document_minimal_screen.dart';
 import 'real_name_minimal_screen.dart';
 import 'theme/mypage_minimal_theme.dart';
 import 'theme/mypage_toast.dart';
+import 'withdraw_minimal_screen.dart';
 
 /// [마이페이지 리뉴얼 · DEV 2026-11-06 §S12] "설정" 화면.
 ///
@@ -51,6 +51,10 @@ import 'theme/mypage_toast.dart';
 /// - "앱 정보": README S16 전용 신규 화면 [AppInfoMinimalScreen]
 ///   (`app_info_minimal_screen.dart`)으로 연결한다 — 버전 토스트만 띄우던
 ///   임시 구현을 대체한다.
+/// - "회원탈퇴": README S17 전용 신규 화면 [WithdrawMinimalScreen]
+///   (`withdraw_minimal_screen.dart`)으로 연결한다 — 이 화면이 직접 갖고
+///   있던 D3 확인 다이얼로그(`_showMyPageConfirmDialog`/
+///   `_confirmWithdraw`)는 S17 화면으로 옮기고 여기서는 제거했다.
 class SettingsMinimalScreen extends StatefulWidget {
   const SettingsMinimalScreen({super.key});
 
@@ -167,156 +171,6 @@ class _SettingsMinimalScreenState extends State<SettingsMinimalScreen> {
             PolicyDocumentMinimalScreen(title: title, path: path),
       ),
     );
-  }
-
-  /// README "다이얼로그 공통 (D1–D3)" 시각 스펙(도장 44×44 rotate(-6°),
-  /// 제목 19px/800, 버튼 2열)을 따르는 확인 다이얼로그. D3(회원탈퇴
-  /// 확인)에서 사용한다 — 글리프 別, 빨강 강조.
-  Future<bool> _showMyPageConfirmDialog(
-    BuildContext context, {
-    required String glyph,
-    required String title,
-    required String message,
-    required String confirmLabel,
-  }) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: MyPageColors.surface,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(MyPageRadius.card),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 28, 22, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Transform.rotate(
-                angle: -6 * 3.14159265 / 180,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: MyPageColors.red,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    glyph,
-                    style: const TextStyle(
-                      fontFamily: MyPageFonts.hanja,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 22,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: MyPageFonts.ui,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 19,
-                  height: 1.3,
-                  color: MyPageColors.ink,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: MyPageFonts.ui,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  height: 1.5,
-                  color: MyPageColors.ink2,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: const Color(0x122A1F14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        '취소',
-                        style: TextStyle(
-                          fontFamily: MyPageFonts.ui,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: MyPageColors.ink2,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: MyPageColors.red,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        confirmLabel,
-                        style: const TextStyle(
-                          fontFamily: MyPageFonts.ui,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    return result ?? false;
-  }
-
-  Future<void> _confirmWithdraw(BuildContext context) async {
-    final confirmed = await _showMyPageConfirmDialog(
-      context,
-      glyph: '別',
-      title: '정말 떠나시겠어요',
-      message: '담아둔 소원과 복주머니가 모두 사라져요',
-      confirmLabel: '탈퇴',
-    );
-    if (!confirmed || !context.mounted) return;
-
-    // [6-6 QA Low#5 최소 수정과 동일한 순서] 인증 토큰이 아직 살아있는
-    // 동안(AuthProvider.withdraw()가 토큰을 지우기 전) PassProvider.
-    // resetOnLogout()을 먼저 호출해 서버측 프리패스를 만료시킨다.
-    await context.read<PassProvider>().resetOnLogout();
-    if (!context.mounted) return;
-
-    final ok = await context.read<AuthProvider>().withdraw();
-    if (!context.mounted) return;
-
-    if (ok) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-    } else {
-      showMyPageToast(context, '탈퇴 처리에 실패했습니다.');
-    }
   }
 
   @override
@@ -454,7 +308,11 @@ class _SettingsMinimalScreenState extends State<SettingsMinimalScreen> {
                       title: '회원탈퇴',
                       isDanger: true,
                       showDivider: false,
-                      onTap: () => _confirmWithdraw(context),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const WithdrawMinimalScreen(),
+                        ),
+                      ),
                     ),
                 ]),
               ),
