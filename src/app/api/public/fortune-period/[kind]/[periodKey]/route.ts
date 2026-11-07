@@ -1,7 +1,7 @@
-// [신통방통 오늘·주간·월간 운세 — 2026-11 디자인 지시서 §5] 과거 특정 기간
-// 결과 조회. README: "GET /api/fortune/{kind}/{periodKey} (view past result,
-// never generates)" — PastBanner "지난 ○○ 운세 다시 보기" 클릭 시 사용.
-// 이 라우트는 절대 새로 생성하지 않는다(조회만, 없으면 404).
+// [신통방통 오늘의 운세 — 2026-11 AI 무당체 전환] 과거 특정 기간 결과 조회.
+// "GET /api/fortune/{kind}/{periodKey} (view past result, never generates)" —
+// PastBanner "지난 운세 다시 보기" 클릭 시 사용. 이 라우트는 절대 새로
+// 생성하지 않는다(조회만, 없으면 404). [주간/월간 삭제] kind는 "today" 하나만.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { authenticateRequest } from "@/lib/user-auth";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 function isValidKind(v: string): v is FortuneKind {
-  return v === "today" || v === "week" || v === "month";
+  return v === "today";
 }
 
 export async function GET(
@@ -20,6 +20,16 @@ export async function GET(
   { params }: { params: Promise<{ kind: string; periodKey: string }> }
 ) {
   const { kind: rawKind, periodKey } = await params;
+  if (rawKind === "week" || rawKind === "month") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "주간/월간 운세는 더 이상 제공하지 않아요.",
+        reason: "GONE",
+      },
+      { status: 410, headers: CORS_HEADERS }
+    );
+  }
   if (!isValidKind(rawKind)) {
     return NextResponse.json(
       { success: false, error: "지원하지 않는 운세 종류입니다.", reason: "INVALID_KIND" },
@@ -61,12 +71,13 @@ export async function GET(
         data: {
           kind,
           periodKey: row.periodKey,
-          seal: data.seal,
-          title: data.title,
-          summary: data.summary,
-          flow: data.flow,
-          fields: data.fields,
-          caution: data.caution,
+          headline: data.headline,
+          text: data.text,
+          dayGanZhi: data.dayGanZhi,
+          luckyColor: data.luckyColor,
+          luckyDirection: data.luckyDirection,
+          luckyNumber: data.luckyNumber,
+          source: data.source,
           isPast: true,
         },
       },

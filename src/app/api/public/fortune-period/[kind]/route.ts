@@ -1,15 +1,22 @@
-// [신통방통 오늘·주간·월간 운세 — 2026-11 디자인 지시서 §5] GET-or-create API.
+// [신통방통 오늘의 운세 — 2026-11 AI 무당체 전환] GET-or-create API.
+//
+// [주간/월간 삭제 — 2026-11 사용자 피드백] 기존 today/week/month 3종 중
+// week/month를 삭제했다(엔진에 전용 계산 로직이 없어 일진 짜깁기에
+// 불과하다는 피드백). kind="week"|"month" 요청은 410 Gone으로 명확히
+// 안내한다 — 구 Flutter 클라이언트가 혹시 캐시된 빌드로 호출해도 조용히
+// 깨지지 않고 이유를 알 수 있게 한다.
 //
 // [레거시 /api/public/fortune/daily 와의 구분] 그 라우트는 2026-08-13
 // "일간 운세→80항목 통합" 결정으로 410 deprecated 상태다(신규 생성 없음,
-// 과거 결과 조회만). 이 기능은 그와 무관한 신규 "무료 3종 운세"이므로
-// 경로 충돌을 피해 /api/public/fortune-period/{kind}로 새로 둔다.
+// 과거 결과 조회만). 이 기능은 그와 무관한 "오늘의 운세"이므로 경로 충돌을
+// 피해 /api/public/fortune-period/{kind}를 계속 사용한다(kind는 이제
+// "today" 하나만 유효).
 //
 // [절대 원칙]
 //  - 사주정보는 user_profiles 기존 필드를 그대로 쓴다(신규 저장 API 없음,
 //    여기서는 읽기만 한다 — 저장/수정은 기존 PATCH /api/public/auth/profile).
-//  - 3종 모두 무료 — 복주머니 차감/광고 시청 조건 없음(이 라우트는 그런
-//    차감 로직을 아예 포함하지 않는다).
+//  - 무료 — 복주머니 차감/광고 시청 조건 없음(이 라우트는 그런 차감
+//    로직을 아예 포함하지 않는다).
 //  - period_key는 서버가 KST 기준으로 계산한다(클라이언트 값 불신).
 //  - (userId, kind, periodKey, sajuRev) UNIQUE로 중복 생성을 막는다. 동시
 //    요청이 와도 Prisma의 P2002(unique 충돌)를 흡수해 재조회만으로 정확히
@@ -32,7 +39,7 @@ export const dynamic = "force-dynamic";
 const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 
 function isValidKind(v: string): v is FortuneKind {
-  return v === "today" || v === "week" || v === "month";
+  return v === "today";
 }
 
 export async function GET(
@@ -41,6 +48,16 @@ export async function GET(
 ) {
   const { kind: rawKind } = await params;
 
+  if (rawKind === "week" || rawKind === "month") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "주간/월간 운세는 더 이상 제공하지 않아요. 오늘의 운세를 확인해보세요.",
+        reason: "GONE",
+      },
+      { status: 410, headers: CORS_HEADERS }
+    );
+  }
   if (!isValidKind(rawKind)) {
     return NextResponse.json(
       { success: false, error: "지원하지 않는 운세 종류입니다.", reason: "INVALID_KIND" },
@@ -119,8 +136,8 @@ export async function GET(
       return okResponse(kind, period, existing.payload, false, hasPrevious);
     }
 
-    // ── 5) 신규 생성: 엔진 호출 → 결정적 문장 조합 ──
-    const fortunePayload: FortunePayload = await fetchFortuneFromEngine(kind, birthInfo, {
+    // ── 5) 신규 생성: 엔진(AI 무당체) 호출 ──
+    const fortunePayload: FortunePayload = await fetchFortuneFromEngine(birthInfo, {
       startDate: period.startDate,
     });
     const payloadJson = JSON.stringify(fortunePayload);
@@ -215,12 +232,13 @@ function okResponse(
         kind,
         periodKey: period.periodKey,
         period: { label: period.label, main: period.main, sub: period.sub, until: period.until },
-        seal: data.seal,
-        title: data.title,
-        summary: data.summary,
-        flow: data.flow,
-        fields: data.fields,
-        caution: data.caution,
+        headline: data.headline,
+        text: data.text,
+        dayGanZhi: data.dayGanZhi,
+        luckyColor: data.luckyColor,
+        luckyDirection: data.luckyDirection,
+        luckyNumber: data.luckyNumber,
+        source: data.source,
         isNew,
         hasPrevious,
       },
