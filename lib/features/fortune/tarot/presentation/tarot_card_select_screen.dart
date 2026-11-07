@@ -18,6 +18,7 @@ import 'oz/widgets/oz_mystic_orb_inline.dart';
 import 'oz/widgets/oz_picked_slots.dart';
 import 'oz/widgets/oz_primary_button.dart';
 import 'oz/widgets/oz_reset_confirm_dialog.dart';
+import 'oz/widgets/oz_reveal_ritual_overlay.dart';
 import 'oz/widgets/oz_tool_button.dart';
 import 'oz/widgets/oz_topbar.dart';
 
@@ -361,6 +362,13 @@ class _TarotCardSelectScreenState extends State<TarotCardSelectScreen> {
               onCancel: () => setState(() => _showResetConfirm = false),
               onConfirm: _handleResetConfirmed,
             ),
+          // ["리딩 시작하기" 대기 연출 개선 - 2026-11] API 호출을 기다리는
+          // [TarotSessionStatus.revealing] 동안 버튼 안의 작은 스피너만
+          // 보이던 것을, 전체화면 리추얼 오버레이로 덮어 더 멋지게
+          // 보이도록 한다. 순수 시각 레이어이며 _onRevealPressed의 호출
+          // 순서/네비게이션 타이밍은 전혀 바꾸지 않는다.
+          if (state.status == TarotSessionStatus.revealing)
+            const OzRevealRitualOverlay(),
         ],
       ),
     );
