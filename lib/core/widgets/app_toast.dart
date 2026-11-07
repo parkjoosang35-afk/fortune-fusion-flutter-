@@ -24,7 +24,18 @@ class AppToast {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: UnifiedColors.black,
+        // [버그 수정 2026-12 — 토스트 글씨 안 보임, 앱 전체 공통 버그]
+        // 원래 이 배경은 진짜 검정(#111111, 위 클래스 주석 "배경 #111111 +
+        // 텍스트 화이트"가 그 설계 의도)이었는데, 나중에 `UnifiedColors.black`
+        // 상수 자체가 "다크 전환" 작업(ef1217fa)에서 이름은 그대로 두고
+        // 값만 CTA용 골드 포인트(#E9C46A)로 재활용되면서, 이 토스트만 코드를
+        // 안 고친 채로 남아 흰 글씨(Colors.white)가 밝은 골드 배경 위에
+        // 거의 안 보이게 됐다(궁합 초대장 "아직 상대방이 참여하지
+        // 않았어요" 등 앱 전체 모든 토스트에서 재현). `UnifiedColors.black`
+        // 참조를 제거하고 원래 설계 의도대로 고정된 어두운 배경색을 쓴다
+        // (색상 이름 재활용에 의존하지 않아 향후 같은 사고를 구조적으로
+        // 방지한다).
+        backgroundColor: const Color(0xFF111111),
         elevation: 0,
         duration: Duration(seconds: onRetry != null ? 6 : 4),
         shape: RoundedRectangleBorder(
