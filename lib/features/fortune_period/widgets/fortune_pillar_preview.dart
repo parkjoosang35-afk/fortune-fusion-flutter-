@@ -29,9 +29,7 @@ class FortunePillarPreview extends StatelessWidget {
         final has = c.value != null && c.value!.isNotEmpty;
         return Expanded(
           child: Container(
-            margin: EdgeInsets.only(
-              right: c == columns.last ? 0 : 8,
-            ),
+            margin: EdgeInsets.only(right: c == columns.last ? 0 : 8),
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),

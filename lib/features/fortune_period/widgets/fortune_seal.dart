@@ -55,7 +55,11 @@ class FortuneSeal extends StatelessWidget {
             fontSize: size * 0.55,
             color: const Color(0xFFFFF9E8),
             shadows: const [
-              Shadow(color: Color(0x4D000000), offset: Offset(0, 1), blurRadius: 2),
+              Shadow(
+                color: Color(0x4D000000),
+                offset: Offset(0, 1),
+                blurRadius: 2,
+              ),
             ],
           ),
         ),

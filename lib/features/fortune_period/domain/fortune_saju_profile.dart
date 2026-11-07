@@ -42,9 +42,7 @@ BirthdayZhiTime? zhiTimeForBirthTime(String? birthTime) {
 String formatFortuneSajuSummary(UserModel user) {
   final date = user.birthDate ?? '';
   final ymd = date.replaceAll('-', '.');
-  final cal = user.isLunar
-      ? '음력${user.isLeapMonth ? '(윤)' : ''}'
-      : '양력';
+  final cal = user.isLunar ? '음력${user.isLeapMonth ? '(윤)' : ''}' : '양력';
   final zhi = zhiTimeForBirthTime(user.birthTime);
   final timeLabel = user.birthTimeUnknown
       ? '시 모름'

@@ -1,16 +1,17 @@
-/// [기간별 운세 — 화면 B] 오늘 · 주간 · 월간 3탭 메인 화면.
+/// [오늘의 운세 — 단일 서사 화면]
 ///
-/// `design_handoff_fortune_v4/design_files/fortune-v2.jsx`의
-/// `UnifiedFortune` 공통 구조(기간 → 총평(가장 크게) → 흐름 → 분야별
-/// (재물·애정·사업직장) → 주의사항(주간/월간만) → 지난 운세 → 공유)를
-/// 백자 팔레트로 그대로 포팅한다. 점수·그래프·과한 카드는 추가하지
-/// 않는다(README 절대 원칙 "점수·그래프·과한 카드 없음").
+/// [2026-11 전면 개편] 기존 "오늘/주간/월간" 3탭 + 총평·흐름·분야별·주의사항
+/// 다중 섹션 구조를 폐기했다. 사용자 피드백("주간/월간은 거의 쓰레기 수준")에
+/// 따라 주간/월간을 삭제하고, 오늘의 운세 하나만 남겨 AI(무당체: 반말/단정체)
+/// 해석이 만든 하나의 이어지는 글(단일 서사, 섹션/카드 구분 없음)을 그대로
+/// 보여준다. 같은 엔진 계산값이 여러 섹션에 중복 노출되던 기존 버그도
+/// 구조적으로 사라진다(텍스트 블록이 하나뿐이므로).
 ///
-/// [서버 연동] `FortunePeriodRepository.fetchCurrent(kind)`가
-/// `GET /api/public/fortune-period/{kind}`(get-or-create, 서버가 KST
-/// 기준 period_key로 중복 생성을 막는다)를 호출한다. 탭 전환 시에는
-/// 재요청하지 않고 화면 진입 시 탭별로 1회만 호출한 결과를 메모리에
-/// 캐시해 재사용한다(README §6 "API 호출은 화면 진입당 1회").
+/// [서버 연동] `FortunePeriodRepository.fetchCurrent(FortuneKind.today)`가
+/// `GET /api/public/fortune-period/today`(get-or-create, 서버가 KST
+/// 기준 period_key로 중복 생성을 막고, 신규 생성 시 saju_engine의 AI 무당체
+/// 해석까지 호출한다)를 호출한다. 화면 진입 시 1회만 호출한 결과를 메모리에
+/// 캐시해 재사용한다.
 library;
 
 import 'package:flutter/material.dart';
@@ -19,7 +20,6 @@ import '../data/fortune_period_repository.dart';
 import '../domain/fortune_period_model.dart';
 import '../theme/fortune_period_theme.dart';
 import '../widgets/fortune_common_widgets.dart';
-import '../widgets/fortune_seal.dart';
 import '../widgets/fortune_sigil.dart';
 import 'saju_input_screen.dart';
 
@@ -30,73 +30,52 @@ class FortunePeriodScreen extends StatefulWidget {
   State<FortunePeriodScreen> createState() => _FortunePeriodScreenState();
 }
 
-/// 탭(kind) 1개의 화면 상태 — 화면 진입당 1회만 채워지고 탭 전환 시
-/// 재사용된다.
-class _TabState {
-  bool loaded = false;
-  bool loading = false;
-  FortunePeriodResult? result;
-  String? errorCode;
-  String? errorMessage;
-  List<FortuneArchiveItem> history = const [];
-  bool dialogShown = false;
-
-  // 지난 운세 열람 중 상태(ArchiveList → PastBanner).
-  bool viewingPast = false;
-  bool loadingPast = false;
-  FortunePeriodResult? pastResult;
-}
-
 class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
   final _repo = FortunePeriodRepository();
-  FortuneKind _tab = FortuneKind.today;
+  static const _kind = FortuneKind.today;
 
-  final Map<FortuneKind, _TabState> _states = {
-    for (final k in FortuneKind.values) k: _TabState(),
-  };
+  bool _loaded = false;
+  bool _loading = false;
+  FortunePeriodResult? _result;
+  String? _errorCode;
+  String? _errorMessage;
+  List<FortuneArchiveItem> _history = const [];
+
+  // 지난 운세 열람 중 상태(ArchiveList → PastBanner).
+  bool _viewingPast = false;
+  bool _loadingPast = false;
+  FortunePeriodResult? _pastResult;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load(_tab));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  Future<void> _load(FortuneKind kind, {bool force = false}) async {
-    final st = _states[kind]!;
-    if (st.loaded && !force) return; // 이미 이번 화면 진입에서 가져온 결과 재사용
+  Future<void> _load({bool force = false}) async {
+    if (_loaded && !force) return; // 이미 이번 화면 진입에서 가져온 결과 재사용
     setState(() {
-      st.loading = true;
-      st.errorCode = null;
-      st.errorMessage = null;
+      _loading = true;
+      _errorCode = null;
+      _errorMessage = null;
     });
 
-    final result = await _repo.fetchCurrent(kind);
+    final result = await _repo.fetchCurrent(_kind);
     if (!mounted) return;
 
     setState(() {
-      st.loading = false;
+      _loading = false;
       if (result.success && result.data != null) {
-        st.result = result.data;
-        st.loaded = true;
+        _result = result.data;
+        _loaded = true;
       } else {
-        st.errorCode = result.errorCode;
-        st.errorMessage = result.errorMessage;
+        _errorCode = result.errorCode;
+        _errorMessage = result.errorMessage;
       }
     });
 
     if (result.success && result.data != null) {
-      final d = result.data!;
-      _loadHistory(kind);
-      // 새 기간 안내창 — 주간/월간, 신규 생성 + 이전 결과 있을 때만, 1회만.
-      if (kind != FortuneKind.today &&
-          d.isNew &&
-          d.hasPrevious &&
-          !st.dialogShown) {
-        st.dialogShown = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _showNewPeriodDialog(kind, d);
-        });
-      }
+      _loadHistory();
     } else if (result.errorCode == 'SAJU_REQUIRED') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _goRegister();
@@ -104,12 +83,11 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
     }
   }
 
-  Future<void> _loadHistory(FortuneKind kind) async {
-    final st = _states[kind]!;
-    final res = await _repo.fetchHistory(kind, limit: 6);
+  Future<void> _loadHistory() async {
+    final res = await _repo.fetchHistory(_kind, limit: 6);
     if (!mounted) return;
     if (res.success && res.data != null) {
-      setState(() => st.history = res.data!);
+      setState(() => _history = res.data!);
     }
   }
 
@@ -120,26 +98,27 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
       ),
     );
     if (!mounted) return;
-    // 등록 후 전체 탭 상태를 초기화하고 현재 탭부터 다시 조회한다.
+    // 등록 후 상태를 초기화하고 다시 조회한다.
     setState(() {
-      for (final k in FortuneKind.values) {
-        _states[k] = _TabState();
-      }
+      _loaded = false;
+      _result = null;
+      _history = const [];
+      _viewingPast = false;
+      _pastResult = null;
     });
-    _load(_tab, force: true);
+    _load(force: true);
   }
 
-  Future<void> _openPast(FortuneKind kind, String periodKey) async {
-    final st = _states[kind]!;
-    if (periodKey == st.result?.periodKey) return; // 현재 기간이면 그대로 둔다
-    setState(() => st.loadingPast = true);
-    final res = await _repo.fetchPast(kind, periodKey);
+  Future<void> _openPast(String periodKey) async {
+    if (periodKey == _result?.periodKey) return; // 현재 기간이면 그대로 둔다
+    setState(() => _loadingPast = true);
+    final res = await _repo.fetchPast(_kind, periodKey);
     if (!mounted) return;
     setState(() {
-      st.loadingPast = false;
+      _loadingPast = false;
       if (res.success && res.data != null) {
-        st.pastResult = res.data;
-        st.viewingPast = true;
+        _pastResult = res.data;
+        _viewingPast = true;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(res.errorMessage ?? '지난 운세를 불러오지 못했습니다.')),
@@ -148,10 +127,10 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
     });
   }
 
-  void _backToCurrent(FortuneKind kind) {
+  void _backToCurrent() {
     setState(() {
-      _states[kind]!.viewingPast = false;
-      _states[kind]!.pastResult = null;
+      _viewingPast = false;
+      _pastResult = null;
     });
   }
 
@@ -164,7 +143,7 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
         elevation: 0,
         foregroundColor: FortunePeriodColors.fg,
         title: const Text(
-          '운세',
+          '오늘의 운세',
           style: TextStyle(
             fontFamily: FortunePeriodType.serif,
             fontWeight: FontWeight.w700,
@@ -173,48 +152,30 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
           ),
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-              child: _PeriodTabs(
-                value: _tab,
-                onChanged: (k) {
-                  setState(() => _tab = k);
-                  _load(k);
-                },
-              ),
-            ),
-            Expanded(child: _buildBody(_tab)),
-          ],
-        ),
-      ),
+      body: SafeArea(child: _buildBody()),
     );
   }
 
-  Widget _buildBody(FortuneKind kind) {
-    final st = _states[kind]!;
-
-    if (st.loading && !st.loaded) {
-      return _LoadingState(kind: kind);
+  Widget _buildBody() {
+    if (_loading && !_loaded) {
+      return const _LoadingState();
     }
-    if (st.errorCode == 'SAJU_REQUIRED') {
+    if (_errorCode == 'SAJU_REQUIRED') {
       // 등록 화면으로 자동 이동 처리 중 — 짧게 로딩만 보여준다.
-      return _LoadingState(kind: kind);
+      return const _LoadingState();
     }
-    if (!st.loaded || st.result == null) {
+    if (!_loaded || _result == null) {
       return _ErrorState(
-        message: st.errorMessage ?? '기운이 잠시 닿지 않았어요',
-        onRetry: () => _load(kind, force: true),
+        message: _errorMessage ?? '기운이 잠시 닿지 않았어요',
+        onRetry: () => _load(force: true),
       );
     }
 
-    final showPast = st.viewingPast && st.pastResult != null;
-    final data = showPast ? st.pastResult! : st.result!;
+    final showPast = _viewingPast && _pastResult != null;
+    final data = showPast ? _pastResult! : _result!;
 
     return RefreshIndicator(
-      onRefresh: () => _load(kind, force: true),
+      onRefresh: () => _load(force: true),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
@@ -222,182 +183,33 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (showPast)
-              _PastBanner(
-                kind: kind,
-                onCurrent: () => _backToCurrent(kind),
-              ),
+              _PastBanner(onCurrent: _backToCurrent)
+            else
+              const SizedBox.shrink(),
             if (showPast) const SizedBox(height: 14),
             if (!showPast) _PeriodHeader(result: data),
             if (showPast) _PastPeriodHeader(result: data),
             const SizedBox(height: 22),
-            _SummaryCard(result: data),
-            const SizedBox(height: 28),
-            _FlowSection(kind: kind, flow: data.flow),
-            const SizedBox(height: 28),
-            _FieldsSection(kind: kind, fields: data.fields),
-            if (data.caution != null && data.caution!.isNotEmpty) ...[
-              const SizedBox(height: 28),
-              _CautionSection(kind: kind, caution: data.caution!),
+            _NarrativeCard(result: data),
+            if (data.luckyColor.isNotEmpty ||
+                data.luckyDirection.isNotEmpty ||
+                data.luckyNumber.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              _LuckyItemsSection(result: data),
             ],
-            if (!showPast && st.history.isNotEmpty) ...[
+            if (!showPast && _history.isNotEmpty) ...[
               const SizedBox(height: 28),
               _ArchiveSection(
-                kind: kind,
-                items: st.history,
-                currentKey: st.result!.periodKey,
-                loading: st.loadingPast,
-                onOpen: (periodKey) => _openPast(kind, periodKey),
+                items: _history,
+                currentKey: _result!.periodKey,
+                loading: _loadingPast,
+                onOpen: _openPast,
               ),
             ],
             const SizedBox(height: 28),
-            _ShareSection(kind: kind, result: data),
+            _ShareSection(result: data),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showNewPeriodDialog(FortuneKind kind, FortunePeriodResult data) {
-    final isWeek = kind == FortuneKind.week;
-    showDialog<void>(
-      context: context,
-      barrierColor: const Color(0x80140D22),
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
-            decoration: BoxDecoration(
-              color: FortunePeriodColors.bg1,
-              borderRadius: BorderRadius.circular(FortunePeriodRadius.xl),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FortuneSeal(
-                  text: isWeek ? '週' : '月',
-                  size: 44,
-                  color: FortunePeriodColors.accent,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  isWeek ? 'NEW WEEK' : 'NEW MONTH',
-                  style: FortunePeriodType.mono10,
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  isWeek
-                      ? '새로운 한 주의\n운세가 열렸어요'
-                      : '새로운 달의\n운세가 열렸어요',
-                  textAlign: TextAlign.center,
-                  style: FortunePeriodType.dialogTitle,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  isWeek
-                      ? '이번 주 동안 같은 풀이를 언제든 다시 볼 수 있어요'
-                      : '이번 달 동안 같은 풀이를 언제든 다시 볼 수 있어요',
-                  textAlign: TextAlign.center,
-                  style: FortunePeriodType.dialogBody,
-                ),
-                const SizedBox(height: 20),
-                FortunePrimaryButton(
-                  label: isWeek ? '☾ 이번 주 운세 보기' : '☾ 이번 달 운세 보기',
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                ),
-                const SizedBox(height: 10),
-                FortuneGhostButton(
-                  label: isWeek ? '지난주 운세 다시 보기' : '지난달 운세 다시 보기',
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    final st = _states[kind]!;
-                    if (st.history.length > 1) {
-                      // history[0]은 보통 현재 기간이므로 그 다음 항목을 연다.
-                      final prev = st.history.firstWhere(
-                        (it) => it.periodKey != st.result?.periodKey,
-                        orElse: () => st.history.first,
-                      );
-                      _openPast(kind, prev.periodKey);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// `.period-tabs` — 오늘/주간/월간 3지선다 세그먼트.
-class _PeriodTabs extends StatelessWidget {
-  const _PeriodTabs({required this.value, required this.onChanged});
-
-  final FortuneKind value;
-  final ValueChanged<FortuneKind> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(FortunePeriodRadius.pill),
-        color: Colors.white.withValues(alpha: 0.75),
-        border: Border.all(color: FortunePeriodColors.line),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F5B3FC4),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: FortuneKind.values.map((k) {
-          final selected = k == value;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(k),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    FortunePeriodRadius.pill,
-                  ),
-                  gradient: selected
-                      ? const LinearGradient(
-                          colors: [Color(0xFF6B4FD8), FortunePeriodColors.glow],
-                        )
-                      : null,
-                  boxShadow: selected
-                      ? [
-                          BoxShadow(
-                            color: FortunePeriodColors.glow.withValues(
-                              alpha: 0.32,
-                            ),
-                            blurRadius: 14,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  k.tabLabel,
-                  style: TextStyle(
-                    fontFamily: FortunePeriodType.body,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: selected ? Colors.white : const Color(0xFF3A3048),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -426,13 +238,23 @@ class _PeriodHeader extends StatelessWidget {
           textAlign: TextAlign.center,
           style: FortunePeriodType.periodSub,
         ),
+        if (result.dayGanZhi != null && result.dayGanZhi!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            result.dayGanZhi!,
+            textAlign: TextAlign.center,
+            style: FortunePeriodType.noteMono.copyWith(
+              color: FortunePeriodColors.glow,
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-/// 과거 결과 열람 시 — `period` 메타가 없으므로(README: 조회 전용) 보관
-/// 상태만 간단히 pstamp 형태로 보여준다.
+/// 과거 결과 열람 시 — `period` 메타가 없으므로(조회 전용) 보관 상태만
+/// 간단히 보여준다.
 class _PastPeriodHeader extends StatelessWidget {
   const _PastPeriodHeader({required this.result});
   final FortunePeriodResult result;
@@ -467,10 +289,10 @@ class _PastPeriodHeader extends StatelessWidget {
   }
 }
 
-/// `.v2-summary` — 총평 카드(가장 큰 비중). Sigil 배경 + Seal + 2줄 타이틀 +
-/// 본문.
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.result});
+/// 오늘의 운세 메인 카드 — 헤드라인 + 두세 문단으로 이어지는 하나의 글
+/// (섹션/카드 구분 없음, AI 무당체 해석 그대로).
+class _NarrativeCard extends StatelessWidget {
+  const _NarrativeCard({required this.result});
   final FortunePeriodResult result;
 
   @override
@@ -513,35 +335,11 @@ class _SummaryCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('총평 · 總評', style: FortunePeriodType.mono10),
-                  FortuneSeal(
-                    text: result.seal,
-                    size: 38,
-                    color: FortunePeriodColors.accent,
-                  ),
-                ],
-              ),
+              const Text('오늘의 운세 · 占辭', style: FortunePeriodType.mono10),
               const SizedBox(height: 16),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: result.titleLine1,
-                      style: FortunePeriodType.summaryTitle,
-                    ),
-                    const TextSpan(text: '\n'),
-                    TextSpan(
-                      text: result.titleLine2,
-                      style: FortunePeriodType.summaryTitleGlow,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(result.summary, style: FortunePeriodType.summaryBody),
+              Text(result.headline, style: FortunePeriodType.summaryTitle),
+              const SizedBox(height: 18),
+              Text(result.text, style: FortunePeriodType.summaryBody),
             ],
           ),
         ],
@@ -561,122 +359,27 @@ class _SectionHead extends StatelessWidget {
       children: [
         Text(title, style: FortunePeriodType.sectionHead),
         const SizedBox(width: 10),
-        Expanded(
-          child: Container(height: 1, color: FortunePeriodColors.line),
-        ),
+        Expanded(child: Container(height: 1, color: FortunePeriodColors.line)),
       ],
     );
   }
 }
 
-/// `.v2-flow` — 타임라인(오전/오후/저녁 또는 초반/중반/후반 또는
-/// 초순/중순/하순).
-class _FlowSection extends StatelessWidget {
-  const _FlowSection({required this.kind, required this.flow});
-  final FortuneKind kind;
-  final List<FortuneFlowItem> flow;
-
-  String get _flowLabel {
-    switch (kind) {
-      case FortuneKind.today:
-        return '오늘 하루의 흐름';
-      case FortuneKind.week:
-        return '이번 주의 흐름';
-      case FortuneKind.month:
-        return '이번 달의 흐름';
-    }
-  }
+/// 행운 아이템 — 색/방향/숫자 3종(엔진이 계산한 고정 속성, 생년월일 기준
+/// 부족한 오행 보완용. 날짜가 바뀌어도 변하지 않는다).
+class _LuckyItemsSection extends StatelessWidget {
+  const _LuckyItemsSection({required this.result});
+  final FortunePeriodResult result;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHead(title: _flowLabel),
-        const SizedBox(height: 14),
-        ...List.generate(flow.length, (i) {
-          final item = flow[i];
-          final isLast = i == flow.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 18),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 18,
-                    child: Column(
-                      children: [
-                        Transform.rotate(
-                          angle: 0.785398, // 45deg
-                          child: Container(
-                            width: 9,
-                            height: 9,
-                            decoration: BoxDecoration(
-                              color: FortunePeriodColors.bg1,
-                              border: Border.all(
-                                color: FortunePeriodColors.glow,
-                                width: 1.5,
-                              ),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                        if (!isLast)
-                          Expanded(
-                            child: Container(
-                              width: 1,
-                              margin: const EdgeInsets.only(top: 4),
-                              color: FortunePeriodColors.glow.withValues(
-                                alpha: 0.3,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(item.t, style: FortunePeriodType.flowName),
-                            const SizedBox(width: 8),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(item.text, style: FortunePeriodType.flowText),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-}
-
-/// `.v2-fields` — 재물운/애정운/사업·직장운 3종 고정 필드.
-class _FieldsSection extends StatelessWidget {
-  const _FieldsSection({required this.kind, required this.fields});
-  final FortuneKind kind;
-  final List<FortuneFieldItem> fields;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHead(title: kind.fieldsSectionTitle),
+        const _SectionHead(title: '오늘의 행운 아이템'),
         const SizedBox(height: 14),
         Container(
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(FortunePeriodRadius.xl),
@@ -689,59 +392,20 @@ class _FieldsSection extends StatelessWidget {
               ),
             ],
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: List.generate(fields.length, (i) {
-              final f = fields[i];
-              final color = FortunePeriodColors.fieldColor(f.id);
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: i == 0
-                      ? null
-                      : const Border(
-                          top: BorderSide(color: FortunePeriodColors.line),
-                        ),
+          child: Wrap(
+            spacing: 24,
+            runSpacing: 16,
+            children: [
+              if (result.luckyColor.isNotEmpty)
+                _LuckyItemChip(label: '색', values: result.luckyColor),
+              if (result.luckyDirection.isNotEmpty)
+                _LuckyItemChip(label: '방향', values: result.luckyDirection),
+              if (result.luckyNumber.isNotEmpty)
+                _LuckyItemChip(
+                  label: '숫자',
+                  values: result.luckyNumber.map((n) => '$n').toList(),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: color.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Text(
-                        f.glyph,
-                        style: TextStyle(
-                          fontFamily: FortunePeriodType.serif,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          color: color,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(f.name, style: FortunePeriodType.fieldName),
-                          const SizedBox(height: 4),
-                          Text(f.text, style: FortunePeriodType.fieldText),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+            ],
           ),
         ),
       ],
@@ -749,55 +413,22 @@ class _FieldsSection extends StatelessWidget {
   }
 }
 
-/// `.v2-caution` — 주간/월간만 노출.
-class _CautionSection extends StatelessWidget {
-  const _CautionSection({required this.kind, required this.caution});
-  final FortuneKind kind;
-  final List<String> caution;
+class _LuckyItemChip extends StatelessWidget {
+  const _LuckyItemChip({required this.label, required this.values});
+  final String label;
+  final List<String> values;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHead(title: kind.cautionSectionTitle ?? '주의할 점'),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
-          decoration: BoxDecoration(
-            color: FortunePeriodColors.cautionBg,
-            borderRadius: BorderRadius.circular(FortunePeriodRadius.xl),
-            border: Border.all(color: FortunePeriodColors.cautionBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: caution.asMap().entries.map((e) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: e.key == caution.length - 1 ? 0 : 10,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 3, right: 6),
-                      child: Text(
-                        '◇',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: FortunePeriodColors.accent,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(e.value, style: FortunePeriodType.caution),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+        Text(
+          label,
+          style: FortunePeriodType.archiveWhen.copyWith(letterSpacing: 1.0),
         ),
+        const SizedBox(height: 6),
+        Text(values.join(' · '), style: FortunePeriodType.fieldName),
       ],
     );
   }
@@ -806,36 +437,23 @@ class _CautionSection extends StatelessWidget {
 /// `ArchiveList` — 지난 결과 목록(최대 6건, 최신순). 조회 전용.
 class _ArchiveSection extends StatelessWidget {
   const _ArchiveSection({
-    required this.kind,
     required this.items,
     required this.currentKey,
     required this.loading,
     required this.onOpen,
   });
 
-  final FortuneKind kind;
   final List<FortuneArchiveItem> items;
   final String currentKey;
   final bool loading;
   final ValueChanged<String> onOpen;
-
-  String get _title {
-    switch (kind) {
-      case FortuneKind.today:
-        return '지난 오늘의 운세';
-      case FortuneKind.week:
-        return '지난 주간운세';
-      case FortuneKind.month:
-        return '지난 월간운세';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHead(title: _title),
+        const _SectionHead(title: '지난 오늘의 운세'),
         const SizedBox(height: 14),
         Container(
           decoration: BoxDecoration(
@@ -867,32 +485,6 @@ class _ArchiveSection extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Transform.rotate(
-                        angle: -0.1047, // -6deg
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: FortunePeriodColors.accent.withValues(
-                                alpha: 0.35,
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            it.seal,
-                            style: const TextStyle(
-                              fontFamily: FortunePeriodType.serif,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
-                              color: FortunePeriodColors.accent,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -903,7 +495,7 @@ class _ArchiveSection extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              it.title.join(' '),
+                              it.headline,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: FortunePeriodType.archiveTitle,
@@ -940,20 +532,8 @@ class _ArchiveSection extends StatelessWidget {
 
 /// `PastBanner` — 지난 운세 열람 중 상단 배너.
 class _PastBanner extends StatelessWidget {
-  const _PastBanner({required this.kind, required this.onCurrent});
-  final FortuneKind kind;
+  const _PastBanner({required this.onCurrent});
   final VoidCallback onCurrent;
-
-  String get _currentLabel {
-    switch (kind) {
-      case FortuneKind.today:
-        return '오늘의 운세';
-      case FortuneKind.week:
-        return '이번 주 운세';
-      case FortuneKind.month:
-        return '이번 달 운세';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -971,7 +551,7 @@ class _PastBanner extends StatelessWidget {
           GestureDetector(
             onTap: onCurrent,
             child: Text(
-              '$_currentLabel로 ›',
+              '오늘의 운세로 ›',
               style: FortunePeriodType.pastBanner.copyWith(
                 color: FortunePeriodColors.accent,
               ),
@@ -985,8 +565,7 @@ class _PastBanner extends StatelessWidget {
 
 /// `.v2-share` — 공유 버튼 + 간단한 공유 카드 미리보기 시트.
 class _ShareSection extends StatelessWidget {
-  const _ShareSection({required this.kind, required this.result});
-  final FortuneKind kind;
+  const _ShareSection({required this.result});
   final FortunePeriodResult result;
 
   @override
@@ -1039,7 +618,7 @@ class _ShareSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  height: 220,
+                  constraints: const BoxConstraints(minHeight: 220),
                   width: double.infinity,
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
@@ -1058,44 +637,32 @@ class _ShareSection extends StatelessWidget {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      FortuneSigil(
-                        size: 200,
-                        color: FortunePeriodColors.sigil,
-                        opacity: 0.3,
+                      const Positioned(
+                        child: FortuneSigil(
+                          size: 200,
+                          color: FortunePeriodColors.sigil,
+                          opacity: 0.3,
+                        ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            FortuneSeal(
-                              text: result.seal,
-                              size: 38,
-                              color: FortunePeriodColors.accent,
-                            ),
-                            const SizedBox(height: 14),
                             Text(
                               result.period.main,
                               style: FortunePeriodType.mono10,
                             ),
-                            const SizedBox(height: 8),
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: result.titleLine1,
-                                    style: FortunePeriodType.summaryTitle
-                                        .copyWith(fontSize: 20),
-                                  ),
-                                  const TextSpan(text: '\n'),
-                                  TextSpan(
-                                    text: result.titleLine2,
-                                    style: FortunePeriodType.summaryTitleGlow
-                                        .copyWith(fontSize: 20),
-                                  ),
-                                ],
-                              ),
+                            const SizedBox(height: 12),
+                            Text(
+                              result.headline,
                               textAlign: TextAlign.center,
+                              style: FortunePeriodType.summaryTitle.copyWith(
+                                fontSize: 20,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             const Text(
@@ -1116,23 +683,24 @@ class _ShareSection extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ('카카오톡', '◈'),
-                    ('인스타그램', '◇'),
-                    ('이미지 저장', '↓'),
-                    ('링크 복사', '⇆'),
-                  ].map((pair) {
-                    return _ShareTarget(
-                      label: pair.$1,
-                      glyph: pair.$2,
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('공유 기능은 준비 중이에요')),
+                  children:
+                      [
+                        ('카카오톡', '◈'),
+                        ('인스타그램', '◇'),
+                        ('이미지 저장', '↓'),
+                        ('링크 복사', '⇆'),
+                      ].map((pair) {
+                        return _ShareTarget(
+                          label: pair.$1,
+                          glyph: pair.$2,
+                          onTap: () {
+                            Navigator.of(sheetContext).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('공유 기능은 준비 중이에요')),
+                            );
+                          },
                         );
-                      },
-                    );
-                  }).toList(),
+                      }).toList(),
                 ),
                 const SizedBox(height: 16),
                 FortuneGhostButton(
@@ -1192,19 +760,7 @@ class _ShareTarget extends StatelessWidget {
 
 /// `FortuneLoading` — 꺼진 촛불 + 어두운 sigil 로딩 상태.
 class _LoadingState extends StatelessWidget {
-  const _LoadingState({required this.kind});
-  final FortuneKind kind;
-
-  String get _label {
-    switch (kind) {
-      case FortuneKind.today:
-        return '오늘의 기운을';
-      case FortuneKind.week:
-        return '이번 주의 기운을';
-      case FortuneKind.month:
-        return '이번 달의 기운을';
-    }
-  }
+  const _LoadingState();
 
   @override
   Widget build(BuildContext context) {
@@ -1239,10 +795,10 @@ class _LoadingState extends StatelessWidget {
           const SizedBox(height: 20),
           const Text('READING · 점사 중', style: FortunePeriodType.mono10),
           const SizedBox(height: 10),
-          Text(
-            '$_label\n살피고 있어요',
+          const Text(
+            '오늘의 기운을\n살피고 있어요',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FortunePeriodType.serif,
               fontWeight: FontWeight.w700,
               fontSize: 18,

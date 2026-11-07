@@ -45,9 +45,7 @@ class FortunePrimaryButton extends StatelessWidget {
                   ),
                 ]
               : null,
-          border: enabled
-              ? null
-              : Border.all(color: FortunePeriodColors.line),
+          border: enabled ? null : Border.all(color: FortunePeriodColors.line),
         ),
         child: Material(
           color: Colors.transparent,
@@ -167,9 +165,7 @@ class FortuneSeg extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 height: 40,
                 alignment: Alignment.center,
-                margin: EdgeInsets.only(
-                  right: o == options.last ? 0 : 4,
-                ),
+                margin: EdgeInsets.only(right: o == options.last ? 0 : 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(9),
                   gradient: selected
@@ -194,9 +190,7 @@ class FortuneSeg extends StatelessWidget {
                     fontFamily: FortunePeriodType.body,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: selected
-                        ? Colors.white
-                        : FortunePeriodColors.muted,
+                    color: selected ? Colors.white : FortunePeriodColors.muted,
                   ),
                 ),
               ),

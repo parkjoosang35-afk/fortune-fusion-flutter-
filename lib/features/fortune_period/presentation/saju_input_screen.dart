@@ -263,18 +263,14 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                           const TextSpan(text: '사주정보를\n'),
                           TextSpan(
                             text: '고쳐 담을게요',
-                            style: TextStyle(
-                              color: FortunePeriodColors.glow,
-                            ),
+                            style: TextStyle(color: FortunePeriodColors.glow),
                           ),
                         ]
                       : [
                           const TextSpan(text: '그대의 사주를\n'),
                           TextSpan(
                             text: '알려주세요',
-                            style: TextStyle(
-                              color: FortunePeriodColors.glow,
-                            ),
+                            style: TextStyle(color: FortunePeriodColors.glow),
                           ),
                         ],
                 ),
@@ -289,7 +285,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               const SizedBox(height: 10),
               Text(
                 _isEdit
-                    ? '바뀐 사주로 오늘 · 주간 · 월간 운세를\n모두 새로 풀어드려요'
+                    ? '바뀐 사주로 오늘의 운세를\n새로 풀어드려요'
                     : '처음 한 번만 담아두시면\n다음부터는 바로 운세가 열려요',
                 style: const TextStyle(
                   fontFamily: FortunePeriodType.body,
@@ -334,7 +330,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
               if (!_isEdit)
                 FortunePolicyNote(
                   items: const [
-                    '한 번 담은 사주로 오늘 · 주간 · 월간 운세를 함께 풀어요',
+                    '한 번 담은 사주로 언제든 오늘의 운세를 바로 풀어요',
                     '운세는 모두 무료예요 · 복주머니 차감도, 광고 시청 조건도 없어요',
                     '사주정보는 언제든 마이 › 사주정보에서 고칠 수 있어요',
                   ],
@@ -512,9 +508,7 @@ class _SajuInputScreenState extends State<SajuInputScreen> {
                         onPressed: () => setState(() => _time = 'unknown'),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: _time == 'unknown'
-                              ? FortunePeriodColors.glow.withValues(
-                                  alpha: 0.08,
-                                )
+                              ? FortunePeriodColors.glow.withValues(alpha: 0.08)
                               : Colors.transparent,
                           side: BorderSide(
                             color: _time == 'unknown'

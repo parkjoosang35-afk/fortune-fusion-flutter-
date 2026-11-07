@@ -86,10 +86,7 @@ class _FortuneSigilRingState extends State<FortuneSigilRing>
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, child) {
-        return Transform.rotate(
-          angle: _ctrl.value * 2 * math.pi,
-          child: child,
-        );
+        return Transform.rotate(angle: _ctrl.value * 2 * math.pi, child: child);
       },
       child: FortuneSigil(
         size: widget.size,
@@ -109,7 +106,18 @@ class FortuneSigilPainter extends CustomPainter {
   final double opacity;
 
   static const List<String> _runes = [
-    '✧', '✦', '☾', '❋', '◈', '✵', '❈', '✺', '✶', '☆', '◇', '⟡',
+    '✧',
+    '✦',
+    '☾',
+    '❋',
+    '◈',
+    '✵',
+    '❈',
+    '✺',
+    '✶',
+    '☆',
+    '◇',
+    '⟡',
   ];
 
   @override
@@ -166,16 +174,34 @@ class FortuneSigilPainter extends CustomPainter {
     _strokeCircle(canvas, 60, color, opacity * 0.6, 0.5);
 
     // hexagram (육망성 — 큰 육각형 + 두 삼각형)
-    _strokePolygon(canvas, const [
-      Offset(0, -52), Offset(45, -26), Offset(45, 26),
-      Offset(0, 52), Offset(-45, 26), Offset(-45, -26),
-    ], color, opacity * 0.8, 0.6);
-    _strokePolygon(canvas, const [
-      Offset(0, 52), Offset(-45, -26), Offset(45, -26),
-    ], color, opacity * 0.5, 0.5);
-    _strokePolygon(canvas, const [
-      Offset(0, -52), Offset(-45, 26), Offset(45, 26),
-    ], color, opacity * 0.5, 0.5);
+    _strokePolygon(
+      canvas,
+      const [
+        Offset(0, -52),
+        Offset(45, -26),
+        Offset(45, 26),
+        Offset(0, 52),
+        Offset(-45, 26),
+        Offset(-45, -26),
+      ],
+      color,
+      opacity * 0.8,
+      0.6,
+    );
+    _strokePolygon(
+      canvas,
+      const [Offset(0, 52), Offset(-45, -26), Offset(45, -26)],
+      color,
+      opacity * 0.5,
+      0.5,
+    );
+    _strokePolygon(
+      canvas,
+      const [Offset(0, -52), Offset(-45, 26), Offset(45, 26)],
+      color,
+      opacity * 0.5,
+      0.5,
+    );
 
     // inner rings
     _strokeCircle(canvas, 26, color, opacity, 0.6);

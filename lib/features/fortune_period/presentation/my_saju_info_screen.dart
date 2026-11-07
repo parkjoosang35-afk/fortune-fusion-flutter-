@@ -64,7 +64,7 @@ class MySajuInfoScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                '오늘 · 주간 · 월간 운세가\n모두 이 사주로 풀려요',
+                '오늘의 운세가\n이 사주로 풀려요',
                 style: TextStyle(
                   fontFamily: FortunePeriodType.body,
                   fontSize: 13.5,
@@ -261,7 +261,7 @@ Future<bool?> showFortuneConfirmEditSheet(BuildContext context) {
               ),
               const SizedBox(height: 10),
               const Text(
-                '지금까지 풀이된 운세는 지워지고\n새 사주로 오늘 · 주간 · 월간 운세를 다시 풀어요',
+                '지금까지 풀이된 운세는 지워지고\n새 사주로 오늘의 운세를 다시 풀어요',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: FortunePeriodType.body,
@@ -287,4 +287,3 @@ Future<bool?> showFortuneConfirmEditSheet(BuildContext context) {
     },
   );
 }
-
