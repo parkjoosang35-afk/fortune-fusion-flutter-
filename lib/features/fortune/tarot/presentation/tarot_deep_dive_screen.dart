@@ -148,7 +148,17 @@ class _CardMeaningLine extends StatelessWidget {
         vertical: TarotTokens.spaceMd,
       ),
       decoration: BoxDecoration(
-        color: TarotColors.surfaceCard.withValues(alpha: 0.6),
+        // [버그 수정 2026-11 — 심화해석 열쇠 박스 글씨 안 보임] 기존
+        // `TarotColors.surfaceCard.withValues(alpha: 0.6)`는 surfaceCard가
+        // 이미 저투명도 흰색(0x14FFFFFF, 약 8%)인데 `.withValues(alpha:)`가
+        // 그 알파값을 "곱하기"가 아니라 "덮어쓰기"하는 API라서, 결과적으로
+        // 60% 불투명한 흰 박스가 되어버렸다. 화면의 다른 카드들(마음의
+        // 관점/현실의 관점 등)은 전부 `TarotColors.surfaceCard`를 그대로
+        // 써서 어두운 유리질감 배경을 유지하는데 이 박스만 밝게 깨져,
+        // 그 위의 밝은 글씨(TarotTextStyles.body, 연보라색)와 대비가
+        // 거의 없어 글씨가 안 보이는 문제였다. alpha 오버라이드를 제거해
+        // 다른 카드와 동일한 배경으로 통일한다(시각 디자인 추가 변경 없음).
+        color: TarotColors.surfaceCard,
         borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
         border: Border.all(color: TarotColors.borderSoft),
       ),

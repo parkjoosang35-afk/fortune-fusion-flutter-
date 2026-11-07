@@ -16,6 +16,10 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/util/original_result_capture.dart';
+import '../../../core/util/save_filename.dart';
+import '../../share/application/share_service.dart';
+import '../../share/domain/share_result_model.dart';
 import '../data/fortune_period_repository.dart';
 import '../domain/fortune_period_model.dart';
 import '../theme/fortune_period_theme.dart';
@@ -33,6 +37,16 @@ class FortunePeriodScreen extends StatefulWidget {
 class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
   final _repo = FortunePeriodRepository();
   static const _kind = FortuneKind.today;
+
+  // [저장/공유 실제 구현 — 2026-12] 기존에는 공유 버튼이 "공유 기능은
+  // 준비 중이에요" 토스트만 띄우는 더미였다(사용자 신고: "공유하기
+  // 클릭시 나오는것 삭제" — 실제 동작하는 저장+공유하기로 교체 요청).
+  // 다른 결과 화면(story_detail_screen.dart 등)과 동일한 패턴으로
+  // RepaintBoundary 캡처 키를 둔다. 이 화면은 헤더가 AppBar로 고정되어
+  // 있고(스크롤 본문에 포함되지 않음) 본문 자체가 이미 SingleChildScrollView
+  // 안에서 전부 레이아웃되는 일반 Column이라, leadingKeys 없이 캡처 대상
+  // 영역(기간 헤더+본문 서사+행운 아이템)만 감싸는 하나의 키로 충분하다.
+  final _originalResultKey = GlobalKey();
 
   bool _loaded = false;
   bool _loading = false;
@@ -187,16 +201,31 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
             else
               const SizedBox.shrink(),
             if (showPast) const SizedBox(height: 14),
-            if (!showPast) _PeriodHeader(result: data),
-            if (showPast) _PastPeriodHeader(result: data),
-            const SizedBox(height: 22),
-            _NarrativeCard(result: data),
-            if (data.luckyColor.isNotEmpty ||
-                data.luckyDirection.isNotEmpty ||
-                data.luckyNumber.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              _LuckyItemsSection(result: data),
-            ],
+            // [저장/공유 2026-12] 기간 헤더 + 서사 + 행운 아이템만 캡처
+            // 대상으로 묶는다(지난 운세 목록/공유 버튼 자체는 저장 이미지에
+            // 포함하지 않는다 — 다른 결과 화면들도 동일하게 "결과 본문"만
+            // 캡처한다). 이 Column은 이미 바깥 SingleChildScrollView 안에서
+            // 전체 높이로 레이아웃되므로 별도 스크롤 래퍼 없이
+            // OriginalResultScene(RepaintBoundary 전용)만으로 충분하다.
+            OriginalResultScene(
+              captureKey: _originalResultKey,
+              background: FortunePeriodColors.bg1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!showPast) _PeriodHeader(result: data),
+                  if (showPast) _PastPeriodHeader(result: data),
+                  const SizedBox(height: 22),
+                  _NarrativeCard(result: data),
+                  if (data.luckyColor.isNotEmpty ||
+                      data.luckyDirection.isNotEmpty ||
+                      data.luckyNumber.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _LuckyItemsSection(result: data),
+                  ],
+                ],
+              ),
+            ),
             if (!showPast && _history.isNotEmpty) ...[
               const SizedBox(height: 28),
               _ArchiveSection(
@@ -207,7 +236,10 @@ class _FortunePeriodScreenState extends State<FortunePeriodScreen> {
               ),
             ],
             const SizedBox(height: 28),
-            _ShareSection(result: data),
+            _ShareSection(
+              result: data,
+              captureKey: _originalResultKey,
+            ),
           ],
         ),
       ),
@@ -563,18 +595,57 @@ class _PastBanner extends StatelessWidget {
   }
 }
 
-/// `.v2-share` — 공유 버튼 + 간단한 공유 카드 미리보기 시트.
+/// [UI 개선 — 2026-12 저장/공유 통합 박스] 기존에는 "☾ 운세 공유하기"
+/// 버튼을 누르면 카카오톡/인스타그램/이미지 저장/링크 복사 4개 아이콘이
+/// 뜨는 바텀시트가 열렸지만, 그 어느 버튼도 실제로 동작하지 않고
+/// "공유 기능은 준비 중이에요" 토스트만 띄우는 더미였다(사용자 신고:
+/// "공유하기 클릭시 나오는것 삭제"). story_detail_screen.dart /
+/// face_result_screen.dart 등 다른 결과 화면과 동일하게, 실제로 동작하는
+/// "저장" + "공유하기" 두 액션만 남긴 테두리 박스로 교체한다(가짜
+/// 공유 타깃 시트는 완전히 삭제).
 class _ShareSection extends StatelessWidget {
-  const _ShareSection({required this.result});
+  const _ShareSection({required this.result, required this.captureKey});
   final FortunePeriodResult result;
+  final GlobalKey captureKey;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        FortunePrimaryButton(
-          label: '☾ 운세 공유하기',
-          onPressed: () => _showShareSheet(context),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(FortunePeriodRadius.lg),
+            color: FortunePeriodColors.card,
+            border: Border.all(color: FortunePeriodColors.line),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _SaveShareAction(
+                  icon: Icons.download_rounded,
+                  label: '저장',
+                  onTap: () => saveOriginalResult(
+                    context,
+                    captureKey,
+                    // [REQ-09] 파일명 규칙 통일.
+                    name: buildSaveFileName('fortune_period', result.periodKey),
+                  ),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 28,
+                color: FortunePeriodColors.line,
+              ),
+              Expanded(
+                child: _SaveShareAction(
+                  icon: Icons.ios_share_rounded,
+                  label: '공유하기',
+                  onTap: () => _shareResult(context, result),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -586,173 +657,85 @@ class _ShareSection extends StatelessWidget {
     );
   }
 
-  void _showShareSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-            decoration: const BoxDecoration(
-              color: FortunePeriodColors.bg1,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: FortunePeriodColors.line,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const Text(
-                  'SHARE · 운세 카드',
-                  style: FortunePeriodType.mono10,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  constraints: const BoxConstraints(minHeight: 220),
-                  width: double.infinity,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: FortunePeriodColors.line),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        FortunePeriodColors.summaryGradStart,
-                        FortunePeriodColors.summaryGradMid,
-                        FortunePeriodColors.summaryGradEnd,
-                      ],
-                    ),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Positioned(
-                        child: FortuneSigil(
-                          size: 200,
-                          color: FortunePeriodColors.sigil,
-                          opacity: 0.3,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 24,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              result.period.main,
-                              style: FortunePeriodType.mono10,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              result.headline,
-                              textAlign: TextAlign.center,
-                              style: FortunePeriodType.summaryTitle.copyWith(
-                                fontSize: 20,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              '⌖ 신통방통',
-                              style: TextStyle(
-                                fontFamily: FortunePeriodType.mono,
-                                fontSize: 8,
-                                letterSpacing: 3,
-                                color: FortunePeriodColors.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children:
-                      [
-                        ('카카오톡', '◈'),
-                        ('인스타그램', '◇'),
-                        ('이미지 저장', '↓'),
-                        ('링크 복사', '⇆'),
-                      ].map((pair) {
-                        return _ShareTarget(
-                          label: pair.$1,
-                          glyph: pair.$2,
-                          onTap: () {
-                            Navigator.of(sheetContext).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('공유 기능은 준비 중이에요')),
-                            );
-                          },
-                        );
-                      }).toList(),
-                ),
-                const SizedBox(height: 16),
-                FortuneGhostButton(
-                  label: '닫기',
-                  onPressed: () => Navigator.of(sheetContext).pop(),
-                ),
-              ],
-            ),
-          ),
-        );
+  /// [ShareResultType 선택 근거] `ShareResultType`/admin_web
+  /// `share-og-config.ts`의 6개 카테고리(wish/tarot/saju/relationship/
+  /// face/palm) 중 "오늘의 운세" 전용 값은 없다 — `fortune` 값은
+  /// `@Deprecated`(레거시 전용, 신규 호출부 사용 금지)로 못박혀 있고 코드
+  /// 주석이 명시적으로 "신규 공유는 saju를 사용할 것"이라 지시한다.
+  /// 이에 따라 saju를 사용한다(수신측 `/r/{shareId}` 링크는 "정통사주"
+  /// 뱃지로 표시됨 — 새 전용 카테고리 추가는 admin_web
+  /// OG_CONFIG/이미지 에셋까지 바꿔야 하는 별도 작업이라 이번 범위에
+  /// 포함하지 않는다). payload의 `kind: 'fortune_period'`로 원본 출처를
+  /// 구분해 남긴다.
+  void _shareResult(BuildContext context, FortunePeriodResult data) {
+    final highlights = <String>[
+      data.headline,
+      if (data.luckyColor.isNotEmpty) '행운의 색: ${data.luckyColor.join(" · ")}',
+      if (data.luckyDirection.isNotEmpty)
+        '행운의 방향: ${data.luckyDirection.join(" · ")}',
+      if (data.luckyNumber.isNotEmpty)
+        '행운의 숫자: ${data.luckyNumber.join(" · ")}',
+    ];
+    ShareService.shareResult(
+      context,
+      // ignore: deprecated_member_use_from_same_package
+      resultType: ShareResultType.saju,
+      title: data.headline,
+      description: data.text,
+      payload: {
+        'kind': 'fortune_period',
+        'period': data.period.main,
+        if (data.dayGanZhi != null) 'dayGanZhi': data.dayGanZhi,
+        'summary': data.text,
+        'highlights': highlights,
       },
+      sourceRefId: data.periodKey,
+      originalResultKey: captureKey,
     );
   }
 }
 
-class _ShareTarget extends StatelessWidget {
-  const _ShareTarget({
+/// [UI 개선 — 2026-12] 저장/공유 통합 박스 내부의 개별 액션(아이콘+라벨).
+/// `story_detail_screen.dart`의 `_SaveShareAction`과 동일한 구조를
+/// `FortunePeriodColors`/`FortunePeriodType`(백자 팔레트) 토큰으로 재구현한
+/// 것 — 이 화면은 흰 배경이므로 어두운 글자색(fg)을 쓴다.
+class _SaveShareAction extends StatelessWidget {
+  const _SaveShareAction({
+    required this.icon,
     required this.label,
-    required this.glyph,
     required this.onTap,
   });
+
+  final IconData icon;
   final String label;
-  final String glyph;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: FortunePeriodColors.card,
-              shape: BoxShape.circle,
-              border: Border.all(color: FortunePeriodColors.line),
-            ),
-            child: Text(glyph, style: const TextStyle(fontSize: 15)),
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(FortunePeriodRadius.lg),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 19, color: FortunePeriodColors.glow),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: FortunePeriodType.ui,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: FortunePeriodColors.fg,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: FortunePeriodType.body,
-              fontSize: 11,
-              color: FortunePeriodColors.muted,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
