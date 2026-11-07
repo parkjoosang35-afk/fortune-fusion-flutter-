@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../../../../core/data/my_fortune_record_store.dart';
-import '../../../../core/domain/access/access_checker.dart';
-import '../../../../core/domain/gate/category_gate.dart';
 import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/util/original_result_capture.dart';
 import '../../../../core/util/save_filename.dart';
@@ -12,12 +9,10 @@ import '../../../../core/widgets/fortune/disclaimer_banner.dart';
 import '../../../../core/widgets/fortune/hero_summary_card.dart';
 import '../../../../core/widgets/fortune/list_card.dart';
 import '../../../../core/widgets/fortune/lucky_elements_grid.dart';
-import '../../../../core/widgets/fortune/primary_cta.dart';
 import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../../core/widgets/fortune/section_card.dart';
 import '../../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../home/domain/fortune_matrix.dart';
-import '../../../pass/presentation/pass_gate_helper.dart';
 import '../../shared/domain/fortune_report_model.dart';
 import '../domain/generic_fortune_report_builder.dart';
 
@@ -25,9 +20,13 @@ import '../domain/generic_fortune_report_builder.dart';
 ///
 /// 아직 전용 입력/결과 화면이 없는 카테고리(K/V/O 일부/X/G/B/D/R, 약 45개)를
 /// 위한 단일 화면이다. arguments로 [FortuneCategoryEntry.id](String, 예:
-/// 'K-001')를 받아 [FortuneMatrix.byId]로 메타데이터를 조회하고,
-/// [CategoryGate.decide]로 게이트 판정을 한 번 더 확인한 뒤(전체보기에서 이미
-/// 판정했더라도 딥링크로 직접 들어온 경우를 대비한 안전망) 결과를 그려준다.
+/// 'K-001')를 받아 [FortuneMatrix.byId]로 메타데이터를 조회해 결과를 그려준다.
+///
+/// [자유 이용 원칙 - 프리패스 어뷰징 제한 삭제, 2026-11] 과거에는 여기서
+/// [CategoryGate.decide]로 "하루1회/평생1회 무료" 게이트를 한 번 더 확인했으나,
+/// 콘텐츠 탐색/결과 열람 자체는 항상 자유롭게 허용하는 정책으로 바뀌면서
+/// 이 안전망이 더 이상 필요 없어 제거했다(결제 판정은 오직 [결과보기] 버튼
+/// 클릭 시점의 ResultAccessService가 전담).
 ///
 /// 새 화면/네비게이션 스택을 추가하지 않고, 기존 [DailyFortuneResultScreen]과
 /// 동일한 공용 위젯(HeroSummaryCard/SectionCard/ListCard/LuckElementsGrid/
@@ -46,8 +45,6 @@ class _GenericFortuneResultScreenState
     extends State<GenericFortuneResultScreen> {
   bool _saved = false;
   bool _loading = true;
-  bool _allowed = false;
-  String? _reasonLabel;
   FortuneCategoryEntry? _entry;
   // [REQ-06/REQ-07 - 신통방통_저장기능_정상화_개발지시서_v1.0] 기기(갤러리)
   // 저장용 캡처 키. 기존 "저장"(서버 기록 저장)과 별도 버튼/동작으로 분리한다.
@@ -61,17 +58,9 @@ class _GenericFortuneResultScreenState
 
   Future<void> _resolve() async {
     final entry = FortuneMatrix.byId(widget.categoryId ?? '');
-    if (entry == null) {
-      setState(() => _loading = false);
-      return;
-    }
-    final access = context.read<AccessChecker>();
-    final decision = await CategoryGate.decide(entry, access);
     if (!mounted) return;
     setState(() {
       _entry = entry;
-      _allowed = decision.allowed;
-      _reasonLabel = decision.reasonLabel;
       _loading = false;
     });
   }
@@ -86,15 +75,13 @@ class _GenericFortuneResultScreenState
               ? const Center(child: CircularProgressIndicator())
               : _entry == null
               ? const _NotFoundView()
-              : _allowed
-              ? _ResultBody(
+              : _ResultBody(
                   entry: _entry!,
                   saved: _saved,
                   captureKey: _originalResultKey,
                   onSaveDevice: () => _onSaveDevice(_entry!),
                   onSaveRecord: () => _onSaveRecord(_entry!),
-                )
-              : _LockedView(entry: _entry!, reasonLabel: _reasonLabel),
+                ),
         ),
       ),
     );
@@ -183,52 +170,6 @@ class _NotFoundView extends StatelessWidget {
         Expanded(
           child: Center(
             child: Text('아직 준비 중인 카테고리예요', style: UnifiedText.body()),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 게이트에 막힌 경우(무료 소진/프리패스 전용) — 프리패스 유도.
-class _LockedView extends StatelessWidget {
-  const _LockedView({required this.entry, this.reasonLabel});
-
-  final FortuneCategoryEntry entry;
-  final String? reasonLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _Header(title: entry.title),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.lock_outline_rounded,
-                  size: 40,
-                  color: UnifiedColors.textCaption,
-                ),
-                const SizedBox(height: UnifiedTokens.spaceLg),
-                Text(
-                  reasonLabel ?? '프리패스로 열람할 수 있는 콘텐츠예요.',
-                  textAlign: TextAlign.center,
-                  style: UnifiedText.body(),
-                ),
-                const SizedBox(height: UnifiedTokens.spaceXl),
-                PrimaryCTA(
-                  label: '프리패스로 보기',
-                  onPressed: () => showPassRequiredSheet(
-                    context,
-                    categoryTitle: entry.title,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ],
@@ -329,7 +270,7 @@ class _ResultBody extends StatelessWidget {
 
   /// report.sections는 항상 OverviewSection/AspectSection/ListSection/
   /// LuckySection 중 하나이며(GenericFortuneReportBuilder 참고), 잠금 여부는
-  /// 이미 [CategoryGate]에서 판정을 마쳤으므로 이 화면 내부 섹션들은 잠금
+  /// [자유 이용 원칙] 콘텐츠 탐색/열람 자체는 항상 허용되므로 이 화면 내부 섹션들은 잠금
   /// 표시 없이 항상 펼쳐서 보여준다.
   Widget _buildSection(FortuneSection section) {
     switch (section.type) {

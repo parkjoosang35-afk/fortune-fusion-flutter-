@@ -12,12 +12,13 @@ import '../assets/open_pass_state.dart';
 /// 그 판정을 전담). 즉 이 클래스의 [isOpenPassActive]/[canAccessFortuneScope]
 /// 판정 결과로 "화면 진입 자체를 막는" 용도는 더 이상 정책에 부합하지 않는다.
 ///
-/// 삭제하지 않고 남겨둔 이유: 이 파일을 참조하는 15곳의 호출부
-/// ([navigateWithPassGate], [CategoryGate.decide] 등)가 아직 마이그레이션
-/// 중이라, 즉시 삭제하면 컴파일이 깨진다. 마이그레이션이 saju 프로토타입
-/// (§14.2/§14.6/§14.8 검증)을 통과하고 tarot/name/face/palm까지 확산되어
-/// 안정화된 뒤, 정리 대상이다(그때 이 클래스와 [navigateWithPassGate]의
-/// requiresPass 분기, [CategoryGate] 전체를 함께 제거한다).
+/// [2026-11 프리패스 어뷰징 제한 삭제] 콘텐츠 진입을 막던 [CategoryGate]와
+/// `CategoryUsageStore`는 삭제되었다. 이 클래스 자체는 [canAccessFortuneScope]
+/// (홈 상태바/프리패스 바 등에서 "지금 패스가 켜져 있는가" 표시용)로 여전히
+/// 쓰이고 있어 남겨두지만, "화면 진입 자체를 막는" 용도로는 더 이상 호출되지
+/// 않는다. [navigateWithPassGate]도 동일 정책으로 이미 무력화되어 있다
+/// (`pass_gate_helper.dart` 참고) — 두 함수/클래스 모두 호출부 정리가 끝나면
+/// 완전히 제거할 수 있는 상태다.
 ///
 /// [재화 구조 정리 및 재연결] 공통 접근 체크 로직.
 ///

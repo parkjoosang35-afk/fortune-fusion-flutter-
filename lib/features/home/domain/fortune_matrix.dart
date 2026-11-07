@@ -98,8 +98,10 @@ class FortuneCategoryEntry {
   final String title;
   final String shortDescription;
 
-  /// 이 카테고리의 기본 게이트 정책(사용 이력에 따라 [CategoryGate]가 실제
-  /// [GateResult]를 재계산할 때의 "정책 원본"이다).
+  /// [참고: 2026-11 자유 이용 원칙] 과거 게이트 판정 로직([CategoryGate],
+  /// 삭제됨)의 "정책 원본" 값이었으나, 현재는 UI 배지 용도로는 쓰이지
+  /// 않고 데이터 분류 메타데이터로만 남아 있다. 실제 콘텐츠 열람 제한은
+  /// 없으며, 결제 판정은 각 결과 화면의 ResultAccessService가 전담한다.
   final GateResult gate;
 
   /// 이미 존재하는 화면으로 바로 연결하는 경우의 라우트(없으면 공용

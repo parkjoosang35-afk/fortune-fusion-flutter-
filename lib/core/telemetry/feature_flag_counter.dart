@@ -5,8 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 누적 기록하는 경량 카운터.
 ///
 /// [기존 패턴 재사용] 신규 SQLite/Hive/서버 API를 추가하지 않고,
-/// [CategoryUsageStore](`lib/core/domain/gate/category_usage_store.dart`)와
-/// 동일한 저장 패턴(SharedPreferences + static 메서드)을 그대로 따른다.
+/// SharedPreferences + static 메서드의 경량 저장 패턴을 그대로 따른다.
+/// (참고: 과거 동일 패턴을 쓰던 CategoryUsageStore는 2026-11 자유 이용
+/// 원칙 적용에 따라 삭제되었다.)
 /// (참고: 프로젝트 전체를 grep한 결과 'feature_flag_counter'라는 이름의
 /// 기존 모듈은 없었다 — 이 파일이 신규 모듈이다.)
 ///

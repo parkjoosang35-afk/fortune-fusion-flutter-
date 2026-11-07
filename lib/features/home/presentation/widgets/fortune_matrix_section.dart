@@ -114,23 +114,17 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-/// 하위 카테고리 1개 칩 — 라벨 + 게이트 정책 축약 배지.
+/// 하위 카테고리 1개 칩 — 라벨만 표시.
+/// [자유 이용 원칙 - 프리패스 어뷰징 제한 삭제, 2026-11] 과거에는
+/// [entry.gate]([GateResult]) 기반 "무료"/"1회무료"/"프리패스" 배지를
+/// 붙였으나, 실제 진입 제한이 사라진 뒤에는 배지가 더 이상 사실과 맞지
+/// 않아(눌러도 늘 바로 열림) 제거했다. 결제 판정은 각 결과 화면의
+/// [결과보기] 버튼에서 ResultAccessService가 전담한다.
 class _EntryChip extends StatelessWidget {
   const _EntryChip({required this.entry, required this.onTap});
 
   final FortuneCategoryEntry entry;
   final VoidCallback onTap;
-
-  String get _badgeLabel => switch (entry.gate) {
-    GateResult.openFree => '무료',
-    GateResult.freeOncePerDay => '1회무료',
-    GateResult.lockedFreeFirst => '첫무료',
-    GateResult.paidOnlyPassGate => '프리패스',
-    GateResult.cooldown => '대기',
-    GateResult.granted => '무료',
-  };
-
-  bool get _isFree => entry.gate == GateResult.openFree;
 
   @override
   Widget build(BuildContext context) {
@@ -142,28 +136,9 @@ class _EntryChip extends StatelessWidget {
           color: UnifiedColors.bg,
           borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              entry.title,
-              style: UnifiedText.chipLabel(color: UnifiedColors.textPrimary),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: _isFree
-                    ? UnifiedColors.chipInactiveBg
-                    : UnifiedColors.cardBanner,
-                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-              ),
-              child: Text(
-                _badgeLabel,
-                style: UnifiedText.caption(color: UnifiedColors.textCaption),
-              ),
-            ),
-          ],
+        child: Text(
+          entry.title,
+          style: UnifiedText.chipLabel(color: UnifiedColors.textPrimary),
         ),
       ),
     );
