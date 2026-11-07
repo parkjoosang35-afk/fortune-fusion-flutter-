@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../notification/data/notification_preference_repository.dart';
 import '../../pass/application/pass_provider.dart';
+import 'app_info_minimal_screen.dart';
 import 'birth_info_minimal_screen.dart';
 import 'policy_document_minimal_screen.dart';
 import 'real_name_minimal_screen.dart';
@@ -34,9 +35,8 @@ import 'theme/mypage_toast.dart';
 ///   명시적으로 남아 있는 사항이라 새 서버 필드를 임의로 만들지 않는다
 ///   ("로직은 그대로, 스킨만 교체" 원칙).
 ///
-/// [범위 결정] README S16(앱 정보)/S17(회원탈퇴) 서브 화면은 이번 작업
-/// 범위가 아니다. 이 화면에서는 기존 인프라를 그대로 재사용한다:
-/// - "앱 정보": 안내 토스트로 임시 대체(S16 전용 화면 완성 전까지)
+/// [범위 결정] README S17(회원탈퇴) 서브 화면은 이번 작업 범위가 아니다.
+/// 이 화면에서는 기존 인프라를 그대로 재사용한다:
 /// - "출생정보 수정": README S13 전용 신규 화면 [BirthInfoMinimalScreen]
 ///   (`birth_info_minimal_screen.dart`)으로 연결한다.
 /// - "실명 등록·수정": README S14 전용 신규 화면 [RealNameMinimalScreen]
@@ -48,6 +48,9 @@ import 'theme/mypage_toast.dart';
 ///   `/terms`/`/privacy-policy`/`/account-deletion` 페이지를 그대로 불러온다.
 ///   기존 외부 브라우저 호출(`_openPolicyLink`, launchUrl externalApplication)는
 ///   이 화면으로 대체되어 제거했다.
+/// - "앱 정보": README S16 전용 신규 화면 [AppInfoMinimalScreen]
+///   (`app_info_minimal_screen.dart`)으로 연결한다 — 버전 토스트만 띄우던
+///   임시 구현을 대체한다.
 class SettingsMinimalScreen extends StatefulWidget {
   const SettingsMinimalScreen({super.key});
 
@@ -440,9 +443,10 @@ class _SettingsMinimalScreenState extends State<SettingsMinimalScreen> {
                   _SettingsRow(
                     title: '앱 정보',
                     valueLabel: _appVersionLabel ?? '확인 중...',
-                    onTap: () => showMyPageToast(
-                      context,
-                      '버전 ${_appVersionLabel ?? ''}',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AppInfoMinimalScreen(),
+                      ),
                     ),
                   ),
                   if (isLoggedIn)
