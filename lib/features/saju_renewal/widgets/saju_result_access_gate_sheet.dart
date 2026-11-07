@@ -4,27 +4,31 @@ import 'package:provider/provider.dart';
 
 import '../../../core/widgets/app_toast.dart';
 import '../../ads_test/domain/admob_ad_ids.dart';
+import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
 import '../../pass/presentation/coupang_pass_sheet.dart';
 import '../../pouch_box/presentation/widgets/mini_pouch_icon.dart';
 import '../../result_access/application/result_access_provider.dart';
 import '../../result_access/data/result_access_repository.dart';
 import '../../result_access/domain/pending_result_access_return.dart';
 import '../../result_access/domain/result_access_model.dart';
-import '../theme/saju_dark_tokens.dart';
-import 'saju_base_widgets.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면06 결과보기 게이트.
-/// `docs/02_컴포넌트.md` C-12 · `docs/03_화면명세.md` §06 사양을 그대로
-/// 재현한다.
+/// [신통방통 정통사주 리뉴얼] 화면06 결과보기 게이트.
 ///
-/// [로직 재사용 원칙 — docs/10 §2 "로직은 재사용, 외형은 C-12로 교체
-/// 필수. 기존 시트 외형 그대로면 검수 반려"] 이 위젯은 기존
-/// [ResultAccessGateSheet]가 쓰던 [ResultAccessProvider](quote 조회 ·
-/// begin 호출 · AdMob RewardedAd 로드/표시 · 서버 재검증)와
-/// [showCoupangPassSheet]/[PendingResultAccessReturnStore]를 **그대로**
-/// 호출한다 — 판정·차감·광고 로직을 다시 구현하지 않는다. 바뀌는 것은
-/// 오직 비주얼(다크 바텀시트, 인용 마스킹 카드, GateOption 3행, 금빛
-/// 프리패스 인장)뿐이다.
+/// [결과보기 게이트 시각 통일 — 2026] 기존에는 `saju_dark_tokens.dart`
+/// (SajuViolet/SajuGold/SajuInk 다크 자수정+금빛 테마)로 스킨되어 있었으나,
+/// 사용자 피드백("결과보기게이트가 각각 틀리니 보기가 싫어") 에 따라
+/// `coupang_pass_sheet.dart`가 쓰는 `MyPageColors`/`MyPageTextStyles`
+/// (한지 크림 + 부적 주홍/금빛 라이트 테마)로 재통일한다 —
+/// `result_access_gate_sheet.dart`(§8 공통 게이트)도 동일 작업으로 이미
+/// 전환됨. 이 파일 역시 "로직은 재사용, 외형은 교체" 원칙을 그대로
+/// 따른다 — 아래 로직 메서드들은 과거 다크 버전과 단 한 줄도 다르지 않다:
+/// [_loadQuote]/[_beginAndClose]/[_handleFreePass]/[_handlePouch]/
+/// [_handleAd]/[_handleCoupangClaim]/[_handleLoginRequired]는
+/// [ResultAccessProvider](quote 조회 · begin 호출 · AdMob RewardedAd
+/// 로드/표시 · 서버 재검증)와 [showCoupangPassSheet]/
+/// [PendingResultAccessReturnStore]를 그대로 호출한다 — 판정·차감·광고
+/// 로직을 다시 구현하지 않는다. 바뀌는 것은 오직 비주얼(크림 바텀시트,
+/// 인용 마스킹 카드, GateOption 3행, 금빛 프리패스 인장)뿐이다.
 class SajuResultAccessGateSheet extends StatefulWidget {
   const SajuResultAccessGateSheet({
     super.key,
@@ -254,8 +258,8 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
     // 안내 블록까지 모두 보여야 하는 상태(프리패스 미보유)에서 작은
     // 화면/글자확대 조건에 RenderFlex 바닥 오버플로가 실측됐다(320×568
     // @1.3배 widget test로 확인). 내용을 SingleChildScrollView로 감싸
-    // "들어가면 그대로, 넘칠 때만 스크롤"되게 한다 — 그랩바·그라데이션·
-    // 옵션 레이아웃은 그대로다.
+    // "들어가면 그대로, 넘칠 때만 스크롤"되게 한다 — 그랩바·옵션
+    // 레이아웃은 그대로다.
     return Stack(
       children: [
         SafeArea(
@@ -263,24 +267,11 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
           child: Container(
             margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(26),
+            decoration: const BoxDecoration(
+              color: MyPageColors.surface,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(MyPageRadius.sheet),
               ),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [SajuViolet.v800, SajuInk.i900],
-                stops: [0.0, 0.7],
-              ),
-              border: const Border(top: BorderSide(color: SajuText.lineGold)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  blurRadius: 40,
-                  offset: const Offset(0, -8),
-                ),
-              ],
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -288,12 +279,12 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
               children: [
                 // 1. 그랩바.
                 Container(
-                  width: 38,
+                  width: 40,
                   height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
+                  margin: const EdgeInsets.only(bottom: MyPageSpacing.sp4),
                   decoration: BoxDecoration(
-                    color: SajuText.line,
-                    borderRadius: BorderRadius.circular(2),
+                    color: MyPageColors.hair,
+                    borderRadius: BorderRadius.circular(MyPageRadius.pill),
                   ),
                 ),
                 // 2. 인용 카드(C-06-8) — 마지막 문장 마스킹.
@@ -306,30 +297,26 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
                   '이 사주 이야기를\n더 깊이 알아볼까요?',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: SajuType.serif,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: MyPageFonts.ui,
+                    fontWeight: FontWeight.w800,
                     fontSize: 20,
-                    height: 1.45,
-                    color: SajuGold.g100,
+                    height: 1.3,
+                    color: MyPageColors.ink,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: MyPageSpacing.sp4),
                 // 4. 부제(C-06-2).
                 const Text(
                   '아래 3가지 중 하나로 열 수 있어요',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: SajuType.ui,
-                    fontSize: 12.5,
-                    color: SajuText.muted,
-                  ),
+                  style: MyPageTextStyles.caption,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: MyPageSpacing.sp5),
                 if (provider.isLoadingQuote)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: Center(
-                      child: CircularProgressIndicator(color: SajuGold.g300),
+                      child: CircularProgressIndicator(color: MyPageColors.red),
                     ),
                   )
                 else if (provider.quote == null)
@@ -358,26 +345,35 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
             children: [
               if (needsLogin) ...[
                 const Text('🔒', style: TextStyle(fontSize: 28)),
-                const SizedBox(height: 10),
+                const SizedBox(height: MyPageSpacing.sp2),
               ],
               Text(
                 needsLogin
                     ? '로그인 후 결과보기를 이용할 수 있어요.'
                     : (provider.lastError ?? '결과보기 권한 정보를 불러오지 못했습니다.'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: SajuType.ui,
-                  fontSize: 14,
-                  color: SajuText.fg2,
-                ),
+                style: MyPageTextStyles.body,
               ),
             ],
           ),
         ),
-        SajuButton(
-          label: needsLogin ? '로그인하고 결과보기' : '다시 시도',
-          height: 48,
-          onTap: needsLogin ? _handleLoginRequired : _loadQuote,
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: needsLogin ? _handleLoginRequired : _loadQuote,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MyPageColors.red,
+              foregroundColor: const Color(0xFFFBF1DE),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(MyPageRadius.pill),
+              ),
+            ),
+            child: Text(
+              needsLogin ? '로그인하고 결과보기' : '다시 시도',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
         ),
       ],
     );
@@ -457,52 +453,25 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
         ),
         if (showCoupangClaim) ...[
           const SizedBox(height: 16),
-          Container(height: 1, color: SajuText.line),
+          Container(height: 1, color: MyPageColors.hair),
           const SizedBox(height: 14),
-          SajuButton(
-            label: '오늘의 프리패스 2회 받기',
+          _CoupangClaimButton(
             loading: _launchingCoupang,
-            leading: Container(
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFF3A2A12),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                '通',
-                style: TextStyle(
-                  fontFamily: SajuType.serif,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  color: SajuGold.g300,
-                ),
-              ),
-            ),
             onTap: _busy ? null : _handleCoupangClaim,
           ),
           const SizedBox(height: 8),
           const Text(
             '쿠팡 방문 시 하루 한 번 받을 수 있어요',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: SajuType.ui,
-              fontSize: 11.5,
-              color: SajuText.faint,
-            ),
+            style: MyPageTextStyles.caption,
           ),
         ] else if (!quote.freePassAvailable && quote.todayClaimed)
-          Padding(
-            padding: const EdgeInsets.only(top: 14),
+          const Padding(
+            padding: EdgeInsets.only(top: 14),
             child: Text(
               '오늘의 프리패스를 받았어요 · 내일 다시 받을 수 있어요',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: SajuType.ui,
-                fontSize: 12,
-                color: SajuText.faint,
-              ),
+              style: MyPageTextStyles.caption,
             ),
           ),
       ],
@@ -522,8 +491,8 @@ class _QuoteCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: SajuText.line),
-        color: SajuText.fg.withValues(alpha: 0.03),
+        border: Border.all(color: MyPageColors.hair),
+        color: MyPageColors.paper2,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,27 +511,26 @@ class _QuoteCard extends StatelessWidget {
               overflow: TextOverflow.clip,
               softWrap: false,
               style: const TextStyle(
-                fontFamily: SajuType.body,
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w500,
                 fontSize: 14,
                 height: 1.65,
-                color: SajuText.fg2,
+                color: MyPageColors.ink2,
               ),
             ),
           ),
           const SizedBox(height: 6),
           Row(
             children: [
-              const Text(
-                '◆',
-                style: TextStyle(color: SajuGold.g500, fontSize: 8),
-              ),
+              Text('◆', style: TextStyle(color: MyPageColors.red, fontSize: 8)),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '정통사주 분석',
                 style: TextStyle(
-                  fontFamily: SajuType.ui,
+                  fontFamily: MyPageFonts.ui,
+                  fontWeight: FontWeight.w700,
                   fontSize: 11,
-                  color: SajuGold.g500,
+                  color: MyPageColors.red,
                 ),
               ),
             ],
@@ -573,7 +541,7 @@ class _QuoteCard extends StatelessWidget {
   }
 }
 
-/// 프리패스 아이콘 — 36×36 r9, radial 금빛 그라데이션, "通" 각인, −6° 회전.
+/// 프리패스 아이콘 — 36×36 r9, 금빛 그라데이션, "通" 각인, −6° 회전.
 class _PassMarkIcon extends StatelessWidget {
   const _PassMarkIcon({this.dim = false});
   final bool dim;
@@ -591,18 +559,18 @@ class _PassMarkIcon extends StatelessWidget {
           gradient: RadialGradient(
             center: const Alignment(-0.3, -0.4),
             colors: dim
-                ? [SajuGold.g500.withValues(alpha: 0.35), SajuInk.i800]
-                : const [SajuGold.g100, SajuGold.g300, SajuGold.g500],
+                ? [MyPageColors.gold.withValues(alpha: 0.35), MyPageColors.paper2]
+                : const [MyPageColors.gold2, MyPageColors.gold, MyPageColors.attendTo],
             stops: dim ? const [0.0, 1.0] : const [0.0, 0.45, 1.0],
           ),
         ),
         child: Text(
           '通',
           style: TextStyle(
-            fontFamily: SajuType.serif,
+            fontFamily: MyPageFonts.hanja,
             fontWeight: FontWeight.w900,
             fontSize: 17,
-            color: dim ? SajuText.faint : const Color(0xFF3A2A12),
+            color: dim ? MyPageColors.ink3 : const Color(0xFF3A2A12),
           ),
         ),
       ),
@@ -621,17 +589,86 @@ class _AdIcon extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: SajuText.lineGold),
+        border: Border.all(color: MyPageColors.red.withValues(alpha: 0.35)),
       ),
-      child: const Text(
-        '☾',
-        style: TextStyle(color: SajuGold.g300, fontSize: 16),
+      child: const Text('☾', style: TextStyle(color: MyPageColors.red, fontSize: 16)),
+    );
+  }
+}
+
+/// "오늘의 프리패스 2회 받기" 강조 버튼 — coupang_pass_sheet.dart 메인 CTA와
+/// 동일한 부적 주홍 톤으로 통일한다(결과보기 게이트 시각 통일).
+class _CoupangClaimButton extends StatelessWidget {
+  const _CoupangClaimButton({required this.loading, required this.onTap});
+
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(MyPageRadius.pill),
+          boxShadow: onTap != null ? MyPageShadows.cta : null,
+        ),
+        child: ElevatedButton(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: MyPageColors.red,
+            disabledBackgroundColor: MyPageColors.red.withValues(alpha: 0.5),
+            foregroundColor: const Color(0xFFFBF1DE),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(MyPageRadius.pill),
+            ),
+          ),
+          child: loading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFFBF1DE),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBF1DE),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '通',
+                        style: TextStyle(
+                          fontFamily: MyPageFonts.hanja,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          color: MyPageColors.red,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '오늘의 프리패스 2회 받기',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
 }
 
-/// GateOption — 최소 높이 64 · r14 · 배경 5%(비활성 2%) · 보더 line.gold.
+/// GateOption — 최소 높이 64 · r14 · 크림 서피스 배경 · 부적 톤 보더.
 class _GateOption extends StatefulWidget {
   const _GateOption({
     required this.leading,
@@ -676,10 +713,12 @@ class _GateOptionState extends State<_GateOption> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              color: disabled
-                  ? SajuText.fg.withValues(alpha: 0.02)
-                  : SajuText.fg.withValues(alpha: 0.05),
-              border: Border.all(color: SajuText.lineGold),
+              color: disabled ? MyPageColors.paper2 : MyPageColors.surface,
+              border: Border.all(
+                color: disabled
+                    ? MyPageColors.hair
+                    : MyPageColors.red.withValues(alpha: 0.25),
+              ),
             ),
             child: Row(
               children: [
@@ -693,10 +732,10 @@ class _GateOptionState extends State<_GateOption> {
                       Text(
                         widget.title,
                         style: const TextStyle(
-                          fontFamily: SajuType.body,
+                          fontFamily: MyPageFonts.ui,
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
-                          color: SajuGold.g100,
+                          color: MyPageColors.ink,
                         ),
                       ),
                       if (widget.subtitle != null) ...[
@@ -704,9 +743,9 @@ class _GateOptionState extends State<_GateOption> {
                         Text(
                           widget.subtitle!,
                           style: const TextStyle(
-                            fontFamily: SajuType.ui,
+                            fontFamily: MyPageFonts.ui,
                             fontSize: 12,
-                            color: SajuText.muted,
+                            color: MyPageColors.ink3,
                           ),
                         ),
                       ],
@@ -719,7 +758,7 @@ class _GateOptionState extends State<_GateOption> {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: SajuGold.g300,
+                      color: MyPageColors.red,
                     ),
                   )
                 else if (widget.trailing != null)
@@ -734,10 +773,10 @@ class _GateOptionState extends State<_GateOption> {
                       widget.trailing!,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontFamily: SajuType.ui,
+                        fontFamily: MyPageFonts.ui,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: disabled ? SajuText.faint : SajuGold.g300,
+                        color: disabled ? MyPageColors.ink3 : MyPageColors.red,
                       ),
                     ),
                   ),
@@ -751,7 +790,8 @@ class _GateOptionState extends State<_GateOption> {
 }
 
 /// 06-D/06-E 수단 사용 중 전체화면 오버레이 — 프리패스 "通" 인장 모션 /
-/// 복주머니 개봉 모션.
+/// 복주머니 개봉 모션. 배경을 한지 크림 톤으로 재통일했을 뿐, 애니메이션
+/// 타이밍(kind별 1.2s/1.4s)·구성 요소는 다크 버전과 동일하다.
 class _UsingOverlayView extends StatefulWidget {
   const _UsingOverlayView({required this.kind});
   final _UsingOverlay kind;
@@ -788,17 +828,7 @@ class _UsingOverlayViewState extends State<_UsingOverlayView>
   Widget build(BuildContext context) {
     final isPass = widget.kind == _UsingOverlay.pass;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: const Alignment(0, -0.1),
-          radius: 0.9,
-          colors: [
-            SajuViolet.v800.withValues(alpha: 0.96),
-            SajuInk.i900.withValues(alpha: 0.98),
-          ],
-          stops: const [0.0, 0.7],
-        ),
-      ),
+      decoration: const BoxDecoration(color: MyPageColors.surface),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -821,15 +851,15 @@ class _UsingOverlayViewState extends State<_UsingOverlayView>
                             shape: BoxShape.circle,
                             gradient: const RadialGradient(
                               colors: [
-                                SajuGold.g100,
-                                SajuGold.g300,
-                                SajuGold.g500,
+                                MyPageColors.gold2,
+                                MyPageColors.gold,
+                                MyPageColors.attendTo,
                               ],
                               stops: [0.0, 0.45, 1.0],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: SajuGold.g300.withValues(alpha: 0.7),
+                                color: MyPageColors.gold.withValues(alpha: 0.55),
                                 blurRadius: 36,
                               ),
                             ],
@@ -837,7 +867,7 @@ class _UsingOverlayViewState extends State<_UsingOverlayView>
                           child: const Text(
                             '通',
                             style: TextStyle(
-                              fontFamily: SajuType.serif,
+                              fontFamily: MyPageFonts.hanja,
                               fontWeight: FontWeight.w900,
                               fontSize: 42,
                               color: Color(0xFF3A2A12),
@@ -852,19 +882,16 @@ class _UsingOverlayViewState extends State<_UsingOverlayView>
             Text(
               isPass ? '프리패스로 이야기를 열고 있어요' : '복주머니를 열고 있어요',
               style: const TextStyle(
-                fontFamily: SajuType.body,
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w700,
                 fontSize: 16,
-                color: SajuGold.g100,
+                color: MyPageColors.ink,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               isPass ? '프리패스 1회를 사용해요' : '복주머니 100개를 사용해요',
-              style: const TextStyle(
-                fontFamily: SajuType.ui,
-                fontSize: 12,
-                color: SajuText.muted,
-              ),
+              style: MyPageTextStyles.caption,
             ),
           ],
         ),
@@ -873,7 +900,7 @@ class _UsingOverlayViewState extends State<_UsingOverlayView>
   }
 }
 
-/// [호출 헬퍼] 정통사주 다크 게이트 바텀시트를 띄운다. 성공 시
+/// [호출 헬퍼] 정통사주 결과보기 게이트 바텀시트를 띄운다. 성공 시
 /// [ResultAccessBeginResult]를 반환, 취소/닫힘이면 null.
 Future<ResultAccessBeginResult?> showSajuResultAccessGateSheet(
   BuildContext context, {
@@ -886,7 +913,9 @@ Future<ResultAccessBeginResult?> showSajuResultAccessGateSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.55),
+    // [결과보기 게이트 시각 통일] coupang_pass_sheet.dart와 동일한 한지
+    // 크림 톤 dim으로 맞춘다(기존 Colors.black 0.55 → 따뜻한 톤).
+    barrierColor: const Color(0x731E120A),
     builder: (ctx) => SajuResultAccessGateSheet(
       contentId: contentId,
       contentTitle: contentTitle,

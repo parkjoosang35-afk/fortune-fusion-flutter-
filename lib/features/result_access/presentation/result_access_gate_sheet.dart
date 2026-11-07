@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/theme/app_unified_style.dart';
 import '../../../core/auth/auth_token_store.dart';
+import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../ads_test/domain/admob_ad_ids.dart';
 import '../../pass/presentation/coupang_pass_sheet.dart';
@@ -100,9 +100,13 @@ Future<ResultAccessBeginResult?> showResultAccessGateSheet(
   return showModalBottomSheet<ResultAccessBeginResult>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: UnifiedColors.bg,
+    backgroundColor: MyPageColors.surface,
+    // [결과보기 게이트 시각 통일] 쿠팡 프리패스 시트(coupang_pass_sheet.dart)와
+    // 동일한 한지 크림 톤 dim으로 맞춰, 같은 플로우 안에서 배경 톤이
+    // 갑자기 다크→라이트로 튀어 보이지 않게 한다.
+    barrierColor: const Color(0x731E120A),
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(MyPageRadius.sheet)),
     ),
     builder: (ctx) => ResultAccessGateSheet(
       contentType: contentType,
@@ -409,34 +413,39 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-          left: UnifiedTokens.spaceXl,
-          right: UnifiedTokens.spaceXl,
-          top: UnifiedTokens.spaceLg,
-          bottom:
-              UnifiedTokens.spaceXl + MediaQuery.of(context).viewInsets.bottom,
+          left: MyPageSpacing.sp6,
+          right: MyPageSpacing.sp6,
+          top: MyPageSpacing.sp3,
+          bottom: MyPageSpacing.sp8 + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildHandle(),
-            Text(
+            const Text(
               '결과보기',
-              style: UnifiedText.titleLarge(),
+              style: TextStyle(
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w800,
+                fontSize: 21,
+                height: 1.3,
+                color: MyPageColors.ink,
+              ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: UnifiedTokens.spaceXs),
+            const SizedBox(height: MyPageSpacing.sp2),
             Text(
               '${widget.contentTitle} 결과를 아래 3가지 중 하나로 확인할 수 있어요.',
-              style: UnifiedText.caption(color: UnifiedColors.textCaption),
+              style: MyPageTextStyles.body,
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: UnifiedTokens.spaceLg),
+            const SizedBox(height: MyPageSpacing.sp5),
             if (provider.isLoadingQuote)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Center(
-                  child: CircularProgressIndicator(color: UnifiedColors.neon),
+                  child: CircularProgressIndicator(color: MyPageColors.red),
                 ),
               )
             else if (provider.quote == null)
@@ -452,12 +461,12 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
   Widget _buildHandle() {
     return Center(
       child: Container(
-        width: 36,
+        width: 40,
         height: 4,
-        margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
+        margin: const EdgeInsets.only(bottom: MyPageSpacing.sp4),
         decoration: BoxDecoration(
-          color: UnifiedColors.border,
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+          color: MyPageColors.hair,
+          borderRadius: BorderRadius.circular(MyPageRadius.pill),
         ),
       ),
     );
@@ -479,15 +488,15 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
             children: [
               if (needsLogin) ...[
                 const Text('🔒', style: TextStyle(fontSize: 32)),
-                SizedBox(height: UnifiedTokens.spaceSm),
+                const SizedBox(height: MyPageSpacing.sp2),
               ],
               Text(
                 needsLogin
                     ? '로그인 후 결과보기를 이용할 수 있어요.'
                     : (provider.lastError ?? '결과보기 권한 정보를 불러오지 못했습니다.'),
                 style: needsLogin
-                    ? UnifiedText.bodyStrong()
-                    : UnifiedText.body(color: UnifiedColors.textCaption),
+                    ? MyPageTextStyles.row
+                    : MyPageTextStyles.body,
                 textAlign: TextAlign.center,
               ),
             ],
@@ -495,17 +504,20 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
         ),
         SizedBox(
           width: double.infinity,
-          height: 48,
+          height: 52,
           child: ElevatedButton(
             onPressed: needsLogin ? _handleLoginRequired : _loadQuote,
             style: ElevatedButton.styleFrom(
-              backgroundColor: UnifiedColors.black,
-              foregroundColor: Colors.white,
+              backgroundColor: MyPageColors.red,
+              foregroundColor: const Color(0xFFFBF1DE),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
+                borderRadius: BorderRadius.circular(MyPageRadius.pill),
               ),
             ),
-            child: Text(needsLogin ? '로그인하고 결과보기' : '다시 시도'),
+            child: Text(
+              needsLogin ? '로그인하고 결과보기' : '다시 시도',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
           ),
         ),
       ],
@@ -559,7 +571,7 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
           loading: _processingMethod == ResultAccessPaymentMethod.freepass,
           onTap: _handleFreePass,
         ),
-        SizedBox(height: UnifiedTokens.spaceSm),
+        const SizedBox(height: MyPageSpacing.sp3),
         _GateOptionButton(
           icon: Icons.savings_rounded,
           label:
@@ -570,7 +582,7 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
           loading: _processingMethod == ResultAccessPaymentMethod.pouch,
           onTap: _handlePouch,
         ),
-        SizedBox(height: UnifiedTokens.spaceSm),
+        const SizedBox(height: MyPageSpacing.sp3),
         _GateOptionButton(
           icon: Icons.smart_display_rounded,
           label: '광고 보고 무료로 보기',
@@ -580,9 +592,9 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
           onTap: _handleAd,
         ),
         if (showCoupangClaim) ...[
-          SizedBox(height: UnifiedTokens.spaceLg),
-          Container(height: 1, color: UnifiedColors.border),
-          SizedBox(height: UnifiedTokens.spaceLg),
+          const SizedBox(height: MyPageSpacing.sp5),
+          Container(height: 1, color: MyPageColors.hair),
+          const SizedBox(height: MyPageSpacing.sp5),
           _GateOptionButton(
             icon: Icons.card_giftcard_rounded,
             label: '오늘의 프리패스 2회 받기 (쿠팡 방문)',
@@ -593,10 +605,10 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
           ),
         ] else if (!quote.freePassAvailable && quote.todayClaimed)
           Padding(
-            padding: const EdgeInsets.only(top: UnifiedTokens.spaceMd),
+            padding: const EdgeInsets.only(top: MyPageSpacing.sp4),
             child: Text(
               '오늘의 프리패스는 이미 받았어요. 내일 다시 받을 수 있어요.',
-              style: UnifiedText.caption(color: UnifiedColors.textCaption),
+              style: MyPageTextStyles.caption,
               textAlign: TextAlign.center,
             ),
           ),
@@ -638,76 +650,83 @@ class _GateOptionButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool highlighted;
 
-  // [바텀시트 글씨 안 보임 버그 수정 — 2026-10-27] `UnifiedColors.black`은
-  // 이름과 달리 실제로는 밝은 골드색(#E9C46A, "다크 전환" 리네이밍 당시
-  // 이름만 남고 값이 골드로 바뀜)이고 `UnifiedColors.neon`도 밝은
-  // 연두색(#C6F24E)이다. 기존 코드는 이 밝은 배경 위에 흰색(enabled) 또는
-  // 같은 골드색(highlighted) 글씨를 올려 "복주머니로 보기"/"오늘의
-  // 프리패스 2회 받기" 버튼 글씨가 거의 안 보이는 문제였다(사용자 제보
-  // 스크린샷으로 확인). 밝은 배경에는 어두운 글씨를 써야 하므로, 다른
-  // 신당 금빛 아이콘에서 이미 쓰던 짙은 고동색(0xFF3A2A12)으로 통일한다.
-  static const _darkOnGold = Color(0xFF3A2A12);
-
+  // [결과보기 게이트 시각 통일] coupang_pass_sheet.dart의 한지/부적
+  // 톤(MyPageColors)으로 교체 — 하이라이트 옵션(오늘의 프리패스
+  // 받기)은 red(부적 주홍), 일반 활성 옵션은 surface+red 테두리로
+  // 구분해 "가장 중요한 버튼"이 자연스럽게 눈에 띄도록 한다.
   @override
   Widget build(BuildContext context) {
     final bg = highlighted
-        ? UnifiedColors.neon
-        : (enabled ? UnifiedColors.black : UnifiedColors.chipInactiveBg);
+        ? MyPageColors.red
+        : (enabled ? MyPageColors.surface : MyPageColors.paper2);
     final fg = highlighted
-        ? _darkOnGold
-        : (enabled ? _darkOnGold : UnifiedColors.textCaption);
+        ? const Color(0xFFFBF1DE)
+        : (enabled ? MyPageColors.ink : MyPageColors.ink3);
+    final border = highlighted
+        ? null
+        : Border.all(color: enabled ? MyPageColors.red.withValues(alpha: 0.35) : MyPageColors.hair);
 
     return SizedBox(
       height: 56,
-      child: ElevatedButton(
-        onPressed: enabled ? onTap : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: bg,
-          foregroundColor: fg,
-          disabledBackgroundColor: UnifiedColors.chipInactiveBg,
-          disabledForegroundColor: UnifiedColors.textCaption,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-          ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(MyPageRadius.pill),
+          border: border,
+          boxShadow: highlighted && enabled ? MyPageShadows.cta : null,
         ),
-        child: loading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: fg),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 18),
-                  SizedBox(width: UnifiedTokens.spaceSm),
-                  Flexible(
-                    child: Text(
-                      label,
-                      style: UnifiedText.bodyStrong(color: fg),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (subLabel != null) ...[
-                    SizedBox(width: UnifiedTokens.spaceXs),
-                    // [반응형 화면 규격 통일 지시서] subLabel이 Flexible 없이
-                    // 고정 크기로 추가되어 있어, label(이미 Flexible)이 최대로
-                    // 줄어도 textScale이 높을 때(2.5) subLabel 자체 폭이 Row
-                    // 전체 폭을 넘어 가로 오버플로가 발생했다(실측 320x568
-                    // 기준 28px, test/result_access_gate_sheet_overflow_test.dart
-                    // 참고). Flexible+ellipsis로 감싸 다른 버튼 라벨과 동일하게
-                    // 필요시 줄어들도록 한다.
+        child: ElevatedButton(
+          onPressed: enabled ? onTap : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: bg,
+            foregroundColor: fg,
+            disabledBackgroundColor: MyPageColors.paper2,
+            disabledForegroundColor: MyPageColors.ink3,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(MyPageRadius.pill),
+            ),
+          ),
+          child: loading
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: fg),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 18, color: highlighted ? fg : MyPageColors.red),
+                    const SizedBox(width: MyPageSpacing.sp2),
                     Flexible(
                       child: Text(
-                        '($subLabel)',
-                        style: UnifiedText.caption(color: fg),
+                        label,
+                        style: MyPageTextStyles.row.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: fg,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (subLabel != null) ...[
+                      const SizedBox(width: MyPageSpacing.sp1),
+                      // [반응형 화면 규격 통일 지시서] subLabel이 Flexible 없이
+                      // 고정 크기로 추가되어 있어, label(이미 Flexible)이 최대로
+                      // 줄어도 textScale이 높을 때(2.5) subLabel 자체 폭이 Row
+                      // 전체 폭을 넘어 가로 오버플로가 발생했다(실측 320x568
+                      // 기준 28px, test/result_access_gate_sheet_overflow_test.dart
+                      // 참고). Flexible+ellipsis로 감싸 다른 버튼 라벨과 동일하게
+                      // 필요시 줄어들도록 한다.
+                      Flexible(
+                        child: Text(
+                          '($subLabel)',
+                          style: MyPageTextStyles.caption.copyWith(color: fg),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
+                ),
+        ),
       ),
     );
   }
