@@ -10,6 +10,7 @@ import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 import '../../../core/web_ads/web_ad_config.dart';
 import '../../../core/web_ads/widgets/web_ad_in_page.dart';
+import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
 import '../../result_access/application/result_access_provider.dart';
 import '../application/guinji_provider.dart';
 import '../application/guinji_rewarded_ad_helper.dart';
@@ -764,49 +765,59 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
     }
   }
 
+  // [2026-12 사용자 지시 "다 통일해" — 결과보기 게이트 시각 통일 3/3]
+  // 신통방통 안의 다른 두 결과보기 게이트(result_access_gate_sheet.dart,
+  // saju_result_access_gate_sheet.dart)는 이미 coupang_pass_sheet.dart와
+  // 동일한 한지 크림/부적 주홍 톤(MyPageColors)으로 리스킨했다. 귀인지도
+  // '스페셜 해설' 잠금 카드도 동일한 패턴 — 로직(onUnlockFreePass/
+  // onUnlockAd/onUnlockPouch, _PayPick, GuinjiProvider.unlock,
+  // ResultAccessProvider.loadQuote)은 절대 건드리지 않고 색/그라데이션/
+  // 테두리/아이콘 디자인만 MyPageColors로 교체한다. 화면의 나머지 부분
+  // (히어로 카드·관계의 결·오행 카드 등, GmColors)은 그대로 유지한다 —
+  // '게이트'만 통일 대상이다.
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
+        color: MyPageColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: GmColors.gold.withValues(alpha: 0.4)),
-        gradient: RadialGradient(
-          center: const Alignment(0.8, -0.6),
-          radius: 1.0,
-          colors: [
-            GmColors.gold.withValues(alpha: 0.14),
-            GmColors.card.withValues(alpha: 0.85),
-          ],
-          stops: const [0.0, 0.5],
-        ),
+        border: Border.all(color: MyPageColors.red.withValues(alpha: 0.35)),
+        boxShadow: MyPageShadows.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const GmLabelMini('SPECIAL · 스페셜 해설', color: GmColors.gold),
+          const GmLabelMini('SPECIAL · 스페셜 해설', color: MyPageColors.red),
           const SizedBox(height: 6),
           const Text(
             '이 관계, 어떻게 대해야 할까',
             style: TextStyle(
+              fontFamily: MyPageFonts.ui,
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: GmColors.fg,
+              color: MyPageColors.ink,
             ),
           ),
           const SizedBox(height: 4),
           const Text(
             '사주 4기둥을 근거로 자세히 풀어드립니다.',
-            style: TextStyle(fontSize: 12, height: 1.5, color: GmColors.muted),
+            style: TextStyle(
+              fontFamily: MyPageFonts.ui,
+              fontSize: 12,
+              height: 1.5,
+              color: MyPageColors.ink2,
+            ),
           ),
           const SizedBox(height: 14),
           const Text(
             '여는 방법을 골라 주세요',
             style: TextStyle(
+              fontFamily: MyPageFonts.ui,
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
-              color: GmColors.dim,
+              color: MyPageColors.ink3,
             ),
           ),
           const SizedBox(height: 8),
@@ -819,7 +830,7 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: GmColors.gold,
+                    color: MyPageColors.red,
                   ),
                 ),
               ),
@@ -869,24 +880,25 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
               height: 50,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [GmColors.goldTop, GmColors.gold],
-                  ),
-                  borderRadius: BorderRadius.circular(25),
+                  color: MyPageColors.red,
+                  borderRadius: BorderRadius.circular(MyPageRadius.pill),
+                  boxShadow: MyPageShadows.cta,
                 ),
                 child: TextButton(
                   onPressed: _handlePrimaryCta,
                   style: TextButton.styleFrom(
-                    foregroundColor: GmColors.onFg,
+                    foregroundColor: const Color(0xFFFBF1DE),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(MyPageRadius.pill),
                     ),
                   ),
                   child: Text(
                     _pick == _PayPick.freepass ? '프리패스 1회로 열기' : '광고 보고 열기',
                     style: const TextStyle(
+                      fontFamily: MyPageFonts.ui,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
+                      color: Color(0xFFFBF1DE),
                     ),
                   ),
                 ),
@@ -933,12 +945,12 @@ class _PayOptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: selected
-                ? GmColors.gold.withValues(alpha: 0.12)
-                : Colors.white.withValues(alpha: 0.03),
+                ? MyPageColors.red.withValues(alpha: 0.08)
+                : MyPageColors.paper,
             border: Border.all(
               color: selected
-                  ? GmColors.gold.withValues(alpha: 0.55)
-                  : GmColors.hair,
+                  ? MyPageColors.red.withValues(alpha: 0.55)
+                  : MyPageColors.hair,
             ),
           ),
           child: Row(
@@ -952,17 +964,19 @@ class _PayOptionTile extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
+                        fontFamily: MyPageFonts.ui,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: GmColors.fg,
+                        color: MyPageColors.ink,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       sub,
                       style: const TextStyle(
+                        fontFamily: MyPageFonts.ui,
                         fontSize: 11.5,
-                        color: GmColors.muted,
+                        color: MyPageColors.ink3,
                       ),
                     ),
                   ],
@@ -974,9 +988,10 @@ class _PayOptionTile extends StatelessWidget {
                   child: Text(
                     right,
                     style: TextStyle(
+                      fontFamily: MyPageFonts.ui,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
-                      color: selected ? GmColors.fg : GmColors.dim,
+                      color: selected ? MyPageColors.red : MyPageColors.ink3,
                     ),
                   ),
                 ),
@@ -1003,16 +1018,16 @@ class _IcoPass extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF3D48A), Color(0xFFC9973E)],
+          colors: [MyPageColors.gold2, MyPageColors.attendTo],
         ),
       ),
       child: const Text(
         '通',
         style: TextStyle(
-          fontFamily: GmText.display,
+          fontFamily: MyPageFonts.hanja,
           fontSize: 19,
           fontWeight: FontWeight.w900,
-          color: Color(0xFF3A2508),
+          color: MyPageColors.redDeep,
         ),
       ),
     );
@@ -1036,7 +1051,7 @@ class _IcoPouch extends StatelessWidget {
             height: 28,
             margin: const EdgeInsets.only(top: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFC0332B),
+              color: MyPageColors.red,
               borderRadius: BorderRadius.circular(14),
             ),
           ),
@@ -1046,7 +1061,7 @@ class _IcoPouch extends StatelessWidget {
               width: 14,
               height: 6,
               decoration: BoxDecoration(
-                color: const Color(0xFFE9C46A),
+                color: MyPageColors.gold,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -1059,15 +1074,15 @@ class _IcoPouch extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE9C46A), width: 1.1),
+                border: Border.all(color: MyPageColors.gold, width: 1.1),
               ),
               child: const Text(
                 '福',
                 style: TextStyle(
-                  fontFamily: GmText.display,
+                  fontFamily: MyPageFonts.hanja,
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFFE9C46A),
+                  color: MyPageColors.gold,
                 ),
               ),
             ),
@@ -1090,11 +1105,11 @@ class _IcoAd extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: GmColors.line),
+        border: Border.all(color: MyPageColors.red.withValues(alpha: 0.35)),
       ),
       child: const Text(
         '☾',
-        style: TextStyle(fontSize: 17, color: GmColors.muted),
+        style: TextStyle(fontSize: 17, color: MyPageColors.ink3),
       ),
     );
   }
