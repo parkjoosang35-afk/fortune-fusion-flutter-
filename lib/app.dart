@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 import 'core/util/qa_text_scale.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'core/theme/text_scale_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/widgets/web_mobile_frame.dart';
+import 'core/widgets/text_scale_fab.dart';
 import 'core/sound/sintong_sound_service.dart';
 import 'core/sound/sound_navigator_observer.dart';
 
@@ -120,6 +122,10 @@ class App extends StatelessWidget {
       providers: [
         // ── 전역 Provider(앱 전체에서 상시 참조) ──
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        // [결과페이지 글씨 확대 기능] 시력이 안 좋은 사용자를 위한 전역
+        // 텍스트 크기 배율. MaterialApp.builder에서 TextScaler로 적용되어
+        // 앱 전체(모든 결과페이지 포함)에 한 번에 반영된다.
+        ChangeNotifierProvider(create: (_) => TextScaleProvider()),
         // [신통방통 사운드 배치 개발 기획서 v1.2 — 2026-11] 8개 메뉴
         // BGM·앰비언스·18종 UI SFX(전환 표식음 포함)를 담당하는 전역 단일
         // 서비스. [2026-11 중앙 라우팅 전환] BGM 전환은 더 이상 화면별
@@ -402,12 +408,33 @@ class App extends StatelessWidget {
                 // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
                 // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
                 final framed = WebMobileFrame(child: content);
-                if (qaScale == null) return framed;
-                return MediaQuery(
-                  data: MediaQuery.of(
-                    context,
-                  ).copyWith(textScaler: TextScaler.linear(qaScale)),
-                  child: framed,
+                // [결과페이지 글씨 확대 기능] 사용자가 설정화면/결과화면의
+                // "가-/가+" 컨트롤로 저장한 배율을 앱 전체에 적용한다.
+                // QA 전용 ?ts= 쿼리 오버라이드가 있으면 그게 최우선이다
+                // (자동화 캡처 목적 — 사용자 설정보다 QA 파라미터 우선).
+                final userScale = context.watch<TextScaleProvider>().scale;
+                final effectiveScale = qaScale ?? userScale;
+                final scaled = effectiveScale == 1.0
+                    ? framed
+                    : MediaQuery(
+                        data: MediaQuery.of(context).copyWith(
+                          textScaler: TextScaler.linear(effectiveScale),
+                        ),
+                        child: framed,
+                      );
+                // [결과페이지 글씨 확대 기능] "결과페이지 전체 다"라는
+                // 요청을 화면별로 일일이 손대지 않고 확실히 만족시키기
+                // 위해, 글씨 크기 조절 캡슐을 앱 전체 화면 위에 공통으로
+                // 얹는다(작은 반투명 캡슐이라 콘텐츠를 가리지 않고, 캡슐
+                // 바깥 영역의 터치는 그대로 하단 화면으로 전달된다). QA
+                // ?ts= 오버라이드가 걸린 자동화 캡처 중에는 혼란을 막기
+                // 위해 컨트롤 자체를 숨긴다.
+                if (qaScale != null) return scaled;
+                return Stack(
+                  children: [
+                    Positioned.fill(child: scaled),
+                    const Positioned.fill(child: SafeArea(child: TextScaleFab())),
+                  ],
                 );
               },
             );
