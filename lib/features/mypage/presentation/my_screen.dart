@@ -1188,6 +1188,159 @@ class _Footer extends StatelessWidget {
 
   final AuthProvider auth;
 
+  /// README "다이얼로그 공통 (D1–D3)" 시각 스펙(도장 44×44 rotate(-6°),
+  /// 제목 19px/800, 버튼 2열)을 따르는 확인 다이얼로그. D1(로그아웃 확인)
+  /// 에서 사용한다 — 각 S화면/다이얼로그 호출부가 자기완결로 복제하는
+  /// 기존 관례(S13/S17의 동일 다이얼로그 복제)를 따른다.
+  static Future<bool> _showMyPageConfirmDialog(
+    BuildContext context, {
+    required String glyph,
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: MyPageColors.surface,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(MyPageRadius.card),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 28, 22, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Transform.rotate(
+                angle: -6 * 3.14159265 / 180,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: MyPageColors.red,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    glyph,
+                    style: const TextStyle(
+                      fontFamily: MyPageFonts.hanja,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: MyPageFonts.ui,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 19,
+                  height: 1.3,
+                  color: MyPageColors.ink,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: MyPageFonts.ui,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                  height: 1.5,
+                  color: MyPageColors.ink2,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: const Color(0x122A1F14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        '취소',
+                        style: TextStyle(
+                          fontFamily: MyPageFonts.ui,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: MyPageColors.ink2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: MyPageColors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        confirmLabel,
+                        style: const TextStyle(
+                          fontFamily: MyPageFonts.ui,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return result ?? false;
+  }
+
+  /// README "D1 문구" — "로그아웃할까요 / 다시 들어오시면 담아둔 소원이
+  /// 그대로 있어요" [취소][로그아웃]. 확인 시에만 기존 로그아웃 로직
+  /// (PassProvider.resetOnLogout() → AuthProvider.logout() → `/login`)을
+  /// 그대로 수행한다 — 로직은 그대로, 확인 단계만 새로 추가한다.
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await _showMyPageConfirmDialog(
+      context,
+      glyph: '退',
+      title: '로그아웃할까요',
+      message: '다시 들어오시면 담아둔 소원이\n그대로 있어요',
+      confirmLabel: '로그아웃',
+    );
+    if (!confirmed || !context.mounted) return;
+
+    // [로그아웃 시 프리패스 서버측 강제 만료] 반드시 인증 토큰이
+    // 살아있는 동안(= AuthProvider.logout()으로 토큰을 지우기 전에)
+    // PassProvider.resetOnLogout()을 먼저 호출해야 한다.
+    await context.read<PassProvider>().resetOnLogout();
+    if (context.mounted) {
+      await context.read<AuthProvider>().logout();
+    }
+    if (context.mounted) {
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/login', (route) => false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = <Widget>[
@@ -1198,18 +1351,7 @@ class _Footer extends StatelessWidget {
             Navigator.of(context).pushNamed('/login');
             return;
           }
-          // [로그아웃 시 프리패스 서버측 강제 만료] 반드시 인증 토큰이
-          // 살아있는 동안(= AuthProvider.logout()으로 토큰을 지우기 전에)
-          // PassProvider.resetOnLogout()을 먼저 호출해야 한다.
-          await context.read<PassProvider>().resetOnLogout();
-          if (context.mounted) {
-            await context.read<AuthProvider>().logout();
-          }
-          if (context.mounted) {
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil('/login', (route) => false);
-          }
+          await _confirmLogout(context);
         },
       ),
       _FooterLink(
