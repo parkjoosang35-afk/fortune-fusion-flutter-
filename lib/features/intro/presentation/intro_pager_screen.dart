@@ -431,7 +431,10 @@ class _MetaRow extends StatelessWidget {
   const _MetaRow();
 
   static TextStyle get _style => const TextStyle(
-    fontFamily: 'IBM Plex Mono',
+    // [폰트 통일 버그수정] pubspec.yaml 등록명은 공백 없는 'IBMPlexMono' —
+    // 공백 포함 'IBM Plex Mono'는 매칭되지 않아 시스템 기본 폰트로
+    // 깨지고 있었다.
+    fontFamily: 'IBMPlexMono',
     fontSize: 9.5,
     fontWeight: FontWeight.w500,
     letterSpacing: 9.5 * 0.26,

@@ -680,7 +680,8 @@ class _Seal extends StatelessWidget { final String text; final Color color; fina
         child: Container(width: size * 1.7, height: size * .5, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: .4))))))),
       Container(width: size, height: size, alignment: Alignment.center,
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6), boxShadow: [BoxShadow(color: color.withValues(alpha: .55), blurRadius: 8)]),
-        child: Text(text, style: TextStyle(fontFamily: 'Noto Serif KR', fontWeight: FontWeight.w900, fontSize: size * .55, color: const Color(0xFFFFF9E8)))),
+        // [폰트 통일 버그수정] pubspec.yaml 등록명은 공백 없는 'NotoSerifKR'.
+        child: Text(text, style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: size * .55, color: const Color(0xFFFFF9E8)))),
     ])); }
 
 class _Glyph extends StatelessWidget { final String glyph; final String? tier; final double size; const _Glyph({required this.glyph, required this.tier, required this.size});

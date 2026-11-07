@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// [타로 오즈 리스킨] "오즈의 타로" 감성 컬러 토큰.
 ///
@@ -76,19 +75,33 @@ class OzColors {
 
 /// [타로 오즈 리스킨] 타이포그래피.
 ///
-/// README 스펙은 `GoogleFonts.notoSerifKr`을 사용하지만 이 프로젝트에
-/// 고정된 `google_fonts: 6.2.1`에는 해당 메서드가 존재하지 않는다(확인
-/// 완료). 대신 같은 명조/세리프 계열인 [GoogleFonts.notoSansKr] weight
-/// 900/700으로 유사한 "제목용 굵은 세리프" 톤을 재현한다. 본문/캡션용
-/// [GoogleFonts.gowunBatang], 라벨용 [GoogleFonts.ibmPlexMono]는 스펙과
-/// 동일하게 사용 가능(둘 다 6.2.1에 존재 확인됨).
+/// [2026-12 "다 통일해" — 결과 화면 폰트 통일, A안: 폰트만 교체] 기존에는
+/// 타로 오즈 화면(7개: 홈/허브/카테고리상세/질문/카드선택/로딩/결과)만
+/// `google_fonts` 패키지로 네트워크 폰트(NotoSansKr/GowunBatang)를 받아
+/// 써서, 사주/귀인지도/궁합/소원방 등 신통방통의 다른 모든 결과 화면이
+/// 이미 쓰고 있는 번들 로컬 폰트(NotoSerifKR/Pretendard/IBMPlexMono —
+/// pubspec.yaml fonts: 섹션)와 글씨체가 달라 보였다(사용자 리포트:
+/// "타로 결과보기만 글씨체가 다르다"). 다른 기능들이 전부 거친
+/// "GowunBatang -> Pretendard 폰트 중앙화"에서 타로 오즈 테마만 빠져
+/// 있었던 것 — 이번에 동일하게 중앙화한다.
+///
+/// 색상/사이즈/자간/줄간격 등 시각 디자인 값은 전혀 바꾸지 않고
+/// `fontFamily`만 앱 표준 3종으로 교체한다:
+///   - 타이틀/카드이름(과거 NotoSansKr/GowunBatang 세리프 톤) -> NotoSerifKR
+///   - 본문(과거 GowunBatang) -> Pretendard
+///   - 모노 라벨(과거 ibmPlexMono) -> IBMPlexMono(동일 폰트, 로컬 asset)
 class OzTypography {
   OzTypography._();
+
+  static const String _serif = 'NotoSerifKR';
+  static const String _body = 'Pretendard';
+  static const String _mono = 'IBMPlexMono';
 
   /// 히어로 대제목(예: "오늘, 카드가 건네는 한마디"). CSS 대응:
   /// .canvas-title / .oz-hero-card-title(더 큰 사이즈 버전).
   static TextStyle hero({double fontSize = 26, Color color = OzColors.fg}) =>
-      GoogleFonts.notoSansKr(
+      TextStyle(
+        fontFamily: _serif,
         fontSize: fontSize,
         fontWeight: FontWeight.w900,
         height: 1.25,
@@ -102,7 +115,8 @@ class OzTypography {
     double fontSize = 20,
     FontWeight weight = FontWeight.w700,
     Color color = OzColors.fg,
-  }) => GoogleFonts.notoSansKr(
+  }) => TextStyle(
+    fontFamily: _serif,
     fontSize: fontSize,
     fontWeight: weight,
     letterSpacing: -0.3,
@@ -114,7 +128,8 @@ class OzTypography {
   static TextStyle cardName({
     double fontSize = 13,
     Color color = OzColors.fg,
-  }) => GoogleFonts.gowunBatang(
+  }) => TextStyle(
+    fontFamily: _serif,
     fontSize: fontSize,
     fontWeight: FontWeight.w700,
     height: 1.25,
@@ -124,13 +139,14 @@ class OzTypography {
   /// 본문/설명 텍스트. CSS 대응: .oz-cat-desc / .oz-sublist-desc /
   /// .canvas-subtitle.
   static TextStyle body({double fontSize = 13, Color color = OzColors.muted}) =>
-      GoogleFonts.gowunBatang(fontSize: fontSize, height: 1.6, color: color);
+      TextStyle(fontFamily: _body, fontSize: fontSize, height: 1.6, color: color);
 
   /// 이탤릭 톤(따옴표 인용, 무드카피 등)에 사용하는 변형.
   static TextStyle italicBody({
     double fontSize = 13,
     Color color = OzColors.muted,
-  }) => GoogleFonts.gowunBatang(
+  }) => TextStyle(
+    fontFamily: _body,
     fontSize: fontSize,
     height: 1.7,
     fontStyle: FontStyle.italic,
@@ -143,18 +159,21 @@ class OzTypography {
     double fontSize = 10,
     Color color = OzColors.gold,
     double letterSpacing = 2.4,
-  }) => GoogleFonts.ibmPlexMono(
+  }) => TextStyle(
+    fontFamily: _mono,
     fontSize: fontSize,
     fontWeight: FontWeight.w500,
     letterSpacing: letterSpacing,
     color: color,
-  ).copyWith(fontFamilyFallback: const ['Pretendard']);
+    fontFamilyFallback: const ['Pretendard'],
+  );
 
   /// CTA 버튼 라벨(고밀도 골드 배경 위 다크 텍스트).
   static TextStyle ctaLabel({
     double fontSize = 15,
     Color color = const Color(0xFF2A1A08),
-  }) => GoogleFonts.gowunBatang(
+  }) => TextStyle(
+    fontFamily: _body,
     fontSize: fontSize,
     fontWeight: FontWeight.w700,
     color: color,

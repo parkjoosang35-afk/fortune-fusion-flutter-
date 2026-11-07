@@ -66,7 +66,10 @@ class WrItemIcon extends StatelessWidget {
               colors: [c, c.withValues(alpha: .8), const Color(0xFF3A1010)], stops: const [0, .6, 1]),
             boxShadow: [BoxShadow(color: c.withValues(alpha: .53), blurRadius: 14)],
           ),
-          child: Text(hanja, style: TextStyle(fontFamily: 'Noto Serif KR', fontWeight: FontWeight.w900, fontSize: size * .42, color: const Color(0xFFFFF4E0))),
+          // [폰트 통일 버그수정] pubspec.yaml 등록명은 공백 없는 'NotoSerifKR' —
+          // 공백 포함 'Noto Serif KR'은 매칭되지 않아 시스템 기본 폰트로
+          // 깨지고 있었다.
+          child: Text(hanja, style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: size * .42, color: const Color(0xFFFFF4E0))),
         ),
       );
     }

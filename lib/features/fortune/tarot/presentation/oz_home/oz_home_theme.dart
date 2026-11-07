@@ -14,14 +14,14 @@
 //  않는다(파일 단위 import이므로 Dart 네임스페이스 충돌 없음. 동일 파일
 //  내에서 두 클래스를 동시에 import할 경우에만 `as` prefix가 필요함).
 //
-//  * `google_fonts: 6.2.1`(이 프로젝트 고정 버전)에는 notoSerifKr이 없어
-//    (기존 오즈 리스킨 6화면과 동일한 이유로) notoSansKr(굵은 세리프 톤)
-//    weight 900/700으로 대체했다. 값 자체(사이즈/트래킹/그림자)는 원본
-//    handoff 그대로.
+//  [2026-12 "다 통일해" — 결과 화면 폰트 통일, A안: 폰트만 교체]
+//  `presentation/oz/oz_theme.dart`와 동일한 이유로 google_fonts(네트워크/
+//  별도 폰트) 대신 신통방통 전역에서 이미 쓰는 번들 로컬 폰트
+//  (NotoSerifKR/Pretendard/IBMPlexMono)로 교체한다. 색상/사이즈/트래킹/
+//  그림자 등 시각 디자인 값은 그대로 유지.
 // ============================================================
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // ─────────────────────────────────────────────────────
 //  Colors
@@ -57,24 +57,29 @@ class OzHomeColors {
 class OzHomeTypography {
   OzHomeTypography._();
 
-  /// 히어로 타이틀 · (Noto Serif KR 대체) Noto Sans KR 900 · 22px
-  /// 예) "오늘, 카드가\n건네는 한마디"
-  static TextStyle heroTitle({double size = 22, Color? color}) =>
-      GoogleFonts.notoSansKr(
-        fontWeight: FontWeight.w900,
-        fontSize: size,
-        height: 1.2,
-        letterSpacing: size * -0.03,
-        color: color ?? Colors.white,
-        shadows: const [
-          Shadow(color: Color(0xB3000000), offset: Offset(0, 2), blurRadius: 8),
-        ],
-      );
+  static const String _serif = 'NotoSerifKR';
+  static const String _body = 'Pretendard';
+  static const String _mono = 'IBMPlexMono';
 
-  /// 배너 강조 텍스트 (아래줄) · Gowun Batang 700 이탤릭 · 20px
+  /// 히어로 타이틀 · NotoSerifKR 900 · 22px
+  /// 예) "오늘, 카드가\n건네는 한마디"
+  static TextStyle heroTitle({double size = 22, Color? color}) => TextStyle(
+    fontFamily: _serif,
+    fontWeight: FontWeight.w900,
+    fontSize: size,
+    height: 1.2,
+    letterSpacing: size * -0.03,
+    color: color ?? Colors.white,
+    shadows: const [
+      Shadow(color: Color(0xB3000000), offset: Offset(0, 2), blurRadius: 8),
+    ],
+  );
+
+  /// 배너 강조 텍스트 (아래줄) · Pretendard 700 이탤릭 · 20px
   /// 예) "**보는 카테고리**" (골드/로즈 이탤릭)
   static TextStyle bannerAccent({double size = 20, required Color color}) =>
-      GoogleFonts.gowunBatang(
+      TextStyle(
+        fontFamily: _body,
         fontStyle: FontStyle.italic,
         fontWeight: FontWeight.w700,
         fontSize: size,
@@ -86,31 +91,32 @@ class OzHomeTypography {
         ],
       );
 
-  /// 섹션 타이틀 · Gowun Batang 700 · 14px
+  /// 섹션 타이틀 · Pretendard 700 · 14px
   /// 예) "✦ 테마별로 둘러보기"
-  static TextStyle sectionTitle() => GoogleFonts.gowunBatang(
+  static TextStyle sectionTitle() => const TextStyle(
+    fontFamily: _body,
     fontWeight: FontWeight.w700,
     fontSize: 14,
     letterSpacing: -0.14,
     color: OzHomeColors.fg,
   );
 
-  /// 카드 이름 · Gowun Batang 700
-  static TextStyle cardName({double size = 15, Color? color}) =>
-      GoogleFonts.gowunBatang(
-        fontWeight: FontWeight.w700,
-        fontSize: size,
-        letterSpacing: size * -0.013,
-        color: color ?? OzHomeColors.fg,
-      );
+  /// 카드 이름 · Pretendard 700
+  static TextStyle cardName({double size = 15, Color? color}) => TextStyle(
+    fontFamily: _body,
+    fontWeight: FontWeight.w700,
+    fontSize: size,
+    letterSpacing: size * -0.013,
+    color: color ?? OzHomeColors.fg,
+  );
 
-  /// 본문 · Gowun Batang 400 · 13px
-  static TextStyle body({double size = 13, Color? color}) =>
-      GoogleFonts.gowunBatang(
-        fontSize: size,
-        height: 1.7,
-        color: color ?? OzHomeColors.muted,
-      );
+  /// 본문 · Pretendard 400 · 13px
+  static TextStyle body({double size = 13, Color? color}) => TextStyle(
+    fontFamily: _body,
+    fontSize: size,
+    height: 1.7,
+    color: color ?? OzHomeColors.muted,
+  );
 
   /// 모노 라벨 · IBM Plex Mono 500 · 대문자 + 넓은 트래킹
   /// 예) "MOST · LOVED", "FRESH · TAROT"
@@ -118,7 +124,8 @@ class OzHomeTypography {
     double size = 10,
     double trackingEm = 0.3,
     Color? color,
-  }) => GoogleFonts.ibmPlexMono(
+  }) => TextStyle(
+    fontFamily: _mono,
     fontWeight: FontWeight.w500,
     fontSize: size,
     letterSpacing: size * trackingEm,
@@ -126,24 +133,25 @@ class OzHomeTypography {
   );
 
   /// 카운트 pill 안의 큰 숫자
-  static TextStyle countNumber({required Color color}) =>
-      GoogleFonts.notoSansKr(
-        fontWeight: FontWeight.w900,
-        fontSize: 14,
-        letterSpacing: -0.28,
-        color: color,
-      );
+  static TextStyle countNumber({required Color color}) => TextStyle(
+    fontFamily: _serif,
+    fontWeight: FontWeight.w900,
+    fontSize: 14,
+    letterSpacing: -0.28,
+    color: color,
+  );
 
   /// 카운트 pill 안의 라벨 ("개 카테고리")
-  static TextStyle countLabel({required Color color}) =>
-      GoogleFonts.gowunBatang(
-        fontSize: 10.5,
-        letterSpacing: -0.05,
-        color: color,
-      );
+  static TextStyle countLabel({required Color color}) => TextStyle(
+    fontFamily: _body,
+    fontSize: 10.5,
+    letterSpacing: -0.05,
+    color: color,
+  );
 
-  /// 상단바 앱 타이틀 · (Noto Serif KR 대체) Noto Sans KR 700 · 20px
-  static TextStyle topbarTitle() => GoogleFonts.notoSansKr(
+  /// 상단바 앱 타이틀 · NotoSerifKR 700 · 20px
+  static TextStyle topbarTitle() => const TextStyle(
+    fontFamily: _serif,
     fontWeight: FontWeight.w700,
     fontSize: 20,
     letterSpacing: -0.3,
