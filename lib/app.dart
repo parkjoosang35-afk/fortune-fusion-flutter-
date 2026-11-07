@@ -407,33 +407,28 @@ class App extends StatelessWidget {
                 // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
                 // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
                 final framed = WebMobileFrame(child: content);
-                // [결과페이지 글씨 확대 기능] 사용자가 설정화면/결과화면의
-                // "가-/가+" 컨트롤로 저장한 배율을 앱 전체에 적용한다.
-                // QA 전용 ?ts= 쿼리 오버라이드가 있으면 그게 최우선이다
-                // (자동화 캡처 목적 — 사용자 설정보다 QA 파라미터 우선).
-                final userScale = context.watch<TextScaleProvider>().scale;
-                final effectiveScale = qaScale ?? userScale;
-                final scaled = effectiveScale == 1.0
-                    ? framed
-                    : MediaQuery(
-                        data: MediaQuery.of(context).copyWith(
-                          textScaler: TextScaler.linear(effectiveScale),
-                        ),
-                        child: framed,
-                      );
-                // [결과페이지 글씨 확대 기능 — 배치 수정, 2026-11] 처음에는
-                // "결과페이지 전체 다"라는 요청을 화면별로 일일이 손대지
-                // 않고 만족시키려고 글씨 크기 조절 캡슐을 앱 전체 화면
-                // 위에 공통으로 얹었으나, 그 결과 홈 화면을 포함한 모든
-                // 화면에 캡슐이 떠서 메인 하단 네비게이션 바를 가리는
-                // 문제가 발생했다(사용자 리포트: "메인 하단바에 이렇게
-                // 해놓으면 어떻게해 하단바가 가리잔아 결과페이지에
-                // 해놔야지"). 캡슐은 전역이 아니라 각 결과 화면이
-                // ResultTextScaleOverlay로 개별 적용하도록 바꾸고, 여기서는
-                // 글씨 배율 자체(TextScaler)만 앱 전체에 적용한다 — 결과
-                // 화면에서 올린 배율이 그 위에서 열리는 다이얼로그/시트에도
-                // 그대로 반영되어야 하기 때문이다.
-                return scaled;
+                // [결과페이지 글씨 확대 기능 — 범위 수정, 2026-11] 처음에는
+                // 사용자가 결과화면의 "가-/가+" 컨트롤로 저장한 배율을 여기
+                // (MaterialApp.builder, 즉 Navigator 바깥 = 앱 전체)에서
+                // TextScaler로 적용했으나, 이 지점은 모든 라우트(홈 포함)의
+                // 공통 조상이라 한 결과페이지에서 배율을 올리면 그 상태가
+                // 전역에 남아 다른 화면(홈 등)으로 이동해도 계속 커진 채로
+                // 유지되는 문제가 있었다(사용자 리포트: "결과페이지에서
+                // 한번 하면 다시 원복이 돼야 하는데... 전체 확대된 글로
+                // 나오는것 같아"). 배율은 "그 결과페이지 화면 하나"에만
+                // 적용되어야 하므로, 사용자 배율(TextScaleProvider)은 여기서
+                // 적용하지 않고 ResultTextScaleOverlay가 각 결과 화면의
+                // child 트리에만 개별적으로 적용하도록 책임을 옮긴다. 여기
+                // 전역 지점에는 QA 전용 ?ts= 오버라이드만 남겨둔다(자동화
+                // 캡처 목적 한정 — 쿼리 파라미터가 없으면 기존과 동일하게
+                // 아무 영향도 주지 않는다).
+                if (qaScale == null || qaScale == 1.0) return framed;
+                return MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(qaScale)),
+                  child: framed,
+                );
               },
             );
           },
