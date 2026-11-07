@@ -513,10 +513,18 @@ class SajuDetailGeneratingOverlay extends StatefulWidget {
       _SajuDetailGeneratingOverlayState();
 }
 
+/// [UI 개선 — 2026-12 로딩 디자인 리디자인] 기존 구현은 94%-불투명 검은
+/// 배경 위에 단순 골드 링 하나가 도는 것뿐이라 "너무 구려 보인다"는
+/// 사용자 피드백을 받았다. 앱의 다른 화면이 이미 쓰고 있는 다크 디자인
+/// 언어(별 필드 배경 · 골드 글로우 · Serif 타이포)를 그대로 재사용해
+/// 완전 불투명 배경 + 별빛 + 숨쉬는 글로우 + 도넛형 회전 아크 + 중앙
+/// 글자(卦) + 진행 점(dots) 조합으로 바꾼다. 로직(표시/해제 타이밍)은
+/// 전혀 바꾸지 않는다 — 시각 레이어만 교체한다.
 class _SajuDetailGeneratingOverlayState
     extends State<SajuDetailGeneratingOverlay>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _spin;
+  late final AnimationController _pulse;
 
   static const List<String> _messages = [
     '당신만의 이야기를 쓰고 있어요',
@@ -529,13 +537,18 @@ class _SajuDetailGeneratingOverlayState
     super.initState();
     _spin = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1600),
+      duration: const Duration(milliseconds: 2200),
     )..repeat();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _spin.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
@@ -543,35 +556,124 @@ class _SajuDetailGeneratingOverlayState
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: Material(
-        color: SajuInk.i900.withValues(alpha: 0.94),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RotationTransition(
-                turns: _spin,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: SajuGold.g300.withValues(alpha: 0.85),
-                      width: 3,
-                    ),
-                    gradient: SweepGradient(
-                      colors: [
-                        SajuGold.g300.withValues(alpha: 0.0),
-                        SajuGold.g300.withValues(alpha: 0.9),
-                      ],
-                    ),
-                  ),
+        color: SajuInk.i900,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const SajuStarField(count: 30, seed: 11, opacity: 0.45),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -0.1),
+                  radius: 0.85,
+                  colors: [Color(0x402A2640), Colors.transparent],
+                  stops: [0.0, 0.75],
                 ),
               ),
-              const SizedBox(height: 28),
-              _CyclingMessage(messages: _messages),
-            ],
-          ),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedBuilder(
+                    animation: Listenable.merge([_spin, _pulse]),
+                    builder: (context, _) {
+                      final pulseScale = 0.88 + (_pulse.value * 0.18);
+                      final glyphAlpha = 0.75 + (_pulse.value * 0.25);
+                      return SizedBox(
+                        width: 112,
+                        height: 112,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // 숨쉬는 외곽 글로우.
+                            Container(
+                              width: 104 * pulseScale,
+                              height: 104 * pulseScale,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    SajuGold.g300.withValues(alpha: 0.3),
+                                    SajuGold.g300.withValues(alpha: 0.0),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // 고정 얇은 테두리 링.
+                            Container(
+                              width: 76,
+                              height: 76,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: SajuText.line,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            // 도넛형 회전 아크 — SweepGradient + 중앙 마스킹.
+                            RotationTransition(
+                              turns: _spin,
+                              child: Container(
+                                width: 76,
+                                height: 76,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: SweepGradient(
+                                    colors: [
+                                      SajuGold.g300.withValues(alpha: 0.0),
+                                      SajuGold.g300.withValues(alpha: 0.15),
+                                      SajuGold.g100,
+                                    ],
+                                    stops: const [0.0, 0.7, 1.0],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    width: 68,
+                                    height: 68,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: SajuInk.i900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '卦',
+                              style: TextStyle(
+                                fontFamily: SajuType.serif,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 27,
+                                color: SajuGold.g100.withValues(
+                                  alpha: glyphAlpha.clamp(0.0, 1.0),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    '이야기를 짓는 중',
+                    style: TextStyle(
+                      fontFamily: SajuType.serif,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 19,
+                      letterSpacing: -0.02 * 19,
+                      color: SajuGold.g100,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _CyclingMessage(messages: _messages),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -607,18 +709,42 @@ class _CyclingMessageState extends State<_CyclingMessage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      child: Text(
-        widget.messages[_idx],
-        key: ValueKey(_idx),
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontFamily: SajuType.ui,
-          fontSize: 14.5,
-          color: SajuText.fg2,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          child: Text(
+            widget.messages[_idx],
+            key: ValueKey(_idx),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: SajuType.ui,
+              fontWeight: FontWeight.w500,
+              fontSize: 14.5,
+              color: SajuText.fg2,
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: 18),
+        // 진행 점(dots) — 메시지 사이클과 동기화된 가벼운 진행 표시.
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(widget.messages.length, (i) {
+            final active = i == _idx;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: active ? 16 : 5,
+              height: 5,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(3),
+                color: active ? SajuGold.g300 : SajuText.line,
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }

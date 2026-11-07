@@ -591,44 +591,91 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     adSlot: '',
                                   ),
                                 ),
-                                // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
-                                // 기기 저장 버튼 문구를 전 화면 공통
-                                // "이미지로 저장"으로 통일.
-                                TextButton.icon(
-                                  onPressed: () => saveOriginalResult(
-                                    context,
-                                    _originalResultKey,
-                                    // [REQ-09] 파일명 규칙 통일.
-                                    name: buildSaveFileName(
-                                      'saju',
-                                      detail.topicId,
+                                // [UI 개선 — 2026-12 저장/공유 통합 박스]
+                                // 기존에는 "이미지로 저장"/"다른 운세와
+                                // 비교해보기"가 각각 TextButton.icon으로
+                                // 따로 떨어져 있었는데, 테마 기본
+                                // TextButton 색(보라 계열)을 그대로 써서
+                                // 검은 배경 위에서 글씨가 거의 보이지 않는
+                                // 문제가 있었다("글씨가 안보이고 디자인을
+                                // 개판으로했어" 피드백). 디자인 토큰
+                                // (SajuGold/SajuText)을 명시적으로 적용한
+                                // 테두리 박스 하나로 통합해 저장+공유하기
+                                // 두 액션만 남긴다. 저장 로직
+                                // (saveOriginalResult/buildSaveFileName)과
+                                // 공유 로직(_shareResult, REQ-08/REQ-09
+                                // 계약)은 그대로 재사용한다 — "다른 운세와
+                                // 비교해보기" 교차검증 진입점은 사용자가
+                                // 요청한 박스 구성(저장+공유하기)에
+                                // 포함되지 않아 이 화면에서 제거한다.
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    22,
+                                    24,
+                                    22,
+                                    0,
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                        SajuRadius.lg,
+                                      ),
+                                      color: SajuText.card,
+                                      border: Border.all(
+                                        color: SajuText.lineGold,
+                                      ),
                                     ),
-                                    leadingKeys: [_originalHeaderKey],
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: _SaveShareAction(
+                                            icon: Icons.download_rounded,
+                                            label: '저장',
+                                            onTap: () => saveOriginalResult(
+                                              context,
+                                              _originalResultKey,
+                                              // [REQ-09] 파일명 규칙 통일.
+                                              name: buildSaveFileName(
+                                                'saju',
+                                                detail.topicId,
+                                              ),
+                                              leadingKeys: [
+                                                _originalHeaderKey,
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 1,
+                                          height: 28,
+                                          color: SajuText.line,
+                                        ),
+                                        Expanded(
+                                          child: _SaveShareAction(
+                                            icon: Icons.ios_share_rounded,
+                                            label: '공유하기',
+                                            onTap: () =>
+                                                _shareResult(context, detail),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  icon: const Icon(Icons.download_rounded),
-                                  label: const Text('이미지로 저장'),
                                 ),
-                                // [엔진 통합 지시문 STEP 3 — 2탭 도달성]
-                                // 타로/관상/손금/궁합 결과화면과 동일한
-                                // 패턴으로 교차검증 화면 진입점을 추가한다.
-                                TextButton.icon(
-                                  onPressed: () => Navigator.of(
-                                    context,
-                                  ).pushNamed('/cross-check/result'),
-                                  icon: const Icon(
-                                    Icons.compare_arrows_rounded,
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    22,
+                                    28,
+                                    22,
+                                    0,
                                   ),
-                                  label: const Text('다른 운세와 비교해보기'),
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.fromLTRB(22, 28, 22, 0),
                                   child: Text(
                                     '◆ 이 이야기는 당신의 원국에서 찾은 근거로만 쓰였어요',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontFamily: SajuType.body,
                                       fontSize: 13.5,
-                                      color: SajuText.faint,
+                                      color: SajuText.muted,
                                     ),
                                   ),
                                 ),
@@ -697,6 +744,52 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       case SajuRenewalScene.guin:
         return SajuScene.guin.tint;
     }
+  }
+}
+
+/// [UI 개선 — 2026-12] 저장/공유 통합 박스 내부의 개별 액션(아이콘+
+/// 라벨). 디자인 토큰(SajuGold.g100/SajuText.fg2)을 명시적으로 적용해
+/// 검은 배경 위에서도 또렷하게 보이도록 한다(테마 기본 버튼 색상에
+/// 의존하지 않음 — 기존 저대비 결함의 재발 방지).
+class _SaveShareAction extends StatelessWidget {
+  const _SaveShareAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(SajuRadius.lg),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 19, color: SajuGold.g300),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: SajuType.ui,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: SajuGold.g100,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
