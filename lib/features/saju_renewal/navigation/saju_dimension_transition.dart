@@ -65,7 +65,26 @@ Route<T> sajuDimensionEnterRoute<T>(
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       // 복귀(reverse)는 오버레이가 담당하므로 여기서는 그냥 즉시 보여준다
       // (중복 애니메이션 방지 — 두 전환이 겹치면 지저분해 보인다).
-      if (animation.status == AnimationStatus.reverse) {
+      //
+      // [버그 수정 재발 대응 — 정통사주 01 화면 "머무는 동안" 계속
+      // 깜박임(사용자 실기기 재신고, 2026-11-07, "요 화면만 그래 넘어가면
+      // 괜찮구")] 기존에는 전환이 끝나(completed) curved.value가 1.0에
+      // 고정된 뒤에도 ClipPath가 트리에 영구히 남아 있었다. df4516ec +
+      // 직전 수정(SajuStarField/SajuBagua RepaintBoundary)은 모두 "전환
+      // 애니메이션 재생 *중*"의 Impeller 재합성 문제만 가정했지만, 실제
+      // 증상은 전환이 끝난 *뒤에도* 01 화면에 머무르는 내내 계속된다 —
+      // 즉 범인은 300ms 전환 그 자체가 아니라, 전환이 끝난 뒤에도 계속
+      // 남아 있는 ClipPath 레이어가 그 아래의 상시 애니메이션 자식(별
+      // 반짝임 7초 루프, Bagua 회전, 하단바)을 영구히 감싸고 있는 구조다.
+      // 02(BirthInputScreen)/03(CalculatingScreen)은 이 ClipPath 전환
+      // 자체를 쓰지 않는 MaterialPageRoute로 진입하므로 증상이 없다는
+      // 사용자 관찰과 정확히 일치한다.
+      // [해법] 애니메이션이 완료되면(forward 방향의 재생이 끝나면) 더
+      // 이상 ClipPath로 감싸지 않고 child를 그대로 반환해, 01 화면에
+      // 머무는 동안에는 이 라우트가 평범한 화면과 동일한 레이어 구조가
+      // 되도록 한다. 재생 중(300ms)에만 원형 확산 비주얼을 유지한다.
+      if (animation.status == AnimationStatus.reverse ||
+          animation.status == AnimationStatus.completed) {
         return child;
       }
       final curved = CurvedAnimation(
