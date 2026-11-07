@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/zoomable_content.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
@@ -274,11 +275,19 @@ class _BobbingHostMascotState extends State<_BobbingHostMascot>
           offset: Offset(0, y),
           child: Transform.rotate(
             angle: rot * (3.14159265 / 180),
-            child: Image.asset(
-              widget.gender == 'male'
+            // [결과페이지 확대 기능] 마스코트 이미지를 탭하면 전체화면으로
+            // 크게 볼 수 있다.
+            child: ZoomableAssetImage(
+              assetPath: widget.gender == 'male'
                   ? 'assets/images/guinji/doryeong/celebrating.png'
                   : 'assets/images/guinji/seonnyeo/celebrating.png',
-              fit: BoxFit.contain,
+              heroTag: 'guinji_guest_mascot_${widget.gender}',
+              child: Image.asset(
+                widget.gender == 'male'
+                    ? 'assets/images/guinji/doryeong/celebrating.png'
+                    : 'assets/images/guinji/seonnyeo/celebrating.png',
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         );

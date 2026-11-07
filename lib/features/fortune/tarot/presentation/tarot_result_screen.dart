@@ -14,6 +14,7 @@ import '../../../../core/web_ads/web_ad_config.dart';
 import '../../../../core/web_ads/widgets/web_ad_in_page.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/zoomable_content.dart';
 import '../application/tarot_audio_controller.dart';
 import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
@@ -1356,15 +1357,23 @@ class _SectionHeaderCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          ClipRRect(
+          // [결과페이지 확대 기능] 탭하면 전체화면으로 카드 원본
+          // 이미지를 핀치줌으로 크게 볼 수 있다.
+          ZoomableAssetImage(
+            assetPath: heroCard.thumbAssetPath,
+            fullAssetPath: heroCard.imageAssetPath,
+            heroTag: 'tarot_section_header_${heroCard.id}',
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              heroCard.thumbAssetPath,
-              width: 64,
-              height: 96,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  Text(heroCard.icon, style: const TextStyle(fontSize: 40)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                heroCard.thumbAssetPath,
+                width: 64,
+                height: 96,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    Text(heroCard.icon, style: const TextStyle(fontSize: 40)),
+              ),
             ),
           ),
           const SizedBox(height: OzTokens.spaceMd),
@@ -1908,20 +1917,39 @@ class _PositionDetailSheet extends StatelessWidget {
                               ],
                             ),
                             alignment: Alignment.center,
-                            child: ClipRRect(
+                            // [결과페이지 확대 기능] 이미 커진 카드 이미지를
+                            // 한 번 더 탭하면 전체화면 핀치줌 뷰로 열린다.
+                            child: ZoomableContent(
+                              heroTag: '${heroTag}_zoom',
                               borderRadius: BorderRadius.circular(
                                 OzTokens.radiusLg,
                               ),
-                              child: Transform.rotate(
+                              fullScreenBuilder: (_) => Transform.rotate(
                                 angle: card.isReversed ? pi : 0,
                                 child: Image.asset(
                                   card.imageAssetPath,
-                                  width: 170,
-                                  height: 255,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                   errorBuilder: (_, __, ___) => Text(
                                     card.icon,
-                                    style: const TextStyle(fontSize: 64),
+                                    style: const TextStyle(fontSize: 120),
+                                  ),
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  OzTokens.radiusLg,
+                                ),
+                                child: Transform.rotate(
+                                  angle: card.isReversed ? pi : 0,
+                                  child: Image.asset(
+                                    card.imageAssetPath,
+                                    width: 170,
+                                    height: 255,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Text(
+                                      card.icon,
+                                      style: const TextStyle(fontSize: 64),
+                                    ),
                                   ),
                                 ),
                               ),

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/zoomable_content.dart';
 import '../data/models/interpret_result.dart';
 import '../data/models/topic_card.dart' show SajuRenewalScene;
 import '../data/saju_term_dictionary.dart';
@@ -431,6 +432,7 @@ class SajuEvidenceCard extends StatelessWidget {
     required this.profile,
     this.label = '핵심 근거',
     this.compact = false,
+    this.heroTagSuffix = '',
   });
 
   final InterpretEvidence evidence;
@@ -438,15 +440,32 @@ class SajuEvidenceCard extends StatelessWidget {
   final String label;
   final bool compact;
 
+  /// 같은 화면에 [SajuEvidenceCard]가 여러 번(블록마다) 등장할 수 있어
+  /// Hero 태그 충돌을 막기 위한 구분용 접미사(예: 블록 인덱스).
+  final String heroTagSuffix;
+
   @override
   Widget build(BuildContext context) {
     Widget visual;
+    // [결과페이지 확대 기능] CustomPaint 기반 사주 도식(기둥/오행/대운)은
+    // 비트맵이 아니라 벡터로 직접 그려지므로, 작은 썸네일을 그대로
+    // 키우면 좌표가 깨진다. 전체화면에서는 동일 위젯을 더 큰 파라미터로
+    // 다시 그려 핀치줌 가능하게 한다.
+    WidgetBuilder fullScreenBuilder;
     switch (evidence.type) {
       case 'grid':
         visual = SajuPillarGrid(
           pillars: profile.pillars,
           cell: compact ? 38 : 44,
           gap: 7,
+          reveal: 8,
+          highlightColumns: evidence.cols,
+          showLabels: true,
+        );
+        fullScreenBuilder = (_) => SajuPillarGrid(
+          pillars: profile.pillars,
+          cell: 72,
+          gap: 12,
           reveal: 8,
           highlightColumns: evidence.cols,
           showLabels: true,
@@ -461,6 +480,14 @@ class SajuEvidenceCard extends StatelessWidget {
             compact: true,
           ),
         );
+        fullScreenBuilder = (_) => SizedBox(
+          width: 340,
+          child: SajuElementBars(
+            weighted: profile.elementsWeighted,
+            highlight: evidence.hl,
+            compact: false,
+          ),
+        );
         break;
       case 'luck':
         visual = SajuLuckStream(
@@ -469,9 +496,27 @@ class SajuEvidenceCard extends StatelessWidget {
           highlight: int.tryParse(evidence.hl ?? ''),
           width: compact ? 250 : 270,
         );
+        fullScreenBuilder = (_) => SajuLuckStream(
+          luck: profile.luck,
+          current: profile.luckCurrentIndex,
+          highlight: int.tryParse(evidence.hl ?? ''),
+          width: 340,
+        );
         break;
       default:
         visual = const SizedBox.shrink();
+        fullScreenBuilder = (_) => const SizedBox.shrink();
+    }
+    if (evidence.type == 'grid' ||
+        evidence.type == 'elements' ||
+        evidence.type == 'luck') {
+      visual = ZoomableContent(
+        heroTag:
+            'saju_evidence_${evidence.type}_${evidence.hl ?? ''}_$heroTagSuffix',
+        fullScreenBuilder: fullScreenBuilder,
+        backgroundColor: SajuViolet.v700,
+        child: visual,
+      );
     }
 
     return Container(

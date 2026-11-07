@@ -3,6 +3,7 @@ import '../../../core/config/env_config.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_error_state.dart';
+import '../../../core/widgets/zoomable_content.dart';
 import '../data/share_api_service.dart';
 import '../domain/share_result_model.dart';
 import 'full_result_sheet.dart';
@@ -489,10 +490,17 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
     if (_originalPng != null) {
       return ListView(
         children: [
-          Image.memory(
-            _originalPng!,
-            width: double.infinity,
-            fit: BoxFit.fitWidth,
+          // [결과페이지 확대 기능] 공유받은 원본 결과 이미지를 탭하면
+          // 전체화면 핀치줌 뷰로 자세히 볼 수 있다.
+          ZoomableContent(
+            heroTag: 'shared_result_${shared.shareId}',
+            fullScreenBuilder: (_) =>
+                Image.memory(_originalPng!, fit: BoxFit.contain),
+            child: Image.memory(
+              _originalPng!,
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+            ),
           ),
           FilledButton(
             onPressed: () => showFullResultSheet(

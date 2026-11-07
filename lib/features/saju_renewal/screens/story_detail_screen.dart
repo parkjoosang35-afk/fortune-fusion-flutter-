@@ -372,6 +372,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                       SajuEvidenceCard(
                                         evidence: summary.evidence,
                                         profile: _profile!,
+                                        heroTagSuffix: 'preview',
                                       ),
                                     const SizedBox(height: 32),
                                   ] else ...[
@@ -989,6 +990,7 @@ class _DetailBlockView extends StatelessWidget {
                 profile: profile!,
                 label: '근거',
                 compact: true,
+                heroTagSuffix: 'block_$index',
               ),
           ],
           if (!isLast)

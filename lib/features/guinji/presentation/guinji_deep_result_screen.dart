@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import '../../../core/util/image_gallery_saver.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
+import '../../../core/widgets/zoomable_content.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 
@@ -688,12 +689,18 @@ class _DeepHero extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (character != null)
-            Image.asset(
-              character!.body,
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              errorBuilder: (_, __, ___) =>
-                  _HeroFallback(color: color, initial: initial),
+            // [결과페이지 확대 기능] 캐릭터 상반신 이미지를 탭하면
+            // 전체화면으로 크게 볼 수 있다.
+            ZoomableAssetImage(
+              assetPath: character!.body,
+              heroTag: 'guinji_deep_hero_${character!.id}',
+              child: Image.asset(
+                character!.body,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                errorBuilder: (_, __, ___) =>
+                    _HeroFallback(color: color, initial: initial),
+              ),
             )
           else
             _HeroFallback(color: color, initial: initial),
@@ -926,6 +933,7 @@ class _RoleCard extends StatelessWidget {
             size: 36,
             ringColor: null,
             color: GmColors.muted,
+            heroTagPrefix: 'role',
           ),
           const SizedBox(height: 10),
           Text(
@@ -950,6 +958,7 @@ class _FaceAvatar extends StatelessWidget {
     required this.size,
     required this.ringColor,
     required this.color,
+    this.heroTagPrefix = 'face',
   });
 
   final GuinjiCharacter? character;
@@ -957,6 +966,10 @@ class _FaceAvatar extends StatelessWidget {
   final double size;
   final Color? ringColor;
   final Color color;
+
+  /// 같은 캐릭터 아바타가 한 화면에 여러 번 쓰일 수 있어(편지 카드 +
+  /// 역할 카드 등) Hero 태그 충돌을 막기 위한 구분용 접두사.
+  final String heroTagPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -988,19 +1001,25 @@ class _FaceAvatar extends StatelessWidget {
       height: size,
       decoration: decoration,
       clipBehavior: Clip.antiAlias,
-      child: Image.asset(
-        character!.face,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          color: color.withValues(alpha: 0.2),
-          alignment: Alignment.center,
-          child: Text(
-            initial,
-            style: TextStyle(
-              fontFamily: GmText.display,
-              fontSize: size * 0.4,
-              fontWeight: FontWeight.w800,
-              color: color,
+      // [결과페이지 확대 기능] 작은 원형 아바타도 탭하면 캐릭터 얼굴
+      // 이미지를 전체화면으로 크게 볼 수 있다.
+      child: ZoomableAssetImage(
+        assetPath: character!.face,
+        heroTag: 'guinji_deep_face_${heroTagPrefix}_${character!.id}',
+        child: Image.asset(
+          character!.face,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: color.withValues(alpha: 0.2),
+            alignment: Alignment.center,
+            child: Text(
+              initial,
+              style: TextStyle(
+                fontFamily: GmText.display,
+                fontSize: size * 0.4,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
             ),
           ),
         ),
