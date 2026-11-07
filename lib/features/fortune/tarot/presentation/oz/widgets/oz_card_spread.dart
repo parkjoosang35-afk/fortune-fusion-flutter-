@@ -70,6 +70,15 @@ class _OzCardSpreadState extends State<OzCardSpread>
   int? _lastUndoneSlotIndex;
   List<TarotFaceDownSlot> _prevSlots = const [];
 
+  // [카드 탭 확대(돋보기) 연출 - 2026-11 추가, 선택/타이밍 로직 변경 없음]
+  // 카드가 작게 진열되어 탭 직후 "내가 어떤 카드를 눌렀는지"를 크게
+  // 한 번 보여주는 순수 시각 효과. 아래 [_handleTapSlot]의 기존
+  // 550ms 지연·[widget.onPick] 호출 타이밍은 그대로 두고, 이 오버레이는
+  // 그와 별도로 독립적으로 짧게 떴다 사라진다(실제 선택/서버 호출
+  // 로직에는 전혀 관여하지 않음).
+  int? _zoomSlotIndex;
+  late AnimationController _zoomController;
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +87,10 @@ class _OzCardSpreadState extends State<OzCardSpread>
     _shuffleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1350),
+    );
+    _zoomController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -150,18 +163,69 @@ class _OzCardSpreadState extends State<OzCardSpread>
       return;
     }
     if (!widget.canPick) return;
-    setState(() => _pickingSlotIndex = slotIndex);
+    // [카드 탭 확대 연출] 기존 "뽑기" 타이밍/로직(아래 550ms 지연 +
+    // widget.onPick 호출 + _pickingSlotIndex 처리)은 단 한 글자도 바꾸지
+    // 않는다. 확대 오버레이는 이와 별개로 독립 실행되는 순수 시각 효과일
+    // 뿐이며, [widget.onPick]이 호출되는 시점이나 순서에 전혀 관여하지
+    // 않는다.
+    setState(() {
+      _pickingSlotIndex = slotIndex;
+      _zoomSlotIndex = slotIndex;
+    });
+    _zoomController.forward(from: 0);
     Future.delayed(const Duration(milliseconds: 550), () {
       if (!mounted) return;
       widget.onPick(slotIndex);
       setState(() => _pickingSlotIndex = null);
+    });
+    Future.delayed(const Duration(milliseconds: 420), () {
+      if (!mounted) return;
+      _zoomController.reverse();
+    });
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
+      setState(() => _zoomSlotIndex = null);
     });
   }
 
   @override
   void dispose() {
     _shuffleController.dispose();
+    _zoomController.dispose();
     super.dispose();
+  }
+
+  /// [카드 탭 확대(돋보기) 오버레이] 탭한 카드를 화면 중앙에 크게 띄워
+  /// 어떤 카드를 눌렀는지 한눈에 확인시켜 주는 순수 장식 레이어.
+  /// 선택 단계(`selectingCards`)에서는 카드가 항상 뒷면이므로(§5.3 원칙
+  /// - 뽑힌 카드 정체는 reveal 전까지 비공개) 확대도 뒷면 디자인을
+  /// 그대로 키워서 보여준다. 실제 선택/서버 호출 로직과는 완전히
+  /// 분리되어 있다.
+  Widget _buildZoomOverlay() {
+    if (_zoomSlotIndex == null) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _zoomController,
+          builder: (context, _) {
+            final t = _zoomController.value.clamp(0.0, 1.0);
+            final scaleT = Curves.easeOutBack.transform(t);
+            final fadeT = Curves.easeOut.transform(t);
+            return Opacity(
+              opacity: fadeT,
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.45 * fadeT),
+                alignment: Alignment.center,
+                child: Transform.scale(
+                  scale: 0.5 + 0.5 * scaleT,
+                  child: const _ZoomedCardBack(),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -257,12 +321,18 @@ class _OzCardSpreadState extends State<OzCardSpread>
           }
         }
 
-        return Center(
-          child: SizedBox(
-            width: stageW,
-            height: stageH,
-            child: Stack(clipBehavior: Clip.none, children: tiles),
-          ),
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Center(
+              child: SizedBox(
+                width: stageW,
+                height: stageH,
+                child: Stack(clipBehavior: Clip.none, children: tiles),
+              ),
+            ),
+            _buildZoomOverlay(),
+          ],
         );
       },
     );
@@ -667,3 +737,41 @@ class OzFaceDownCardArt extends StatelessWidget {
 }
 
 double lerpDouble(double a, double b, double t) => a + (b - a) * t;
+
+/// [카드 탭 확대(돋보기) 연출용] 선택 단계에서 탭한 카드를 큼직하게 보여줄
+/// 때 쓰는 뒷면 카드 아트. [OzFaceDownCardArt]와 같은 디자인(그라데이션
+/// + 테두리 + 반짝임 글자)을 확대 표시에 맞는 두께/크기로 재구성한
+/// 것일 뿐, 실제 카드 정체 노출이나 선택 로직과는 무관한 순수 장식이다
+/// (§5.3 원칙 - 뽑힌 카드는 reveal 전까지 끝까지 뒷면).
+class _ZoomedCardBack extends StatelessWidget {
+  const _ZoomedCardBack();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 132,
+      height: 198,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [OzColors.bgTop.withValues(alpha: 0.95), OzColors.bgMid],
+        ),
+        border: Border.all(color: OzColors.gold, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: OzColors.gold.withValues(alpha: 0.45),
+            blurRadius: 24,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '✨',
+        style: TextStyle(fontSize: 40, color: OzColors.gold.withValues(alpha: 0.9)),
+      ),
+    );
+  }
+}
