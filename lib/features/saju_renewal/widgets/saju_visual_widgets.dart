@@ -138,28 +138,39 @@ class _SajuBaguaState extends State<SajuBagua>
     // 쓰이지만, 실제 진행 정보는 하단 "ANALYSIS · 0n/09" 상단바 타이틀과
     // 단계 라벨(Text)이 이미 전달하므로 이 오브제 자체는 순수 장식으로
     // 취급해 스크린 리더 트리에서 제외한다.
-    return ExcludeSemantics(
-      child: AnimatedScale(
-        scale: 1 - widget.collapse * 0.4,
-        duration: SajuMotion.card,
-        child: AnimatedOpacity(
-          opacity: 1 - widget.collapse,
+    // [버그 수정 재발 대응 — 정통사주 진입 화면 깜박거림(APK 실기기
+    // 재신고, 2026-11-07)] SajuStarField와 동일한 이유(아래 해당 위젯
+    // 주석 참고) — 이 오브제는 정통사주 01 화면에서 가장 큰 면적을
+    // 차지하는 애니메이션 요소이고, AnimatedOpacity(opacity: 1-collapse,
+    // 01에서는 collapse=0 고정이라도 AnimatedOpacity 자체가 매 프레임
+    // opacity 레이어를 유지)로 감싸인 채 진입 전환(ClipPath 애니메이션)과
+    // 동시에 재생된다. RepaintBoundary로 격리해 Impeller가 이 레이어를
+    // ClipPath와 분리해서 합성하게 한다(하단바에 적용한 것과 동일한
+    // 표준 우회법, 디자인/레이아웃 변경 없음).
+    return RepaintBoundary(
+      child: ExcludeSemantics(
+        child: AnimatedScale(
+          scale: 1 - widget.collapse * 0.4,
           duration: SajuMotion.card,
-          child: SizedBox(
-            width: widget.size,
-            height: widget.size,
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                return CustomPaint(
-                  painter: _BaguaPainter(
-                    t: _controller.value,
-                    intensity: widget.intensity,
-                    lit: widget.lit,
-                    color: widget.color,
-                  ),
-                );
-              },
+          child: AnimatedOpacity(
+            opacity: 1 - widget.collapse,
+            duration: SajuMotion.card,
+            child: SizedBox(
+              width: widget.size,
+              height: widget.size,
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  return CustomPaint(
+                    painter: _BaguaPainter(
+                      t: _controller.value,
+                      intensity: widget.intensity,
+                      lit: widget.lit,
+                      color: widget.color,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),

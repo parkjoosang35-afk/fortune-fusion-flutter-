@@ -83,18 +83,34 @@ class _SajuStarFieldState extends State<SajuStarField>
     // [E-Semantics — docs/08_QA_체크리스트.md "장식(Bagua·별·장면
     // 오브제)은 접근성 트리에서 숨김"] 순수 장식 요소이므로 스크린
     // 리더 트리에서 완전히 제외한다.
+    //
+    // [버그 수정 재발 대응 — 정통사주 진입 화면 깜박거림(APK 실기기
+    // 재신고, 2026-11-07)] df4516ec에서 MidnightBottomNavBar의
+    // BackdropFilter 하나만 RepaintBoundary로 격리했지만, Android
+    // Impeller의 "애니메이션 중인 ClipPath(sajuDimensionEnterRoute의
+    // 원형 확산 진입 전환) 안에서 매 프레임 별도 레이어로 재합성돼야
+    // 하는 자식"을 깜박이게 하는 근본 결함은 BackdropFilter에만
+    // 국한되지 않는다 — 불투명도(Opacity) < 1로 고정된 채 매 프레임
+    // 다시 그려지는 자식(saveLayer 유발)도 동일 증상을 일으킬 수 있다.
+    // 이 위젯(SajuStarField)은 opacity(0.55/0.8 등, 1.0 아님)로 감싼
+    // CustomPaint를 7초 주기로 끊임없이 다시 그리며, 정통사주 01 화면을
+    // 포함한 모든 saju_renewal 화면 배경(SajuDarkBase)에 항상 깔려
+    // 있어 진입 전환 애니메이션과 정확히 겹친다 — 하단바와 동일한
+    // 구조적 패턴이므로 같은 해법(RepaintBoundary로 격리)을 적용한다.
     return ExcludeSemantics(
       child: IgnorePointer(
-        child: Opacity(
-          opacity: widget.opacity,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              return CustomPaint(
-                size: Size.infinite,
-                painter: _StarFieldPainter(_stars, _controller.value),
-              );
-            },
+        child: RepaintBoundary(
+          child: Opacity(
+            opacity: widget.opacity,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return CustomPaint(
+                  size: Size.infinite,
+                  painter: _StarFieldPainter(_stars, _controller.value),
+                );
+              },
+            ),
           ),
         ),
       ),
