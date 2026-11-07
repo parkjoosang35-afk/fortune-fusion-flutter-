@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../../core/config/env_config.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../notification/data/notification_preference_repository.dart';
 import '../../pass/application/pass_provider.dart';
 import 'birth_info_minimal_screen.dart';
+import 'policy_document_minimal_screen.dart';
 import 'real_name_minimal_screen.dart';
 import 'theme/mypage_minimal_theme.dart';
 import 'theme/mypage_toast.dart';
@@ -35,14 +34,20 @@ import 'theme/mypage_toast.dart';
 ///   명시적으로 남아 있는 사항이라 새 서버 필드를 임의로 만들지 않는다
 ///   ("로직은 그대로, 스킨만 교체" 원칙).
 ///
-/// [범위 결정] README S15(약관 문서)/S16(앱 정보)/S17(회원탈퇴) 서브 화면은
-/// 이번 작업 범위가 아니다. 이 화면에서는 기존 인프라를 그대로 재사용한다:
-/// - "약관"/"앱 정보": 외부 브라우저 또는 안내 토스트로 임시 대체
-///   (S15/S16 전용 화면 완성 전까지)
+/// [범위 결정] README S16(앱 정보)/S17(회원탈퇴) 서브 화면은 이번 작업
+/// 범위가 아니다. 이 화면에서는 기존 인프라를 그대로 재사용한다:
+/// - "앱 정보": 안내 토스트로 임시 대체(S16 전용 화면 완성 전까지)
 /// - "출생정보 수정": README S13 전용 신규 화면 [BirthInfoMinimalScreen]
 ///   (`birth_info_minimal_screen.dart`)으로 연결한다.
 /// - "실명 등록·수정": README S14 전용 신규 화면 [RealNameMinimalScreen]
 ///   (`real_name_minimal_screen.dart`)으로 연결한다.
+/// - "이용약관/개인정보처리방침/계정삭제 안내": README S15 전용 신규 화면
+///   [PolicyDocumentMinimalScreen](`policy_document_minimal_screen.dart`)
+///   으로 연결한다 — README가 명시한 것처럼 실제 약관 원문은 새로 만들지
+///   않고 guinji에서 이미 쓰고 있는 [PolicyWebView]로 admin_web의
+///   `/terms`/`/privacy-policy`/`/account-deletion` 페이지를 그대로 불러온다.
+///   기존 외부 브라우저 호출(`_openPolicyLink`, launchUrl externalApplication)는
+///   이 화면으로 대체되어 제거했다.
 class SettingsMinimalScreen extends StatefulWidget {
   const SettingsMinimalScreen({super.key});
 
@@ -152,13 +157,13 @@ class _SettingsMinimalScreenState extends State<SettingsMinimalScreen> {
     return _hourZhiNames[index];
   }
 
-  Future<void> _openPolicyLink(BuildContext context, String path) async {
-    final uri = Uri.tryParse('${EnvConfig.adminApiBaseUrl}$path');
-    if (uri == null) return;
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && context.mounted) {
-      showMyPageToast(context, '페이지를 열 수 없습니다.');
-    }
+  void _openPolicyDocument(BuildContext context, String title, String path) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            PolicyDocumentMinimalScreen(title: title, path: path),
+      ),
+    );
   }
 
   /// README "다이얼로그 공통 (D1–D3)" 시각 스펙(도장 44×44 rotate(-6°),
@@ -412,15 +417,24 @@ class _SettingsMinimalScreenState extends State<SettingsMinimalScreen> {
                   const _GroupLabel('약관 및 정책'),
                   _SettingsRow(
                     title: '이용약관',
-                    onTap: () => _openPolicyLink(context, '/terms'),
+                    onTap: () =>
+                        _openPolicyDocument(context, '이용약관', '/terms'),
                   ),
                   _SettingsRow(
                     title: '개인정보처리방침',
-                    onTap: () => _openPolicyLink(context, '/privacy-policy'),
+                    onTap: () => _openPolicyDocument(
+                      context,
+                      '개인정보처리방침',
+                      '/privacy-policy',
+                    ),
                   ),
                   _SettingsRow(
                     title: '계정삭제 안내',
-                    onTap: () => _openPolicyLink(context, '/account-deletion'),
+                    onTap: () => _openPolicyDocument(
+                      context,
+                      '계정삭제 안내',
+                      '/account-deletion',
+                    ),
                   ),
                   const _GroupLabel(''),
                   _SettingsRow(
