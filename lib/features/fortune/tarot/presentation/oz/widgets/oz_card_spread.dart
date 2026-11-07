@@ -184,10 +184,20 @@ class _OzCardSpreadState extends State<OzCardSpread>
         final baseStageW = perRow * _baseCardW + (perRow - 1) * _baseColGap;
         final baseStageH = (_rows - 1) * _baseRowGap + _baseCardH;
 
-        final scale = min(availW / baseStageW, availH / baseStageH).clamp(
-          0.1,
-          3.0,
-        );
+        // [78장 전원 노출 보장 - 다른 로직 변경 없음] 가용 영역이 매우
+        // 좁은 단말(저사양/구형 기종, 가로모드, 헤더·툴바가 많은 공간을
+        // 차지하는 레이아웃 등)에서는 필요한 축소 비율이 기존 하한값
+        // 0.1보다 작아질 수 있다. 이 경우 과거에는 스케일이 0.1에서
+        // 더 못 줄어들어 그리드가 가용 영역보다 커지고, 맨 아래 줄
+        // 카드들이 화면 밖으로 밀려나 "78장이 다 보이지 않는" 문제가
+        // 생겼다. 하한값을 사실상 없애(0.01) 어떤 화면 크기에서도 78장
+        // 전부가 잘리지 않고 들어오도록 하고, 부동소수점 반올림으로
+        // 1px 단위 넘침이 생기지 않도록 아주 작은 안전 여유(0.995)를
+        // 둔다. 상한 3.0은 그대로 유지(대형 태블릿에서 카드가 과하게
+        // 커지는 것만 방지하며, 보이는 범위와는 무관).
+        final scale =
+            min(availW / baseStageW, availH / baseStageH).clamp(0.01, 3.0) *
+            0.995;
 
         final cardW = _baseCardW * scale;
         final cardH = _baseCardH * scale;
