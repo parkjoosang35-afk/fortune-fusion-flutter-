@@ -70,10 +70,7 @@ class _SintongChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(SHomeV2Radii.pill),
           border: Border.all(color: SHomeV2Colors.chipBorder, width: 0.5),
         ),
-        child: Text(
-          category.chipLabel,
-          style: SHomeV2Text.chip(color: Colors.white),
-        ),
+        child: Text(category.chipLabel, style: SHomeV2Text.heroChip()),
       ),
     );
   }

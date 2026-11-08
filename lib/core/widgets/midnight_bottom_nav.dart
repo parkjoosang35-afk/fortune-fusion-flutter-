@@ -1,61 +1,51 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: midnight_bottom_nav.dart
-// [하단바 리디자인 — design_handoff_bottom_nav.zip "심야의 신전" Variant A]
+// [하단바 리디자인 2차 — design_handoff_sintong_main.zip "Midnight Navy"]
 //
-// 기존 app_shell.dart/main_bottom_nav_bar.dart가 각자 들고 있던 화이트
-// Material BottomNavigationBar(선택 #111111/비선택 #9A9AA2, 흰 배경)를
-// 이 공용 다크 위젯으로 교체하기 위한 컴포넌트. 디자인 핸드오프
-// README.md의 수치·색·모션 고정값을 그대로 재현한다(hifi).
+// 사용자 요청: "신통방통 전체 하단바도 지금 준걸로 전체 다 바꿔줬으면해"
+// — 기존 "심야의 신전" Variant A(어두운 보라/#0E0A14 톤)를, 홈 화면과
+// 함께 새로 핸드오프된 Midnight Navy(#0B1326/#070D1B + Champagne
+// Gold #D4AF37/#EBD58E) 톤으로 전면 교체한다. 이 위젯은 앱 전역에서
+// 공유되므로(AppShell + MainBottomNavBar + 신당/정통사주/궁합 등 여러
+// Scaffold가 직접 참조) 한 곳만 고치면 "신통방통 전체 하단바"가 자동으로
+// 전부 바뀐다 — 호출부를 일일이 찾아 수정할 필요가 없다.
 //
-// 탭 구성(홈/소원방/복주머니/마이)과 "인덱스가 의미하는 라우트"는 기존과
-// 100% 동일하게 유지한다 — 이 파일은 "바의 외형과 인터랙션"만 책임지고,
-// 실제 탭 전환/네비게이션 로직(IndexedStack 인덱스 변경, push 등)은
-// 호출부(AppShell, MainBottomNavBar)가 그대로 담당한다.
+// 탭 구성(홈/신당부적/복주머니/마이)과 "인덱스가 의미하는 라우트"는 이번
+// 교체에서도 전혀 건드리지 않는다(README의 새 하단 탭바 레이블도
+// "홈 · 신당부적 · 복주머니 · 마이"로 기존과 완전히 동일) — 이 파일은
+// "바의 외형과 인터랙션"만 책임지고, 실제 탭 전환/네비게이션 로직
+// (IndexedStack 인덱스 변경, push 등)은 호출부(AppShell,
+// MainBottomNavBar)가 그대로 담당한다.
 //
-// [아이콘 렌더링 방식 — README "Assets" 절 그대로 따름]
-// 각 아이콘은 default/active 파일이 따로 있고, 이미 자체적으로 단색
-// 솔리드 색이 구워져 있다(default: #E8DCC8 불투명, active: #F5CF6A
-// 불투명 + 복주머니만 장식용 다이아몬드가 바 배경색(#0E0A14)으로 덮임).
+// [아이콘 교체 — README "하단 탭바" 절] 기존 아이콘(집 모양 실루엣,
+// 신당 원뿔모자, 복주머니, 사람 반신)을 새 핸드오프 HTML의 `ic` 객체가
+// 정의한 라인 스타일 아이콘(24px, stroke-width 1.5)으로 전부 교체했다
+// — 집/문(홈), 부적 방패(신당부적), 복주머니(복주머니), 사람(마이).
+// assets/icons/bottom_nav/ 의 8개 SVG 파일명은 그대로 유지하고 내용만
+// 새 path로 교체해, 이 Dart 파일이나 kMidnightNavTabs의 iconKey 매핑은
+// 전혀 바꾸지 않고도 아이콘만 바뀌도록 했다(최소 변경 원칙).
+// 색상도 새 토큰에 맞춰 default #F5F5F0(ivory, opacity .55로 muted
+// 재현) / active #EBD58E(gold-hi)로 다시 구웠다 — 신당(神堂) 탭만 별도
+// 금색(#c9a368)을 쓰던 이전 예외는, 새 디자인이 탭 전부 동일한
+// Champagne Gold 하나만 쓰도록 지정해 제거했다(붉은색 미사용 원칙은
+// 그대로 유지, 신당 전용 색 분기만 통합).
 //
-// [버그수정 — 아이콘이 전부 검정으로 보이던 문제] 원본 핸드오프 SVG는
-// `fill="currentColor"` + 루트 `<svg>`의 `color="#XXXXXX"` 속성(브라우저
-// CSS 상속 트릭)으로 색을 입혔다. 이 패턴은 웹 브라우저에서는 동작하지만
-// `flutter_svg`는 SVG `color` 속성을 해석하지 않아 `currentColor`가
-// 기본값(검정)으로 렌더링됐다 — 그 결과 미선택 아이콘은 거의 안 보이고,
-// 선택 아이콘은 글로우 레이어(별도 colorFilter 강제 틴트)만 금빛으로
-// 보이는 "검은 아이콘 + 금빛 테두리"로 깨져 보였다. assets/icons/bottom_nav/
-// 의 8개 SVG는 `currentColor`를 실제 hex 값(default #E8DCC8 / active
-// #F5CF6A)으로 치환해 고정했다 — 복주머니 active의 마름모 `stroke="#0E0A14"`
-// (바 배경색 덮음)는 원래부터 currentColor가 아니었으므로 그대로 보존됨.
-// README는 "<img>로 쓰면 미선택 투명도는 opacity: 0.5로 맞추세요"라고
-// 명시한다 — 파일 자체는 완전 불투명이므로, 미선택 아이콘에만 추가로
-// Opacity(0.5)를 씌워 디자인 토큰(rgba(232,220,200,.50))과 맞춘다.
-// 선택 아이콘은 복주머니의 2색 구조(금빛 주머니 + 어두운 마름모)를
-// 깨뜨리면 안 되므로 전체 틴트(ColorFilter 단색 교체)를 하지 않고
-// 파일 그대로 사용한다 — README: "복주머니 active는 마름모 문양 때문에
-// active 파일을 그대로 사용하세요".
+// [아이콘 자체 글로우 레이어 제거] 이전 "심야의 신전" 버전은 아이콘
+// 실루엣 전체에 blur drop-shadow를 근사하기 위해 블러 틴트 레이어 +
+// 원본 레이어의 2-레이어 스택을 썼다. 새 README 스펙은 아이콘 자체에는
+// 글로우를 요구하지 않고(활성 아이콘은 그냥 단색 #EBD58E), 오직 아이콘
+// 아래 4px 금색 점(dot)에만 `0 0 8px #D4AF37` 글로우를 요구한다 — 그래서
+// 아이콘은 단일 레이어로 단순화하고, 글로우는 기존처럼 점의
+// `BoxShadow`로만 재현한다(코드 단순화, 시각 결과는 스펙과 일치).
 //
-// [선택 글로우 — drop-shadow(0 0 6px rgba(245,207,106,.45)) 재현]
-// Flutter에는 임의 실루엣을 따라가는 CSS drop-shadow 직접 대응 위젯이
-// 없어서, 같은 아이콘을 글로우 색(반투명 골드)으로 단색 틴트한 뒤
-// 블러 처리한 사본을 뒤에 깔고 그 위에 원본(색 보존) 아이콘을 얹는
-// 2-레이어 스택으로 근사한다. 복주머니의 다이아몬드 컷아웃도 블러
-// 레이어에서는 단색으로 뭉개지지만(글로우 용도이므로 무관), 위의 선명한
-// 원본 레이어가 실제 보이는 아이콘이라 디테일 손실은 없다.
-//
-// [배경 블러(backdrop-filter: blur(20px)) — 알려진 근사치]
-// README 동작 규칙 04는 "바 배경에 blur 20px, 스크롤 콘텐츠가 바 뒤에서
-// 은은하게 비쳐요"를 요구한다. 이를 픽셀 단위로 재현하려면 이 바를 쓰는
-// 모든 Scaffold에 `extendBody: true`를 걸고 각 화면의 스크롤 콘텐츠에
-// 하단 패딩(`kMidnightNavContentReserve` + safe area)을 일일이 추가해야
-// 한다(현재 각 화면은 `bottomNavigationBar:`가 자동으로 밀어내는 비-오버레이
-// 레이아웃을 쓰고 있어 바 뒤에 콘텐츠가 깔리지 않는다). 이번 작업
-// 범위에서는 하단바 자체의 외형·색·모션·아이콘을 hifi로 맞추는 데
-// 집중하고, 이 블러-투과 효과는 위젯에 BackdropFilter를 심어 "나중에
-// 개별 화면을 extendBody로 전환하면 자동으로 작동"하도록만 준비해 둔다
-// (현재처럼 extendBody 없이 쓰면 블러 대상이 없어 단순 불투명 그라데이션
-// 바와 시각적으로 거의 동일하게 보인다 — 바 하단이 어차피 완전 불투명
-// #0E0A14라 실사용 체감 차이는 작다).
+// [배경 블러(backdrop-filter: blur(14px)) — 알려진 근사치] README는
+// "바 배경에 blur 14px"를 요구한다. 픽셀 단위로 재현하려면 이 바를 쓰는
+// 모든 Scaffold에 `extendBody: true`를 걸어야 하는데(현재는
+// `bottomNavigationBar:`가 자동으로 밀어내는 비-오버레이 레이아웃이라
+// 바 뒤에 콘텐츠가 깔리지 않음), 이는 이번 범위를 넘는 광범위한 레이아웃
+// 변경이라 기존처럼 BackdropFilter는 심어두되(추후 extendBody 전환 시
+// 자동 작동) 당장 체감 차이는 작다 — 바 하단이 어차피 완전 불투명
+// #070D1B라 실사용 영향은 미미하다.
 library;
 
 import 'dart:ui' as ui;
@@ -63,32 +53,29 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// 디자인 토큰 — README.md "Design Tokens" 표 그대로.
+/// 디자인 토큰 — design_handoff_sintong_main.zip README.md
+/// "하단 탭바" 절 + "Design Tokens" 표 그대로(Midnight Navy).
 class MidnightNavTokens {
   MidnightNavTokens._();
 
-  static const Color bgBottom = Color(0xFF0E0A14); // --nav-bg-bottom
-  static const Color bgTop = Color(
-    0xF50E0B16,
-  ); // --nav-bg-top rgba(16,11,22,.96)
-  static const Color inactive = Color(
-    0x80E8DCC8,
-  ); // --nav-inactive rgba(232,220,200,.50)
-  static const Color active = Color(
-    0xFFF5CF6A,
-  ); // --nav-active = --glow (캔들 골드)
-  static const Color glow = Color(
-    0x73F5CF6A,
-  ); // --nav-glow rgba(245,207,106,.45)
-  static const Color line = Color(0x1EFFEBC8); // --line rgba(255,235,200,.12)
+  // [색 — README Design Tokens] navy-2(#070D1B)를 바 최하단, gold-hi를
+  // 활성 색, gold를 글로우/점 색으로 사용한다. 붉은/분홍 계열 미사용.
+  static const Color bgBottom = Color(0xFF070D1B); // --navy-2
+  static const Color bgTop = Color(0x000B1326); // 그라데이션 시작(투명)
+  static const Color inactive = Color(0x8CF5F5F0); // rgba(245,245,240,.55)
+  static const Color active = Color(0xFFEBD58E); // --gold-hi
+  static const Color glow = Color(0xFFD4AF37); // --gold (점 글로우용)
+  static const Color line = Color(
+    0x24D4AF37,
+  ); // --line-soft rgba(212,175,55,.14)
 
-  static const double barTopPad = 2;
-  static const double barSidePad = 6;
-  static const double tabMinHeight = 58;
-  static const double tabPadTop = 11;
-  static const double tabPadBottom = 6;
+  static const double barTopPad = 12;
+  static const double barSidePad = 18;
+  static const double tabMinHeight = 54;
+  static const double tabPadTop = 0;
+  static const double tabPadBottom = 0;
   static const double tabGap = 5;
-  static const double iconSize = 26;
+  static const double iconSize = 24;
   static const double dotSize = 4;
 
   static const Duration colorTransition = Duration(seconds: 1);
@@ -96,10 +83,10 @@ class MidnightNavTokens {
   static const Duration pressDuration = Duration(milliseconds: 200);
   static const double pressScale = 0.96;
 
-  /// README 동작 규칙 05: 화면 콘텐츠 하단에 reserve할 패딩
-  /// ("60px + safe-area-inset-bottom"). 세이프 에어리어는 호출부가
+  /// README "전체 구조" 표: 하단 탭바 높이 92px(패딩 포함). 화면
+  /// 콘텐츠 하단에 reserve할 패딩 기준값 — 세이프 에어리어는 호출부가
   /// `MediaQuery.of(context).padding.bottom`을 더해서 쓴다.
-  static const double contentReserve = 60;
+  static const double contentReserve = 66;
 }
 
 /// 탭 한 개의 정적 정보(아이콘 파일명 기준 key, 라벨). 라우트는 호출부
@@ -197,8 +184,8 @@ class MidnightBottomNavBar extends StatelessWidget {
           child: BackdropFilter(
             // [위 파일 헤더 설명 참고] extendBody 없이 쓰이는 현재 화면들에선
             // 블러 대상이 없어 사실상 no-op이지만, 추후 extendBody 전환 시
-            // 자동으로 README 동작 규칙 04(블러 20px)가 작동하도록 남겨둔다.
-            filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            // 자동으로 README "하단 탭바" 절(블러 14px)이 작동하도록 남겨둔다.
+            filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
             child: Container(
               padding: EdgeInsets.fromLTRB(
                 MidnightNavTokens.barSidePad,
@@ -206,18 +193,20 @@ class MidnightBottomNavBar extends StatelessWidget {
                 MidnightNavTokens.barSidePad,
                 bottomInset,
               ),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
+              decoration: const BoxDecoration(
+                // README: linear-gradient(180deg, rgba(7,13,27,0),
+                // rgba(7,13,27,.94) 30%) — navy-2(#070D1B) 기준.
+                gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0x00140E1A), // rgba(20,14,26,0) — 0%
-                    MidnightNavTokens.bgTop, // 18%
-                    MidnightNavTokens.bgBottom, // 100%
+                    Color(0x00070D1B), // rgba(7,13,27,0) — 0%
+                    Color(0xF0070D1B), // rgba(7,13,27,.94) — 30%
+                    Color(0xF0070D1B), // 100%까지 동일 톤 유지
                   ],
-                  stops: [0, 0.18, 1.0],
+                  stops: [0, 0.30, 1.0],
                 ),
-                border: const Border(
+                border: Border(
                   top: BorderSide(color: MidnightNavTokens.line, width: 1),
                 ),
               ),
@@ -337,11 +326,12 @@ class _MidnightNavTabState extends State<_MidnightNavTab> {
                         color: selected
                             ? MidnightNavTokens.active
                             : Colors.transparent,
+                        // README: "아래 4px 금색 점(glow 0 0 8px #D4AF37)".
                         boxShadow: selected
                             ? const [
                                 BoxShadow(
-                                  color: MidnightNavTokens.active,
-                                  blurRadius: 6,
+                                  color: MidnightNavTokens.glow,
+                                  blurRadius: 8,
                                 ),
                               ]
                             : const [],
@@ -371,12 +361,6 @@ class _MidnightNavIcon extends StatelessWidget {
   final String iconKey;
   final bool selected;
   final bool showBadge;
-
-  /// [신당(神堂) 통합 — A안 §3.2] "활성 색상 #c9a368(금) / 비활성 회색,
-  /// 붉은색 사용 금지" 고정값. 다른 탭은 기존 캔들골드(#F5CF6A) 글로우를
-  /// 그대로 쓰되, 신당 탭만 지시서 지정 금색으로 글로우를 맞춘다(아이콘
-  /// 파일 자체도 이미 #c9a368/#9A9AA2로 구워져 있음 — 위 SVG 생성 참고).
-  static const Color _shrineGlow = Color(0x73C9A368);
 
   @override
   Widget build(BuildContext context) {
@@ -412,39 +396,20 @@ class _MidnightNavIcon extends StatelessWidget {
     );
   }
 
+  // [Midnight Navy 교체 — README "하단 탭바" 절] 새 핸드오프는 아이콘
+  // 자체에 drop-shadow 글로우를 요구하지 않는다(활성 아이콘은 단순
+  // 단색 #EBD58E 라인 아이콘). 글로우는 아이콘 아래 4px 점에만 적용되며
+  // 그건 `_MidnightNavTabState`의 `AnimatedContainer`가 이미 담당한다 —
+  // 그래서 이전의 블러+틴트 2-레이어 스택을 걷어내고 단일 SvgPicture로
+  // 단순화했다(시각 결과는 새 스펙과 일치, 렌더 비용도 감소).
   Widget _buildIcon(double size) {
+    final asset = _iconAsset(iconKey, active: selected);
     if (!selected) {
       return Opacity(
         opacity: 0.5,
-        child: SvgPicture.asset(
-          _iconAsset(iconKey, active: false),
-          width: size,
-          height: size,
-        ),
+        child: SvgPicture.asset(asset, width: size, height: size),
       );
     }
-    final asset = _iconAsset(iconKey, active: true);
-    final glow = iconKey == 'shrine' ? _shrineGlow : MidnightNavTokens.glow;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 글로우 레이어 — 단색 틴트 + 블러로 drop-shadow 근사.
-          ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(sigmaX: 2.4, sigmaY: 2.4),
-            child: SvgPicture.asset(
-              asset,
-              width: size,
-              height: size,
-              colorFilter: ColorFilter.mode(glow, BlendMode.srcIn),
-            ),
-          ),
-          // 선명한 원본 레이어 — 복주머니의 2색(금빛+다이아몬드) 보존.
-          SvgPicture.asset(asset, width: size, height: size),
-        ],
-      ),
-    );
+    return SvgPicture.asset(asset, width: size, height: size);
   }
 }

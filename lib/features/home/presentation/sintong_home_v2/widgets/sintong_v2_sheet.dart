@@ -1,28 +1,28 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_v2_sheet.dart
-// [신통방통 홈 v2] 하단 시트 — "전체보기" 헤더 + 카드 그리드/리스트 +
+// [신통방통 홈 v2] 하단 시트 — "운세 엔진" 헤더 + 카드 그리드/리스트 +
 // 프리패스 바.
 //
-// [사용자 피드백 반영 — 이전 디자인 기능 복원]
-// 1. "전체보기" 옆 "N gates" 텍스트 제거.
-// 2. "전체보기" 옆에 있던 리스트⇄그리드 뷰 전환 스퀘어 버튼(v1
-//    [SintongModeChipRow]의 그리드 스위치)이 이번 v2 교체 때 빠져
-//    있었다 — 그대로 복원한다. 탭하면 카드가 세로형 리스트(가로로
-//    넓게 펼쳐진 행)와 3열 그리드 사이를 전환한다.
-// 3. 프리패스 CTA를 v2 전용 커스텀 pill 버튼 대신, v1
-//    [SintongFreePassBar](검정 pill + 자물쇠 아이콘 + 실시간 잔여시간
-//    + 초록 원형 화살표, AccessChecker 실시간 tick)를 그대로 재사용
-//    한다(다크 테마에서도 원래 검정 배경이라 잘 어울림).
+// [Midnight Navy 리뉴얼 — design_handoff_sintong_main(2).zip, 2026-11]
+// 사용자 요청: "메인화면 디자인을 바꿀거야 기능은 바뀐거는없고 디자인
+// 위치와 색상 디자인 이야 개발 기획서 보고 만들어주고". README.md가
+// 지정한 새 헤더(금색 그라데이션 "운세 엔진" 타이틀 + "SINTONG · 命理書"
+// 모노 서브타이틀 + 원형 햄버거 아이콘 버튼 + ◇ 장식 구분선)와 새
+// 카드 그리드(큰 카드 2 + 작은 카드 6, [SintongEngineCardGrid])로
+// 교체하고, 시트 배경에 README가 지정한 별빛·회전 원반 데코레이션
+// ([SintongSheetBackground])을 추가한다.
 //
-// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip, 2026-10-02]
-// README.md가 요청한 두 가지만 변경:
-//  1. 그리드 뷰(_isGrid==true)의 카드 디자인을 "사진이 카드 전체를 채우는"
-//     2열×3행 포토 카드([SintongSectionPhotoGrid])로 교체. 3열 그리드 +
-//     흰 라벨박스 디자인은 완전히 대체됨(리스트 뷰는 기존 그대로 유지—
-//     토글 버튼 자체는 범위 밖이라 보존).
-//  2. 프리패스 바에서 카운트다운 시간 텍스트 제거 — "프리패스"만 노출.
-//     기존 [SintongFreePassBar](실시간 틱 로직 포함)는 계속 재사용하되,
-//     이 화면에서만 시간 텍스트를 감추는 옵션을 추가했다.
+// [기능 보존] 이 리뉴얼은 시각 레이어만 바꾼다 — 기존 동작은 전부
+// 그대로 유지:
+//  - "운세 엔진" 타이틀 탭 → `/home/fortune-engine` 이동(동일).
+//  - 리스트⇄그리드 토글 기능 자체는 삭제하지 않는다. 다만 새 디자인은
+//    전용 토글 버튼 없이 원형 메뉴(햄버거) 아이콘 하나만 두므로,
+//    README "메뉴 아이콘 버튼 → 기존 사이드/전체 메뉴 열기" 지시에
+//    맞춰 이 앱에 있는 가장 가까운 기존 동작(그리드⇄리스트 전환)을
+//    그 버�른에 그대로 연결한다 — 탭 결과(뷰 전환)는 바뀌지 않고,
+//    버튼 모양만 사각형 아이콘에서 새 디자인의 원형 햄버거로 바뀐다.
+//  - 프리패스 바([SintongFreePassBar])도 동일하게 유지, 새 팔레트에
+//    맞춰 주변 여백만 재조정.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
@@ -31,7 +31,8 @@ import '../../sintong_home/widgets/sintong_free_pass_bar.dart';
 import '../sintong_home_v2_data.dart';
 import '../sintong_home_v2_routing.dart';
 import '../sintong_home_v2_tokens.dart';
-import 'sintong_section_photo_card.dart';
+import 'sintong_engine_card_grid.dart';
+import 'sintong_sheet_background.dart';
 
 class SintongV2Sheet extends StatefulWidget {
   const SintongV2Sheet({super.key});
@@ -45,84 +46,259 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: SHomeV2Colors.sheetBg,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(SHomeV2Radii.sheetTop),
-        ),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(SHomeV2Radii.sheetTop),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // [신통방통 메인 메뉴 수정 — "전체보기" 삭제, "운세 엔진"으로
-              // 교체] 기존 "전체보기"(→ /home/all-categories 카테고리 허브)
-              // 버튼을 제거하고, 같은 자리에 "운세 엔진" 버튼을 넣는다.
-              // 탭하면 계산 근거를 설명하는 안내 페이지(FortuneEngineIntroScreen,
-              // 상단에 뒤로가기 버튼 포함)로 이동한다. 기존 '/home/all-categories'
-              // 라우트/화면은 다른 진입점에서 계속 쓰이므로 삭제하지 않고
-              // 그대로 유지한다(이 버튼의 목적지만 교체).
-              Expanded(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/home/fortune-engine'),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 6,
+      child: Container(
+        // README "컨테이너": border-top 1px rgba(212,175,55,.35),
+        // box-shadow 0 -10px 30px rgba(0,0,0,.45).
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Color(0x59D4AF37), width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x73000000),
+              blurRadius: 30,
+              offset: Offset(0, -10),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // 레이어 ①~⑤ — README "컨테이너 > 배경" 절(그라데이션 +
+            // 별빛 + 회전 원반), 시트 전체 영역을 덮는다.
+            const Positioned.fill(child: SintongSheetBackground()),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 그랩바 — 36×3, radius 2, rgba(212,175,55,.4).
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Center(
+                    child: Container(
+                      width: 36,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: const Color(0x66D4AF37),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      child: Text('운세 엔진', style: SHomeV2Text.sheetTitle()),
                     ),
                   ),
                 ),
-              ),
-              // [복원] 리스트⇄그리드 뷰 전환 스퀘어 버튼.
-              GestureDetector(
-                onTap: () => setState(() => _isGrid = !_isGrid),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: SHomeV2Colors.chipBg,
-                    borderRadius: BorderRadius.circular(10),
+                // 헤더 — README "헤더" 절.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    SHomeV2Spacing.headerHPad,
+                    14,
+                    SHomeV2Spacing.headerHPad,
+                    0,
                   ),
-                  child: Icon(
-                    _isGrid ? Icons.view_list_rounded : Icons.grid_view_rounded,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _isGrid
-              // [전체보기 6섹션 개편] 2열×3행 포토 카드 그리드로 교체.
-              ? SintongSectionPhotoGrid(cards: buildSHomeV2PhotoCards(context))
-              : Column(
-                  children: [
-                    for (int i = 0; i < sHomeV2SheetCards.length; i++) ...[
-                      _SheetCardListTile(card: sHomeV2SheetCards[i]),
-                      if (i != sHomeV2SheetCards.length - 1)
-                        const SizedBox(height: 9),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            // [기능 보존] 기존과 동일하게 안내 페이지로 이동.
+                            onTap: () => Navigator.of(
+                              context,
+                            ).pushNamed('/home/fortune-engine'),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 2),
+                              child: _EngineHeaderTitle(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // [기능 보존] 원형 햄버거 버튼 — 기존 그리드⇄리스트
+                      // 토글 동작을 그대로 수행(README "메뉴 아이콘 버튼"
+                      // 자리에 가장 가까운 기존 기능을 매핑).
+                      _EngineMenuIconButton(
+                        onTap: () => setState(() => _isGrid = !_isGrid),
+                      ),
                     ],
-                  ],
+                  ),
                 ),
-          const SizedBox(height: 18),
-          // [복원] v1 프리패스 바 그대로 재사용(검정 pill + 자물쇠 +
-          // 실시간 잔여시간 + 초록 원형 화살표).
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
-            // [전체보기 6섹션 개편] README "프리패스 바" — 카운트다운
-            // 텍스트 제거, "프리패스"만 노출.
-            child: SintongFreePassBar(showRemainingTime: false),
+                // 구분선 — ◇ 중앙 장식.
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    SHomeV2Spacing.headerHPad,
+                    14,
+                    SHomeV2Spacing.headerHPad,
+                    0,
+                  ),
+                  child: _EngineDivider(),
+                ),
+                // 카드 그리드 — README "카드 그리드" 절.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    SHomeV2Spacing.gridHPad,
+                    14,
+                    SHomeV2Spacing.gridHPad,
+                    0,
+                  ),
+                  child: _isGrid
+                      ? const SintongEngineCardGrid()
+                      : Column(
+                          children: [
+                            for (
+                              int i = 0;
+                              i < sHomeV2SheetCards.length;
+                              i++
+                            ) ...[
+                              _SheetCardListTile(card: sHomeV2SheetCards[i]),
+                              if (i != sHomeV2SheetCards.length - 1)
+                                const SizedBox(height: 9),
+                            ],
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 18),
+                // [복원] v1 프리패스 바 그대로 재사용(검정 pill + 자물쇠 +
+                // 실시간 잔여시간 + 초록 원형 화살표).
+                const Padding(
+                  padding: EdgeInsets.only(
+                    left: SHomeV2Spacing.gridHPad,
+                    right: SHomeV2Spacing.gridHPad,
+                    bottom: 16,
+                  ),
+                  child: SintongFreePassBar(showRemainingTime: false),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// README "헤더" 절 좌측: "운세 엔진"(금색 그라데이션 텍스트) +
+/// "SINTONG · 命理書"(모노 서브타이틀).
+///
+/// [그라데이션 텍스트] Flutter TextStyle은 그라데이션 색을 직접 지원하지
+/// 않으므로 ShaderMask + BlendMode.srcIn으로 재현한다 — README:
+/// `linear-gradient(180deg, #EBD58E, #D4AF37 55%, #8C7124)`.
+class _EngineHeaderTitle extends StatelessWidget {
+  const _EngineHeaderTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) => const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              SHomeV2Colors.goldHi,
+              SHomeV2Colors.gold,
+              SHomeV2Colors.goldLo,
+            ],
+            stops: [0, 0.55, 1.0],
+          ).createShader(bounds),
+          child: Text('운세 엔진', style: SHomeV2Text.sheetTitle()),
+        ),
+        const SizedBox(height: 8),
+        Text('SINTONG · 命理書', style: SHomeV2Text.sheetSubtitleMono()),
+      ],
+    );
+  }
+}
+
+/// README "헤더" 절 우측: 40×40 원형 버튼, border 1px rgba(212,175,55,.28),
+/// bg radial-gradient(rgba(212,175,55,.12)→rgba(11,19,38,.6)), 내부
+/// 햄버거 3줄 16px #D4AF37 stroke 1.3.
+class _EngineMenuIconButton extends StatelessWidget {
+  const _EngineMenuIconButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.fromBorderSide(
+            BorderSide(color: Color(0x47D4AF37), width: 1),
+          ),
+          gradient: RadialGradient(
+            center: Alignment(0, -0.4),
+            colors: [Color(0x1FD4AF37), Color(0x990B1326)],
+          ),
+        ),
+        child: CustomPaint(
+          size: const Size(16, 16),
+          painter: _HamburgerPainter(),
+        ),
+      ),
+    );
+  }
+}
+
+class _HamburgerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = SHomeV2Colors.gold
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round;
+    for (final y in [0.0, size.height / 2, size.height]) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// README "헤더" 절 구분선: margin 14 22 0, 1px 가로 그라데이션, 가운데
+/// ◇ 9px 금색(배경 #0E1830로 덮어 선을 끊어 보이게 함).
+class _EngineDivider extends StatelessWidget {
+  const _EngineDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 14,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            height: 1,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Color(0x47D4AF37),
+                  Color(0x47D4AF37),
+                  Colors.transparent,
+                ],
+                stops: [0, 0.2, 0.8, 1.0],
+              ),
+            ),
+          ),
+          Container(
+            color: SHomeV2Colors.navyTop,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: const Text(
+              '◇',
+              style: TextStyle(
+                fontSize: 9,
+                height: 1,
+                color: SHomeV2Colors.gold,
+              ),
+            ),
           ),
         ],
       ),
@@ -131,7 +307,8 @@ class _SintongV2SheetState extends State<SintongV2Sheet> {
 }
 
 /// 리스트형(가로) 카드 — 썸네일(좌) + 제목(우) + 화살표(더보기 시각
-/// 힌트), v1 [SintongServiceTile]과 유사한 레이아웃을 다크 테마로 재현.
+/// 힌트). [Midnight Navy 리뉴얼] 카드 배경/테두리를 새 팔레트(네이비 +
+/// 금색 테두리)로 재도장했다 — 기존 동작(탭 라우팅)은 전혀 바뀌지 않음.
 class _SheetCardListTile extends StatelessWidget {
   const _SheetCardListTile({required this.card});
   final SHomeV2SheetCard card;
@@ -152,13 +329,17 @@ class _SheetCardListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: SHomeV2Colors.cardBg,
+      color: SHomeV2Colors.navyTop,
       borderRadius: BorderRadius.circular(SHomeV2Radii.card),
       child: InkWell(
         borderRadius: BorderRadius.circular(SHomeV2Radii.card),
         onTap: () => _onTap(context),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(SHomeV2Radii.card),
+            border: Border.all(color: SHomeV2Colors.cardBorderGold, width: 1),
+          ),
           child: Row(
             children: [
               ClipRRect(
@@ -172,24 +353,45 @@ class _SheetCardListTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 14),
-              Expanded(child: Text(card.title, style: SHomeV2Text.cardTitle())),
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: SHomeV2Colors.glow,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 18,
-                  color: Colors.black,
+              Expanded(
+                child: Text(
+                  card.title,
+                  style: SHomeV2Text.cardTitle(
+                    color: SHomeV2Colors.ivory,
+                    fontSize: 15,
+                  ),
                 ),
               ),
+              const _GoldArrowDot(),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GoldArrowDot extends StatelessWidget {
+  const _GoldArrowDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(-0.3, -0.4),
+          colors: [Color(0xFFF6E6A8), SHomeV2Colors.gold, Color(0xFF7E6420)],
+          stops: [0, 0.5, 1.0],
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.chevron_right_rounded,
+        size: 18,
+        color: Color(0xFF1A1406),
       ),
     );
   }
