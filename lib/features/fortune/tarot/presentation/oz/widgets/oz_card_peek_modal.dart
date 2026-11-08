@@ -71,44 +71,60 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
                     ),
                   ),
                   const SizedBox(height: 14),
-                  SizedBox(
-                    width: 200,
-                    height: 300,
-                    child: AnimatedBuilder(
-                      animation: _flip,
-                      builder: (context, _) {
-                        final angle = _flip.value * pi;
-                        final showFront = angle > pi / 2;
-                        final transform = Matrix4.identity()
-                          ..setEntry(3, 2, 0.0015)
-                          ..rotateY(angle);
-                        return Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: OzColors.gold.withValues(alpha: 0.35),
-                                blurRadius: 40,
-                              ),
-                            ],
-                          ),
-                          child: Transform(
-                            alignment: Alignment.center,
-                            transform: transform,
-                            child: showFront
-                                ? Transform(
-                                    alignment: Alignment.center,
-                                    transform: Matrix4.identity()..rotateY(pi),
-                                    child: _PeekFront(meta: meta),
-                                  )
-                                : const ClipRRect(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(10),
+                  // [버그 수정 — APK 실기기 5차 신고 "타로카드 뽑기에서
+                  // 확대기능없음"] 기존에는 이 엿보기(peek) 카드가 고정
+                  // 200x300 크기로만 보여, 실제 카드 아트의 세부 묘사(그림
+                  // 속 상징/표정 등)를 더 자세히 보고 싶어도 확대할 방법이
+                  // 전혀 없었다(결과 페이지들은 이미 ZoomableContent로
+                  // 핀치줌을 지원하지만 이 타로 뽑기 화면의 엿보기 모달만
+                  // 누락돼 있었다). InteractiveViewer로 감싸 손가락
+                  // 핀치줌/더블탭 확대를 지원한다 — 카드 뒤집기(flip)
+                  // 애니메이션 자체는 그대로 AnimatedBuilder 안쪽에 둬서
+                  // 기존 타이밍/로직을 전혀 건드리지 않는다.
+                  InteractiveViewer(
+                    minScale: 1.0,
+                    maxScale: 4.0,
+                    boundaryMargin: const EdgeInsets.all(300),
+                    child: SizedBox(
+                      width: 200,
+                      height: 300,
+                      child: AnimatedBuilder(
+                        animation: _flip,
+                        builder: (context, _) {
+                          final angle = _flip.value * pi;
+                          final showFront = angle > pi / 2;
+                          final transform = Matrix4.identity()
+                            ..setEntry(3, 2, 0.0015)
+                            ..rotateY(angle);
+                          return Container(
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: OzColors.gold.withValues(alpha: 0.35),
+                                  blurRadius: 40,
+                                ),
+                              ],
+                            ),
+                            child: Transform(
+                              alignment: Alignment.center,
+                              transform: transform,
+                              child: showFront
+                                  ? Transform(
+                                      alignment: Alignment.center,
+                                      transform: Matrix4.identity()
+                                        ..rotateY(pi),
+                                      child: _PeekFront(meta: meta),
+                                    )
+                                  : const ClipRRect(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                      child: OzFaceDownCardArt(),
                                     ),
-                                    child: OzFaceDownCardArt(),
-                                  ),
-                          ),
-                        );
-                      },
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),

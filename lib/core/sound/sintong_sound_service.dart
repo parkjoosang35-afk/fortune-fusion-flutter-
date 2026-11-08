@@ -134,6 +134,42 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (_config != null) {
       try {
+        // [버그 수정 — APK 실기기 5차 신고 "음향이 안나옴 그리고 음향이
+        // 메인에서 껏다켜짐이 안됨"] 근본 원인: audioplayers(Android)는
+        // AudioPlayer 인스턴스마다 기본값으로 `AndroidAudioFocus.gain`
+        // (배타적·영구 포커스)을 요청한다. 이 서비스는 BGM(A/B 교대)+
+        // 앰비언스+전환 표식음+SFX(채널 풀)를 동시에 재생하는 구조라,
+        // 예를 들어 탭 소리(01_tap) 하나만 재생돼도 그 WrappedPlayer가
+        // AUDIOFOCUS_GAIN을 요청하면서 먼저 재생 중이던 BGM 플레이어가
+        // `AudioManager.AUDIOFOCUS_LOSS`(일시적이 아닌 영구 상실)를 받아
+        // 네이티브 레벨에서 조용히 pause()된다(WrappedPlayer.kt
+        // onLoss 콜백). Android는 포커스를 자동으로 돌려주지 않고,
+        // Dart 쪽 SintongSoundService는 이 네이티브 pause를 전혀 알 수
+        // 없어 "재생 중"이라고 착각한 채로 남는다 — 그 결과 실기기에서
+        // 화면을 몇 번만 조작해도 BGM/앰비언스가 전부 소리 없이
+        // 멈추고, 이후 toggleMute()가 resume()을 호출해도 포커스를
+        // 다시 뺏긴 플레이어는 깨어나지 않아 "음소거 토글이 안 먹는
+        // 것"처럼 보인다(토글 자체 로직은 정상이었다 — 근본 원인은
+        // 포커스 경쟁). 샌드박스 웹/에뮬레이터 프리뷰는 이 네이티브
+        // AudioFocus 메커니즘 자체가 없어 재현되지 않았다.
+        //
+        // [해법] 이 서비스의 모든 사운드가 "단일 앱 안에서 여러 트랙이
+        // 의도적으로 동시에 울리는" 설계(BGM+앰비언스+SFX 믹싱)이므로,
+        // 애초에 서로 포커스를 다툴 필요가 없다. 전역
+        // AudioContextConfig(focus: mixWithOthers)를 모든 AudioPlayer
+        // 생성 전에 설정해 Android 포커스 요청 자체를 생략(gain 대신
+        // none)시킨다 — 각 플레이어가 서로를 절대 pause시키지 않는다.
+        await AudioPlayer.global.setAudioContext(
+          AudioContextConfig(
+            focus: AudioContextConfigFocus.mixWithOthers,
+          ).build(),
+        );
+      } catch (_) {
+        // [저사양 degrade] 전역 컨텍스트 설정 실패해도 이후 로직은
+        // 플랫폼 기본값으로 계속 진행한다(완전 무음보다는 포커스 경쟁
+        // 위험을 감수하는 편이 낫다).
+      }
+      try {
         _bgmA = AudioPlayer()..setReleaseMode(ReleaseMode.loop);
         _bgmB = AudioPlayer()..setReleaseMode(ReleaseMode.loop);
         _ambPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.loop);
@@ -306,42 +342,41 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
     final totalTicks = math.max(1, (xf * 1000 / tickMs).round());
     var tick = 0;
 
-    _crossfadeTimer = Timer.periodic(
-      const Duration(milliseconds: tickMs),
-      (timer) async {
-        if (token != _crossfadeToken) {
-          timer.cancel(); // 전환 중 연타로 무효화됨 — 이 타이머는 더 이상 유효하지 않다.
-          return;
+    _crossfadeTimer = Timer.periodic(const Duration(milliseconds: tickMs), (
+      timer,
+    ) async {
+      if (token != _crossfadeToken) {
+        timer.cancel(); // 전환 중 연타로 무효화됨 — 이 타이머는 더 이상 유효하지 않다.
+        return;
+      }
+      tick++;
+      final t = math.min(1.0, tick / totalTicks);
+      final targetGain = _effectiveBgmGain();
+      // [등파워 크로스페이드 — §6.1 유지, 단 outgoing은 연속성 보정]
+      // incoming은 항상 0에서 시작하므로 기존 sin(tπ/2) 그대로.
+      // outgoing은 "목표 게인에서부터"가 아니라 "현재 실제 볼륨에서부터"
+      // cos 곡선을 그려 t=1에 정확히 0으로 수렴시킨다(선형 페이드
+      // 금지 원칙은 유지 — 여전히 코사인 곡률로 감쇠한다).
+      final outGain = startOutVol * math.cos(t * math.pi / 2);
+      final inGain = math.sin(t * math.pi / 2) * targetGain;
+      try {
+        await outgoing?.setVolume(outGain.clamp(0.0, 1.0));
+        await incoming?.setVolume(inGain.clamp(0.0, 1.0));
+        if (outgoingWasA) {
+          _volA = outGain.clamp(0.0, 1.0);
+          _volB = inGain.clamp(0.0, 1.0);
+        } else {
+          _volB = outGain.clamp(0.0, 1.0);
+          _volA = inGain.clamp(0.0, 1.0);
         }
-        tick++;
-        final t = math.min(1.0, tick / totalTicks);
-        final targetGain = _effectiveBgmGain();
-        // [등파워 크로스페이드 — §6.1 유지, 단 outgoing은 연속성 보정]
-        // incoming은 항상 0에서 시작하므로 기존 sin(tπ/2) 그대로.
-        // outgoing은 "목표 게인에서부터"가 아니라 "현재 실제 볼륨에서부터"
-        // cos 곡선을 그려 t=1에 정확히 0으로 수렴시킨다(선형 페이드
-        // 금지 원칙은 유지 — 여전히 코사인 곡률로 감쇠한다).
-        final outGain = startOutVol * math.cos(t * math.pi / 2);
-        final inGain = math.sin(t * math.pi / 2) * targetGain;
+      } catch (_) {}
+      if (t >= 1.0) {
+        timer.cancel();
         try {
-          await outgoing?.setVolume(outGain.clamp(0.0, 1.0));
-          await incoming?.setVolume(inGain.clamp(0.0, 1.0));
-          if (outgoingWasA) {
-            _volA = outGain.clamp(0.0, 1.0);
-            _volB = inGain.clamp(0.0, 1.0);
-          } else {
-            _volB = outGain.clamp(0.0, 1.0);
-            _volA = inGain.clamp(0.0, 1.0);
-          }
+          await outgoing?.stop(); // §6.4 "이전 트랙 정지·해제"
         } catch (_) {}
-        if (t >= 1.0) {
-          timer.cancel();
-          try {
-            await outgoing?.stop(); // §6.4 "이전 트랙 정지·해제"
-          } catch (_) {}
-        }
-      },
-    );
+      }
+    });
   }
 
   double _effectiveBgmGain() => _bgmBaseVolume * _dbToLinear(_bgmDuckDb);
@@ -529,7 +564,9 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
     // 페이드아웃 후 해제."
     if (_activeVoices.length >= limits.maxVoices) {
       final oldest = _activeVoices.removeAt(0);
-      unawaited(_fadeOutAndStop(oldest.player, const Duration(milliseconds: 30)));
+      unawaited(
+        _fadeOutAndStop(oldest.player, const Duration(milliseconds: 30)),
+      );
     }
 
     try {
@@ -546,7 +583,8 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
       if (player == null) return;
       await player.setVolume(_dbToLinear(gainDb).clamp(0.0, 1.0));
       await player.play(AssetSource('$_sfxBase/$fileBaseName.mp3'));
-      final duration = _sfxDurations[fileBaseName] ?? const Duration(milliseconds: 500);
+      final duration =
+          _sfxDurations[fileBaseName] ?? const Duration(milliseconds: 500);
       _activeVoices.add(_ActiveVoice(player, now.add(duration)));
     } catch (_) {
       // [저사양 degrade] 조용히 무시.
@@ -617,7 +655,9 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
           _volB = fgVol;
         }
         if (_currentAmbFile != null) {
-          await _ambPlayer?.setVolume((_effectiveAmbGain() * t).clamp(0.0, 1.0));
+          await _ambPlayer?.setVolume(
+            (_effectiveAmbGain() * t).clamp(0.0, 1.0),
+          );
         }
         await Future<void>.delayed(const Duration(milliseconds: tickMs));
       }

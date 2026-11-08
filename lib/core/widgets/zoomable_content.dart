@@ -119,9 +119,21 @@ class _ZoomableFullScreenView extends StatelessWidget {
           Center(
             child: Hero(
               tag: heroTag,
+              // [버그 수정 — APK 실기기 5차 신고 "결과 페이지에서
+              // 확대기능 조금밖에 안됨"] InteractiveViewer의 기본
+              // boundaryMargin은 EdgeInsets.zero다 — 콘텐츠를 원본 크기
+              // (이미 화면에 꽉 맞게 패딩된 상태) 밖으로는 전혀 팬(이동)
+              // 할 수 없다는 뜻이다. 그 결과 손가락으로 확대(스케일 자체는
+              // 5배까지 걸림)는 되지만, 확대된 상태에서 좌우/상하로 이동해
+              // 다른 부분을 보려고 하면 경계에 막혀 거의 움직이지 않아
+              // "확대가 조금밖에 안 되는 것"처럼 체감된다. boundaryMargin을
+              // 넉넉하게 주어 확대 후 이미지/도식의 가장자리까지 자유롭게
+              // 이동해서 볼 수 있도록 한다(minScale/maxScale 범위는 기존과
+              // 동일하게 유지 — 이미 충분히 넓은 0.8~5배였다).
               child: InteractiveViewer(
                 minScale: 0.8,
                 maxScale: 5,
+                boundaryMargin: const EdgeInsets.all(400),
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: builder(context),
