@@ -136,12 +136,31 @@ void openCompatibilityMap(BuildContext context) => Navigator.of(
 /// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
 /// 2열×3행 사진 포토 카드 그리드 데이터. 순서/틴트/이미지는 README.md
 /// "섹션 매핑" 표 그대로: 소원방·타로 / 정통사주·귀인지도 / 관상·손금.
-/// 라우트는 기존 6칸([sHomeV2SheetCards])에 연결된 것과 완전히 동일.
-const List<SHomeV2SheetCard> sHomeV2SheetCards = [
+/// [Midnight Navy 리뉴얼 — 8칸 확장] 그리드뷰([SintongEngineCardGrid])가
+/// README MENU 순서(귀인지도→궁합지도→정통사주→타로→소원방→오늘의운세→
+/// 관상→손금) 8개 카드로 교체되면서, 같은 시트의 리스트뷰(토글 OFF
+/// 상태)만 구 6개 카드로 남아 궁합지도/오늘의 운세가 빠지는 불일치가
+/// 있었다. 리스트뷰도 동일한 8개/동일한 순서로 맞춘다 — 기존 6개 카드의
+/// 라우트·이미지는 그대로 두고, 궁합지도/오늘의 운세 2개만 새로 추가한다
+/// (신규 라우팅 로직 없음 — 기존 [openCompatibilityMap]/
+/// [openTodayFortune] 그대로 재사용).
+final List<SHomeV2SheetCard> sHomeV2SheetCards = [
   SHomeV2SheetCard(
-    category: SHomeV2Category.wish,
-    thumbAsset: 'assets/images/sintong_home_v2/sheet-1-wish.jpg',
-    title: '소원방',
+    category: SHomeV2Category.guide,
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-4-guide.jpg',
+    title: '귀인지도',
+  ),
+  SHomeV2SheetCard(
+    thumbAsset: 'assets/images/sintong_home_v2/menu/gunghap_map.jpg',
+    title: '궁합지도',
+    customOnTap: openCompatibilityMap,
+  ),
+  SHomeV2SheetCard(
+    category: SHomeV2Category.saju,
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-3-saju.jpg',
+    title: '정통사주',
+    // 얼굴이 약 25~35% 지점 — "조금 내리고"(살짝 아래로) 요청 반영.
+    imageAlignment: Alignment(0, -0.3),
   ),
   SHomeV2SheetCard(
     category: SHomeV2Category.tarot,
@@ -152,16 +171,15 @@ const List<SHomeV2SheetCard> sHomeV2SheetCards = [
     imageAlignment: Alignment(0, -0.8),
   ),
   SHomeV2SheetCard(
-    category: SHomeV2Category.saju,
-    thumbAsset: 'assets/images/sintong_home_v2/sheet-3-saju.jpg',
-    title: '정통사주',
-    // 얼굴이 약 25~35% 지점 — "조금 내리고"(살짝 아래로) 요청 반영.
-    imageAlignment: Alignment(0, -0.3),
+    category: SHomeV2Category.wish,
+    thumbAsset: 'assets/images/sintong_home_v2/sheet-1-wish.jpg',
+    title: '소원방',
   ),
   SHomeV2SheetCard(
-    category: SHomeV2Category.guide,
-    thumbAsset: 'assets/images/sintong_home_v2/sheet-4-guide.jpg',
-    title: '귀인지도',
+    thumbAsset: 'assets/images/sintong_home_v2/menu/today_phone.jpg',
+    title: '오늘의 운세',
+    customOnTap: (ctx) =>
+        openTodayFortune(ctx, tapPosition: sajuCardCenterOf(ctx)),
   ),
   SHomeV2SheetCard(
     thumbAsset: 'assets/images/sintong_home_v2/sheet-5-face.jpg',
@@ -198,8 +216,7 @@ List<SHomeV2PhotoCard> buildSHomeV2PhotoCards(BuildContext context) => [
     asset: 'assets/images/sintong_home_v2/sections/section-today.png',
     tint: const Color(0xFFF5CF6A),
     // 정통사주와 동일한 목적지이므로 동일하게 카드 중심 좌표를 넘긴다.
-    onTap: (ctx) =>
-        openTodayFortune(ctx, tapPosition: sajuCardCenterOf(ctx)),
+    onTap: (ctx) => openTodayFortune(ctx, tapPosition: sajuCardCenterOf(ctx)),
   ),
   SHomeV2PhotoCard(
     title: '궁합지도',
