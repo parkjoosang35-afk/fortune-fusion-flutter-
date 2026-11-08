@@ -91,9 +91,29 @@ Route<T> sajuDimensionEnterRoute<T>(
         parent: animation,
         curve: sajuEaseDimension,
       );
+      // [버그 수정 재재발 대응 — 정통사주 재진입 시 깜박임(APK 실기기
+      // 3차 재신고, "처음에는 괜찮다가 다른데 갖다오니 또 깜박임")]
+      // 00-I(인트로, saju_intro_seen=false일 때만)는 진입 전환 300ms
+      // 동안 _phase=0(점 맥동만, opacity 0으로 꺼진 가벼운 콘텐츠)이라
+      // 우연히 깜박임이 가려졌을 뿐이다. 플래그가 이미 true인 재진입은
+      // SajuEntryGate가 00-I를 건너뛰고 [SajuRenewalHomeScreen]을 즉시
+      // 보여주는데, 이 화면은 프레임 0부터 회전하는 Bagua·반짝이는
+      // StarField·하단바가 전부 풀 opacity로 활성 상태다. 각 위젯에
+      // 개별 RepaintBoundary(SajuStarField/SajuBagua/
+      // MidnightBottomNavBar)를 이미 적용했지만, ClipPath 애니메이션이
+      // 진행되는 동안 여러 개의 중첩된 RepaintBoundary가 동시에 살아있는
+      // 활성 콘텐츠를 담고 있으면 Impeller가 완전히 격리하지 못하는
+      // 것으로 보인다(개별 자식 단위 땜질의 한계).
+      //
+      // [근본 해법] 이 라우트가 보여주는 화면이 00-I든 01이든 상관없이,
+      // ClipPath가 감싸는 "전체 화면 트리"를 이 지점 한 곳에서 단일
+      // RepaintBoundary로 캡처한다 — Impeller가 화면 전체를 하나의
+      // 캐시된 텍스처로 다루게 되어, 그 안의 자식이 몇 개의 애니메이션을
+      // 동시에 돌리든 ClipPath와는 완전히 분리되어 재깜빡임이 재발하지
+      // 않는다(화면별 개별 수정에 의존하지 않는 공용 수정).
       return AnimatedBuilder(
         animation: curved,
-        child: child,
+        child: RepaintBoundary(child: child),
         builder: (context, child) {
           final size = MediaQuery.of(context).size;
           final center = origin ?? Offset(size.width / 2, size.height * 0.62);
