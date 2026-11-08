@@ -58,10 +58,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 class MidnightNavTokens {
   MidnightNavTokens._();
 
-  // [색 — README Design Tokens] navy-2(#070D1B)를 바 최하단, gold-hi를
-  // 활성 색, gold를 글로우/점 색으로 사용한다. 붉은/분홍 계열 미사용.
-  static const Color bgBottom = Color(0xFF070D1B); // --navy-2
-  static const Color bgTop = Color(0x000B1326); // 그라데이션 시작(투명)
+  // [색 — README Design Tokens + 2차 보정] README 원본 navy-2(#070D1B)는
+  // 명도가 너무 낮아(luminance ~13/255) 시트 배경(navyTop #0E1830 등)과
+  // 거의 구분이 안 되고, 실기기에서 "하단바가 그냥 까맣다"는 피드백을
+  // 받았다(사용자 확인). 색조(hue)는 그대로 네이비 블루를 유지하되
+  // 명도만 ~2.6배 밝혀 "검정"이 아니라 눈에 띄는 "남색"으로 보이도록
+  // 조정했다(README 수치에서 의도적으로 벗어난 보정값 — 사용자 승인).
+  static const Color bgBottom = Color(0xFF162544); // 보정 navy(명도 상향)
+  static const Color bgTop = Color(0x00162544); // 그라데이션 시작(투명)
   static const Color inactive = Color(0x8CF5F5F0); // rgba(245,245,240,.55)
   static const Color active = Color(0xFFEBD58E); // --gold-hi
   static const Color glow = Color(0xFFD4AF37); // --gold (점 글로우용)
@@ -194,15 +198,18 @@ class MidnightBottomNavBar extends StatelessWidget {
                 bottomInset,
               ),
               decoration: const BoxDecoration(
-                // README: linear-gradient(180deg, rgba(7,13,27,0),
-                // rgba(7,13,27,.94) 30%) — navy-2(#070D1B) 기준.
+                // [2차 보정] README 원본은 navy-2(#070D1B) 기준
+                // `linear-gradient(180deg, rgba(7,13,27,0),
+                // rgba(7,13,27,.94) 30%)`였으나, 위 [MidnightNavTokens.
+                // bgBottom] 명도 보정과 동일한 이유로 보정 navy(#162544)
+                // 기준으로 맞춘다 — 그라데이션 형태(0%→30%→100%)는 그대로.
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0x00070D1B), // rgba(7,13,27,0) — 0%
-                    Color(0xF0070D1B), // rgba(7,13,27,.94) — 30%
-                    Color(0xF0070D1B), // 100%까지 동일 톤 유지
+                    Color(0x00162544), // 0%
+                    Color(0xF0162544), // 30%
+                    Color(0xF0162544), // 100%까지 동일 톤 유지
                   ],
                   stops: [0, 0.30, 1.0],
                 ),
