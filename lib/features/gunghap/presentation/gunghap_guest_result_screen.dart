@@ -51,6 +51,14 @@ class GunghapGuestResultScreen extends StatelessWidget {
     final categories = categoriesRaw is List
         ? categoriesRaw.whereType<Map>().toList()
         : const <Map>[];
+    // [버그 수정 — 대표 신고 "궁합지도 초대장 주제에 맞는 궁합을 본다고
+    // 해야지 8개본다고 돼어있잔아"] 서버(`toFreeCategoryView()`)가 초대
+    // 생성 시 선택된 majorId 기준으로 이미 categories를 1개로 필터링해
+    // 내려주므로, 화면도 majorId가 있으면 선택된 주제 라벨만 보여준다.
+    final majorId = result['majorId'] as String?;
+    final sectionTitle = majorId != null
+        ? '${ghMajorById(majorId).shortName} 궁합 등급'
+        : '8개 분야 궁합 등급';
 
     return ResultTextScaleOverlay(
       child: GHScreen(
@@ -87,7 +95,7 @@ class GunghapGuestResultScreen extends StatelessWidget {
               chemistryScore: chemistryScore,
             ),
             const SizedBox(height: 22),
-            const GHSectionHead(mono: 'FREE RESULT', title: '8개 분야 궁합 등급'),
+            GHSectionHead(mono: 'FREE RESULT', title: sectionTitle),
             for (final c in categories) ...[
               _CategoryGradeRow(
                 categoryId: c['categoryId'] as String?,

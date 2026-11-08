@@ -155,7 +155,15 @@ class _StarFieldPainter extends CustomPainter {
   bool shouldRepaint(covariant _StarFieldPainter oldDelegate) => true;
 }
 
-/// 다크 베이스 배경(ink.900 + 보라빛 radial glow + 별 필드).
+/// 다크 베이스 배경(ink.900 + 보라빛 radial glow).
+///
+/// [버그 수정 — 대표 신고 "정통사주 점들 다 없애"] 기존에는 이 공용
+/// 배경에 반짝이는 별 장식(SajuStarField, 36개)이 항상 깔려 있었다.
+/// 실기기에서 화면 전체에 점이 너무 많다는 신고를 받아, 모든 정통사주
+/// 화면(SajuDarkBase를 쓰는 홈/출생정보입력/분석중/분석완료/오류/더보기
+/// 등)에서 별 장식을 완전히 제거한다 — radial glow 배경은 유지하고
+/// SajuStarField 호출만 삭제(위젯 자체는 다른 곳에서 재사용할 가능성을
+/// 열어두기 위해 클래스 정의는 남겨둠).
 class SajuDarkBase extends StatelessWidget {
   const SajuDarkBase({super.key, required this.child});
 
@@ -188,7 +196,6 @@ class SajuDarkBase extends StatelessWidget {
               ),
             ),
           ),
-          const SajuStarField(count: 36, seed: 7, opacity: 0.55),
           child,
         ],
       ),
@@ -576,7 +583,8 @@ class _SajuDetailGeneratingOverlayState
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const SajuStarField(count: 30, seed: 11, opacity: 0.45),
+            // [버그 수정 — 대표 신고 "정통사주 점들 다 없애"] 기존 별
+            // 필드(30개) 제거.
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(

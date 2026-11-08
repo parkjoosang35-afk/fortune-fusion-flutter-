@@ -986,7 +986,8 @@ class _SajuSceneBgState extends State<SajuSceneBg>
               ),
             ),
           ),
-          SajuStarField(count: 28, seed: widget.scene.index + 3, opacity: 0.5),
+          // [버그 수정 — 대표 신고 "정통사주 점들 다 없애"] 기존 별
+          // 필드(28개) 제거.
           Positioned(
             left: 0,
             right: 0,

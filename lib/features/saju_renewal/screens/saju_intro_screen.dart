@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/saju_dark_tokens.dart';
-import '../widgets/saju_base_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
 import 'saju_renewal_home_screen.dart';
 
@@ -202,15 +201,8 @@ class _SajuIntroScreenState extends State<SajuIntroScreen> {
                 ),
               ),
 
-              // 별 필드 44개 — 1.3s부터 2s에 걸쳐 fade-in.
-              ExcludeSemantics(
-                child: AnimatedOpacity(
-                  opacity: _phase >= 2 ? 1 : 0,
-                  duration: const Duration(milliseconds: 2000),
-                  curve: Curves.easeOut,
-                  child: const SajuStarField(count: 44, seed: 11, opacity: 0.8),
-                ),
-              ),
+              // [버그 수정 — 대표 신고 "정통사주 점들 다 없애"] 기존 별
+              // 필드(44개, 1.3s~2s fade-in) 제거.
 
               // 중앙 콘텐츠(점 / 팔괘+타이틀).
               SafeArea(

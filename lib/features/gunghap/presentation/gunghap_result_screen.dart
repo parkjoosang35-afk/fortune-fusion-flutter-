@@ -311,6 +311,23 @@ class _ResultBody extends StatelessWidget {
     final categories = categoriesRaw is List
         ? categoriesRaw.whereType<Map>().toList()
         : const <Map>[];
+    // [버그 수정 — 대표 신고 "궁합지도 초대장 주제에 맞는 궁합을 본다고
+    // 해야지 8개본다고 돼어있잔아"] 서버(`GET /results/{resultId}`,
+    // `filterStoredByMajorId()`)가 초대 생성 시 선택된 majorId 기준으로
+    // 이미 categories를 1개로 필터링해 내려주므로, 화면도 majorId가
+    // 있으면 선택된 주제 라벨만 보여준다(레거시 majorId=null은 기존처럼
+    // "8개 분야"로 표시).
+    final majorId = result['majorId'] as String?;
+    final freeSectionTitle = majorId != null
+        ? '${ghMajorById(majorId).shortName} 궁합 등급'
+        : '8개 분야 궁합 등급';
+    final lockedReportDesc = majorId != null
+        ? '${ghMajorById(majorId).shortName} 분야의 관계 특징 · 잘 맞는 부분 · '
+              '갈등 가능성 · 관계 개선 방향까지, 실제 사주 풀이를 바탕으로 한\n'
+              '전체 보고서를 확인할 수 있어요.'
+        : '8개 분야 각각 관계 특징 · 잘 맞는 부분 · 갈등 가능성 ·\n'
+              '관계 개선 방향까지, 실제 사주 풀이를 바탕으로 한\n'
+              '전체 보고서를 확인할 수 있어요.';
     final detailRaw = result['detail'];
     final detail = detailRaw is List
         ? detailRaw.whereType<Map>().toList()
@@ -391,7 +408,7 @@ class _ResultBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        GHSectionHead(mono: 'FREE RESULT', title: '8개 분야 궁합 등급'),
+        GHSectionHead(mono: 'FREE RESULT', title: freeSectionTitle),
         for (final c in categories) ...[
           _CategoryRow(
             categoryId: c['categoryId'] as String?,
@@ -422,9 +439,7 @@ class _ResultBody extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '8개 분야 각각 관계 특징 · 잘 맞는 부분 · 갈등 가능성 ·\n'
-                  '관계 개선 방향까지, 실제 사주 풀이를 바탕으로 한\n'
-                  '전체 보고서를 확인할 수 있어요.',
+                  lockedReportDesc,
                   style: GHText.ui(size: 13, height: 1.6, color: GHColors.gray),
                 ),
                 const SizedBox(height: 16),
