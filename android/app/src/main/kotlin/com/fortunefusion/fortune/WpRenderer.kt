@@ -45,14 +45,28 @@ object WpRenderer {
      * 원칙(§3)을 공유해 영역이 어긋나지 않는다.
      *  - clock/bubble/card: 신통방통 앱 바로 열기.
      *  - devotion: 치성(WishActionQueue 기록 + 캐릭터 기도 연출).
+     *
+     * [대표 신고 2026-11 — "전화 걸려고 했는데 자꾸 앱으로 들어가요" 버그수정]
+     * 기존 card/devotion 영역이 y:700~794(기준 844 중 83~94%)에 있었는데,
+     * 이 위치는 거의 모든 안드로이드 런처의 하단 독(전화·메시지·카메라
+     * 아이콘)이 놓이는 자리와 정확히 겹친다. 독 아이콘 사이 여백을 탭하면
+     * 런처가 그 터치를 소비하지 않고 배경화면까지 그대로 전달해, 전화를
+     * 걸려다 의도치 않게 앱이 열리는 사고가 반복됐다 — 그대로 두면
+     * 사용자가 배경화면을 바로 지워버릴 만큼 치명적인 UX 결함이다.
+     * [DOCK_SAFE_BOTTOM_MARGIN] 하단 약 150px(≈18%)을 "시스템 독 전용
+     * 안전지대"로 비워 두고, 터치 가능한 카드/치성 버튼을 전부 그 위로
+     * 끌어올린다 — render()의 HUD 그리기 좌표도 반드시 같은 상수로 이동해야
+     * "같은 좌표" 원칙이 깨지지 않는다(DOCK_SAFE_BOTTOM_MARGIN 참고).
      */
+    const val DOCK_SAFE_BOTTOM_MARGIN = 150f
+
     data class WpZone(val id: String, val left: Float, val top: Float, val right: Float, val bottom: Float)
 
     fun overlayZones(): List<WpZone> = listOf(
         WpZone("clock", 110f, 20f, 280f, 132f),
         WpZone("bubble", 20f, 386f, 250f, 446f),
-        WpZone("card", 16f, 702f, 262f, 792f),
-        WpZone("devotion", 276f, 700f, 368f, 794f),
+        WpZone("card", 16f, 702f - DOCK_SAFE_BOTTOM_MARGIN, 262f, 792f - DOCK_SAFE_BOTTOM_MARGIN),
+        WpZone("devotion", 276f, 700f - DOCK_SAFE_BOTTOM_MARGIN, 368f, 794f - DOCK_SAFE_BOTTOM_MARGIN),
     )
 
     /** 화면 좌표 [x],[y]를 기준 캔버스(390×844) 좌표로 환산한다. */
@@ -323,7 +337,12 @@ object WpRenderer {
                 canvas.drawText(bubble, bl + 14f, 423f, textPaint)
             }
             // 소원 카드(좌하단) — 탭하면 앱 진입.
-            val cardRect = android.graphics.RectF(16f, 702f, 262f, 792f)
+            // [대표 신고 버그수정] DOCK_SAFE_BOTTOM_MARGIN만큼 끌어올려 시스템
+            // 하단 독(전화·메시지·카메라 등)과 겹치지 않는 위치에 그린다 —
+            // overlayZones()의 "card"/"devotion" 터치 판정과 반드시 같은 좌표를
+            // 써야 "보이는 자리 = 눌리는 자리" 원칙이 유지된다.
+            val m0 = DOCK_SAFE_BOTTOM_MARGIN
+            val cardRect = android.graphics.RectF(16f, 702f - m0, 262f, 792f - m0)
             hudPaint.color = withAlpha(Color.parseColor("#FFF4D8"), 0.95f)
             canvas.drawRoundRect(cardRect, 18f, 18f, hudPaint)
             val border = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -332,38 +351,38 @@ object WpRenderer {
             border.color = withAlpha(Color.parseColor("#E9C46A"), 0.8f)
             canvas.drawRoundRect(cardRect, 18f, 18f, border)
             hudPaint.color = withAlpha(Color.parseColor("#E9C46A"), 0.28f)
-            canvas.drawCircle(52f, 747f, 21f, hudPaint)
+            canvas.drawCircle(52f, 747f - m0, 21f, hudPaint)
             val sealText = Paint(Paint.ANTI_ALIAS_FLAG)
             sealText.color = Color.parseColor("#B8860B")
             sealText.textSize = 24f
             sealText.textAlign = Paint.Align.CENTER
             sealText.isFakeBoldText = true
-            canvas.drawText("財", 52f, 756f, sealText)
+            canvas.drawText("財", 52f, 756f - m0, sealText)
             val cardText = Paint(Paint.ANTI_ALIAS_FLAG)
             cardText.color = Color.parseColor("#4A3223")
             cardText.textSize = 14f
             val wish = m.wishText?.takeIf { it.isNotEmpty() } ?: "소원을 빌러 오세요"
-            canvas.drawText(if (wish.length > 16) wish.take(16) + "…" else wish, 88f, 742f, cardText)
+            canvas.drawText(if (wish.length > 16) wish.take(16) + "…" else wish, 88f, 742f - m0, cardText)
             val subText = Paint(Paint.ANTI_ALIAS_FLAG)
             subText.color = Color.parseColor("#8A7350")
             subText.textSize = 11f
-            canvas.drawText("터치해서 소원방 열기", 88f, 766f, subText)
+            canvas.drawText("터치해서 소원방 열기", 88f, 766f - m0, subText)
             // 치성 버튼(우하단) — 탭하면 기록 + 기도 연출.
             val btn = Paint(Paint.ANTI_ALIAS_FLAG)
             btn.color = withAlpha(Color.parseColor("#FF7FA8"), if (praying) 0.95f else 0.88f)
-            canvas.drawCircle(322f, 747f, 44f, btn)
+            canvas.drawCircle(322f, 747f - m0, 44f, btn)
             val btnText = Paint(Paint.ANTI_ALIAS_FLAG)
             btnText.color = Color.WHITE
             btnText.textSize = 14f
             btnText.textAlign = Paint.Align.CENTER
             btnText.isFakeBoldText = true
-            canvas.drawText("치성", 322f, 744f, btnText)
+            canvas.drawText("치성", 322f, 744f - m0, btnText)
             if (devotionLabel != null) {
                 val cnt = Paint(Paint.ANTI_ALIAS_FLAG)
                 cnt.color = withAlpha(Color.WHITE, 0.9f)
                 cnt.textSize = 11f
                 cnt.textAlign = Paint.Align.CENTER
-                canvas.drawText(devotionLabel, 322f, 762f, cnt)
+                canvas.drawText(devotionLabel, 322f, 762f - m0, cnt)
             }
         }
 

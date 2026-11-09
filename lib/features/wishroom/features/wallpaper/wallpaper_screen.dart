@@ -236,6 +236,45 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
     }
   }
 
+  /// [대표 신고 2026-11 — "배경화면을 소원방에서 삭제 가능하게 해야지"]
+  /// 지금까지는 라이브 배경화면을 설정만 할 수 있고 해제하는 화면 내 동선이
+  /// 전혀 없었다(네이티브 clearNative()/repo.clearWallpaper()는 이미
+  /// 구현돼 있었지만 어떤 화면에서도 호출되지 않음). 설치 직후 실수로
+  /// 설정했거나 다른 배경화면으로 바꾸고 싶을 때 앱 밖(시스템 설정)까지
+  /// 나가지 않고 바로 해제할 수 있도록 확인 다이얼로그 + 해제 버튼을 추가한다.
+  Future<void> _confirmClearWallpaper(WishRoomProvider p) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: WrC.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('배경화면을 해제할까요?', style: WrF.display(16)),
+        content: Text(
+          '휴대폰 배경화면이 기본 모습으로 돌아가요.\n소원방은 그대로 남아있고, 언제든 다시 설정할 수 있어요.',
+          style: WrF.body(13, color: WrC.muted, height: 1.6),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('취소', style: WrF.body(13.5, color: WrC.muted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('해제하기', style: WrF.body(13.5, w: FontWeight.w800, color: WrC.blossom)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final success = await p.clearWallpaper();
+    if (!mounted) return;
+    WrToast.show(
+      context,
+      success ? '배경화면을 해제했어요' : (p.lastError?.message ?? '해제에 실패했어요. 다시 시도해주세요.'),
+    );
+  }
+
   Future<void> _makeIOS(WishRoomProvider p, WishRoom room) async {
     // iOS Live Photo 파이프라인은 이 프로젝트에 네이티브 빌드 기반이 없어 실제
     // PHAssetCreationRequest 저장은 불가능하다 — S-04/S-05 화면 흐름(디자인 검수용)만
@@ -443,6 +482,26 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
                       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                       decoration: WrDeco.chip,
                       child: Text('적용된 모습 다시 보기', style: WrF.body(12, color: WrC.fg)),
+                    ),
+                  ))),
+                // [대표 신고 2026-11] 배경화면 해제 — 설정된 상태일 때만 노출.
+                // 실수로 바로 해제되지 않도록 _confirmClearWallpaper가 확인
+                // 다이얼로그를 먼저 띄운다. 붉은 계열 아웃라인으로 "주 버튼"과
+                // 시각적으로 구분해, 실수로 누르기 쉬운 자리에 두지 않는다.
+                if (isSet)
+                  Padding(padding: const EdgeInsets.only(top: 10), child: Center(child: GestureDetector(
+                    onTap: () => _confirmClearWallpaper(p),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: WrC.blossom.withValues(alpha: 0.55)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.wallpaper_outlined, size: 14, color: WrC.blossom),
+                        const SizedBox(width: 5),
+                        Text('배경화면 해제', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.blossom)),
+                      ]),
                     ),
                   ))),
 

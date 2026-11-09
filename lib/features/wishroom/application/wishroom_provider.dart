@@ -957,7 +957,14 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
+  /// [대표 신고 2026-11 — "배경화면을 지울 수 없다"] 서버 상태(W4 DELETE
+  /// /me/wallpaper)만 지우고 실제 OS 라이브 배경화면은 그대로 남아있던 버그
+  /// 수정 — 안드로이드 네이티브 clearNative()(WallpaperManager.clear())도
+  /// 함께 호출해 기기에서 실제로 기본 배경화면으로 돌아가게 한다. 서버 호출이
+  /// 실패해도 네이티브 쪽은 사용자가 "지우기"를 누른 즉시 반영해 체감
+  /// 응답성을 지키고, 서버 동기화는 별도로 재시도될 수 있게 한다.
   Future<bool> clearWallpaper() async {
+    await WallpaperService.clearNative();
     try {
       await repo.clearWallpaper();
       wallpaperStatus = const WallpaperStatus.empty();
