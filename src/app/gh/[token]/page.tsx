@@ -206,10 +206,26 @@ export default async function GunghapInviteLandingPage({ params }: PageProps) {
               </div>
 
               <div className="space-y-2 text-[13.5px] leading-relaxed text-[#C9BBA8]">
-                <p>
-                  연애, 결혼, 속궁합, 성격, 재물, 사업, 친구, 가족까지{" "}
-                  <b className="text-[#F8F2E6]">8개 분야</b>의 궁합을 한 번에 확인할 수 있어요.
-                </p>
+                {/* [버그 수정 — 대표 신고 "궁합지도 초대장 주제에 맞는
+                    궁합을 본다고 해야지 8개 본다고 돼있잖아"] invite.majorLabel
+                    (초대 생성 시 선택한 주제, 예: "연애")이 이미 OG
+                    메타데이터(generateMetadata)에는 반영되어 있었지만, 정작
+                    화면 본문은 항상 레거시 "8개 분야 전체" 고정 문구를
+                    보여주고 있었다 — 특정 주제를 골라 보낸 초대인데도 받는
+                    사람에게는 "8개 분야를 다 본다"고 안내되는 불일치였다.
+                    주제가 선택된 초대는 그 주제만 안내하고, 레거시(주제
+                    미선택) 초대만 기존 8개 분야 문구를 그대로 보여준다. */}
+                {invite.majorLabel ? (
+                  <p>
+                    <b className="text-[#F8F2E6]">{invite.majorLabel} 궁합</b>을 지금 바로
+                    확인할 수 있어요.
+                  </p>
+                ) : (
+                  <p>
+                    연애, 결혼, 속궁합, 성격, 재물, 사업, 친구, 가족까지{" "}
+                    <b className="text-[#F8F2E6]">8개 분야</b>의 궁합을 한 번에 확인할 수 있어요.
+                  </p>
+                )}
                 <p className="pt-1 font-semibold text-[#F8F2E6]">
                   이름과 생년월일만 넣으면,
                   <br />

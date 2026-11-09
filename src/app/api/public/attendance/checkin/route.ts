@@ -37,14 +37,19 @@ function yesterdayRangeUtcKST(): { start: Date; end: Date } {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { userId?: number };
+  // [버그 수정 — 대표 신고 "출석체크 안됨"] 이 라우트는 userId를 항상
+  // 인증 토큰(requireUser)에서 가져오고 요청 본문의 값은 애초에 전혀
+  // 참조하지 않는다. 그런데도 `await request.json()`을 무조건 실행해서,
+  // 본문을 아예 보내지 않는 Flutter 클라이언트(AttendanceRepository.
+  // checkIn() — http.post()에 body 파라미터 자체가 없음)가 호출하면
+  // 빈 본문 파싱이 즉시 실패해 "요청 본문이 올바르지 않습니다"(400)로
+  // 인증 체크보다도 먼저 막혀버린다 — 로그인 여부와 무관하게 출석체크가
+  // 100% 실패하던 근본 원인. 본문이 비어 있거나 JSON이 아니어도 그냥
+  // 무시하고 진행한다(파싱 결과를 애초에 쓰지 않으므로 안전).
   try {
-    body = await request.json();
+    await request.json();
   } catch {
-    return NextResponse.json(
-      { success: false, error: "요청 본문이 올바르지 않습니다." },
-      { status: 400, headers: CORS_HEADERS }
-    );
+    // 본문이 없거나 JSON이 아니어도 무시 — 아래 로직은 body를 쓰지 않는다.
   }
 
   const auth = await requireUser(request);

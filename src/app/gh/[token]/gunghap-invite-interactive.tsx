@@ -53,6 +53,11 @@ interface JoinResult {
   timeUnknown: boolean;
   dayMasterKr?: string;
   dayMasterElement?: string;
+  // [버그 수정 — 대표 신고 "궁합지도 초대장 주제에 맞는 궁합을 본다고
+  // 해야지 8개본다고 돼어있잔아"] join API(`toFreeCategoryView()`)가 이미
+  // majorId 기준으로 categories를 1개로 필터링해 내려주므로, 화면 쪽도
+  // 이 값을 받아 헤딩 문구를 분기해야 한다.
+  majorId?: string | null;
   categories: CategoryFreeView[];
   unlockCost: number;
   joined: boolean;
@@ -424,10 +429,18 @@ function ResultCard({
       )}
 
       <div className="mb-4 text-left">
+        {/* [버그 수정 — 대표 신고 "궁합지도 초대장 주제에 맞는 궁합을 본다고
+            해야지 8개본다고 돼어있잔아"] join API가 majorId 기준으로 이미
+            categories를 1개로 필터링해 내려주므로(toFreeCategoryView()),
+            주제가 선택된 초대는 "8개 분야"가 아니라 선택된 주제 1개만
+            보여준다. majorId가 없는 레거시 초대는 기존처럼 "8개 분야"로
+            표시한다. */}
         <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-widest text-[#F5CF6A]">
-          8개 분야 궁합 등급
+          {result.majorId
+            ? `${CATEGORY_LABEL[result.majorId] ?? "궁합"} 등급`
+            : "8개 분야 궁합 등급"}
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${result.categories.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
           {result.categories.map((c) => (
             <div
               key={c.categoryId}
