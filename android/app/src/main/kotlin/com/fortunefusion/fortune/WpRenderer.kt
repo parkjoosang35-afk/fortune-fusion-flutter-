@@ -60,13 +60,36 @@ object WpRenderer {
      */
     const val DOCK_SAFE_BOTTOM_MARGIN = 150f
 
+    /**
+     * [대표 신고 2026-11 (2차) — "사람 얼굴이 다 가리잖아, 박스을 작게 하던지
+     * 치성도 작게해야지"] 독 회피를 위해 카드/치성 버튼을 위로 끌어올린
+     * 직전 수정이, 하필 캐릭터(스님) 얼굴 자리(기준 390×844 중 y≈532~612)와
+     * 그대로 겹쳐버렸다 — 실기기 스크린샷으로 확인(캐릭터 스프라이트는
+     * room_layout.dart 고정 기하값: top=468,height=226,width=162 →
+     * ch.y=694,ch.s=162, 스프라이트 상단 y=694-162=532, "얼굴"은 그 중
+     * 위쪽 약 49%인 y≈532~611.4 구간을 차지한다).
+     *
+     * [해결] 카드/치성 버튼을 "얼굴 아래 ~ 독 안전지대 위" 사이의 좁은 틈
+     * (y≈612~694, 약 82px)에 들어가도록 가로·세로 모두 축소해 다시 배치한다.
+     * 크기를 키운 채로는 이 틈에 들어갈 수 없으므로, 사용자 요청대로 "작게"가
+     * 유일한 해법이다. 캐릭터 얼굴 y좌표는 manifest의 실제 character 레이어
+     * (y,s)로부터 계산해, 향후 캐릭터 배치가 바뀌어도 자동으로 따라간다.
+     */
+    private const val CARD_TOP = 616f
+    private const val CARD_BOTTOM = 676f
+    private const val CARD_LEFT = 16f
+    private const val CARD_RIGHT = 190f
+    private const val DEVOTION_CX = 342f
+    private const val DEVOTION_CY = 646f
+    private const val DEVOTION_R = 24f
+
     data class WpZone(val id: String, val left: Float, val top: Float, val right: Float, val bottom: Float)
 
     fun overlayZones(): List<WpZone> = listOf(
         WpZone("clock", 110f, 20f, 280f, 132f),
         WpZone("bubble", 20f, 386f, 250f, 446f),
-        WpZone("card", 16f, 702f - DOCK_SAFE_BOTTOM_MARGIN, 262f, 792f - DOCK_SAFE_BOTTOM_MARGIN),
-        WpZone("devotion", 276f, 700f - DOCK_SAFE_BOTTOM_MARGIN, 368f, 794f - DOCK_SAFE_BOTTOM_MARGIN),
+        WpZone("card", CARD_LEFT, CARD_TOP, CARD_RIGHT, CARD_BOTTOM),
+        WpZone("devotion", DEVOTION_CX - DEVOTION_R, DEVOTION_CY - DEVOTION_R, DEVOTION_CX + DEVOTION_R, DEVOTION_CY + DEVOTION_R),
     )
 
     /** 화면 좌표 [x],[y]를 기준 캔버스(390×844) 좌표로 환산한다. */
@@ -336,53 +359,59 @@ object WpRenderer {
                 canvas.drawRoundRect(android.graphics.RectF(bl, 396f, bl + tw + 28f, 440f), 21f, 21f, hudPaint)
                 canvas.drawText(bubble, bl + 14f, 423f, textPaint)
             }
-            // 소원 카드(좌하단) — 탭하면 앱 진입.
-            // [대표 신고 버그수정] DOCK_SAFE_BOTTOM_MARGIN만큼 끌어올려 시스템
-            // 하단 독(전화·메시지·카메라 등)과 겹치지 않는 위치에 그린다 —
+            // 소원 카드(좌하단)/치성 버튼(우하단) — 탭하면 앱 진입 / 기록+기도 연출.
+            // [대표 신고 2026-11 (2차) 버그수정] CARD_TOP/BOTTOM/LEFT/RIGHT,
+            // DEVOTION_CX/CY/R(클래스 상단 상수)로 캐릭터 얼굴(y≈532~612)을
+            // 피해 "얼굴 아래 ~ 독 안전지대 위" 틈(y≈612~694)에만 그린다 —
             // overlayZones()의 "card"/"devotion" 터치 판정과 반드시 같은 좌표를
-            // 써야 "보이는 자리 = 눌리는 자리" 원칙이 유지된다.
-            val m0 = DOCK_SAFE_BOTTOM_MARGIN
-            val cardRect = android.graphics.RectF(16f, 702f - m0, 262f, 792f - m0)
+            // 써야 "보이는 자리 = 눌리는 자리" 원칙이 유지된다. 카드가 가로·세로
+            // 모두 축소됐으므로(246×90→174×60, 버튼 지름 88→48) 내부 폰트 크기도
+            // 비례해 줄인다. CARD_BOTTOM(676)과 DEVOTION_CY+DEVOTION_R(670)이
+            // 모두 BASE_H-DOCK_SAFE_BOTTOM_MARGIN(844-150=694)보다 작아 독
+            // 안전지대도 그대로 지켜진다.
+            val cardRect = android.graphics.RectF(CARD_LEFT, CARD_TOP, CARD_RIGHT, CARD_BOTTOM)
+            val cardCy = (CARD_TOP + CARD_BOTTOM) / 2f
             hudPaint.color = withAlpha(Color.parseColor("#FFF4D8"), 0.95f)
-            canvas.drawRoundRect(cardRect, 18f, 18f, hudPaint)
+            canvas.drawRoundRect(cardRect, 14f, 14f, hudPaint)
             val border = Paint(Paint.ANTI_ALIAS_FLAG)
             border.style = Paint.Style.STROKE
-            border.strokeWidth = 1.2f
+            border.strokeWidth = 1f
             border.color = withAlpha(Color.parseColor("#E9C46A"), 0.8f)
-            canvas.drawRoundRect(cardRect, 18f, 18f, border)
+            canvas.drawRoundRect(cardRect, 14f, 14f, border)
+            val sealCx = CARD_LEFT + 20f
             hudPaint.color = withAlpha(Color.parseColor("#E9C46A"), 0.28f)
-            canvas.drawCircle(52f, 747f - m0, 21f, hudPaint)
+            canvas.drawCircle(sealCx, cardCy, 14f, hudPaint)
             val sealText = Paint(Paint.ANTI_ALIAS_FLAG)
             sealText.color = Color.parseColor("#B8860B")
-            sealText.textSize = 24f
+            sealText.textSize = 15f
             sealText.textAlign = Paint.Align.CENTER
             sealText.isFakeBoldText = true
-            canvas.drawText("財", 52f, 756f - m0, sealText)
+            canvas.drawText("財", sealCx, cardCy + 5f, sealText)
+            val textX = CARD_LEFT + 42f
             val cardText = Paint(Paint.ANTI_ALIAS_FLAG)
             cardText.color = Color.parseColor("#4A3223")
-            cardText.textSize = 14f
+            cardText.textSize = 10f
             val wish = m.wishText?.takeIf { it.isNotEmpty() } ?: "소원을 빌러 오세요"
-            canvas.drawText(if (wish.length > 16) wish.take(16) + "…" else wish, 88f, 742f - m0, cardText)
+            canvas.drawText(if (wish.length > 10) wish.take(10) + "…" else wish, textX, cardCy - 5f, cardText)
             val subText = Paint(Paint.ANTI_ALIAS_FLAG)
             subText.color = Color.parseColor("#8A7350")
-            subText.textSize = 11f
-            canvas.drawText("터치해서 소원방 열기", 88f, 766f - m0, subText)
-            // 치성 버튼(우하단) — 탭하면 기록 + 기도 연출.
+            subText.textSize = 8f
+            canvas.drawText("터치해서 소원방 열기", textX, cardCy + 11f, subText)
             val btn = Paint(Paint.ANTI_ALIAS_FLAG)
             btn.color = withAlpha(Color.parseColor("#FF7FA8"), if (praying) 0.95f else 0.88f)
-            canvas.drawCircle(322f, 747f - m0, 44f, btn)
+            canvas.drawCircle(DEVOTION_CX, DEVOTION_CY, DEVOTION_R, btn)
             val btnText = Paint(Paint.ANTI_ALIAS_FLAG)
             btnText.color = Color.WHITE
-            btnText.textSize = 14f
+            btnText.textSize = 11f
             btnText.textAlign = Paint.Align.CENTER
             btnText.isFakeBoldText = true
-            canvas.drawText("치성", 322f, 744f - m0, btnText)
+            canvas.drawText("치성", DEVOTION_CX, DEVOTION_CY - 2f, btnText)
             if (devotionLabel != null) {
                 val cnt = Paint(Paint.ANTI_ALIAS_FLAG)
                 cnt.color = withAlpha(Color.WHITE, 0.9f)
-                cnt.textSize = 11f
+                cnt.textSize = 8f
                 cnt.textAlign = Paint.Align.CENTER
-                canvas.drawText(devotionLabel, 322f, 762f - m0, cnt)
+                canvas.drawText(devotionLabel, DEVOTION_CX, DEVOTION_CY + 11f, cnt)
             }
         }
 
