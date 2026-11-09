@@ -746,11 +746,11 @@ class _AttendanceBanner extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
                 child: const Text(
@@ -758,7 +758,7 @@ class _AttendanceBanner extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: MyPageFonts.hanja,
                     fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                    fontSize: 26,
                     color: MyPageColors.red,
                   ),
                 ),
