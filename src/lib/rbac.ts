@@ -15,7 +15,12 @@ export interface AdminMenuItem {
   code: string; // menu_code (admin_permissions.menu_code와 매칭)
   label: string;
   path: string; // 08_Web_Design.md §3.2 라우트 매핑표 기준
-  icon: string; // lucide-react 아이콘명
+  icon?: string; // lucide-react 아이콘명(최상위 전용, 하위항목은 생략 가능)
+  // [관리자 2.0 전면 재설계 - 6메뉴 구조] 하위 항목 자체가 다른 RBAC 메뉴코드로
+  // 가드되는 "외부 화면"으로 가는 링크인 경우 true. 사이드바에는 그대로 노출하되,
+  // 실제 read 가능 여부는 각 page.tsx가 자신의 canAccessMenu(원래 코드)로 최종 판정한다
+  // (이 필드는 순수 UI용 — "↗" 표시 등. 접근 제어에는 관여하지 않음).
+  external?: boolean;
 }
 
 export interface AdminMenuGroup {
@@ -117,73 +122,140 @@ export interface AdminMenuGroup {
 //     /reward/operation-logs?historyUserId=로 서로 연결해 "복주머니관리"와
 //     "회원·이용내역" 두 메뉴를 양방향 링크로 통합했다(별도 메뉴 신설/삭제 없음 —
 //     기존 두 화면 사이의 누락된 연결고리만 보강).
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계 - 6메뉴 구조 전환]
+// 사용자 확정 지시("보고서⑩ 신규 관리자 설계 제안" 기반, 승인 지시 전달)에 따라
+// 기존 12개 최상위 사이드바 항목을 아래 6개 그룹으로 재편한다:
+//   통합대시보드 / 콘텐츠관리 / 복주머니결제쿠폰 / 회원운영관리 / 광고외부연동 / AI시스템관리
+//
+// [핵심 원칙 — 회귀 위험 최소화] 기존 12개 실제 RBAC 코드(ai_content/wishroom/cms/
+// pouch/bokju_coupon/shop/payments/users/notifications/ad_management/ops_security/
+// system_settings)는 단 1개도 변경/삭제하지 않는다. 모든 하위 page.tsx의
+// canAccessMenu(roleCode, "기존코드") 가드는 그대로 유지되며, 실제 접근 제어의
+// 유일한 소스로 계속 기능한다. 이번 재편은 "어떤 코드가 어느 사이드바 그룹
+// 아래에 보이는지"라는 순수 UI 트리 재배치일 뿐이다(기존 pass/pouch/
+// ad_management가 "reward" 권한을 미러링하던 패턴과 동일한 설계 철학).
+//
+// [신규 6개 최상위 가상 코드] 아래 6개는 전부 사이드바 그룹 "펼침" 여부만
+// 판정하는 신규 가상 코드다(RBAC_MATRIX에 하위 자식 코드들의 권한 합집합(OR)을
+// 미러링해 등록 — 아래 §RBAC_MATRIX 주석에 그룹별 합집합 산출 근거 명시).
+// 실제로 사이드바에 보이는 "자식" 항목들은 getVisibleMenusForRole()에서
+// 자기 자신의 진짜 코드로 다시 한번 개별 필터링되므로(각 child.code가 바로
+// 기존 real RBAC 코드), 접근 불가능한 하위 화면 링크가 노출되는 일은 없다.
+//
+// [CMS/알림관리 재배치 결정 — 사용자가 명시하지 않은 부분, 직접 결정]
+// 사용자가 확정한 6개 그룹명에는 CMS/알림관리가 명시되어 있지 않았으나 둘 다
+// 실사용 중인 화면이라 삭제 대상이 아니므로, 성격에 맞춰 아래처럼 재배치한다
+// (추후 이견 있으면 그룹만 다시 옮기면 됨 — 코드/권한 변경 없이 그룹 소속만
+// 바뀌는 구조이므로 수정 비용이 거의 없다):
+//   - CMS(배너/행운숫자/힐링문구/인트로/메인화면편집) → "콘텐츠관리"(사용자에게
+//     노출되는 콘텐츠라는 성격이 9개 콘텐츠와 동일)
+//   - 알림 관리(템플릿/세그먼트발송/이력/설정) → "회원운영관리"(회원과의
+//     커뮤니케이션 채널이라는 성격)
+//
+// [신규 리프 화면의 RBAC 코드] 프리미엄사주/도완녀상담/1:1고객문의/AI자동진단/
+// 외부연동현황/복주머니결제쿠폰 통합현황은 전부 이번에 신설하는 화면이라 전용
+// RBAC 코드가 없다. 새 코드를 늘리는 대신 성격이 가장 가까운 기존 코드를
+// 재사용한다(실제 read/write 판정은 재사용한 코드가 그대로 담당):
+//   - 프리미엄사주 PDF 템플릿 관리, 도완녀상담 상태머신 → "ai_content"(콘텐츠팀 관할)
+//   - 1:1 고객문의 → "users"(회원 대응 업무, cs 역할이 RW 가능해야 함과 일치)
+//   - AI 자동진단(서버/엔진 상태) → "ops_system"(시스템 관리자 전용)
+//   - 광고외부연동 매트릭스(외부서비스 연동현황) → "ad_management"(reward 미러링)
+//   - 복주머니결제쿠폰 통합현황 랜딩 → "pouch"(reward 미러링)
 export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
-  { code: "dashboard", label: "대시보드", path: "/dashboard", icon: "LayoutDashboard" },
-  { code: "pass", label: "프리패스관리", path: "/reward/pass-policies", icon: "Ticket" },
-  { code: "pouch", label: "복주머니관리", path: "/reward/luck-pouch-rules", icon: "Gift" },
-  { code: "ai_content", label: "6개콘텐츠관리", path: "/ai-content/prompts", icon: "Sparkles" },
-  // [신통방통 관리자 통합 간소화 실행 지시서 task 6] 소원방(WishRoom) 운영 관리 —
-  // 신고 처리함(wish_room/wish_room_comment/wish_room_review)과 어뷰징 의심 후기
-  // 승인 큐 2개 화면을 신설. task 8에서 6개콘텐츠관리 허브로 통합 예정이지만,
-  // 그 전까지는 ai_content와 분리된 전용 메뉴코드로 가드해 책임 범위를 명확히 한다.
-  { code: "wishroom", label: "소원방 운영", path: "/wishroom/reports", icon: "Heart" },
-  { code: "ad_management", label: "광고관리", path: "/reward/fortune-ads", icon: "Megaphone" },
-  // [복주머니 마케팅 쿠폰 최종본] 쿠폰 대량 발행→모바일 이미지 제작→제휴업체
-  // 배정→고객 QR 등록→복주머니 적립까지 연결하는 전용 메뉴. 기존 "복주머니관리"
-  // (pouch, LuckPouchRule 적립/소비 "정책")와는 완전히 다른 도메인(BokjuCoupon*
-  // 테이블)이라 혼동 방지를 위해 별도 메뉴 코드로 분리한다. 사이드바 전용 신규
-  // 코드이므로 RBAC_MATRIX에는 "reward"와 동일 권한을 미러링한다(pass/pouch와
-  // 동일 패턴, 실제 접근 제어는 각 페이지의 reward 가드가 최종 담당).
-  { code: "bokju_coupon", label: "마케팅 쿠폰", path: "/bokju-coupons/campaigns", icon: "QrCode" },
-  { code: "users", label: "회원·이용내역", path: "/users", icon: "Users" },
-  // [§8단계] 상점 관리 진입점을 부적(amulets, 앱 진입경로 없는 죽은 기능)에서
-  // 복주머니뽑기(luckybag, 실제 앱에서 라이브 사용 중)로 변경한다.
-  // [task 9 예고] luckybag은 "복주머니를 써서 뽑는" 기능이라 추후 복주머니관리로 통합 검토 대상.
-  // [신통방통 관리자 최종 간소화 실행 지시서 §3 "실제 사용하는 상품 기능만"]
-  // [재확인] /shop/amulets는 사이드바/서브탭 어디에도 연결되어 있지 않은
-  // 독립 URL이었고, Flutter 앱의 부적 상점 화면(talisman_shop_screen.dart)은
-  // 이 화면이 다루는 AmuletItem/UserAmulet이 아니라 별도 모델(ShopCatalogItem
-  // itemType="talisman" + UserInventoryItem)을 쓴다 — /api/public/amulets/*
-  // 6개 API가 구현되어 있지만 Flutter 코드 전체에서 호출 0건. shop/amulets/
-  // page.tsx 진입 시 /shop/luckybag로 리다이렉트하도록 처리했다(라우트/서버
-  // 액션/Prisma 모델은 전부 보존). shop 메뉴 자체는 luckybag+giftcards 2개
-  // 하위 화면이 각각 실사용 데이터와 Flutter 연동이 확인되어 그대로 유지한다.
-  { code: "shop", label: "상점 관리", path: "/shop/luckybag", icon: "Store" },
-  // [신통방통 관리자 최종 간소화 실행 지시서 §3 "공지사항·FAQ·이벤트·팝업 비노출"]
-  // [재확인] Flutter 앱에 /api/public/notices, /api/public/faqs,
-  // /api/public/events, /api/public/popups를 호출하는 코드가 전혀 없어(0건)
-  // 4개 화면 모두 도달 불가능한 CMS였다. CMS 서브탭(각 page.tsx의 <nav>)에서
-  // 공지사항/FAQ/이벤트 3개 링크를 제거하고(popups는 이미 이전 작업에서
-  // 제거되어 있었음), notices/faqs/events 3개 page.tsx는 URL 직접 접근 시에도
-  // /cms/banners로 리다이렉트하도록 처리했다 — 라우트 파일/서버 액션/Prisma
-  // 모델(Notice/Faq/Event/EventParticipation/Popup)은 전혀 삭제하지 않았다.
-  // 배너/행운숫자/힐링문구/인트로설정/메인화면편집 5개는 전부 대응 공개 API와
-  // Flutter 실소비 코드가 확인되어 그대로 유지한다.
-  { code: "cms", label: "CMS", path: "/cms/banners", icon: "FileText" },
-  { code: "notifications", label: "알림 관리", path: "/notifications/templates", icon: "Bell" },
-  // [신통방통 관리자 통합 간소화 실행 지시서 task 10 "운영/보안+시스템설정 최소
-  // 메뉴로 통합"] 기존 "운영/보안"(ops_security, super_admin 전용)과 "시스템 설정"
-  // (system_settings, super_admin+operator 열람 가능) 2개 최상위 사이드바 항목을
-  // "운영·시스템관리" 1개 행으로 합친다.
-  // [주의 — 권한 레벨 불일치 회귀 방지] 두 메뉴는 RBAC 권한 레벨이 다르다
-  // (ops_security는 operator가 X, system_settings는 operator가 R). 사이드바 code를
-  // 그대로 "ops_security"로 두면 operator가 system_settings 3개 화면으로 가는
-  // 사이드바 진입점 자체를 완전히 잃는 회귀가 발생한다. 이를 막기 위해 "pass"/
-  // "pouch"/"ad_management"가 "reward" 권한을 미러링하는 기존 패턴과 동일하게,
-  // 사이드바 전용 신규 가상 코드 "ops_system"을 RBAC_MATRIX에 추가해 두 메뉴의
-  // 열람 권한 합집합(super_admin: 전체, operator: system_settings만)을 미러링한다.
-  // 랜딩 경로는 "/ops"(신규, 역할별로 /admin-users 또는 /system-settings로 즉시
-  // 리다이렉트하는 서버 컴포넌트 — src/app/(admin)/ops/page.tsx 참고)로 설정해
-  // super_admin/operator 모두 권한이 있는 첫 화면으로 바로 떨어지게 한다.
-  // 7개 하위 page.tsx의 실제 접근 가드(canAccessMenu(roleCode,"ops_security"|
-  // "system_settings"))와 RBAC_MATRIX.ops_security/system_settings 엔트리는 전혀
-  // 변경하지 않았다(회귀 위험 제로 — 권한 소스는 기존 두 코드 그대로 유지).
+  { code: "dashboard", label: "통합대시보드", path: "/dashboard", icon: "LayoutDashboard" },
+
+  // ── 2) 콘텐츠관리 ──────────────────────────────────────────────
   {
-    code: "ops_system",
-    label: "운영·시스템관리",
+    code: "content_mgmt",
+    label: "콘텐츠관리",
+    path: "/ai-content/prompts",
+    icon: "Sparkles",
+    matchPrefixes: ["/ai-content", "/wishroom", "/cms"],
+    children: [
+      { code: "ai_content", label: "9개 콘텐츠 운영(AI/프롬프트)", path: "/ai-content/prompts" },
+      { code: "wishroom", label: "소원방 운영", path: "/wishroom/reports" },
+      { code: "cms", label: "CMS(배너·행운숫자·인트로)", path: "/cms/banners" },
+      // [Task12a/12b 신규 서비스] 아직 기획 단계 — "ai_content" 코드를 재사용한
+      // 스켈레톤 화면으로 시작(실데이터/워크플로 없이 상태/안내만 표시).
+      { code: "ai_content", label: "프리미엄 사주(기획중)", path: "/ai-content/premium-saju" },
+      { code: "ai_content", label: "도완녀 상담(기획중)", path: "/ai-content/dowanyeo" },
+    ],
+  },
+
+  // ── 3) 복주머니결제쿠폰 ────────────────────────────────────────
+  {
+    code: "pouch_payment",
+    label: "복주머니결제쿠폰",
+    path: "/pouch-payment",
+    icon: "Gift",
+    matchPrefixes: ["/pouch-payment", "/reward/luck-pouch-rules", "/reward/policies",
+      "/reward/missions", "/reward/ranking", "/reward/operation-logs",
+      "/bokju-coupons", "/shop", "/payments"],
+    children: [
+      { code: "pouch", label: "① 통합 현황", path: "/pouch-payment" },
+      { code: "pouch", label: "② 복주머니 규칙/정책", path: "/reward/luck-pouch-rules" },
+      { code: "bokju_coupon", label: "③ 마케팅 쿠폰", path: "/bokju-coupons/campaigns" },
+      { code: "shop", label: "④ 상점(복주머니뽑기/상품권)", path: "/shop/luckybag" },
+      { code: "payments", label: "⑤ 결제/구독(정책준비중)", path: "/payments/plans" },
+      { code: "pouch", label: "⑥ 거래내역", path: "/reward/operation-logs" },
+    ],
+  },
+
+  // ── 4) 회원운영관리 ────────────────────────────────────────────
+  {
+    code: "member_ops",
+    label: "회원운영관리",
+    path: "/users",
+    icon: "Users",
+    matchPrefixes: ["/users", "/wishroom/reports", "/member-ops", "/admin-users/roles",
+      "/notifications"],
+    children: [
+      { code: "users", label: "회원·이용내역", path: "/users" },
+      { code: "wishroom", label: "신고 통합 처리함", path: "/wishroom/reports" },
+      // [Task9c 신규] 1:1 고객문의 — "users" 코드 재사용(cs 역할 RW 요건과 일치).
+      { code: "users", label: "1:1 고객문의", path: "/member-ops/inquiries" },
+      // [Task9a] 과거 "역할/권한 매트릭스" 편집 화면을 조회 전용으로 전환.
+      // ops_security 코드를 그대로 재사용(super_admin만 read 가능 — 기존과 동일).
+      { code: "ops_security", label: "역할/권한 매트릭스(조회전용)", path: "/admin-users/roles" },
+      { code: "notifications", label: "알림 관리", path: "/notifications/templates" },
+    ],
+  },
+
+  // ── 5) 광고외부연동 ────────────────────────────────────────────
+  {
+    code: "ad_external",
+    label: "광고외부연동",
+    path: "/reward/fortune-ads",
+    icon: "Megaphone",
+    matchPrefixes: ["/reward/fortune-ads", "/ad-external"],
+    children: [
+      { code: "ad_management", label: "쿠팡/AdMob 리워드 광고", path: "/reward/fortune-ads" },
+      // [Task10 신규] 바로가기 링크 + 실제 연동상태 표시(AdMob/AdSense/GooglePlay/
+      // Kakao/Anthropic/OpenAI 등) — "ad_management" 코드 재사용.
+      { code: "ad_management", label: "외부서비스 연동 현황", path: "/ad-external/integrations" },
+    ],
+  },
+
+  // ── 6) AI시스템관리 ────────────────────────────────────────────
+  // [신통방통 관리자 통합 간소화 실행 지시서 task 10에서 신설했던 "운영·
+  // 시스템관리"(ops_system, ops_security+system_settings 미러링) 그룹을
+  // "AI시스템관리"로 재편입한다. 실제 하위 7개 page.tsx의 canAccessMenu 가드는
+  // 전혀 변경하지 않는다(ops_security/system_settings 코드 그대로 유지).
+  {
+    code: "ai_system",
+    label: "AI시스템관리",
     path: "/ops",
     icon: "ShieldCheck",
-    matchPrefixes: ["/admin-users", "/audit-logs", "/system-settings", "/ops"],
+    matchPrefixes: ["/admin-users", "/audit-logs", "/system-settings", "/ops",
+      "/ai-content/logs", "/ai-system"],
+    children: [
+      { code: "ops_system", label: "서버/시스템 상태", path: "/ops" },
+      // [Task11 신규] 3단계 자동진단(탐지→진단→승인게이트 조치) — "ops_system" 재사용.
+      { code: "ops_system", label: "AI 자동진단", path: "/ai-system/diagnosis" },
+      { code: "ai_content", label: "AI 호출 로그/비용", path: "/ai-content/logs" },
+      { code: "ops_security", label: "관리자 계정/역할(RBAC)", path: "/admin-users" },
+      { code: "system_settings", label: "전역 설정값/에러로그", path: "/system-settings" },
+    ],
   },
 ];
 
@@ -242,6 +314,54 @@ export const RBAC_MATRIX: Record<string, Record<AdminRoleCode, Perm>> = {
   // canAccessMenu(roleCode,"system_settings")를 그대로 쓰므로, 이 값은 사이드바
   // 노출 여부에만 영향을 준다(권한 소스 이원화 없음).
   ops_system: { super_admin: RWD, operator: R, cs: X, content_manager: X },
+
+  // ════════════════════════════════════════════════════════════════
+  // [2026-11-11 관리자 2.0 전면 재설계 - 6개 최상위 사이드바 그룹 가상 코드]
+  // 아래 6개는 전부 "그룹 펼침 여부"만 판정하는 사이드바 전용 코드다. 각 그룹의
+  // 실제 자식 메뉴 항목은 위 ADMIN_MENU_GROUPS[].children[].code에 적힌 "진짜"
+  // RBAC 코드로 개별 가드되므로(getVisibleMenusForRole 참고), 여기 값은 "이 그룹을
+  // 최소 1개라도 펼쳐볼 수 있는 역할인가"를 판정하는 합집합(OR)이다 — 자식 코드들의
+  // read 권한 중 하나라도 true면 OR 결과도 true로 산출(값을 복붙이 아니라 OR 연산
+  // 결과를 그대로 적어 넣었다). 자식 코드의 실제 RBAC_MATRIX 값이 바뀌면 이 합집합도
+  // 함께 재계산해야 한다(권한 소스 이원화 금지 원칙 — "pass"/"pouch"가 "reward"를
+  // 미러링하던 기존 패턴과 동일한 설계).
+  // ════════════════════════════════════════════════════════════════
+
+  // content_mgmt 합집합 = ai_content ∨ wishroom ∨ cms
+  //   super_admin: RWD∨RWD∨RWD = RWD
+  //   operator:    R∨RW∨RW     = RW
+  //   cs:          R∨RW∨R      = RW
+  //   content_manager: RW∨R∨RW = RW
+  content_mgmt: { super_admin: RWD, operator: RW, cs: RW, content_manager: RW },
+
+  // pouch_payment 합집합 = pouch ∨ bokju_coupon ∨ shop ∨ payments
+  //   super_admin: RWD(전부)                     = RWD
+  //   operator:    RW∨RW∨RW∨R                    = RW
+  //   cs:          R∨R∨R∨R                       = R
+  //   content_manager: R∨R∨R∨X                   = R
+  pouch_payment: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+
+  // member_ops 합집합 = users ∨ wishroom ∨ ops_security ∨ notifications
+  //   super_admin: RWD(전부)                                = RWD
+  //   operator:    RW∨RW∨X∨RW                               = RW
+  //   cs:          RW∨RW∨X∨R                                = RW
+  //   content_manager: R∨R∨X∨RW                             = RW
+  member_ops: { super_admin: RWD, operator: RW, cs: RW, content_manager: RW },
+
+  // ad_external 합집합 = ad_management(단일 자식, 외부연동 현황도 동일 코드 재사용)
+  ad_external: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
+
+  // ai_system 합집합 = ops_system ∨ ai_content ∨ ops_security ∨ system_settings
+  //   super_admin: RWD(전부)                                      = RWD
+  //   operator:    R∨R∨X∨R                                       = R
+  //   cs:          X∨R∨X∨X                                       = R(ai_content만 R)
+  //   content_manager: X∨RW∨X∨X                                  = RW(ai_content만 RW)
+  // [주의] ai_content의 cs=R/content_manager=RW가 섞여 들어와 그룹 자체의 노출
+  // 조건은 느슨해지지만, 실제로는 "AI 호출 로그" 자식 항목 1개만 보이고 나머지
+  // ops_system/ops_security/system_settings 자식 항목은 각자 코드로 다시
+  // 개별 필터링되어 cs/content_manager에게는 보이지 않는다(그룹 레벨 OR과
+  // 자식 레벨 AND 필터가 함께 작동 — getVisibleMenusForRole 주석 참고).
+  ai_system: { super_admin: RWD, operator: R, cs: R, content_manager: RW },
 };
 
 export function canAccessMenu(roleCode: string, menuCode: string): boolean {
@@ -249,8 +369,66 @@ export function canAccessMenu(roleCode: string, menuCode: string): boolean {
   return !!perm?.read;
 }
 
+// [2026-11-11 관리자 2.0 전면 재설계] admin-users/roles(역할/권한 매트릭스 조회
+// 화면)는 과거 ADMIN_MENU_GROUPS.map(m => m.code)로 "최상위 사이드바 코드 =
+// 실제 권한 코드"라고 가정하고 행을 그렸으나, 6메뉴 구조 전환 후에는 최상위
+// 6개가 전부 사이드바 전용 가상 코드(content_mgmt 등)라 더는 성립하지 않는다.
+// 대신 RBAC_MATRIX에 실제로 등록된 "진짜" 메뉴 코드 전체(사이드바 가상 코드
+// 포함, dashboard부터 ai_system까지)를 그대로 노출해 admin_permissions 테이블의
+// 모든 menu_code를 빠짐없이 조회/편집할 수 있게 한다(§Task9a 읽기전용 전환과
+// 별개로, "어떤 코드가 존재하는지"는 여기서 가져온다).
+export function getAllMenuCodes(): string[] {
+  return Object.keys(RBAC_MATRIX);
+}
+
+// [Task9a] 역할/권한 매트릭스 조회 화면이 menu_code를 한글 라벨로 표시할 때 쓰는
+// 매핑. ADMIN_MENU_GROUPS는 이제 최상위 6개(+그 children)만 갖고 있어 모든 실제
+// 코드를 담고 있지 않으므로, RBAC_MATRIX의 모든 키에 대응하는 라벨을 별도로
+// 유지한다(신규 코드 추가 시 이 테이블에도 함께 추가할 것).
+export const MENU_CODE_LABELS: Record<string, string> = {
+  dashboard: "통합대시보드",
+  users: "회원·이용내역",
+  ai_content: "9개 콘텐츠 운영(AI/프롬프트)",
+  wishroom: "소원방 운영(신고/후기승인)",
+  reward: "(레거시) 리워드 관리",
+  pass: "프리패스관리",
+  pouch: "복주머니관리",
+  ad_management: "광고관리",
+  bokju_coupon: "마케팅 쿠폰",
+  shop: "상점 관리",
+  community: "(레거시) 커뮤니티 관리",
+  payments: "결제/구독(정책준비중)",
+  cms: "CMS",
+  notifications: "알림 관리",
+  ops_security: "운영/보안(관리자계정·역할)",
+  system_settings: "시스템 설정",
+  ops_system: "운영·시스템관리(통합)",
+  content_mgmt: "[그룹] 콘텐츠관리",
+  pouch_payment: "[그룹] 복주머니결제쿠폰",
+  member_ops: "[그룹] 회원운영관리",
+  ad_external: "[그룹] 광고외부연동",
+  ai_system: "[그룹] AI시스템관리",
+};
+
+// [2026-11-11 관리자 2.0 전면 재설계 - 6메뉴 구조] 그룹(최상위) 레벨 필터링 +
+// 자식(하위 리프) 레벨 필터링을 이중으로 적용한다.
+// 1단계: 그룹 자체의 가상 코드(content_mgmt 등)로 "이 그룹을 펼쳐볼 자격이
+//   있는 역할인가"를 먼저 거른다(합집합 OR 판정).
+// 2단계: 그룹을 통과했어도, 각 자식 항목은 자신의 "진짜" RBAC 코드(ai_content/
+//   wishroom/cms 등 — ADMIN_MENU_GROUPS[].children[].code)로 다시 한번
+//   개별 필터링한다. 이 2단계가 있어야 "그룹은 보이지만 그 안의 특정 화면은
+//   이 역할에게 안 보여야 하는" 케이스(예: content_manager는 content_mgmt
+//   그룹 자체는 보이지만 wishroom 쓰기만 불가, ai_system 그룹에서 cs/
+//   content_manager는 ai_content 로그 화면 1개만 보이고 나머지는 숨김)가
+//   올바르게 처리된다. children이 없는 평면 그룹(dashboard)은 그대로 통과.
 export function getVisibleMenusForRole(roleCode: string): AdminMenuGroup[] {
-  return ADMIN_MENU_GROUPS.filter((menu) => canAccessMenu(roleCode, menu.code));
+  return ADMIN_MENU_GROUPS.filter((menu) => canAccessMenu(roleCode, menu.code)).map((menu) => {
+    if (!menu.children) return menu;
+    return {
+      ...menu,
+      children: menu.children.filter((child) => canAccessMenu(roleCode, child.code)),
+    };
+  });
 }
 
 // 범용 write/delete 권한 체크 헬퍼(메뉴 공통) — "use server" 액션 파일에서는
