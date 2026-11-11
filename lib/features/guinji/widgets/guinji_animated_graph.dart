@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../../../core/zoom/pinch_zoom_exclusion.dart';
 import '../character/guinji_character.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
@@ -421,7 +422,7 @@ class _GuinjiAnimatedRelationGraphState
           )
         : IgnorePointer(child: content);
 
-    return Container(
+    final container = Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       height: widget.height,
       decoration: BoxDecoration(
@@ -477,6 +478,15 @@ class _GuinjiAnimatedRelationGraphState
         ],
       ),
     );
+
+    // [신통방통 전역 핀치 확대 시스템 — 제외 구역] interactive=true일
+    // 때만 이 위젯 자체가 이미 "2손가락 핀치 = 지도 확대/이동"이라는
+    // 독자적인 의미를 갖고 실좌표를 바꾼다(노드가 계속 탭 가능한 상태로
+    // 남아야 한다). 전역 엔진(화면 스크린샷 확대)이 그 위에 겹치면 같은
+    // 제스처가 이중으로 해석돼 둘 다 어색해지므로 제외한다. interactive=
+    // false(게스트 미니 프리뷰 등 순수 감상용)는 자체 핀치 로직이 없는
+    // 정적 비주얼이라 전역 엔진이 그대로 적용되어도 무방하다.
+    return widget.interactive ? PinchZoomDisabled(child: container) : container;
   }
 }
 

@@ -3,6 +3,8 @@ import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
 
+import '../../../core/zoom/pinch_zoom_exclusion.dart';
+
 /// Web 플랫폼 구현: 제휴사 원본 광고 태그(HTML/iframe/script)를 그대로 DOM에 삽입한다.
 ///
 /// [배경] Flutter Web은 임의의 <iframe>/<script> 태그를 위젯 트리에 직접 넣을 수 없으므로,
@@ -54,9 +56,14 @@ Widget buildAdScriptView(String html, {required double height}) {
     });
   }
 
-  return SizedBox(
-    height: height,
-    width: double.infinity,
-    child: HtmlElementView(viewType: viewType),
+  // [신통방통 전역 핀치 확대 시스템 — 제외 구역] 광고 DOM 요소는 별도
+  // 합성 레이어로 렌더링되어 전역 화면 캡처와 호환되지 않고,
+  // 광고/결제 기능과 확대 엔진을 분리하라는 지시서 §6 요구에 따라 제외한다.
+  return PinchZoomDisabled(
+    child: SizedBox(
+      height: height,
+      width: double.infinity,
+      child: HtmlElementView(viewType: viewType),
+    ),
   );
 }

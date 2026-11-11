@@ -8,6 +8,7 @@ import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/widgets/web_mobile_frame.dart';
+import 'core/zoom/global_pinch_zoom_manager.dart';
 import 'core/sound/sintong_sound_service.dart';
 import 'core/sound/sound_navigator_observer.dart';
 
@@ -422,13 +423,23 @@ class App extends StatelessWidget {
                 // 전역 지점에는 QA 전용 ?ts= 오버라이드만 남겨둔다(자동화
                 // 캡처 목적 한정 — 쿼리 파라미터가 없으면 기존과 동일하게
                 // 아무 영향도 주지 않는다).
-                if (qaScale == null || qaScale == 1.0) return framed;
-                return MediaQuery(
-                  data: MediaQuery.of(
-                    context,
-                  ).copyWith(textScaler: TextScaler.linear(qaScale)),
-                  child: framed,
-                );
+                final scaled = (qaScale == null || qaScale == 1.0)
+                    ? framed
+                    : MediaQuery(
+                        data: MediaQuery.of(
+                          context,
+                        ).copyWith(textScaler: TextScaler.linear(qaScale)),
+                        child: framed,
+                      );
+                // [신통방통 전역 핀치 확대 시스템] MaterialApp.builder는
+                // Navigator(모든 화면/팝업/모달)의 공통 조상이므로, 여기
+                // 한 곳에만 끼워 넣으면 앱 전체 화면에서 동일한 두 손가락
+                // 핀치 확대 경험이 자동으로 적용된다. 개별 화면이 이
+                // 위젯의 존재를 알 필요가 전혀 없다(지시서 §7 "모든
+                // 화면에 무조건 InteractiveViewer를 중복 적용하는 방식은
+                // 금지" 요구사항에 따라, 화면별 중복 적용 대신 이 단일
+                // 전역 지점에서만 적용한다).
+                return GlobalPinchZoomOverlay(child: scaled);
               },
             );
           },
