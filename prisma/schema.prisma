@@ -70,9 +70,11 @@ model AdminUser {
   createdBy    String?   @map("created_by")
   updatedBy    String?   @map("updated_by")
 
-  role            AdminRole       @relation(fields: [roleId], references: [id])
-  loginLogs       AdminLoginLog[]
-  assignedReports Report[]        @relation("ReportAssignedAdmin")
+  role              AdminRole        @relation(fields: [roleId], references: [id])
+  loginLogs         AdminLoginLog[]
+  assignedReports   Report[]         @relation("ReportAssignedAdmin")
+  assignedInquiries Inquiry[]        @relation("InquiryAssignedAdmin")
+  inquiryMessages   InquiryMessage[]
 
   @@map("admin_users")
 }
@@ -182,6 +184,7 @@ model User {
   wishes                        Wish[]
   comments                      Comment[]
   reportsSubmitted              Report[]                  @relation("ReportReporter")
+  inquiries                     Inquiry[]
   likes                         Like[]
   matchingProfile               MatchingProfile?
   matchingLikesSent             MatchingLike[]            @relation("MatchingLikeFrom")
@@ -5304,4 +5307,63 @@ model FortunePeriodResult {
   @@unique([userId, kind, periodKey, sajuRev])
   @@index([userId, kind, createdAt])
   @@map("fortune_period_results")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [관리자 2.0 전면 재설계 - Task 9c] 1:1 고객문의 — 1차 범위(1인 운영 가정,
+// Report(신고/폴리모픽) 모델과 달리 "회원↔운영자 1:1 문의 스레드" 전용 신규
+// 도메인이므로 Report를 재사용하지 않고 독립 모델로 신설한다(폴리모픽 대상이
+// 아니라 항상 User 1명이 스레드 주체 — Report의 targetType 설계와 성격이
+// 다름). AdminUser 배정/담당자 패턴(Report.assignedAdminId)은 그대로 재사용.
+// [1차 범위 결정] 보고서⑩/기획 문서에 "1차 고객문의 기능" 명시 — 실시간
+// 채팅이 아닌 "회원이 작성 → 운영자가 답변" 비동기 스레드로 범위를 한정한다
+// (실시간 통신 인프라 자체가 프로젝트에 없음을 보고서③/④가 이미 확정함).
+// [status 전이] open(접수) → in_progress(답변중, 운영자 첫 답변 시 자동 전이)
+// → closed(종료, 운영자가 명시적으로 종료 처리) → (회원이 재문의 시 reopened
+// 가능 — 신규 Inquiry를 또 만들지 않고 같은 스레드를 open으로 되돌린다).
+// [category] 화이트리스트: payment(결제/복주머니)/account(계정)/content(콘텐츠
+// 이용)/bug(오류신고)/etc(기타) — 05 설계 문서가 명시한 분류가 없어 신규
+// 설계이나, 신고(Report)의 targetType 화이트리스트 관행과 동일하게 코드
+// 레벨 상수로 관리한다(실제 적용은 actions/inquiries.ts에서 zod enum으로 검증).
+model Inquiry {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  category        String    @default("etc") // payment/account/content/bug/etc
+  title           String
+  status          String    @default("open") // open/in_progress/closed
+  assignedAdminId Int?      @map("assigned_admin_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  closedAt        DateTime? @map("closed_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
+
+  user          User             @relation(fields: [userId], references: [id])
+  assignedAdmin AdminUser?       @relation("InquiryAssignedAdmin", fields: [assignedAdminId], references: [id])
+  messages      InquiryMessage[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@map("inquiries")
+}
+
+// ── 1:1 고객문의 스레드 메시지(Append-only, 회원/운영자 양쪽 작성) ──
+// senderType: user(회원 최초 질문/추가질문)/admin(운영자 답변). Report의
+// "조치 1회성 기록"과 달리 문의는 여러 번 주고받는 대화형이라 메시지를
+// append-only 하위 테이블로 분리한다(ConsultationMessage의 user/ai 패턴과
+// 유사하나, 이쪽은 ai가 아니라 admin이 두 번째 주체).
+model InquiryMessage {
+  id            Int      @id @default(autoincrement())
+  inquiryId     Int      @map("inquiry_id")
+  senderType    String   @map("sender_type") // user/admin
+  senderAdminId Int?     @map("sender_admin_id") // senderType=admin일 때만 설정
+  body          String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  inquiry     Inquiry    @relation(fields: [inquiryId], references: [id])
+  senderAdmin AdminUser? @relation(fields: [senderAdminId], references: [id])
+
+  @@index([inquiryId, createdAt])
+  @@map("inquiry_messages")
 }
