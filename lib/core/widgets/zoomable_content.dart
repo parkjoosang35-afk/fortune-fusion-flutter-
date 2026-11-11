@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// [확대 기능 — 결과페이지 전체 적용] 모든 결과 화면에서 공용으로 쓰는
-/// "탭하면 전체화면으로 확대 + 핀치줌" 위젯.
+/// "탭하면 전체화면으로 크게 보기" 위젯.
 ///
 /// 사용 패턴은 두 가지다.
 /// 1) 이미지 썸네일 등 [child]를 그대로 확대해도 되는 경우 → [child]만
@@ -10,10 +10,16 @@ import 'package:flutter/material.dart';
 ///    그대로 키우면 좌표가 깨지는 경우 → [fullScreenBuilder]로 "더 큰
 ///    사이즈 파라미터로 다시 그린" 위젯을 별도로 전달한다.
 ///
-/// 전체화면 뷰는 [InteractiveViewer]로 감싸 핀치줌/더블탭 확대까지
-/// 지원하며, 바깥 영역을 탭하거나 우상단 닫기 버튼으로 돌아갈 수 있다.
-/// 기존 위젯 트리나 상태 관리 로직은 전혀 건드리지 않고, 결과페이지의
-/// 이미지/도식을 이 위젯으로 감싸기만 하면 된다.
+/// [신통방통 전역 핀치 확대 시스템 통합 — 개별 확대 제거] 과거 이
+/// 위젯은 전체화면 뷰를 자체 [InteractiveViewer](0.8~5배)로 감싸 "이
+/// 화면에서만" 핀치줌을 지원했다. 지시서 §1 "개별 이미지/화면별 확대
+/// 방식은 금지한다 — 어떤 화면에서도 동일한 핀치 확대가 작동해야 한다"
+/// 에 따라 이 개별 InteractiveViewer를 제거했다. "탭하면 전체화면으로
+/// 전환"되는 Hero 네비게이션 자체는 확대가 아니라 "더 큰 사이즈로 다시
+/// 보여주는" 별개의 UX이므로 그대로 보존한다 — 전체화면에 진입한
+/// 뒤에는 `app.dart`의 `MaterialApp.builder`에 전역 삽입된
+/// `GlobalPinchZoomOverlay`가 다른 모든 화면과 동일하게 두 손가락 핀치
+/// 확대/축소를 자동으로 제공한다(이 위젯이 별도로 구현할 필요가 없다).
 class ZoomableContent extends StatelessWidget {
   const ZoomableContent({
     super.key,
@@ -119,25 +125,13 @@ class _ZoomableFullScreenView extends StatelessWidget {
           Center(
             child: Hero(
               tag: heroTag,
-              // [버그 수정 — APK 실기기 5차 신고 "결과 페이지에서
-              // 확대기능 조금밖에 안됨"] InteractiveViewer의 기본
-              // boundaryMargin은 EdgeInsets.zero다 — 콘텐츠를 원본 크기
-              // (이미 화면에 꽉 맞게 패딩된 상태) 밖으로는 전혀 팬(이동)
-              // 할 수 없다는 뜻이다. 그 결과 손가락으로 확대(스케일 자체는
-              // 5배까지 걸림)는 되지만, 확대된 상태에서 좌우/상하로 이동해
-              // 다른 부분을 보려고 하면 경계에 막혀 거의 움직이지 않아
-              // "확대가 조금밖에 안 되는 것"처럼 체감된다. boundaryMargin을
-              // 넉넉하게 주어 확대 후 이미지/도식의 가장자리까지 자유롭게
-              // 이동해서 볼 수 있도록 한다(minScale/maxScale 범위는 기존과
-              // 동일하게 유지 — 이미 충분히 넓은 0.8~5배였다).
-              child: InteractiveViewer(
-                minScale: 0.8,
-                maxScale: 5,
-                boundaryMargin: const EdgeInsets.all(400),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: builder(context),
-                ),
+              // [전역 핀치 확대 시스템 통합] 과거 여기 있던 개별
+              // InteractiveViewer(0.8~5배)는 제거했다. 이 화면도 전역
+              // GlobalPinchZoomOverlay 아래에서 렌더링되므로, 두 손가락
+              // 핀치로 똑같이 확대/축소할 수 있다 — 개별 구현 불필요.
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: builder(context),
               ),
             ),
           ),
