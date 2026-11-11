@@ -37,6 +37,9 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
   bool _pinching = false;
   bool _gestureWasPinch = false;
 
+  /// 현재 화면에 닿아 있는 손가락 수.
+  int _activePointers = 0;
+
   @override
   void initState() {
     super.initState();
@@ -98,27 +101,36 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
                   // 핀치줌/더블탭 확대를 지원한다 — 카드 뒤집기(flip)
                   // 애니메이션 자체는 그대로 AnimatedBuilder 안쪽에 둬서
                   // 기존 타이밍/로직을 전혀 건드리지 않는다.
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onScaleStart: (_) {
-                      _pinching = true;
-                      _gestureWasPinch = false;
-                    },
-                    onScaleUpdate: (details) {
-                      if (details.pointerCount >= 2) {
-                        _gestureWasPinch = true;
-                      } else if (_pinching) {
+                  Listener(
+                    // [중요] GestureDetector가 아니라 Listener를 쓴다.
+                    // 바깥에서 scale 제스처를 등록하면 제스처 아레나에서
+                    // InteractiveViewer보다 먼저 가로채 핀치 확대가 아예
+                    // 동작하지 않는다(회귀 발생 이력). Listener는 포인터
+                    // 이벤트만 관찰하므로 핀치/팬을 방해하지 않는다.
+                    onPointerDown: (_) {
+                      _activePointers++;
+                      if (_activePointers >= 2) {
+                        _pinching = true;
                         _gestureWasPinch = true;
                       }
                     },
-                    onScaleEnd: (_) {
-                      _pinching = false;
-                      Future<void>.delayed(
-                        const Duration(milliseconds: 250),
-                        () {
-                          _gestureWasPinch = false;
-                        },
-                      );
+                    onPointerUp: (_) {
+                      _activePointers = (_activePointers - 1).clamp(0, 10);
+                      if (_activePointers == 0) {
+                        _pinching = false;
+                        if (_gestureWasPinch) {
+                          Future<void>.delayed(
+                            const Duration(milliseconds: 300),
+                            () {
+                              _gestureWasPinch = false;
+                            },
+                          );
+                        }
+                      }
+                    },
+                    onPointerCancel: (_) {
+                      _activePointers = (_activePointers - 1).clamp(0, 10);
+                      if (_activePointers == 0) _pinching = false;
                     },
                     child: InteractiveViewer(
                       minScale: 1.0,

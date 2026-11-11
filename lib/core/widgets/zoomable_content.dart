@@ -138,6 +138,9 @@ class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
   /// 핀치(2손가락 이상) 제스처가 진행 중인지.
   bool _pinching = false;
 
+  /// 현재 화면에 닿아 있는 손가락 수. 2개 이상이면 핀치로 판정한다.
+  int _activePointers = 0;
+
   /// 방금 끝난 제스처가 핀치였는지. 손가락을 하나씩 떼며 발생하는 탭
   /// 이벤트를 배경 탭(닫기)으로 오인하지 않기 위한 플래그.
   bool _gestureWasPinch = false;
@@ -227,36 +230,41 @@ class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
               // 넉넉하게 주어 확대 후 이미지/도식의 가장자리까지 자유롭게
               // 이동해서 볼 수 있도록 한다(minScale/maxScale 범위는 기존과
               // 동일하게 유지 — 이미 충분히 넓은 0.8~5배였다).
-              child: GestureDetector(
-                // 확대 뷰 자체의 제스처를 감싸 "핀치 중/직후"를 판별한다.
-                // 배경 탭(닫기)이 핀치 도중 오작동하지 않도록 하는 것이 목적.
-                behavior: HitTestBehavior.opaque,
-                onScaleStart: (_) {
-                  _pinching = true;
-                  _gestureWasPinch = false;
-                },
-                onScaleUpdate: (details) {
-                  // 두 손가락 이상 = 핀치(확대/축소)
-                  if (details.pointerCount >= 2) {
-                    _gestureWasPinch = true;
-                  } else if (_pinching) {
-                    // 한 손가락만 남은 상태(핀치 후 손가락을 하나씩 떼는
-                    // 과정)도 핀치 직후이므로 탭으로 처리하지 않는다.
+              child: Listener(
+                // [중요] 제스처 인식기(GestureDetector)가 아니라 Listener를 쓴다.
+                // GestureDetector로 감싸면 바깥쪽이 핀치(scale) 제스처를
+                // 제스처 아레나에서 먼저 가로채 InteractiveViewer에 전달되지
+                // 않아 확대 자체가 동작하지 않는다(실기기 신고로 확인된 회귀).
+                // Listener는 로우레벨 포인터 이벤트만 관찰하고 아레나에
+                // 참여하지 않으므로 InteractiveViewer의 핀치/팬을 전혀
+                // 방해하지 않는다.
+                onPointerDown: (_) {
+                  _activePointers++;
+                  if (_activePointers >= 2) {
+                    _pinching = true;
                     _gestureWasPinch = true;
                   }
                 },
-                onScaleEnd: (_) {
-                  _pinching = false;
-                  // 손가락을 모두 뗀 직후 뒤따르는 탭 이벤트를 흡수한다.
-                  Future<void>.delayed(const Duration(milliseconds: 250), () {
-                    _gestureWasPinch = false;
-                  });
+                onPointerUp: (_) {
+                  _activePointers = (_activePointers - 1).clamp(0, 10);
+                  if (_activePointers == 0) {
+                    _pinching = false;
+                    // 핀치 후 손가락을 모두 뗀 직후 뒤따르는 탭 이벤트를
+                    // 흡수해 배경 탭(닫기)으로 오인하지 않게 한다.
+                    if (_gestureWasPinch) {
+                      Future<void>.delayed(
+                        const Duration(milliseconds: 300),
+                        () {
+                          _gestureWasPinch = false;
+                        },
+                      );
+                    }
+                  }
                 },
-                onDoubleTapDown: (details) {
-                  _handleDoubleTap(details.localPosition);
+                onPointerCancel: (_) {
+                  _activePointers = (_activePointers - 1).clamp(0, 10);
+                  if (_activePointers == 0) _pinching = false;
                 },
-                // 더블탭 콜백을 비워두지 않고 실제 동작을 연결한다.
-                onDoubleTap: () {},
                 child: InteractiveViewer(
                   transformationController: _controller,
                   minScale: _minScale,
@@ -266,13 +274,25 @@ class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
                   // 확대 후 팬(이동)이 경계에 막힌다. 넉넉하게 준다.
                   boundaryMargin: const EdgeInsets.all(400),
                   // 핀치가 끝나도 변환 상태를 그대로 유지한다(리셋 금지).
-                  // 프레임워크가 제스처 종료 시 자동으로 값을 되돌리지 않도록
-                  // 컨트롤러 값을 상태로 보관하는 방식이 핵심.
+                  // TransformationController가 상태를 보관하므로 손을 떼도
+                  // 배율/위치가 유지된다.
                   panEnabled: true,
                   scaleEnabled: true,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: widget.builder(context),
+                  child: GestureDetector(
+                    // [더블탭 — 확대/원복 토글]
+                    // Tab 인식기만 등록한다(scale 인식기를 등록하면
+                    // InteractiveViewer의 핀치와 아레나에서 충돌하므로 금지).
+                    // onDoubleTapDown 위치를 기준으로 그 지점을 중심으로
+                    // 확대하고, 이미 확대 상태면 100%로 되돌린다.
+                    behavior: HitTestBehavior.translucent,
+                    onDoubleTapDown: (details) {
+                      _handleDoubleTap(details.localPosition);
+                    },
+                    onDoubleTap: () {},
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: widget.builder(context),
+                    ),
                   ),
                 ),
               ),
