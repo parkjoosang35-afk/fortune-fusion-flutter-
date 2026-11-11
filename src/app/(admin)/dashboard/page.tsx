@@ -79,6 +79,17 @@ export default async function DashboardPage() {
     aiLogsToday,
     fortuneRequestsPending,
     consultationOngoing,
+    // [관리자 2.0 전면 재설계 - Task 7 통합대시보드] 6대 메뉴그룹 요약 카드용 집계.
+    // 기존 "라이브 운영센터/통계 대시보드" 2단 구성은 그대로 보존하고, 그 위에
+    // "6대 메뉴 통합 현황" 섹션을 신설해 각 그룹(콘텐츠관리/복주머니결제쿠폰/
+    // 회원운영관리/광고외부연동/AI시스템관리)의 핵심 숫자 1~2개 + 바로가기를
+    // 한 화면에서 보게 한다(이름 그대로 "통합"대시보드의 실질 — 지금까지는
+    // dashboard 라벨만 "통합대시보드"로 바뀌었을 뿐 6그룹을 가로지르는 집계가
+    // 전혀 없었다). Task 9c/9d에서 신설한 Inquiry 모델도 여기서 바로 연동한다.
+    inquiriesOpenCount,
+    activePromptCount,
+    activeAdCount,
+    activeUserCount,
   ] = await Promise.all([
     prisma.luckybagOpenLog.count({ where: { createdAt: { gte: today }, status: "completed" } }),
     prisma.userAmulet.count({ where: { acquiredAt: { gte: today } } }),
@@ -110,6 +121,10 @@ export default async function DashboardPage() {
     prisma.aiRequestLog.findMany({ where: { createdAt: { gte: today } }, select: { domain: true, costEstimate: true } }),
     prisma.fortuneRequest.count({ where: { status: "pending" } }),
     prisma.consultationSession.count({ where: { endedAt: null } }),
+    prisma.inquiry.count({ where: { status: { in: ["open", "in_progress"] } } }),
+    prisma.aiPromptTemplate.count({ where: { isActive: true } }),
+    prisma.fortuneAd.count({ where: { status: "active" } }),
+    prisma.user.count({ where: { status: "active" } }),
   ]);
 
   // [Phase4 - 복 경제 대시보드, 옵션B] 금일 "복 나누기(send_bok)" 발행/환급 요약.
@@ -171,11 +186,87 @@ export default async function DashboardPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">대시보드</h1>
+        <h1 className="text-2xl font-bold text-slate-900">통합대시보드</h1>
         <p className="mt-1 text-sm text-slate-500">
           {session.name}님, 환영합니다 ({session.roleCode})
         </p>
       </div>
+
+      {/* [관리자 2.0 전면 재설계 - Task 7] ⓪ 6대 메뉴 통합 현황 — 콘텐츠관리/
+          복주머니결제쿠폰/회원운영관리/광고외부연동/AI시스템관리 각 그룹의 핵심
+          숫자를 한눈에 보고 바로 이동한다. 통합대시보드 라는 이름의 실질을
+          채우는 섹션(기존 "라이브 운영센터/통계 대시보드" 2단 구성은 그대로
+          유지 — 세부 운영 지표는 그 아래 섹션에서 계속 확인 가능). */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">🧭 6대 메뉴 통합 현황</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Link
+            href="/ai-content/prompts"
+            className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:bg-indigo-100"
+          >
+            <p className="text-sm text-slate-500">✨ 콘텐츠관리</p>
+            <p className="mt-2 text-xl font-bold text-slate-900">
+              {activePromptCount.toLocaleString()}
+              <span className="ml-1 text-sm font-normal text-slate-500">개 활성 프롬프트</span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">소원방·CMS·프리미엄사주·도완녀상담 포함</p>
+          </Link>
+
+          <Link
+            href="/pouch-payment"
+            className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:bg-indigo-100"
+          >
+            <p className="text-sm text-slate-500">🎁 복주머니결제쿠폰</p>
+            {canSeeRevenue ? (
+              <p className="mt-2 text-xl font-bold text-slate-900">
+                +{pointEarnedToday.toLocaleString()}P
+                <span className="ml-1 text-sm font-normal text-slate-500">금일 발행</span>
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-slate-500">권한 없음(매출/리워드 비노출)</p>
+            )}
+            <p className="mt-1 text-xs text-slate-500">통합현황·정책·쿠폰·상점·거래내역</p>
+          </Link>
+
+          <Link
+            href="/member-ops/inquiries"
+            className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:bg-indigo-100"
+          >
+            <p className="text-sm text-slate-500">👥 회원운영관리</p>
+            <p className="mt-2 text-xl font-bold text-slate-900">
+              {inquiriesOpenCount.toLocaleString()}
+              <span className="ml-1 text-sm font-normal text-slate-500">건 미답변 문의</span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              활성회원 {activeUserCount.toLocaleString()}명 · 미처리 신고 {reportsPending.toLocaleString()}건
+            </p>
+          </Link>
+
+          <Link
+            href="/reward/fortune-ads"
+            className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:bg-indigo-100"
+          >
+            <p className="text-sm text-slate-500">📣 광고외부연동</p>
+            <p className="mt-2 text-xl font-bold text-slate-900">
+              {activeAdCount.toLocaleString()}
+              <span className="ml-1 text-sm font-normal text-slate-500">개 활성 광고</span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">AdMob·AdSense·Kakao·Anthropic·OpenAI 연동현황</p>
+          </Link>
+
+          <Link
+            href="/ops"
+            className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:bg-indigo-100"
+          >
+            <p className="text-sm text-slate-500">🛡 AI시스템관리</p>
+            <p className="mt-2 text-xl font-bold text-slate-900">
+              {errorCritical24h.toLocaleString()}
+              <span className="ml-1 text-sm font-normal text-slate-500">건 심각 에러(24h)</span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">서버/DB/엔진 상태 · AI 자동진단</p>
+          </Link>
+        </div>
+      </section>
 
       {/* ① 라이브 운영센터 */}
       <section className="mb-10">
