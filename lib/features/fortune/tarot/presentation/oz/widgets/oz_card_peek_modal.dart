@@ -47,156 +47,155 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
   @override
   Widget build(BuildContext context) {
     final meta = widget.meta;
-    // [수정 — "핀치하면 바로 원상태로 돌아간다"]
-    // 예전엔 모달 전체가 GestureDetector(onTap: onClose, opaque)로 덮여 있어서
-    // 카드를 핀치로 확대한 뒤 손가락을 하나씩 떼는 과정의 잔여 탭이 배경 탭으로
-    // 인식되면 모달이 통째로 닫혀버렸다(사용자 눈에는 "확대가 원래대로
-    // 돌아감"으로 보임). 배경 탭 닫기를 없애고 닫기는 우상단 X 버튼으로만 한다.
-    // (InteractiveViewer의 레이아웃/크기는 건드리지 않는다 — 핀치 동작 보존)
-    return Container(
-      color: const Color(0xD90A0514),
-      alignment: Alignment.center,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'PEEK · ${_peekCode(meta)}',
+    return GestureDetector(
+      onTap: widget.onClose,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        color: const Color(0xD90A0514),
+        alignment: Alignment.center,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'PEEK · ${_peekCode(meta)}',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 10,
+                      letterSpacing: 3,
+                      color: OzColors.gold.withValues(alpha: 0.85),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // [버그 수정 — APK 실기기 5차 신고 "타로카드 뽑기에서
+                  // 확대기능없음"] 기존에는 이 엿보기(peek) 카드가 고정
+                  // 200x300 크기로만 보여, 실제 카드 아트의 세부 묘사(그림
+                  // 속 상징/표정 등)를 더 자세히 보고 싶어도 확대할 방법이
+                  // 전혀 없었다(결과 페이지들은 이미 ZoomableContent로
+                  // 핀치줌을 지원하지만 이 타로 뽑기 화면의 엿보기 모달만
+                  // 누락돼 있었다). InteractiveViewer로 감싸 손가락
+                  // 핀치줌/더블탭 확대를 지원한다 — 카드 뒤집기(flip)
+                  // 애니메이션 자체는 그대로 AnimatedBuilder 안쪽에 둬서
+                  // 기존 타이밍/로직을 전혀 건드리지 않는다.
+                  InteractiveViewer(
+                    minScale: 1.0,
+                    maxScale: 4.0,
+                    boundaryMargin: const EdgeInsets.all(300),
+                    child: SizedBox(
+                      width: 200,
+                      height: 300,
+                      child: AnimatedBuilder(
+                        animation: _flip,
+                        builder: (context, _) {
+                          final angle = _flip.value * pi;
+                          final showFront = angle > pi / 2;
+                          final transform = Matrix4.identity()
+                            ..setEntry(3, 2, 0.0015)
+                            ..rotateY(angle);
+                          return Container(
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: OzColors.gold.withValues(alpha: 0.35),
+                                  blurRadius: 40,
+                                ),
+                              ],
+                            ),
+                            child: Transform(
+                              alignment: Alignment.center,
+                              transform: transform,
+                              child: showFront
+                                  ? Transform(
+                                      alignment: Alignment.center,
+                                      transform: Matrix4.identity()
+                                        ..rotateY(pi),
+                                      child: _PeekFront(meta: meta),
+                                    )
+                                  : const ClipRRect(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                      child: OzFaceDownCardArt(),
+                                    ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    meta.name,
+                    style: TextStyle(
+                      fontFamily: 'serif',
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: OzColors.fg,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    meta.en,
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      fontSize: 13,
+                      color: OzColors.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: OzColors.goldDeep),
+                    ),
+                    child: Text(
+                      '◇ ${meta.keyword} ◇',
+                      style: TextStyle(fontSize: 12, color: OzColors.gold),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: 0,
+                child: Text(
+                  'TAP TO CLOSE',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10,
                     letterSpacing: 3,
-                    color: OzColors.gold.withValues(alpha: 0.85),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                // [버그 수정 — APK 실기기 5차 신고 "타로카드 뽑기에서
-                // 확대기능없음"] 기존에는 이 엿보기(peek) 카드가 고정
-                // 200x300 크기로만 보여, 실제 카드 아트의 세부 묘사(그림
-                // 속 상징/표정 등)를 더 자세히 보고 싶어도 확대할 방법이
-                // 전혀 없었다(결과 페이지들은 이미 ZoomableContent로
-                // 핀치줌을 지원하지만 이 타로 뽑기 화면의 엿보기 모달만
-                // 누락돼 있었다). InteractiveViewer로 감싸 손가락
-                // 핀치줌/더블탭 확대를 지원한다 — 카드 뒤집기(flip)
-                // 애니메이션 자체는 그대로 AnimatedBuilder 안쪽에 둬서
-                // 기존 타이밍/로직을 전혀 건드리지 않는다.
-                InteractiveViewer(
-                  minScale: 1.0,
-                  maxScale: 4.0,
-                  boundaryMargin: const EdgeInsets.all(300),
-                  child: SizedBox(
-                    width: 200,
-                    height: 300,
-                    child: AnimatedBuilder(
-                      animation: _flip,
-                      builder: (context, _) {
-                        final angle = _flip.value * pi;
-                        final showFront = angle > pi / 2;
-                        final transform = Matrix4.identity()
-                          ..setEntry(3, 2, 0.0015)
-                          ..rotateY(angle);
-                        return Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: OzColors.gold.withValues(alpha: 0.35),
-                                blurRadius: 40,
-                              ),
-                            ],
-                          ),
-                          child: Transform(
-                            alignment: Alignment.center,
-                            transform: transform,
-                            child: showFront
-                                ? Transform(
-                                    alignment: Alignment.center,
-                                    transform: Matrix4.identity()..rotateY(pi),
-                                    child: _PeekFront(meta: meta),
-                                  )
-                                : const ClipRRect(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(10),
-                                    ),
-                                    child: OzFaceDownCardArt(),
-                                  ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  meta.name,
-                  style: TextStyle(
-                    fontFamily: 'serif',
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: OzColors.fg,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  meta.en,
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    fontSize: 13,
                     color: OzColors.muted,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
+              ),
+              Positioned(
+                top: -10,
+                right: -6,
+                child: GestureDetector(
+                  onTap: widget.onClose,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.08),
+                      border: Border.all(color: OzColors.goldDeep),
+                    ),
+                    child: Icon(Icons.close, size: 18, color: OzColors.fg),
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: OzColors.goldDeep),
-                  ),
-                  child: Text(
-                    '◇ ${meta.keyword} ◇',
-                    style: TextStyle(fontSize: 12, color: OzColors.gold),
-                  ),
-                ),
-              ],
-            ),
-            Positioned(
-              bottom: 0,
-              child: Text(
-                'TAP TO CLOSE',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 10,
-                  letterSpacing: 3,
-                  color: OzColors.muted,
                 ),
               ),
-            ),
-            Positioned(
-              top: -10,
-              right: -6,
-              child: GestureDetector(
-                onTap: widget.onClose,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.08),
-                    border: Border.all(color: OzColors.goldDeep),
-                  ),
-                  child: Icon(Icons.close, size: 18, color: OzColors.fg),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
