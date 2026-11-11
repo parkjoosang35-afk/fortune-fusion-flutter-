@@ -80,6 +80,81 @@ flutter {
     source = "../.."
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// [앱 표시 이름 고정 — 아이콘 아래 이름이 항상 '신통방통']
+//
+// 배경: 빌드 도구(샌드박스 서명/리네임 단계)가 android/app/src/main/
+// AndroidManifest.xml 의 android:label 문자열을 프로젝트 메타 이름
+// ("My App", "Fortune Fusion" 등)으로 덮어쓰는 일이 반복됐다. 그 결과
+// 실기기 홈 화면 아이콘 밑 이름이 매번 바뀌었다(대표 신고, 커밋 b7943d2 /
+// a9bc42a 에서 두 번 재발).
+//
+// 대책(2중 방어):
+//  1) 매니페스트는 리터럴 대신 @string/app_name 을 참조한다.
+//     → 매니페스트가 덮어써져도 strings.xml 의 app_name 이 살아있으면 이름 유지.
+//  2) 빌드(리소스 병합) 직전에 실행되는 훅에서 strings.xml 의 app_name 과
+//     매니페스트의 label 을 '신통방통'으로 강제 재작성한다.
+//     → strings.xml 까지 덮어써진 경우에도 복구된다.
+//
+// 이 태스크는 assembleBundle 의 모든 변형(assembleRelease/assembleDebug 등)
+// 이 의존하므로 APK/AAB 어느 쪽으로 빌드해도 항상 먼저 실행된다.
+// ─────────────────────────────────────────────────────────────────────────────
+val appDisplayName = "신통방통"
+
+val ensureAppLabel by tasks.registering {
+    description = "빌드 도구가 되돌린 앱 표시 이름을 '신통방통'으로 강제 복구한다."
+    group = "flutter"
+
+    val manifestFile = layout.projectDirectory.file("src/main/AndroidManifest.xml").asFile
+    val stringsFile = layout.projectDirectory.file("src/main/res/values/strings.xml").asFile
+    val desiredName = appDisplayName
+
+    // 입력/출력 선언 대신 항상 실행한다(설정 단계 비용이 거의 없고,
+    // 빌드 도구가 언제 파일을 건드릴지 예측할 수 없기 때문).
+    outputs.upToDateWhen { false }
+
+    doLast {
+        // 1) strings.xml 의 app_name 보정
+        if (stringsFile.exists()) {
+            var xml = stringsFile.readText()
+            val appNameRegex = Regex("""<string name="app_name">.*?</string>""")
+            xml = if (appNameRegex.containsMatchIn(xml)) {
+                appNameRegex.replace(xml, """<string name="app_name">$desiredName</string>""")
+            } else {
+                xml.replaceFirst(
+                    "<resources>",
+                    "<resources>\n    <string name=\"app_name\">$desiredName</string>"
+                )
+            }
+            stringsFile.writeText(xml)
+        }
+
+        // 2) 매니페스트의 android:label → @string/app_name 로 보정
+        if (manifestFile.exists()) {
+            var manifest = manifestFile.readText()
+            // 리터럴 label(어떤 값이든)을 리소스 참조로 치환.
+            // 이미 @string/ 참조면 그대로 둔다.
+            val labelRegex = Regex("android:label=\"(?!@string/)[^\"]*\"")
+            manifest = labelRegex.replace(manifest, "android:label=\"@string/app_name\"")
+            manifestFile.writeText(manifest)
+        }
+
+        logger.lifecycle("[ensureAppLabel] 앱 표시 이름을 '$desiredName' 으로 고정했습니다.")
+    }
+}
+
+// 리소스/매니페스트 병합 이전에 반드시 실행되도록 연결
+tasks.matching {
+    it.name.startsWith("preBuild") ||
+        it.name.startsWith("merge") && it.name.endsWith("Resources") ||
+        it.name == "processDebugMainManifest" ||
+        it.name == "processReleaseMainManifest" ||
+        it.name == "processDebugManifest" ||
+        it.name == "processReleaseManifest"
+}.configureEach {
+    dependsOn(ensureAppLabel)
+}
+
 dependencies {
     // [Phase C-1] flutter_local_notifications 20.1.0 desugaring 요구사항
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")

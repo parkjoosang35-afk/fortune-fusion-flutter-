@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- [앱 표시 이름 — 아이콘 아래 이름] 반드시 '신통방통'이어야 한다.
+         이 값을 AndroidManifest.xml의 android:label="@string/app_name"이
+         참조한다. (직접 리터럴로 쓰지 않는 이유: 빌드 도구가 매니페스트의
+         리터럴 label을 프로젝트 메타 이름("My App" / "Fortune Fusion")으로
+         덮어써서 실기기 홈 화면 이름이 바뀌는 문제가 반복됐다.
+         build.gradle.kts의 ensureAppLabel 태스크가 빌드 직전에 이 값을
+         강제로 복구한다.) -->
+    <string name="app_name">신통방통</string>
+
     <!-- [소원방 v2.6 배경화면] 시스템 '배경화면 설정' 목록에서 보여줄 설명 문구. -->
     <string name="wallpaper_description">내 소원방을 그대로, 매일 보이는 곳에 — 촛불이 흔들리고 꽃잎이 내려요.</string>
 
