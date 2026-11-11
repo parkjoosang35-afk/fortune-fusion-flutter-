@@ -70,11 +70,12 @@ model AdminUser {
   createdBy    String?   @map("created_by")
   updatedBy    String?   @map("updated_by")
 
-  role              AdminRole        @relation(fields: [roleId], references: [id])
+  role              AdminRole         @relation(fields: [roleId], references: [id])
   loginLogs         AdminLoginLog[]
-  assignedReports   Report[]         @relation("ReportAssignedAdmin")
-  assignedInquiries Inquiry[]        @relation("InquiryAssignedAdmin")
+  assignedReports   Report[]          @relation("ReportAssignedAdmin")
+  assignedInquiries Inquiry[]         @relation("InquiryAssignedAdmin")
   inquiryMessages   InquiryMessage[]
+  approvedDiagnoses SystemDiagnosis[]
 
   @@map("admin_users")
 }
@@ -5366,4 +5367,41 @@ model InquiryMessage {
 
   @@index([inquiryId, createdAt])
   @@map("inquiry_messages")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [관리자 2.0 전면 재설계 - Task 11] AI시스템관리 — 3단계 자동진단
+// (탐지detect → 진단diagnose → 승인게이트 조치action) 실행 이력.
+//
+// [범위 결정 — 1인 운영 가정, 실제 PM2/서버 재시작 등을 원격 자동 실행하지
+// 않음] OPERATIONS_POLICY §3(프로덕션 배포는 사장님 승인 필수)과 "No
+// destructive DB operations/서버 변경은 명시적 승인 없이 금지" 원칙에 따라,
+// 이 모델은 "조치를 자동 실행"하지 않는다. 3단계의 의미는:
+//   1) detect(탐지): ErrorLog critical 건수 등 이미 수집된 지표를 스캔해
+//      이상 징후를 자동 레코드화(이 테이블에 status=detected로 insert).
+//   2) diagnose(진단): Anthropic LLM(llm-client.ts, 이미 운영 중인 동일
+//      키 재사용)에 탐지된 원문 로그를 보내 원인 분석 텍스트 + 권장 조치
+//      텍스트를 받아 diagnosisText/suggestedAction에 저장, status=diagnosed.
+//      (LLM 호출 실패 시 규칙기반 문구로 폴백 — llm-client.ts 기존 원칙과 동일)
+//   3) 승인게이트 조치(action): 운영자가 권장 조치를 검토 후 "승인"하면
+//      status=approved로 전환될 뿐, 실제 서버 명령 실행은 운영자가 SSH로
+//      직접 수행한다(프로덕션 서버에 이 앱이 직접 명령을 실행하는 경로 자체가
+//      없음 — 보안/정책상 의도적 설계). "반려"는 status=rejected.
+model SystemDiagnosis {
+  id              Int       @id @default(autoincrement())
+  category        String // server/db/engine/api
+  detectedIssue   String    @map("detected_issue") // 탐지 단계가 채움(예: "24시간 내 critical 에러 12건")
+  severity        String    @default("info") // info/warning/critical
+  diagnosisText   String?   @map("diagnosis_text") // 진단 단계(LLM) 결과
+  suggestedAction String?   @map("suggested_action") // 진단 단계(LLM) 권장 조치
+  status          String    @default("detected") // detected/diagnosed/approved/rejected
+  approvedAdminId Int?      @map("approved_admin_id")
+  approvedAt      DateTime? @map("approved_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  approvedAdmin AdminUser? @relation(fields: [approvedAdminId], references: [id])
+
+  @@index([status, createdAt])
+  @@map("system_diagnoses")
 }
