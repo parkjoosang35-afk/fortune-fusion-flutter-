@@ -37,6 +37,10 @@ const TABS: SubTab[] = [
   { href: "/wishroom/reports", label: "소원방 신고처리", external: true },
   { href: "/wishroom/reviews", label: "소원방 후기승인", external: true },
   { href: "/ai-content/logs", label: "AI 호출 로그" },
+  // [Task12a/12b 신규 서비스 - 기획중] rbac.ts 사이드바 스켈레톤 링크와 동일한
+  // ai_content 코드 재사용. 1차 범위 구현 완료(Task12a) / 연구 단계(Task12b).
+  { href: "/ai-content/premium-saju", label: "프리미엄 사주(기획중)" },
+  { href: "/ai-content/dowanyeo", label: "도완녀 상담(기획중)" },
 ];
 
 export default function AiContentSubNav() {

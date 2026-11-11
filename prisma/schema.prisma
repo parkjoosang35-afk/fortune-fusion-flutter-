@@ -70,12 +70,13 @@ model AdminUser {
   createdBy    String?   @map("created_by")
   updatedBy    String?   @map("updated_by")
 
-  role              AdminRole         @relation(fields: [roleId], references: [id])
-  loginLogs         AdminLoginLog[]
-  assignedReports   Report[]          @relation("ReportAssignedAdmin")
-  assignedInquiries Inquiry[]         @relation("InquiryAssignedAdmin")
-  inquiryMessages   InquiryMessage[]
-  approvedDiagnoses SystemDiagnosis[]
+  role                     AdminRole                     @relation(fields: [roleId], references: [id])
+  loginLogs                AdminLoginLog[]
+  assignedReports          Report[]                      @relation("ReportAssignedAdmin")
+  assignedInquiries        Inquiry[]                     @relation("InquiryAssignedAdmin")
+  inquiryMessages          InquiryMessage[]
+  approvedDiagnoses        SystemDiagnosis[]
+  assignedDowanyeoRequests DowanyeoConsultationRequest[]
 
   @@map("admin_users")
 }
@@ -164,7 +165,7 @@ model User {
   createdBy          String?   @map("created_by")
   updatedBy          String?   @map("updated_by")
 
-  grade                         UserGrade?                @relation(fields: [gradeId], references: [id])
+  grade                         UserGrade?                    @relation(fields: [gradeId], references: [id])
   profile                       UserProfile?
   loginLogs                     UserLoginLog[]
   withdrawalLogs                UserWithdrawalLog[]
@@ -176,29 +177,30 @@ model User {
   rankingSnapshots              RankingSnapshot[]
   userAmulets                   UserAmulet[]
   amuletCollections             AmuletCollection[]
-  amuletGiftsSent               AmuletGift[]              @relation("AmuletGiftFrom")
-  amuletGiftsReceived           AmuletGift[]              @relation("AmuletGiftTo")
+  amuletGiftsSent               AmuletGift[]                  @relation("AmuletGiftFrom")
+  amuletGiftsReceived           AmuletGift[]                  @relation("AmuletGiftTo")
   luckybagOpenLogs              LuckybagOpenLog[]
   giftcardIssues                GiftcardIssue[]
   couponIssues                  CouponIssue[]
   communityPosts                CommunityPost[]
   wishes                        Wish[]
   comments                      Comment[]
-  reportsSubmitted              Report[]                  @relation("ReportReporter")
+  reportsSubmitted              Report[]                      @relation("ReportReporter")
   inquiries                     Inquiry[]
+  dowanyeoConsultationRequests  DowanyeoConsultationRequest[]
   likes                         Like[]
   matchingProfile               MatchingProfile?
-  matchingLikesSent             MatchingLike[]            @relation("MatchingLikeFrom")
-  matchingLikesReceived         MatchingLike[]            @relation("MatchingLikeTo")
-  matchingPairsAsA              MatchingPair[]            @relation("MatchingPairA")
-  matchingPairsAsB              MatchingPair[]            @relation("MatchingPairB")
-  friendsAsUser                 Friend[]                  @relation("FriendAsUser")
-  friendsAsFriend               Friend[]                  @relation("FriendAsFriend")
-  followersOf                   Follow[]                  @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
-  followingOf                   Follow[]                  @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
-  sentChatMessages              ChatMessage[]             @relation("ChatMessageSender")
-  compatibilityRequestsSent     CompatibilityRequest[]    @relation("CompatibilityRequestRequester")
-  compatibilityRequestsTargeted CompatibilityRequest[]    @relation("CompatibilityRequestTarget")
+  matchingLikesSent             MatchingLike[]                @relation("MatchingLikeFrom")
+  matchingLikesReceived         MatchingLike[]                @relation("MatchingLikeTo")
+  matchingPairsAsA              MatchingPair[]                @relation("MatchingPairA")
+  matchingPairsAsB              MatchingPair[]                @relation("MatchingPairB")
+  friendsAsUser                 Friend[]                      @relation("FriendAsUser")
+  friendsAsFriend               Friend[]                      @relation("FriendAsFriend")
+  followersOf                   Follow[]                      @relation("FollowFollowing") // 나를 팔로우하는 관계(내가 following)
+  followingOf                   Follow[]                      @relation("FollowFollower") // 내가 팔로우하는 관계(내가 follower)
+  sentChatMessages              ChatMessage[]                 @relation("ChatMessageSender")
+  compatibilityRequestsSent     CompatibilityRequest[]        @relation("CompatibilityRequestRequester")
+  compatibilityRequestsTargeted CompatibilityRequest[]        @relation("CompatibilityRequestTarget")
   payments                      Payment[]
   userSubscriptions             UserSubscription[]
   eventParticipations           EventParticipation[]
@@ -226,17 +228,17 @@ model User {
   pouchBoxOpenLogs              PouchBoxOpenLog[]
   // [복주머니 확장 Phase02-A]
   inventoryItems                UserInventoryItem[]
-  gratitudeSealsSent            GratitudeSeal[]           @relation("GratitudeSealSender")
-  gratitudeSealsReceived        GratitudeSeal[]           @relation("GratitudeSealRecipient")
+  gratitudeSealsSent            GratitudeSeal[]               @relation("GratitudeSealSender")
+  gratitudeSealsReceived        GratitudeSeal[]               @relation("GratitudeSealRecipient")
   // [귀인지도 Phase B-1]
   guinjiMapsOwned               GuinjiMap[]
   guinjiRelationshipsAsOwner    GuinjiRelationship[]
   guinjiShareEventsFrom         GuinjiShareEvent[]
   guinjiUnlockRecords           GuinjiUnlockRecord[]
-  guinjiMapMembersJoined        GuinjiMapMember[]         @relation("GuinjiMapMemberJoinedUser")
+  guinjiMapMembersJoined        GuinjiMapMember[]             @relation("GuinjiMapMemberJoinedUser")
   // [궁합지도(Gunghap Map) — 신통방통 궁합지도 개발 지시서]
   gunghapInvitesOwned           GunghapInvite[]
-  gunghapPairResultsJoined      GunghapPairResult[]       @relation("GunghapPairResultJoinedUser")
+  gunghapPairResultsJoined      GunghapPairResult[]           @relation("GunghapPairResultJoinedUser")
   gunghapUnlockRecords          GunghapUnlockRecord[]
   gunghapShareEventsFrom        GunghapShareEvent[]
   // [결과 공유 기능 — sintong-share-proposal.pdf] 운세/타로/관상/손금/소원성
@@ -255,8 +257,8 @@ model User {
   wishRoomOutfitsOwned          WishRoomOutfitOwned[]
   wishRoomUserState             WishRoomUserState?
   wishRoomEarnLogs              WishRoomEarnLog[]
-  wishRoomBlocksMade            WishRoomBlock[]           @relation("WishRoomBlocker")
-  wishRoomBlocksReceived        WishRoomBlock[]           @relation("WishRoomBlocked")
+  wishRoomBlocksMade            WishRoomBlock[]               @relation("WishRoomBlocker")
+  wishRoomBlocksReceived        WishRoomBlock[]               @relation("WishRoomBlocked")
   wishRoomActionLogs            WishRoomActionLog[]
   // [정통사주 리뉴얼 v1.0] 신규 topic 기반 UX 전용 — 기존 jeontong_eighty(69종)/
   // saju_v3 베타와는 완전히 분리된 신규 영역(saju_renewal). 계산은 여전히
@@ -740,9 +742,10 @@ model PointHistory {
   memo         String? // 관리자 수동조정 시 사유 등
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  wallet          Wallet           @relation(fields: [walletId], references: [id])
-  user            User             @relation(fields: [userId], references: [id])
-  giftcardRefunds GiftcardRefund[]
+  wallet                      Wallet                       @relation(fields: [walletId], references: [id])
+  user                        User                         @relation(fields: [userId], references: [id])
+  giftcardRefunds             GiftcardRefund[]
+  dowanyeoConsultationRequest DowanyeoConsultationRequest?
 
   @@index([userId, createdAt])
   @@index([sourceType, sourceId])
@@ -5404,4 +5407,85 @@ model SystemDiagnosis {
 
   @@index([status, createdAt])
   @@map("system_diagnoses")
+}
+
+// ════════════════════════════════════════════════════════════════
+// [관리자 2.0 전면 재설계 - Task 12a] 도완녀상담 — 신청→배정→진행중→완료
+// 상태머신. 보고서③이 확정한 사실: "100% 신규 개발, 기존 코드 0%"이며
+// 7개 요소(계정체계/신청정책/예약시스템/상태머신/실시간통신/정산/본인인증)가
+// 전부 미설계 상태다. 보고서③은 이 7개 전부를 대표자 최종 승인 전까지 개발
+// 착수 금지 대상으로 명시했으나, 이번 턴의 상위 지시("보고서대로 니가
+// 실행하라")에 따라 "1차 범위" 원칙(Task 9c에서 실시간 채팅 인프라 부재를
+// 이유로 1:1고객문의를 비동기 스레드로 축소한 것과 동일한 원칙)으로 범위를
+// 명시적으로 좁혀 즉시 구현 가능한 부분만 먼저 만든다.
+//
+// [1차 범위로 포함] (4)상태머신(신청/배정/진행중/완료/취소), 카운슬러
+// "마스터 명단"(관리자가 직접 등록/비활성화하는 간단한 프로필 — User 테이블에
+// 공급자 역할 구분이 없다는 보고서③ 지적을 "신규 독립 테이블"로 우회), 결제는
+// 기존 WalletService 트랜잭션 패턴(point-adjust.ts/result-access-service.ts와
+// 동일하게 point_histories INSERT + wallets.balance 원자적 갱신)을 재사용한
+// 복주머니(포인트) 단일 차감 — "복주머니결제 확인, 구글플레이 아님"(사용자
+// 확정 사실)과 일치.
+//
+// [1차 범위에서 명시적으로 제외 — 추후 대표자 승인 후 별도 소단위로 진행]
+//  - (1)카운슬러 본인 계정/로그인 체계: 지금은 관리자가 대신 등록하는
+//    "마스터 데이터"일 뿐, 카운슬러 본인이 로그인해 보는 화면/RBAC는 없음.
+//  - (2)신청 정책(자동매칭/선착순/수동배정) 확정: 1차는 "관리자가 신청 건을
+//    보고 수동으로 카운슬러를 배정"하는 가장 단순한 경로만 제공한다.
+//  - (3)예약/시간대 시스템: requestedAt(희망 상담 시각, 자유 텍스트/시각 1개)
+//    정도만 받고, 실제 슬롯 충돌 검증/캘린더 연동은 하지 않는다.
+//  - (5)실시간 통신(채팅/화상): 프로젝트 전체에 WebSocket 인프라가 없음이
+//    보고서③/④에서 이미 확정됨 — 상담 자체는 오프라인(전화 등 외부 채널)으로
+//    이뤄진다고 가정하고, 이 화면은 "신청→배정→진행중→완료" 운영 현황만 추적한다.
+//  - (6)정산/수수료: 카운슬러에게 지급할 정산 로직은 없음(결제 자체도 여전히
+//    Mock 수준 — 추후 실결제 연동 시 함께 설계).
+//  - (7)신원/자격 인증·온보딩 화면: 관리자가 수기로 확인 후 등록한다고 가정.
+// ════════════════════════════════════════════════════════════════
+
+// ── 도완녀 카운슬러 마스터(관리자가 직접 등록/관리하는 명단) ──
+model DowanyeoCounselor {
+  id        Int       @id @default(autoincrement())
+  name      String
+  specialty String? // 전문 분야(자유 텍스트, 예: "애정운 전문")
+  introBody String?   @map("intro_body")
+  status    String    @default("active") // active/inactive
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  requests DowanyeoConsultationRequest[]
+
+  @@index([status])
+  @@map("dowanyeo_counselors")
+}
+
+// ── 도완녀상담 신청 — 상태머신(requested→assigned→in_progress→completed,
+// 또는 cancelled) ──
+model DowanyeoConsultationRequest {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  counselorId     Int?      @map("counselor_id") // 배정 전에는 null
+  topic           String // 상담 주제(자유 텍스트, 예: "애정운 상담")
+  requestMemo     String?   @map("request_memo")
+  preferredAt     DateTime? @map("preferred_at") // 희망 상담 시각(자유 입력, 슬롯 검증 없음 — 1차 범위 제외③)
+  status          String    @default("requested") // requested/assigned/in_progress/completed/cancelled
+  pointHistoryId  Int?      @unique @map("point_history_id") // 복주머니 결제 차감 내역(WalletService 패턴)
+  assignedAdminId Int?      @map("assigned_admin_id") // 배정 처리한 운영자(감사용)
+  assignedAt      DateTime? @map("assigned_at")
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  cancelledAt     DateTime? @map("cancelled_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user          User               @relation(fields: [userId], references: [id])
+  counselor     DowanyeoCounselor? @relation(fields: [counselorId], references: [id])
+  pointHistory  PointHistory?      @relation(fields: [pointHistoryId], references: [id])
+  assignedAdmin AdminUser?         @relation(fields: [assignedAdminId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@map("dowanyeo_consultation_requests")
 }
