@@ -49,6 +49,15 @@ const Set<String> _bottomNavExcludedRoutes = {
   '/wish-wall',
   '/shrine',
   '/ai-fortune/tarot/result',
+  // [버그 수정 — 궁합스토리 하단바 이중 렌더링] GunghapStoryScreen은
+  // 이미 자체 GHScreen(bottomNav: MainBottomNavBar(currentIndex: 3))을
+  // 갖고 있는데, 이 화면만 유일하게 named route(_pageNamed)로 등록되어
+  // 있어(다른 궁합 화면은 전부 _page로 등록되어 이 셸을 거치지 않음)
+  // 바깥에 MainBottomNavBar(currentIndex: 0)가 한 번 더 씌워지고
+  // 있었다. 그 결과 "마이(선택)" 바와 "홈(선택)" 바가 세로로 겹쳐
+  // 보이는 이중 하단바 현상이 발생했다 — 이 화면의 자체 하단바만
+  // 남기기 위해 제외 목록에 추가한다.
+  '/gunghap/story',
 };
 
 Widget wrapWithGlobalBottomNav(String? routeName, Widget child) {
