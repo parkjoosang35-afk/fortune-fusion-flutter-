@@ -5489,3 +5489,51 @@ model DowanyeoConsultationRequest {
   @@index([userId, createdAt])
   @@map("dowanyeo_consultation_requests")
 }
+
+// ════════════════════════════════════════════════════════════════
+// [관리자 2.0 전면 재설계 - Task 12b] 프리미엄사주 PDF 템플릿 관리.
+// 보고서③ 확정 사실: "100% 신규 개발, PDF 생성 라이브러리 전무". 재사용
+// 가능 부품: 사주 계산 엔진(2개 후보 — saju_engine(Python) vs admin_web
+// TopicEngine, "4중 엔진 중복" 이슈), LLM 해석 파이프라인(llm-client.ts).
+// 30~40페이지 분량은 기존 단일 호출 구조로는 불가능해 "섹션별 LLM 호출 +
+// 조립" 아키텍처가 필요하다는 것까지만 보고서③이 확정했고, 그 이상(실제 PDF
+// 렌더링/결제 플로우/엔진 선택)은 대표자 승인 전까지 미결 사항으로 명시됨.
+//
+// [1차 범위 결정 — Task 9c/12a와 동일한 "1차 범위" 원칙] 메뉴명 자체가
+// "PDF 템플릿 관리"임에 착안해, 이번 소단위는 "PDF를 구성할 섹션들의 LLM
+// 프롬프트 템플릿을 버전 관리하는 기반"만 구축한다. 기존 ai_prompt_templates
+// (버전 증가, 덮어쓰기 금지, is_active 토글 배포) 패턴을 그대로 재사용하되,
+// 프리미엄사주는 "한 번에 여러 섹션(예: 총론/재물운/애정운/건강운/연도별
+// 흐름 등)을 조립"해야 하므로 섹션 순서(sortOrder)를 갖는 전용 테이블로
+// 분리한다(ai_prompt_templates는 fortuneTypeOrDomain 1개당 활성 버전 1개뿐이라
+// "여러 섹션의 묶음"을 표현할 수 없음).
+//
+// [1차 범위에서 명시적으로 제외 — 추후 대표자 승인 후 별도 소단위로 진행]
+//  - 실제 PDF 파일 렌더링(라이브러리 선정/레이아웃/폰트 — 프로젝트에 PDF
+//    생성 라이브러리가 전무함이 보고서③에서 이미 확정됨): 이 화면은 "PDF에
+//    들어갈 섹션별 텍스트를 생성하는 프롬프트"만 관리하고, 실제 바이트 단위
+//    PDF 조립/다운로드 기능은 구현하지 않는다.
+//  - 계산 엔진 선택(saju_engine vs TopicEngine, "4중 엔진 중복" 이슈):
+//    섹션 템플릿은 어느 엔진의 출력이든 입력으로 받을 수 있는 "범용 프롬프트
+//    본문" 형태로만 저장해 엔진 선택을 늦춰도 무방하게 설계한다.
+//  - 결제 플로우(ResultAccessRepository 재사용 vs 신규 고액 단건결제): 아직
+//    가격/정책이 없어 이 테이블에는 가격 필드를 두지 않는다(정책준비중 —
+//    payments/plans와 동일하게 "정책 확정 시 가격 필드 추가" 원칙 적용).
+model PremiumSajuSection {
+  id           Int       @id @default(autoincrement())
+  sectionKey   String    @map("section_key") // 예: overview/wealth/love/health/yearly_flow (ai_prompt_templates.fortuneTypeOrDomain과 동일하게 domain당 다중 버전 허용 — unique 아님)
+  sectionLabel String    @map("section_label") // 관리자 화면 표시용 한글 라벨
+  sortOrder    Int       @default(0) @map("sort_order") // PDF 조립 시 섹션 배치 순서(활성 버전 공통값으로 취급)
+  version      Int
+  templateBody String    @map("template_body")
+  isActive     Boolean   @default(false) @map("is_active")
+  status       String    @default("active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+
+  @@index([sectionKey, isActive])
+  @@map("premium_saju_sections")
+}
