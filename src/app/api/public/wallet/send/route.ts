@@ -1,13 +1,13 @@
 // 공개(비인증) 지갑 "복 보내기(송금)" API — WalletRepository.sendBok() 대응.
 //
-// [Phase22 - 복주머니 경제철학 이식] 새 마스터 프롬프트(2부 복주머니 경제엔진)의
-// "송금 시 양쪽 증식" 철학을 옵션B(기존 스택 유지)로 이식한다.
-//   - 보낸 사람: amount만큼 차감되지만, economy_config.send_refund_rate만큼 즉시 환급받아
-//     실질적으로는 amount * (1 - send_refund_rate)만 순수 소모한다.
-//   - 받은 사람: amount 전액을 그대로 적립받는다.
-//   - 즉 "보내는 행위" 자체가 양쪽 모두에게 포인트를 늘려주는 구조(디플레이션 방지 + 나눔 유도).
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계 - 복주머니 경제구조 정상화]
+// 과거 "송금 시 양쪽 증식"(보낸 사람도 즉시 일부 환급받는) 로직이 있었으나,
+// 사용자 확정 결정에 따라 완전 삭제한다. 이제 보낸 사람은 amount 전액이
+// 그대로 차감되고, 받은 사람은 amount 전액을 그대로 적립받는 정상적인
+// 송금(이체) 구조다(총량 불변 — 증식 없음).
 //
-// 일일 한도(economy_config.daily_send_limit)를 적용해 인플레이션(과도한 셀프 송금 등)을 방어한다.
+// 일일 한도(economy_config.daily_send_limit)는 인플레이션 방어 목적의 별도
+// 로직이므로 그대로 유지한다(사용자 확정: "일일한도 로직은 유지").
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { incrementMissionProgress } from "@/lib/mission-progress";
@@ -69,12 +69,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 0) economy_config 로드 (없으면 기본값 fallback)
-      const [sendRefundConfig, dailyLimitConfig] = await Promise.all([
-        tx.economyConfig.findUnique({ where: { key: "send_refund_rate" } }),
-        tx.economyConfig.findUnique({ where: { key: "daily_send_limit" } }),
-      ]);
-      const sendRefundRate = sendRefundConfig?.value ?? 0.5;
+      // 0) economy_config 로드 (일일한도만 — 인플레이션 방어 목적, 유지)
+      const dailyLimitConfig = await tx.economyConfig.findUnique({
+        where: { key: "daily_send_limit" },
+      });
       const dailySendLimit = dailyLimitConfig?.value ?? 200;
 
       // 1) 일일 한도 체크 — 오늘(자정 이후) 이미 보낸 총액 + 이번 요청 amount
@@ -108,8 +106,8 @@ export async function POST(request: NextRequest) {
         throw new Error("INSUFFICIENT_BALANCE");
       }
 
-      // 3) 보낸 사람: 차감
-      let fromBalance = fromWallet.balance - amount;
+      // 3) 보낸 사람: 차감 (전액, 환급 없음)
+      const fromBalance = fromWallet.balance - amount;
       await tx.wallet.update({
         where: { id: fromWallet.id },
         data: { balance: fromBalance, balanceSyncedAt: new Date() },
@@ -127,29 +125,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 4) 보낸 사람: 즉시 환급(send_refund_rate) — "양쪽 증식"의 절반
-      const refundAmount = Math.floor(amount * sendRefundRate);
-      if (refundAmount > 0) {
-        fromBalance += refundAmount;
-        await tx.wallet.update({
-          where: { id: fromWallet.id },
-          data: { balance: fromBalance, balanceSyncedAt: new Date() },
-        });
-        await tx.pointHistory.create({
-          data: {
-            walletId: fromWallet.id,
-            userId: fromUserId,
-            amount: refundAmount,
-            type: "earn",
-            sourceType: "refund",
-            sourceId: toUserId,
-            balanceAfter: fromBalance,
-            memo: `복 나누기 환급 (${Math.round(sendRefundRate * 100)}%)`,
-          },
-        });
-      }
-
-      // 5) 받는 사람: 지갑 없으면 즉석 생성 후 전액 적립
+      // 4) 받는 사람: 지갑 없으면 즉석 생성 후 전액 적립
       // [경제 감사 2026-10-12 N-5] 존재하지 않는 toUserId에 대한 create는
       // FK 위반(P2003)으로 catch-all 500에 새어나갔다 — 트랜잭션 초입에서
       // 수신자 존재를 검증해 404로 명확히 응답한다.
@@ -184,17 +160,14 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 6) [Phase5 - 게임화 최소연동] "복 나누기" 행동을 관련 미션(send_bok)에 반영.
+      // 5) [Phase5 - 게임화 최소연동] "복 나누기" 행동을 관련 미션(send_bok)에 반영.
       //    보상으로 지급되는 포인트는 fromBalance에도 합산해 응답에 최신 잔액을 반영한다.
       const missionUpdates = await incrementMissionProgress(tx, fromUserId, "send_bok");
       const missionRewardTotal = missionUpdates.reduce((sum, m) => sum + m.rewardPoint, 0);
-      if (missionRewardTotal > 0) {
-        fromBalance += missionRewardTotal;
-      }
+      const finalFromBalance = fromBalance + missionRewardTotal;
 
       return {
-        fromBalance,
-        refundAmount,
+        fromBalance: finalFromBalance,
         dailySendRemaining: dailySendLimit - (alreadySentToday + amount),
         missionUpdates,
       };
@@ -205,7 +178,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           balance: result.fromBalance,
-          refundAmount: result.refundAmount,
+          refundAmount: 0,
           dailySendRemaining: result.dailySendRemaining,
           missionUpdates: result.missionUpdates,
         },

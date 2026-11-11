@@ -6,11 +6,12 @@ import Link from "next/link";
 import SubscriptionPlanCreateForm from "@/components/SubscriptionPlanCreateForm";
 import SubscriptionPlanRow from "@/components/SubscriptionPlanRow";
 
-// 05_Admin_System_Design.md §3.7 "결제/구독 관리" — 3차 소단위: 구독 플랜 관리 (K-3 subscription_plans)
-// [범위 결정] 05§3.7: "구독 플랜 관리 | subscription_plans CRUD(가격/기간/혜택)".
-//   §3.7에서 유일하게 완전 CRUD가 명시된 화면. RBAC_MATRIX.payments가 이미
-//   {super_admin:RWD, operator:R, cs:R, content_manager:X}이므로 표준
-//   canWriteMenu/canDeleteMenu(payments)를 그대로 사용(설계충돌 없음).
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계 - 구독 "정책준비중" 전환]
+// 과거 더미 플랜 4개(베이직/프리미엄 월간·연간)는 앱 미출시 상태의 테스트 시드
+// 데이터로 확인되어 완전삭제했다(사용자 확정: "앱 출시도 안했는데 무슨 구독자냐").
+// 화면 자체(CRUD 폼/목록)는 "구독 가격 정책이 확정되면 바로 플랜을 등록할 수 있는"
+// 뼈대로 그대로 유지하되, 상단에 "정책 준비중" 안내 배너를 추가한다. 플랜을 실제로
+// 등록하는 순간 /api/public/subscription/* 전체가 자동으로 재가동된다(코드 변경 불필요).
 export const dynamic = "force-dynamic";
 
 export default async function SubscriptionPlansPage() {
@@ -32,7 +33,7 @@ export default async function SubscriptionPlansPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">결제/구독 관리 — 구독 플랜 관리</h1>
+        <h1 className="text-2xl font-bold text-slate-900">복주머니·결제·쿠폰 — 구독상품 관리</h1>
         <p className="mt-1 text-sm text-slate-500">
           구독 플랜(가격/기간/혜택)을 생성, 수정, 삭제(비활성화)합니다.
         </p>
@@ -43,7 +44,7 @@ export default async function SubscriptionPlansPage() {
           <Link href="/payments/refunds" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             환불 처리
           </Link>
-          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">구독 플랜 관리</span>
+          <span className="border-b-2 border-indigo-500 px-3 py-2 text-slate-900">구독상품 관리</span>
           <Link href="/payments/subscriptions" className="px-3 py-2 text-slate-500 hover:text-slate-900">
             구독 현황
           </Link>
@@ -51,6 +52,15 @@ export default async function SubscriptionPlansPage() {
             매출 리포트
           </Link>
         </nav>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
+        <p className="text-sm font-semibold text-amber-900">⚠️ 정책 준비중</p>
+        <p className="mt-1 text-xs text-amber-800">
+          신통방통은 아직 구독 서비스를 출시하지 않았습니다(과거 테스트 더미 플랜/구독/결제 데이터는
+          2026-11-11 전면 재설계 시 전부 삭제됨). 가격·혜택 정책이 확정되기 전까지는 아래에서 플랜을
+          생성하지 마세요. 플랜이 1개라도 등록되면 앱의 구독 가입 API가 즉시 활성화됩니다.
+        </p>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -86,7 +96,7 @@ export default async function SubscriptionPlansPage() {
             {plans.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
-                  등록된 구독 플랜이 없습니다.
+                  등록된 구독 플랜이 없습니다(정책 준비중).
                 </td>
               </tr>
             )}
@@ -110,8 +120,7 @@ export default async function SubscriptionPlansPage() {
       </div>
 
       <p className="mt-4 text-xs text-slate-500">
-        04A K-3 명시: period는 monthly/yearly입니다. 삭제 시 실제 레코드는 유지되며 isActive가 false로
-        전환됩니다(soft delete).
+        삭제 시 실제 레코드는 유지되며 isActive가 false로 전환됩니다(soft delete).
       </p>
     </div>
   );

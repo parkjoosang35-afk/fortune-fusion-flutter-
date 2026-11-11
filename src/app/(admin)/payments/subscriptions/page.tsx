@@ -10,6 +10,12 @@ import SubscriptionRow from "@/components/SubscriptionRow";
 //   K-3(완전CRUD)와 달리 이 화면은 조회 + 제한적 write 1건(강제해지)만 명시됨.
 // [RBAC] RBAC_MATRIX.payments={super_admin:RWD, operator:R, cs:R, content_manager:X}.
 //   강제해지는 write 액션이므로 표준 canWriteMenu(payments)를 그대로 사용(설계충돌 없음).
+//
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계 - 구독 "정책준비중" 전환]
+// 과거 더미 구독 레코드는 앱 미출시 상태의 테스트 시드 데이터로 확인되어 완전삭제했다
+// (사용자 확정: "앱 출시도 안했는데 무슨 구독자냐"). 화면 자체(현황 조회/강제해지)는
+// 실제 구독자가 생기는 즉시 그대로 동작하는 뼈대로 유지하되, 상단에 "정책 준비중"
+// 안내 배너를 추가한다. plans/page.tsx와 동일한 처리.
 export const dynamic = "force-dynamic";
 
 export default async function UserSubscriptionsPage() {
@@ -35,7 +41,9 @@ export default async function UserSubscriptionsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">결제/구독 관리 — 구독 현황 조회</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          복주머니·결제·쿠폰 — 구독 현황 조회
+        </h1>
         <p className="mt-1 text-sm text-slate-500">
           회원별 구독 현황을 조회하고, 필요 시 강제 해지(사유 필수)합니다.
         </p>
@@ -54,6 +62,15 @@ export default async function UserSubscriptionsPage() {
             매출 리포트
           </Link>
         </nav>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
+        <p className="text-sm font-semibold text-amber-900">⚠️ 정책 준비중</p>
+        <p className="mt-1 text-xs text-amber-800">
+          신통방통은 아직 구독 서비스를 출시하지 않았습니다(과거 테스트 더미 구독 데이터는
+          2026-11-11 전면 재설계 시 전부 삭제됨). 아래 목록은 실제 구독자가 생기면 즉시
+          조회·강제해지가 가능한 상태로 유지되는 뼈대 화면입니다.
+        </p>
       </div>
 
       <section className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -92,7 +109,7 @@ export default async function UserSubscriptionsPage() {
             {subscriptions.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
-                  구독 내역이 없습니다.
+                  구독 내역이 없습니다(정책 준비중).
                 </td>
               </tr>
             )}

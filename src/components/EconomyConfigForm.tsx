@@ -1,8 +1,12 @@
 "use client";
 
 // 복(福) 경제 설정 폼 — Phase4(관리자 대시보드, 옵션B).
-// economy_config 키(send_refund_rate/daily_send_limit/refund_rate)를 관리자가
-// 슬라이더+숫자입력으로 즉시 조정할 수 있게 한다(코드 재배포 없이 경제 튜닝).
+// economy_config 키(daily_send_limit/daily_earn_cap_normal/daily_earn_cap_event/
+// event_bonus_active)를 관리자가 슬라이더+숫자입력으로 즉시 조정할 수 있게 한다
+// (코드 재배포 없이 경제 튜닝).
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계] "rate"(증식 환급률) 유닛은
+// send_refund_rate/refund_rate 키 완전삭제와 함께 제거됐다. 이제 unit은
+// point/flag 둘뿐이므로 isRate 분기도 함께 제거한다.
 import { useActionState } from "react";
 import { updateEconomyConfig, type EconomyConfigFormState } from "@/app/actions/economy-config";
 import { ECONOMY_CONFIG_KEYS } from "@/lib/economy-config-meta";
@@ -22,7 +26,6 @@ function ConfigSlider({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) 
 
   if (!meta) return null;
 
-  const isRate = meta.unit === "rate";
   const isFlag = meta.unit === "flag";
 
   return (
@@ -66,14 +69,9 @@ function ConfigSlider({ canWrite, row }: { canWrite: boolean; row: ConfigRow }) 
           }}
           className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-right text-sm text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-50"
         />
-        <span className="w-10 text-xs text-slate-500">{isRate || isFlag ? "" : "개"}</span>
+        <span className="w-10 text-xs text-slate-500">{isFlag ? "" : "개"}</span>
       </div>
 
-      {isRate && (
-        <p className="mt-1 text-xs text-indigo-700">
-          현재 값: {(row.value * 100).toFixed(0)}%
-        </p>
-      )}
       {isFlag && (
         <p className="mt-1 text-xs text-indigo-700">
           현재 상태: {row.value > 0 ? "🟢 이벤트 중(상향 적용)" : "⚪ 평시"}

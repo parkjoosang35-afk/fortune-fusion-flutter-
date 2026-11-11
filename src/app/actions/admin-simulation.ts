@@ -106,7 +106,6 @@ async function logAdminAction(params: {
 
 function revalidateTestLab() {
   revalidatePath("/reward/test-lab");
-  revalidatePath("/reward/happy-money-products");
   revalidatePath("/reward/luck-pouch-rules");
 }
 
@@ -386,51 +385,10 @@ export async function adminManualDeductHappyMoney(input: {
   return { success: true, message: `복주머니 ${input.amount.toLocaleString()} 차감 완료 (잔액 ${result.toLocaleString()})`, data: { balance: result } };
 }
 
-export async function adminSimulatePurchaseHappyMoneyProduct(input: {
-  userId: number;
-  productId: number;
-}): Promise<SimResult> {
-  const auth = await requireWriteAccess();
-  if (!auth.ok) return auth.result;
-
-  const product = await prisma.happyMoneyProduct.findUnique({ where: { id: input.productId } });
-  if (!product || product.deletedAt) return { success: false, message: "존재하지 않는 충전 상품입니다." };
-
-  const totalAmount = product.happyMoneyAmount + product.bonusAmount;
-  const result = await prisma.$transaction(async (tx) => {
-    let wallet = await tx.wallet.findFirst({ where: { userId: input.userId, currencyType: "POINT", deletedAt: null } });
-    if (!wallet) wallet = await tx.wallet.create({ data: { userId: input.userId, currencyType: "POINT", balance: 0 } });
-    const newBalance = wallet.balance + totalAmount;
-    await tx.wallet.update({ where: { id: wallet.id }, data: { balance: newBalance, balanceSyncedAt: new Date() } });
-    await tx.pointHistory.create({
-      data: {
-        walletId: wallet.id,
-        userId: input.userId,
-        amount: totalAmount,
-        type: "earn",
-        sourceType: "purchase",
-        sourceId: product.id,
-        balanceAfter: newBalance,
-        memo: `[시뮬레이션 구매] ${product.name} (${product.cashPrice.toLocaleString()}원)`,
-      },
-    });
-    return newBalance;
-  });
-
-  await logAdminAction({
-    adminId: auth.session.adminUserId,
-    action: "happy_money_simulate_purchase",
-    targetType: "user_happy_money",
-    targetId: input.userId,
-    after: { productId: product.id, totalAmount, newBalance: result },
-  });
-  revalidateTestLab();
-  return {
-    success: true,
-    message: `[시뮬레이션] ${product.name} 구매 → 복주머니 ${totalAmount.toLocaleString()} 지급 (잔액 ${result.toLocaleString()})`,
-    data: { balance: result },
-  };
-}
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계] adminSimulatePurchaseHappyMoneyProduct는
+// HappyMoneyProduct 모델/화면이 완전삭제되면서 함께 제거했다(UI 호출처도 0건 확인됨).
+// 충전상품 구매 시뮬레이션은 이후 신규 "복주머니 충전상품" 체계가 설계되면 그에 맞춰
+// 별도로 재구축한다.
 
 async function spendHappyMoneyInternal(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], userId: number, amount: number, sourceType: string, memo: string, sourceId?: number) {
   const wallet = await tx.wallet.findFirst({ where: { userId, currencyType: "POINT", deletedAt: null } });
@@ -716,15 +674,17 @@ export async function adminRunIntegratedScenario(input: {
 
   switch (input.scenarioKey) {
     case "purchase_happy_money_then_open_pass": {
-      if (!input.productId || !input.policyId) return { success: false, message: "productId, policyId가 필요합니다." };
-      const r1 = await adminSimulatePurchaseHappyMoneyProduct({ userId: input.userId, productId: input.productId });
-      steps.push(`1) 복주머니 충전: ${r1.message}`);
-      if (!r1.success) return { success: false, message: steps.join("\n") };
-      const r2 = await adminSimulatePurchaseOpenPassViaHappyMoney({ userId: input.userId, policyId: input.policyId });
-      steps.push(`2) 열림패스 구매: ${r2.message}`);
-      const snap = await adminGetUserAssetSnapshot(input.userId);
-      steps.push(`3) 접근 상태 확인: isOpenPassActive=${snap.data?.isOpenPassActive}`);
-      return { success: r2.success, message: steps.join("\n"), data: snap.data };
+      // [2026-11-11 신통방통 관리자 2.0 전면 재설계] HappyMoneyProduct(충전 카탈로그)가
+      // 완전삭제되어 "충전→패스구매" 2단계 시나리오의 1단계를 수행할 수 없다.
+      // 2단계(복주머니로 열림패스 구매)만 단독으로 테스트하려면 adminManualGrantLuckPouch로
+      // 먼저 잔액을 수동 지급한 뒤 별도 호출하도록 안내한다.
+      if (!input.policyId) return { success: false, message: "policyId가 필요합니다." };
+      return {
+        success: false,
+        message:
+          "이 시나리오는 더 이상 지원되지 않습니다(행복머니 충전상품 완전삭제). " +
+          "복주머니 잔액을 먼저 '복주머니 수동 지급'으로 채운 뒤, '열림패스 구매' 시뮬레이션을 개별 실행하세요.",
+      };
     }
     case "earn_luck_pouch_then_spend": {
       if (!input.earnRuleId || !input.spendRuleId) return { success: false, message: "earnRuleId, spendRuleId가 필요합니다." };

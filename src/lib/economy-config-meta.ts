@@ -2,17 +2,15 @@
 // "use server" 액션 파일(economy-config.ts)은 async function만 export 가능하므로,
 // 화이트리스트 상수는 별도 파일로 분리해 Server Component/Client Component 양쪽에서
 // 공유한다.
+//
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계 - 복주머니 경제구조 정상화]
+// 과거 존재했던 "send_refund_rate"(복 나누기 송금 시 즉시환급)와 "refund_rate"
+// (운세/AI서비스 소모 시 즉시환급) 2개 키는 "증식" 철학 자체를 사용자 확정
+// 결정으로 완전 폐기하면서 함께 제거한다(wallet/send·spend route.ts에서도
+// 해당 로직 삭제 완료). 이 화이트리스트에서 빠지면 관리자 설정 폼에도 더 이상
+// 노출되지 않는다(economy_config 테이블의 과거 레코드 값 자체는 더 이상 어떤
+// 코드에서도 읽지 않으므로 무해하게 방치 가능).
 export const ECONOMY_CONFIG_KEYS = [
-  {
-    key: "send_refund_rate",
-    label: "복 나누기 환급률",
-    unit: "rate",
-    min: 0,
-    max: 1,
-    step: 0.05,
-    defaultValue: 0.5,
-    description: "사용자 간 '복 나누기(송금)' 시 보낸 사람이 즉시 돌려받는 비율(0~1). 예) 0.5 = 50%",
-  },
   {
     key: "daily_send_limit",
     label: "1인 1일 복 나누기 한도",
@@ -22,16 +20,6 @@ export const ECONOMY_CONFIG_KEYS = [
     step: 10,
     defaultValue: 200,
     description: "한 사용자가 하루에 '복 나누기'로 보낼 수 있는 최대 포인트(인플레이션 방어).",
-  },
-  {
-    key: "refund_rate",
-    label: "운세/AI서비스 소모 환급률",
-    unit: "rate",
-    min: 0,
-    max: 1,
-    step: 0.05,
-    defaultValue: 0.5,
-    description: "운세보기 등 AI서비스 이용(소모)에 포인트 사용 시 즉시 돌려받는 비율(0~1).",
   },
   {
     key: "daily_earn_cap_normal",

@@ -1,8 +1,11 @@
 // 공개(비인증) 구독 시작(결제 시뮬레이션 포함) API — SubscriptionRepository.subscribe() 대응.
 //
-// [범위] 실제 PG 연동은 범위 밖(Mock 시뮬레이션 유지, 기존 Mock Repository와 동일 원칙).
-// 서버는 결제레코드(payments) + 구독레코드(user_subscriptions) 생성만 담당한다.
-// 기존 활성 구독이 있으면 cancelled로 전환 후 새 구독을 생성한다(플랜 변경 지원).
+// [2026-11-11 신통방통 관리자 2.0 전면 재설계 - 구독 "정책준비중" 전환]
+// 과거 더미 플랜 4개 + 더미 구독 10건 + 더미 결제 6건이 전부 앱 미출시 상태의
+// 테스트 시드 데이터로 확인되어 완전삭제했다(사용자 확정: "앱 출시도 안했는데
+// 무슨 구독자냐"). 구독 기능 자체는 "정책 준비중" 상태로 코드 뼈대만 유지하고,
+// subscription_plans 테이블이 비어있는 한 이 엔드포인트는 항상 안내 메시지만
+// 반환한다(플랜이 추가되는 순간 기존 로직이 자동으로 재가동되는 구조는 유지).
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
@@ -48,6 +51,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { success: false, error: "존재하지 않는 플랜입니다." },
       { status: 400, headers: CORS_HEADERS }
+    );
+  }
+
+  // [정책준비중] subscription_plans가 비어있으면(현재 정상 상태) 명확한 안내로
+  // 즉시 응답한다 — 아래 트랜잭션은 plan이 생기면 그대로 재사용된다.
+  const activePlanCount = await prisma.subscriptionPlan.count({
+    where: { isActive: true, deletedAt: null },
+  });
+  if (activePlanCount === 0) {
+    return NextResponse.json(
+      { success: false, error: "구독 서비스는 현재 준비 중입니다." },
+      { status: 503, headers: CORS_HEADERS }
     );
   }
 
