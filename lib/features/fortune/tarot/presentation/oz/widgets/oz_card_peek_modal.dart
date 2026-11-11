@@ -26,6 +26,17 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
     with SingleTickerProviderStateMixin {
   late AnimationController _flip;
 
+  /// [버그 수정 — 실기기 신고 "핑거로 확대하면 확대한 상태에서 그대로
+  /// 있어야 하는데 바로 원상태로 돌아간다"]
+  ///
+  /// 이 모달은 배경 전체를 `GestureDetector(onTap: onClose,
+  /// behavior: opaque)`로 덮고 있어, 카드를 핀치로 확대한 뒤 손가락을
+  /// 하나씩 떼는 과정의 잔여 탭이 배경 탭으로 인식되면 모달이 통째로
+  /// 닫혀버렸다(사용자에게는 "확대가 원래대로 돌아갔다"로 보임).
+  /// 핀치 진행 중/직후에는 배경 탭 닫기를 무시한다.
+  bool _pinching = false;
+  bool _gestureWasPinch = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,11 +55,17 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
     super.dispose();
   }
 
+  /// 배경 탭 — 핀치 중/직후가 아닐 때만 닫는다.
+  void _handleBackgroundTap() {
+    if (_pinching || _gestureWasPinch) return;
+    widget.onClose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final meta = widget.meta;
     return GestureDetector(
-      onTap: widget.onClose,
+      onTap: _handleBackgroundTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         color: const Color(0xD90A0514),
@@ -81,49 +98,74 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
                   // 핀치줌/더블탭 확대를 지원한다 — 카드 뒤집기(flip)
                   // 애니메이션 자체는 그대로 AnimatedBuilder 안쪽에 둬서
                   // 기존 타이밍/로직을 전혀 건드리지 않는다.
-                  InteractiveViewer(
-                    minScale: 1.0,
-                    maxScale: 4.0,
-                    boundaryMargin: const EdgeInsets.all(300),
-                    child: SizedBox(
-                      width: 200,
-                      height: 300,
-                      child: AnimatedBuilder(
-                        animation: _flip,
-                        builder: (context, _) {
-                          final angle = _flip.value * pi;
-                          final showFront = angle > pi / 2;
-                          final transform = Matrix4.identity()
-                            ..setEntry(3, 2, 0.0015)
-                            ..rotateY(angle);
-                          return Container(
-                            decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: OzColors.gold.withValues(alpha: 0.35),
-                                  blurRadius: 40,
-                                ),
-                              ],
-                            ),
-                            child: Transform(
-                              alignment: Alignment.center,
-                              transform: transform,
-                              child: showFront
-                                  ? Transform(
-                                      alignment: Alignment.center,
-                                      transform: Matrix4.identity()
-                                        ..rotateY(pi),
-                                      child: _PeekFront(meta: meta),
-                                    )
-                                  : const ClipRRect(
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(10),
-                                      ),
-                                      child: OzFaceDownCardArt(),
-                                    ),
-                            ),
-                          );
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onScaleStart: (_) {
+                      _pinching = true;
+                      _gestureWasPinch = false;
+                    },
+                    onScaleUpdate: (details) {
+                      if (details.pointerCount >= 2) {
+                        _gestureWasPinch = true;
+                      } else if (_pinching) {
+                        _gestureWasPinch = true;
+                      }
+                    },
+                    onScaleEnd: (_) {
+                      _pinching = false;
+                      Future<void>.delayed(
+                        const Duration(milliseconds: 250),
+                        () {
+                          _gestureWasPinch = false;
                         },
+                      );
+                    },
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 4.0,
+                      boundaryMargin: const EdgeInsets.all(300),
+                      child: SizedBox(
+                        width: 200,
+                        height: 300,
+                        child: AnimatedBuilder(
+                          animation: _flip,
+                          builder: (context, _) {
+                            final angle = _flip.value * pi;
+                            final showFront = angle > pi / 2;
+                            final transform = Matrix4.identity()
+                              ..setEntry(3, 2, 0.0015)
+                              ..rotateY(angle);
+                            return Container(
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: OzColors.gold.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    blurRadius: 40,
+                                  ),
+                                ],
+                              ),
+                              child: Transform(
+                                alignment: Alignment.center,
+                                transform: transform,
+                                child: showFront
+                                    ? Transform(
+                                        alignment: Alignment.center,
+                                        transform: Matrix4.identity()
+                                          ..rotateY(pi),
+                                        child: _PeekFront(meta: meta),
+                                      )
+                                    : const ClipRRect(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                        child: OzFaceDownCardArt(),
+                                      ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
