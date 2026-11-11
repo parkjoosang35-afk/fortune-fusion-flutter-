@@ -10,10 +10,20 @@ import 'package:flutter/material.dart';
 ///    그대로 키우면 좌표가 깨지는 경우 → [fullScreenBuilder]로 "더 큰
 ///    사이즈 파라미터로 다시 그린" 위젯을 별도로 전달한다.
 ///
-/// 전체화면 뷰는 [InteractiveViewer]로 감싸 핀치줌/더블탭 확대까지
-/// 지원하며, 바깥 영역을 탭하거나 우상단 닫기 버튼으로 돌아갈 수 있다.
-/// 기존 위젯 트리나 상태 관리 로직은 전혀 건드리지 않고, 결과페이지의
-/// 이미지/도식을 이 위젯으로 감싸기만 하면 된다.
+/// 전체화면 뷰는 [InteractiveViewer]로 감싸 핀치줌을 지원하며, 우상단
+/// 닫기 버튼 또는 확대 상태에서 나타나는 '원래대로' 버튼으로 조작한다.
+///
+/// ───────────────────────────────────────────────────────────────────
+/// [중요 — 절대 되돌리지 말 것]
+/// 이 파일의 전체화면 뷰에서 [InteractiveViewer]를 **어떤 제스처 위젯으로도
+/// 감싸면 안 된다.** GestureDetector(onScale*) / GestureDetector(onDoubleTap) /
+/// Listener+GestureDetector 조합을 씌우면 Flutter 제스처 아레나에서 바깥
+/// 위젯이 승리해 핀치 이벤트가 InteractiveViewer에 도달하지 못하고
+/// **확대가 아예 동작하지 않는다.** (실제로 이 방식으로 두 번 회귀를 냈다.)
+/// 배경 탭으로 닫는 기능도 넣지 않는다 — 핀치 후 손가락을 하나씩 떼는
+/// 과정의 잔여 탭이 배경 탭으로 인식되면 화면이 닫혀 사용자에게는
+/// "확대가 원래대로 돌아갔다"로 보인다. 닫기는 X 버튼으로만.
+/// ───────────────────────────────────────────────────────────────────
 class ZoomableContent extends StatelessWidget {
   const ZoomableContent({
     super.key,
@@ -82,8 +92,6 @@ class ZoomableContent extends StatelessWidget {
       ),
     );
     if (tag == null) return content;
-    // 원본 child에는 Hero를 바로 씌우지 않는다(탭 영역에 InkWell 리플이
-    // 필요하므로 Hero는 content 전체를 감싼다).
     return Hero(
       tag: tag,
       flightShuttleBuilder: (_, animation, __, ___, toContext) =>
@@ -110,98 +118,29 @@ class _ZoomableFullScreenView extends StatefulWidget {
 }
 
 class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
-  /// [버그 수정 — 실기기 신고 "핑거로 확대하면 확대한 상태에서 그대로
-  /// 있어야 하는데 바로 원상태로 돌아간다"]
-  ///
-  /// 원인은 스케일 초기화가 아니라 **확대 화면 자체가 닫히던 것**이었다.
-  /// 기존 구현은 배경 전체를 `GestureDetector(behavior: opaque,
-  /// onTap: maybePop)`로 덮고 있었다. 핀치(두 손가락)로 확대한 뒤 손가락을
-  /// 하나씩 떼는 과정에서 남은 손가락이 배경 탭으로 인식되어 `maybePop()`이
-  /// 실행되고, 전체화면 뷰가 사라지면서 사용자에게는 "확대가 원래대로
-  /// 되돌아갔다"로 보였다.
-  ///
-  /// 그래서 다음 세 가지를 지킨다.
-  /// 1) [TransformationController]로 변환 행렬을 **상태로 보관**한다.
-  ///    핀치가 끝나도(손을 떼도) 배율/위치가 그대로 유지된다. (요구사항:
-  ///    "손으로 조절한 확대 크기가 그대로 머물러야 한다")
-  /// 2) 핀치 직후 발생하는 오탭은 무시한다. 확대 화면은 **명시적인 동작**
-  ///    (닫기 버튼 / 확대 상태에서의 배경 탭 / 더블탭)으로만 원래대로
-  ///    돌아간다. (요구사항: "어떤 행동을 취하면 원상으로 돌아와야 한다")
-  /// 3) 확대 중에는 "원래대로" 버튼을 노출해 한 번에 100%로 복귀할 수 있게
-  ///    한다.
-  static const double _minScale = 1.0;
-  static const double _maxScale = 5.0;
-  static const double _doubleTapScale = 2.5;
-
+  /// 사용자가 직접 조절한 확대 배율을 그대로 유지하는 컨트롤러.
+  /// (InteractiveViewer가 내부적으로 들고 있는 행렬을 우리가 읽기만 한다 —
+  ///  이 컨트롤러를 넘기는 것 자체는 제스처 동작에 아무 영향이 없다.)
   final TransformationController _controller = TransformationController();
 
-  /// 핀치(2손가락 이상) 제스처가 진행 중인지.
-  bool _pinching = false;
-
-  /// 현재 화면에 닿아 있는 손가락 수. 2개 이상이면 핀치로 판정한다.
-  int _activePointers = 0;
-
-  /// 방금 끝난 제스처가 핀치였는지. 손가락을 하나씩 떼며 발생하는 탭
-  /// 이벤트를 배경 탭(닫기)으로 오인하지 않기 위한 플래그.
-  bool _gestureWasPinch = false;
-
-  /// 확대 상태 여부의 캐시 — 매 프레임 setState 하는 것을 피하기 위해
-  /// 값이 바뀔 때만 리빌드한다.
   bool _zoomed = false;
-
-  double get _currentScale => _controller.value.getMaxScaleOnAxis();
-
-  bool get _isZoomed => _currentScale > 1.02;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_onTransformChanged);
-  }
 
   @override
   void dispose() {
-    _controller.removeListener(_onTransformChanged);
     _controller.dispose();
     super.dispose();
   }
 
-  void _onTransformChanged() {
-    final zoomed = _isZoomed;
-    if (zoomed == _zoomed) return;
-    if (!mounted) return;
-    setState(() => _zoomed = zoomed);
+  /// 확대/이동이 "끝난 뒤"에만 배율을 확인한다(제스처 도중 setState 금지).
+  void _onInteractionEnd(ScaleEndDetails _) {
+    final scale = _controller.value.getMaxScaleOnAxis();
+    final zoomed = scale > 1.01;
+    if (zoomed != _zoomed) setState(() => _zoomed = zoomed);
   }
 
-  /// 배율/위치를 100%(원본)로 되돌린다.
+  /// 명시적인 사용자 조작(버튼)으로만 원래대로 되돌린다.
   void _resetZoom() {
-    _controller.value = Matrix4.identity();
-  }
-
-  /// 더블탭 — 탭한 지점을 기준으로 확대/원복 토글.
-  void _handleDoubleTap(Offset localPosition) {
-    if (_isZoomed) {
-      _resetZoom();
-      return;
-    }
-    final scale = _doubleTapScale.clamp(_minScale, _maxScale);
-    // p 를 중심으로 scale 배 확대: T(p) · S · T(-p)
-    final matrix = Matrix4.identity()
-      ..setEntry(0, 0, scale)
-      ..setEntry(1, 1, scale)
-      ..setEntry(0, 3, localPosition.dx * (1 - scale))
-      ..setEntry(1, 3, localPosition.dy * (1 - scale));
-    _controller.value = matrix;
-  }
-
-  /// 배경 탭 — 확대 중이면 먼저 원복하고, 원본 상태에서만 화면을 닫는다.
-  void _handleBackgroundTap() {
-    if (_pinching || _gestureWasPinch) return;
-    if (_isZoomed) {
-      _resetZoom();
-      return;
-    }
-    Navigator.of(context).maybePop();
+    setState(() => _controller.value = Matrix4.identity());
   }
 
   @override
@@ -210,85 +149,37 @@ class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
+          // [의도적으로 배경 탭 닫기 없음]
+          // 원본에는 여기에 GestureDetector(behavior: opaque, onTap: pop)가
+          // 있었는데, 핀치 확대 후 손가락을 하나씩 떼면 그 잔여 탭이 이
+          // 배경 탭으로 인식되어 전체화면이 닫혀버렸다(= "확대가 원래대로
+          // 돌아감"). 그래서 배경 닫기를 제거하고 X 버튼만 남겼다.
+          //
+          // [핵심 수정 2 — 실기기 신고 "확대가 아예 안 된다"의 진짜 원인]
+          // 예전에는 InteractiveViewer가 Center 안에 있어 **콘텐츠 크기만큼만**
+          // 차지했다. 실제 사용자는 두 손가락을 콘텐츠 픽셀 위에 정확히
+          // 올리지 않고, 하나는 여백에 찍히는 경우가 흔하다. 그 순간 두 번째
+          // 손가락이 InteractiveViewer의 hit-test 영역 밖이라 핀치가 성립하지
+          // 않았다. Positioned.fill + SizedBox.expand 로 InteractiveViewer가
+          // **화면 전체**를 덮게 해서 어디를 짚어도 핀치가 되게 한다.
           Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _handleBackgroundTap,
-            ),
-          ),
-          Center(
             child: Hero(
               tag: widget.heroTag,
-              // [버그 수정 — APK 실기기 5차 신고 "결과 페이지에서
-              // 확대기능 조금밖에 안됨"] InteractiveViewer의 기본
-              // boundaryMargin은 EdgeInsets.zero다 — 콘텐츠를 원본 크기
-              // (이미 화면에 꽉 맞게 패딩된 상태) 밖으로는 전혀 팬(이동)
-              // 할 수 없다는 뜻이다. 그 결과 손가락으로 확대(스케일 자체는
-              // 5배까지 걸림)는 되지만, 확대된 상태에서 좌우/상하로 이동해
-              // 다른 부분을 보려고 하면 경계에 막혀 거의 움직이지 않아
-              // "확대가 조금밖에 안 되는 것"처럼 체감된다. boundaryMargin을
-              // 넉넉하게 주어 확대 후 이미지/도식의 가장자리까지 자유롭게
-              // 이동해서 볼 수 있도록 한다(minScale/maxScale 범위는 기존과
-              // 동일하게 유지 — 이미 충분히 넓은 0.8~5배였다).
-              child: Listener(
-                // [중요] 제스처 인식기(GestureDetector)가 아니라 Listener를 쓴다.
-                // GestureDetector로 감싸면 바깥쪽이 핀치(scale) 제스처를
-                // 제스처 아레나에서 먼저 가로채 InteractiveViewer에 전달되지
-                // 않아 확대 자체가 동작하지 않는다(실기기 신고로 확인된 회귀).
-                // Listener는 로우레벨 포인터 이벤트만 관찰하고 아레나에
-                // 참여하지 않으므로 InteractiveViewer의 핀치/팬을 전혀
-                // 방해하지 않는다.
-                onPointerDown: (_) {
-                  _activePointers++;
-                  if (_activePointers >= 2) {
-                    _pinching = true;
-                    _gestureWasPinch = true;
-                  }
-                },
-                onPointerUp: (_) {
-                  _activePointers = (_activePointers - 1).clamp(0, 10);
-                  if (_activePointers == 0) {
-                    _pinching = false;
-                    // 핀치 후 손가락을 모두 뗀 직후 뒤따르는 탭 이벤트를
-                    // 흡수해 배경 탭(닫기)으로 오인하지 않게 한다.
-                    if (_gestureWasPinch) {
-                      Future<void>.delayed(
-                        const Duration(milliseconds: 300),
-                        () {
-                          _gestureWasPinch = false;
-                        },
-                      );
-                    }
-                  }
-                },
-                onPointerCancel: (_) {
-                  _activePointers = (_activePointers - 1).clamp(0, 10);
-                  if (_activePointers == 0) _pinching = false;
-                },
-                child: InteractiveViewer(
-                  transformationController: _controller,
-                  minScale: _minScale,
-                  maxScale: _maxScale,
-                  // [이전 버그 수정 유지 — APK 실기기 5차 신고 "확대기능
-                  // 조금밖에 안됨"] boundaryMargin 기본값(EdgeInsets.zero)이면
-                  // 확대 후 팬(이동)이 경계에 막힌다. 넉넉하게 준다.
-                  boundaryMargin: const EdgeInsets.all(400),
-                  // 핀치가 끝나도 변환 상태를 그대로 유지한다(리셋 금지).
-                  // TransformationController가 상태를 보관하므로 손을 떼도
-                  // 배율/위치가 유지된다.
-                  panEnabled: true,
-                  scaleEnabled: true,
-                  child: GestureDetector(
-                    // [더블탭 — 확대/원복 토글]
-                    // Tab 인식기만 등록한다(scale 인식기를 등록하면
-                    // InteractiveViewer의 핀치와 아레나에서 충돌하므로 금지).
-                    // onDoubleTapDown 위치를 기준으로 그 지점을 중심으로
-                    // 확대하고, 이미 확대 상태면 100%로 되돌린다.
-                    behavior: HitTestBehavior.translucent,
-                    onDoubleTapDown: (details) {
-                      _handleDoubleTap(details.localPosition);
-                    },
-                    onDoubleTap: () {},
+              child: InteractiveViewer(
+                transformationController: _controller,
+                minScale: 0.8,
+                maxScale: 5,
+                // [이전 버그 수정 유지 — APK 실기기 5차 신고 "확대기능
+                // 조금밖에 안됨"] boundaryMargin 기본값(EdgeInsets.zero)이면
+                // 확대 후 팬(이동)이 경계에 막힌다. 넉넉하게 준다.
+                boundaryMargin: const EdgeInsets.all(400),
+                panEnabled: true,
+                scaleEnabled: true,
+                onInteractionEnd: _onInteractionEnd,
+                // InteractiveViewer를 화면 전체로 강제 확장하고,
+                // 실제 콘텐츠는 가운데 정렬한다(보이는 모습은 동일).
+                child: SizedBox.expand(
+                  child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: widget.builder(context),
@@ -298,6 +189,39 @@ class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
               ),
             ),
           ),
+          // 확대된 상태에서만 나타나는 '원래대로' 버튼.
+          // 이 버튼은 Stack의 별도 레이어라 InteractiveViewer의 제스처와
+          // 전혀 무관하다(겹치지도 않는다).
+          if (_zoomed)
+            Positioned(
+              bottom: 64,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Center(
+                  child: TextButton.icon(
+                    onPressed: _resetZoom,
+                    icon: const Icon(
+                      Icons.zoom_out_map_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      '원래대로',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.black.withValues(alpha: 0.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: const StadiumBorder(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: 8,
             right: 8,
@@ -321,57 +245,16 @@ class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
             right: 0,
             child: SafeArea(
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // [추가] 확대 상태일 때만 "원래대로" 버튼 노출.
-                    // 확대 배율은 손을 떼도 유지되므로, 사용자가 원할 때
-                    // 명시적으로 100%로 되돌릴 수단을 제공한다.
-                    AnimatedOpacity(
-                      opacity: _zoomed ? 1 : 0,
-                      duration: const Duration(milliseconds: 160),
-                      child: IgnorePointer(
-                        ignoring: !_zoomed,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: TextButton.icon(
-                            onPressed: _resetZoom,
-                            icon: const Icon(
-                              Icons.zoom_out_map_rounded,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              '원래대로',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: TextButton.styleFrom(
-                              backgroundColor: Colors.black.withValues(
-                                alpha: 0.45,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                child: IgnorePointer(
+                  child: Text(
+                    _zoomed
+                        ? '두 손가락으로 이동 · X 버튼으로 닫기'
+                        : '두 손가락으로 확대/축소할 수 있어요',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.65),
+                      fontSize: 12,
                     ),
-                    Text(
-                      _zoomed
-                          ? '두 손가락으로 이동 · 더블탭으로 원래대로'
-                          : '두 손가락으로 확대/축소할 수 있어요',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.65),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
