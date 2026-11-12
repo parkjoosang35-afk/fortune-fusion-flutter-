@@ -62,6 +62,35 @@ class _GlobalPinchZoomOverlayState extends State<GlobalPinchZoomOverlay> {
   bool _zooming = false;
   Size _viewportSize = Size.zero;
 
+  // [버그 수정 — "확대 후 손을 떼면 제자리로 돌아가는" 문제의 핵심 상태]
+  // 과거엔 손가락을 떼는 순간(onPinchEnd) 무조건 1배로 애니메이션
+  // 복귀시켰다. 이제는 손을 뗀 뒤에도 확대된 상태를 그대로 "유지"하고,
+  // 아래 두 가지 방법으로만 닫히도록 바꾼다:
+  //   1) 유지된 확대 화면을 다시 탭(짧게 눌렀다 뗌) → 원본으로 복귀
+  //   2) 유지된 상태에서 다시 두 손가락으로 모아 배율을 1배 근처까지
+  //      줄인 뒤 손을 뗌 → 원본으로 복귀
+  // [_held]는 "핀치는 끝났지만 확대 상태가 화면에 유지 중"임을 뜻한다.
+  bool _held = false;
+
+  // 유지 상태에서 한 손가락 드래그로 화면을 이동(pan)하기 위한 직전 좌표.
+  Offset? _panLastPos;
+  // 탭(제자리 터치)인지 드래그(이동)인지 구분하기 위한 시작 좌표/이동 플래그.
+  Offset? _singleStartPos;
+  bool _singleMoved = false;
+  // [핵심 버그 수정] 지금 추적 중인 단일 손가락이 "방금 핀치가 끝나며
+  // 남은 손가락"인지 여부. true인 동안에는 그 손가락이 곧바로 떨어져도
+  // "탭"으로 간주해 닫지 않는다 — 실기기에서 두 손가락을 거의 동시에
+  // 떼면 한쪽이 몇 ms 먼저 이벤트가 들어와 "핀치 종료 직후 남은 손가락이
+  // 즉시 탭으로 오인되어 확대가 도로 닫히는" 버그가 있었다.
+  bool _singleIsPinchLeftover = false;
+
+  // 이 값보다 이동 거리가 작으면 "탭"으로 간주해 확대를 닫는다.
+  static const double _tapSlop = 12.0;
+  // 핀치를 끝냈을 때 이 배율 이하이면 "사실상 확대 안 한 것"으로 보고
+  // 자동으로 원본에 닫는다(살짝 모았다 뗀 경우 어정쩡하게 유지되는
+  // 어색함 방지).
+  static const double _autoCloseScaleThreshold = 1.04;
+
   @override
   void initState() {
     super.initState();
@@ -82,15 +111,26 @@ class _GlobalPinchZoomOverlayState extends State<GlobalPinchZoomOverlay> {
     // [안정성] 2손가락이 광고/웹뷰/귀인지도 그래프 등 제외 구역 위에서
     // 시작되면 전역 확대를 아예 켜지 않는다 — "광고 및 결제 기능과 확대
     // 엔진 분리" + "화면별 제스처 충돌" 요구사항.
-    final midpoint = Offset.lerp(posA, posB, 0.5)!;
-    if (PinchZoomExclusionRegistry.instance.isExcluded(midpoint)) {
-      return;
+    // (단, 이미 확대가 유지 중(_held)인 상태에서 다시 핀치하는 경우는
+    // 제외 구역 판정을 다시 하지 않는다 — 이미 전역 확대가 활성화된
+    // 세션을 이어가는 것이므로.)
+    if (!_held) {
+      final midpoint = Offset.lerp(posA, posB, 0.5)!;
+      if (PinchZoomExclusionRegistry.instance.isExcluded(midpoint)) {
+        return;
+      }
     }
 
     final renderBox =
         _boundaryKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null || !renderBox.hasSize) return;
     _viewportSize = renderBox.size;
+
+    // 유지 상태에서 다시 핀치할 때는 한 손가락 팬(pan) 상태를 종료한다.
+    _panLastPos = null;
+    _singleStartPos = null;
+    _singleMoved = false;
+    _singleIsPinchLeftover = false;
 
     final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
     final image = await _renderController.capture(
@@ -103,6 +143,7 @@ class _GlobalPinchZoomOverlayState extends State<GlobalPinchZoomOverlay> {
     setState(() {
       _capturedImage = image;
       _zooming = true;
+      _held = false;
       _transform = _transformController.value;
     });
   }
@@ -115,6 +156,7 @@ class _GlobalPinchZoomOverlayState extends State<GlobalPinchZoomOverlay> {
       viewportSize: _viewportSize,
       scale: _transformController.scale,
     );
+    _transformController.setTranslation(clampedOffset);
     setState(() {
       _transform = PinchZoomTransform(
         scale: _transformController.scale,
@@ -125,11 +167,66 @@ class _GlobalPinchZoomOverlayState extends State<GlobalPinchZoomOverlay> {
 
   void _onPinchEnd() {
     if (!_zooming) return;
-    // [자연스러운 확대/축소] 손을 뗀 순간 바로 원본으로 복귀하지 않고
-    // 짧은 애니메이션으로 1배로 되돌린 뒤 오버레이를 해제한다 —
-    // "확대 종료 후 정상적인 터치 복구" 요구사항과 "자연스러운 확대 및
-    // 축소"를 함께 만족시킨다.
-    _animateReset();
+    if (_transformController.scale <= _autoCloseScaleThreshold) {
+      // 사실상 확대하지 않고 손을 뗀 경우 — 바로 원본으로 복귀.
+      _animateReset();
+      return;
+    }
+    // [핵심 수정] 더 이상 자동으로 1배로 되돌리지 않는다 — 확대된 상태
+    // 그대로 화면에 유지한다("_held"). 오버레이와 캡처 이미지는 계속
+    // 떠 있고, 사용자가 한 손가락으로 이동하거나 탭해서 닫을 때까지
+    // 유지된다.
+    setState(() {
+      _held = true;
+    });
+  }
+
+  // 유지된 확대 상태에서 한 손가락 입력이 시작될 때.
+  void _onSingleDown(Offset pos, {required bool isPinchContinuation}) {
+    if (!_zooming || !_held) return;
+    _panLastPos = pos;
+    _singleStartPos = pos;
+    _singleMoved = false;
+    _singleIsPinchLeftover = isPinchContinuation;
+  }
+
+  // 유지된 확대 상태에서 한 손가락을 이동할 때 — 화면 이동(pan).
+  void _onSingleMove(Offset pos) {
+    if (!_zooming || !_held || _panLastPos == null) return;
+    final delta = pos - _panLastPos!;
+    if ((pos - (_singleStartPos ?? pos)).distance > _tapSlop) {
+      _singleMoved = true;
+    }
+    _transformController.panBy(delta);
+    final clampedOffset = _boundaryController.clamp(
+      translation: _transformController.translation,
+      viewportSize: _viewportSize,
+      scale: _transformController.scale,
+    );
+    _transformController.setTranslation(clampedOffset);
+    setState(() {
+      _transform = PinchZoomTransform(
+        scale: _transformController.scale,
+        offset: clampedOffset,
+      );
+    });
+    _panLastPos = pos;
+  }
+
+  // 유지된 확대 상태에서 손가락을 뗄 때 — 이동 없이 뗐다면(탭) 닫는다.
+  // 단, 그 손가락이 "방금 핀치가 끝나며 남은 손가락"(_singleIsPinchLeftover)
+  // 이었다면 탭으로 간주하지 않는다 — 실기기에서 두 손가락을 거의 동시에
+  // 떼는 지극히 흔한 경우에 확대가 곧바로 닫혀버리는 버그를 막는다.
+  void _onSingleUp() {
+    if (!_zooming || !_held) return;
+    final wasTap = !_singleMoved && !_singleIsPinchLeftover;
+    _panLastPos = null;
+    _singleStartPos = null;
+    _singleMoved = false;
+    _singleIsPinchLeftover = false;
+    if (wasTap) {
+      _animateReset();
+    }
   }
 
   void _animateReset() {
@@ -150,6 +247,7 @@ class _GlobalPinchZoomOverlayState extends State<GlobalPinchZoomOverlay> {
         if (!mounted) return;
         setState(() {
           _zooming = false;
+          _held = false;
           _capturedImage = null;
           _transform = PinchZoomTransform.identity;
         });
@@ -178,6 +276,9 @@ class _GlobalPinchZoomOverlayState extends State<GlobalPinchZoomOverlay> {
             onPinchStart: _onPinchStart,
             onPinchUpdate: _onPinchUpdate,
             onPinchEnd: _onPinchEnd,
+            onSingleDown: _onSingleDown,
+            onSingleMove: _onSingleMove,
+            onSingleUp: _onSingleUp,
             blockPassThrough: _zooming,
             child: const SizedBox.expand(),
           ),

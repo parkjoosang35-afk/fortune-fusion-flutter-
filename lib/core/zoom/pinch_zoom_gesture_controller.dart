@@ -33,6 +33,9 @@ class PinchGestureListener extends StatefulWidget {
     required this.onPinchStart,
     required this.onPinchUpdate,
     required this.onPinchEnd,
+    this.onSingleDown,
+    this.onSingleMove,
+    this.onSingleUp,
     this.blockPassThrough = false,
   });
 
@@ -46,6 +49,26 @@ class PinchGestureListener extends StatefulWidget {
 
   /// 핀치를 구성하던 두 손가락 중 하나라도 떨어지면 즉시 호출.
   final VoidCallback onPinchEnd;
+
+  /// [확대 유지 기능용] 화면에 손가락이 "정확히 1개"만 닿아 있는 상태로
+  /// 전환되는 순간(핀치 중이 아닐 때) 호출된다 — 핀치가 끝난 직후 한
+  /// 손가락이 남아 있는 경우도 포함한다. 평소(확대 안 한 상태)에는 매니저가
+  /// 이 콜백을 그냥 무시하므로 1손가락 스크롤/탭 동작에 영향이 없다.
+  ///
+  /// [isPinchContinuation]이 true면 "방금 핀치(2손가락)가 끝나면서 남은
+  /// 손가락"을 뜻한다 — 실기기에서는 두 손가락을 "동시에" 뗐다고 느껴도
+  /// 실제로는 한쪽이 몇 ms 먼저 이벤트가 들어오는 경우가 거의 항상
+  /// 발생하므로, 이 경우를 "사용자가 새로 탭을 시작한 것"과 구분해야
+  /// 한다(그렇지 않으면 핀치 종료 직후 남은 손가락이 바로 떨어지는 것이
+  /// "탭"으로 오인되어 확대가 즉시 닫혀버리는 버그가 재발한다).
+  final void Function(Offset pos, {required bool isPinchContinuation})?
+  onSingleDown;
+
+  /// 위 상태에서 그 손가락이 움직일 때마다 최신 위치.
+  final void Function(Offset pos)? onSingleMove;
+
+  /// 위 상태의 손가락이 떨어질 때 호출.
+  final VoidCallback? onSingleUp;
 
   /// true면 이 레이어 아래(실제 화면 버튼/스크롤)로 터치가 전달되지
   /// 않도록 막는다. 확대가 진행 중일 때(2손가락 핀치 중)만 true로
@@ -79,6 +102,11 @@ class _PinchGestureListenerState extends State<PinchGestureListener> {
       _pointerB = ids[1];
       _pinching = true;
       widget.onPinchStart(_pointers[_pointerA]!, _pointers[_pointerB]!);
+    } else if (!_pinching && _pointers.length == 1) {
+      // [확대 유지 기능] 손가락이 1개만 닿은 상태 — 핀치가 아니라 단일
+      // 포인터 세션(탭/이동)의 시작으로 매니저에 알린다. 이 경로는 순수
+      // 신규 터치(핀치 직후가 아님)이므로 isPinchContinuation=false.
+      widget.onSingleDown?.call(event.position, isPinchContinuation: false);
     }
     // 3번째 이상 손가락은 추적 맵에는 남기되(좌표 정리를 위해) 핀치 기준
     // (pointerA/B)에는 영향을 주지 않는다 — 이미 핀치 중이면 추가 손가락은
@@ -94,6 +122,8 @@ class _PinchGestureListenerState extends State<PinchGestureListener> {
       if (posA != null && posB != null) {
         widget.onPinchUpdate(posA, posB);
       }
+    } else if (!_pinching && _pointers.length == 1) {
+      widget.onSingleMove?.call(event.position);
     }
   }
 
@@ -109,6 +139,20 @@ class _PinchGestureListenerState extends State<PinchGestureListener> {
       _pointerA = null;
       _pointerB = null;
       widget.onPinchEnd();
+      // [확대 유지 기능] 핀치가 끝났는데 손가락 하나가 아직 화면에 남아
+      // 있다면, 그 손가락은 이미 "내려가 있던" 상태이므로 지금 바로 단일
+      // 포인터 세션(이동/탭)의 시작으로 알려준다 — 사용자가 두 손가락을
+      // 동시에 떼지 않고 한쪽만 먼저 떼는 자연스러운 경우를 지원한다.
+      // isPinchContinuation=true로 표시해, 매니저가 이 손가락이 바로
+      // 떨어져도 "탭으로 닫기"로 오인하지 않도록 한다(핵심 버그 수정).
+      if (_pointers.length == 1) {
+        widget.onSingleDown?.call(
+          _pointers.values.first,
+          isPinchContinuation: true,
+        );
+      }
+    } else if (!_pinching && _pointers.isEmpty) {
+      widget.onSingleUp?.call();
     }
 
     if (_pointers.isEmpty) {

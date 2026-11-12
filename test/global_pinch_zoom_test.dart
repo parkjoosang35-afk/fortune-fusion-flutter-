@@ -105,7 +105,7 @@ void main() {
   });
 
   group('GlobalPinchZoomOverlay — 2손가락 핀치 확대/축소', () {
-    testWidgets('두 손가락 핀치 시작 시 확대 오버레이(RawImage)가 나타나고, 손을 떼면 사라진다', (
+    testWidgets('두 손가락 핀치로 확대한 뒤 살짝만 모았다 떼면(사실상 미확대) 자동으로 닫힌다', (
       tester,
     ) async {
       await _pumpApp(tester);
@@ -129,13 +129,8 @@ void main() {
         reason: '2손가락이 닿으면 화면 캡처 기반 확대 오버레이가 떠야 한다',
       );
 
-      // 손가락을 벌려 확대 배율을 키운다.
-      await gestureA.moveTo(center + const Offset(-80, 0));
-      await gestureB.moveTo(center + const Offset(80, 0));
-      await tester.pump();
-
-      // 손가락 하나를 떼면 핀치가 즉시 종료되어야 한다("터치 종료 시
-      // 상태 복구" 요구사항) — 리셋 애니메이션 종료까지 pumpAndSettle.
+      // 손가락을 거의 움직이지 않고(배율 ≈ 1.0) 바로 뗀다 — "확대하지
+      // 않은 핀치"는 자동으로 닫혀야 한다.
       await gestureA.up();
       await gestureB.up();
       await tester.pumpAndSettle();
@@ -143,11 +138,96 @@ void main() {
       expect(
         find.byType(RawImage),
         findsNothing,
-        reason: '손가락을 떼면 확대 오버레이가 사라지고 원래 화면으로 복귀해야 한다',
+        reason: '거의 확대하지 않고 손을 떼면 확대 오버레이가 자동으로 닫혀야 한다',
       );
     });
 
-    testWidgets('반복적인 확대·축소 후에도 예외 없이 안정적으로 동작한다(메모리 누수 방지 점검)', (
+    testWidgets(
+      '[버그 수정 검증] 두 손가락으로 확대한 뒤 손을 떼면 확대 상태가 유지된다(제자리로 돌아가지 않는다)',
+      (tester) async {
+        await _pumpApp(tester);
+
+        final center = tester.getCenter(find.byKey(const Key('dummy_list')));
+        final posA = center + const Offset(-40, 0);
+        final posB = center + const Offset(40, 0);
+
+        final gestureA = await tester.createGesture(pointer: 1);
+        final gestureB = await tester.createGesture(pointer: 2);
+
+        await gestureA.down(posA);
+        await gestureB.down(posB);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // 손가락을 크게 벌려 확실하게 확대 배율을 키운다(2배 이상).
+        await gestureA.moveTo(center + const Offset(-80, 0));
+        await gestureB.moveTo(center + const Offset(80, 0));
+        await tester.pump();
+
+        // 두 손가락을 뗀다 — 과거 버그에서는 이 시점에 바로 1배로
+        // 애니메이션 복귀했다. 이제는 확대 상태가 유지되어야 한다.
+        await gestureA.up();
+        await gestureB.up();
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(RawImage),
+          findsOneWidget,
+          reason:
+              '[핵심 회귀 검증] 손가락을 뗀 뒤에도 확대 오버레이가 "유지"되어야 한다 — '
+              '과거엔 여기서 자동으로 1배 복귀해 버그가 발생했다',
+        );
+
+        // RawImage(확대 오버레이)의 직계 조상 Transform이 실제로 적용된
+        // 확대 변환이다 — 앱 트리에는 다른 Transform도 있을 수 있으므로
+        // find.ancestor로 정확히 짚는다.
+        final transformFinder = find.ancestor(
+          of: find.byType(RawImage),
+          matching: find.byType(Transform),
+        );
+        final transformWidget = tester.widget<Transform>(transformFinder);
+        expect(
+          transformWidget.transform.getMaxScaleOnAxis(),
+          greaterThan(1.5),
+          reason: '유지된 상태의 확대 배율은 1배로 되돌아가지 않고 그대로여야 한다',
+        );
+      },
+    );
+
+    testWidgets('유지된 확대 상태를 다시 탭하면 원본으로 복귀한다', (tester) async {
+      await _pumpApp(tester);
+      final center = tester.getCenter(find.byKey(const Key('dummy_list')));
+
+      final gestureA = await tester.createGesture(pointer: 1);
+      final gestureB = await tester.createGesture(pointer: 2);
+      await gestureA.down(center + const Offset(-40, 0));
+      await gestureB.down(center + const Offset(40, 0));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await gestureA.moveTo(center + const Offset(-80, 0));
+      await gestureB.moveTo(center + const Offset(80, 0));
+      await tester.pump();
+      await gestureA.up();
+      await gestureB.up();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RawImage), findsOneWidget, reason: '확대가 유지되어 있어야 한다');
+
+      // 유지된 화면을 짧게 탭한다(이동 없이 바로 뗌).
+      final tapGesture = await tester.createGesture(pointer: 30);
+      await tapGesture.down(center);
+      await tester.pump(const Duration(milliseconds: 20));
+      await tapGesture.up();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(RawImage),
+        findsNothing,
+        reason: '유지된 확대 화면을 탭하면 원본으로 복귀해야 한다',
+      );
+    });
+
+    testWidgets('반복적인 확대·축소(탭으로 닫기 포함) 후에도 예외 없이 안정적으로 동작한다(메모리 누수 방지 점검)', (
       tester,
     ) async {
       await _pumpApp(tester);
@@ -165,6 +245,14 @@ void main() {
         await tester.pump();
         await gestureA.up();
         await gestureB.up();
+        await tester.pumpAndSettle();
+
+        // 확대 상태가 유지되므로, 탭해서 명시적으로 닫아야 다음 반복에서
+        // 깨끗한 상태로 시작할 수 있다.
+        final tapGesture = await tester.createGesture(pointer: 100 + i);
+        await tapGesture.down(center);
+        await tester.pump(const Duration(milliseconds: 20));
+        await tapGesture.up();
         await tester.pumpAndSettle();
       }
 
@@ -225,6 +313,49 @@ void main() {
       final controller = PinchZoomTransformController();
       controller.start(Offset.zero, Offset.zero);
       expect(() => controller.update(const Offset(5, 5), const Offset(5, 5)), returnsNormally);
+    });
+
+    test(
+      '[버그 수정 검증] 핀치를 끝낸 뒤 다시 start()를 호출해도 직전 scale이 0으로 리셋되지 않고 이어진다',
+      () {
+        final controller = PinchZoomTransformController(
+          minScale: 1.0,
+          maxScale: 3.0,
+        );
+        // 1차 핀치: 2배로 확대.
+        controller.start(Offset.zero, const Offset(50, 0));
+        controller.update(Offset.zero, const Offset(100, 0));
+        expect(controller.scale, 2.0);
+
+        // 손을 뗀 뒤(과거엔 여기서 UI가 reset()을 호출해 1배로 되돌렸지만,
+        // 이제 "유지" 모드에서는 reset()을 호출하지 않는다) 다시 2손가락으로
+        // 핀치를 "이어서" 시작한다 — start()가 누적값(2.0)을 보존해야 한다.
+        controller.start(const Offset(200, 0), const Offset(250, 0));
+        expect(
+          controller.scale,
+          2.0,
+          reason: 'start() 직후에도 직전 확대 배율이 그대로 유지되어야 한다(초기화 금지)',
+        );
+
+        // 추가로 1.5배 더 벌리면 누적 배율은 2.0 * 1.5 = 3.0(상한 클램프).
+        controller.update(const Offset(187.5, 0), const Offset(262.5, 0));
+        expect(controller.scale, 3.0);
+      },
+    );
+
+    test('reset()을 호출하면 누적 배율도 완전히 1.0으로 초기화된다', () {
+      final controller = PinchZoomTransformController();
+      controller.start(Offset.zero, const Offset(50, 0));
+      controller.update(Offset.zero, const Offset(100, 0));
+      expect(controller.scale, 2.0);
+
+      controller.reset();
+      expect(controller.scale, 1.0);
+
+      // reset 이후 새로 시작하면 1.0 기준부터 다시 계산되어야 한다.
+      controller.start(Offset.zero, const Offset(50, 0));
+      controller.update(Offset.zero, const Offset(100, 0));
+      expect(controller.scale, 2.0);
     });
   });
 
