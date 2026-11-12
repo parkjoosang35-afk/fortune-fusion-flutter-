@@ -47,7 +47,9 @@ class PouchGridView extends StatelessWidget {
             const SizedBox(height: LuckyBoxTokens.sp2),
             Center(
               child: Text(
-                '50개 ~ 300개  ·  ${pouchState.todayOpenedCount}/${pouchState.dailyLimit}회',
+                // [보상 티어 축소, 2026-11] 서버 REWARD_TIERS 잭팟 상한이
+                // 300→100으로 축소됨에 따라 표시 문구도 동기화한다.
+                '15개 ~ 100개  ·  ${pouchState.todayOpenedCount}/${pouchState.dailyLimit}회',
                 style: LuckyBoxTokens.caption,
               ),
             ),
@@ -181,7 +183,8 @@ class _HeroTitle extends StatelessWidget {
       shaderCallback: (bounds) =>
           LuckyBoxTokens.heroTextGradient.createShader(bounds),
       blendMode: BlendMode.srcIn,
-      child: const Text('최대 300개', style: LuckyBoxTokens.display),
+      // [보상 티어 축소, 2026-11] 서버 REWARD_TIERS 잭팟 상한 300→100 축소에 맞춤.
+      child: const Text('최대 100개', style: LuckyBoxTokens.display),
     );
   }
 }

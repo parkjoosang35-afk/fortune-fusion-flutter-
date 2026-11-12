@@ -635,9 +635,14 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
         const SizedBox(height: MyPageSpacing.sp3),
         _GateOptionButton(
           icon: Icons.smart_display_rounded,
-          label: '광고 보고 무료로 보기',
-          enabled:
-              quote.adAvailable && AdmobAdIds.isSupportedPlatform && !_busy,
+          // [Freepass-first 강제 퍼널, 2026-11] 광고 결제수단 1일 1회 캡 —
+          // 오늘 이미 썼으면 라벨로 미리 안내해 눌러보고 실패 토스트를
+          // 받는 혼란을 줄인다(실제 차단은 enabled + 서버 재검증 2중).
+          label: quote.adUsedToday ? '광고 보고 무료로 보기 (오늘 사용 완료)' : '광고 보고 무료로 보기',
+          enabled: quote.adAvailable &&
+              !quote.adUsedToday &&
+              AdmobAdIds.isSupportedPlatform &&
+              !_busy,
           loading: _processingMethod == ResultAccessPaymentMethod.ad,
           onTap: _handleAd,
         ),

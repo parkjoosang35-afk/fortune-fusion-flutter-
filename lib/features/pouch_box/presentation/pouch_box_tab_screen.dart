@@ -155,9 +155,16 @@ class _PouchBoxTabScreenState extends State<PouchBoxTabScreen> {
 
   /// dev-spec.md §3-3 "50~300개 복주머니 파티클 방사형 방출" — 보상 등급이
   /// 높을수록 더 많은 파티클을 터뜨려 보상감을 강화한다(잭팟은 항상 최대치).
+  ///
+  /// [보상 티어 축소, 2026-11] minR/maxR는 "서버가 실제로 지급하는 금액
+  /// 범위"를 파티클 개수(50~300개)로 보간하기 위한 스케일이다. 서버
+  /// REWARD_TIERS의 최소/최댓값이 15~100으로 축소됐으므로 여기도 그에 맞춰
+  /// 15~100으로 동기화한다(§15 "판정 기준 불일치 금지") — 값을 바꾸지
+  /// 않으면 최고 등급(100)을 받아도 ratio가 1/3 수준(≈0.3)에 그쳐 연출이
+  /// 실제 등급보다 약하게 보이는 불일치가 생긴다.
   int _particleCountFor(int rewardAmount) {
     if (_rewardTier == 'jackpot') return RewardConfig.particlesMax;
-    const minR = 50, maxR = 300;
+    const minR = 15, maxR = 100;
     final ratio = ((rewardAmount - minR) / (maxR - minR)).clamp(0.0, 1.0);
     final count =
         RewardConfig.particlesMin +

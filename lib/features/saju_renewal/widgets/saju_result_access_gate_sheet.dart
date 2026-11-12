@@ -444,10 +444,15 @@ class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
         _GateOption(
           leading: const _AdIcon(),
           title: '광고 보고 무료로 보기',
-          subtitle: '짧은 광고 한 편이면 열려요',
-          trailing: '무료',
-          enabled:
-              quote.adAvailable && AdmobAdIds.isSupportedPlatform && !_busy,
+          // [Freepass-first 강제 퍼널, 2026-11] 광고 1일 1회 캡 — 오늘 이미
+          // 사용했으면 부제/trailing으로 안내한다(실제 차단은 enabled +
+          // 서버 재검증 2중).
+          subtitle: quote.adUsedToday ? '내일 다시 이용할 수 있어요' : '짧은 광고 한 편이면 열려요',
+          trailing: quote.adUsedToday ? '오늘 사용 완료' : '무료',
+          enabled: quote.adAvailable &&
+              !quote.adUsedToday &&
+              AdmobAdIds.isSupportedPlatform &&
+              !_busy,
           loading: _processingMethod == ResultAccessPaymentMethod.ad,
           onTap: _handleAd,
         ),

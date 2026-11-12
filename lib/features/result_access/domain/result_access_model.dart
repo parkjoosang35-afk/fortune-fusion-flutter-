@@ -47,6 +47,13 @@ class ResultAccessQuote {
   /// [§6.4] coupangClaimedTodayKey != null과 동일한 정보의 boolean 편의 필드.
   final bool todayClaimed;
 
+  /// [Freepass-first 강제 퍼널, 2026-11] 오늘(KST) "광고 보고 무료로 보기"를
+  /// 이미 사용했는지. adAvailable === !adUsedToday(서버 판정, 1일 1회 캡).
+  final bool adUsedToday;
+
+  /// 광고(AD) 결제수단의 1일 발급 한도(서버 상수, 현재 1).
+  final int adDailyLimit;
+
   const ResultAccessQuote({
     required this.freePassRemaining,
     required this.freePassHasLegacyUnlimited,
@@ -57,6 +64,8 @@ class ResultAccessQuote {
     required this.adAvailable,
     required this.coupangClaimedTodayKey,
     required this.todayClaimed,
+    this.adUsedToday = false,
+    this.adDailyLimit = 1,
   });
 
   /// 복주머니가 가격보다 충분한지(버튼 활성/비활성 판단용, 서버가 최종 판정).
@@ -74,6 +83,8 @@ class ResultAccessQuote {
       adAvailable: json['adAvailable'] as bool? ?? true,
       coupangClaimedTodayKey: json['coupangClaimedTodayKey'] as String?,
       todayClaimed: json['todayClaimed'] as bool? ?? false,
+      adUsedToday: json['adUsedToday'] as bool? ?? false,
+      adDailyLimit: json['adDailyLimit'] as int? ?? 1,
     );
   }
 }

@@ -180,6 +180,14 @@ class RewardConfig {
   static const int dailyLimit = 5;
   static const int resetHourKst = 4;
 
+  // [보상 티어 축소, 2026-11] particlesMin/Max는 "파티클 개수"(시각효과
+  // 스케일)이지 복주머니 금액이 아니므로 서버 REWARD_TIERS 축소(300→100)와
+  // 무관하게 그대로 유지한다 — 바뀌어야 하는 것은 금액→파티클개수로 보간할
+  // 때 쓰는 "금액 범위"(pouch_box_tab_screen.dart _particleCountFor의
+  // minR/maxR)이며, 그 값을 15~100으로 맞춰 서버의 실제 보상 범위와
+  // 일치시켰다(§15 "판정 기준 불일치 금지"와 같은 이유 — 100(잭팟)을
+  // 받았는데 옛 "~300" 스케일 기준으로는 중간 등급 연출만 나오는 문제를
+  // 방지).
   static const int particlesMin = 50;
   static const int particlesMax = 300;
   static const double particleSizeMin = 18;
@@ -187,12 +195,14 @@ class RewardConfig {
 
   /// [핵심 원칙] 보상량 자체는 서버(`/api/pouch-box/complete`)만이 결정한다.
   /// 이 함수는 서버가 이미 응답한 [n]을 받아 결과 화면 카피만 고른다
-  /// (dev-spec.md §3-4 메시지 표).
+  /// (dev-spec.md §3-4 메시지 표). 임계값은 서버 REWARD_TIERS 축소(300→100)에
+  /// 맞춰 1/3로 비례 축소했다(기존 280/200/120/80 → 93/67/40/27, 등급 간
+  /// 상대적 체감 비율은 그대로 유지).
   static String rewardMessage(int n) {
-    if (n >= 280) return '오늘 밤하늘이 당신 편이었어요';
-    if (n >= 200) return '드문 행운이 담겼습니다';
-    if (n >= 120) return '오늘의 정성이 두 손 가득';
-    if (n >= 80) return '조용히 쌓인 하루의 몫';
+    if (n >= 93) return '오늘 밤하늘이 당신 편이었어요';
+    if (n >= 67) return '드문 행운이 담겼습니다';
+    if (n >= 40) return '오늘의 정성이 두 손 가득';
+    if (n >= 27) return '조용히 쌓인 하루의 몫';
     return '다음 기회에 더 큰 복이 있어요';
   }
 }
