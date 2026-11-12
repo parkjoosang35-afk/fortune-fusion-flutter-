@@ -60,11 +60,6 @@ import '../../features/luckybag/domain/luckybag_reward_model.dart';
 import '../../features/luckybag/presentation/luckybag_open_animation_screen.dart';
 import '../../features/luckybag/presentation/luckybag_result_screen.dart';
 import '../../features/luckybag/presentation/luckybag_history_screen.dart';
-import '../../features/giftcard/presentation/giftcard_catalog_screen.dart';
-import '../../features/giftcard/presentation/giftcard_detail_screen.dart';
-import '../../features/giftcard/presentation/giftcard_result_screen.dart';
-import '../../features/giftcard/presentation/my_giftcards_screen.dart';
-import '../../features/giftcard/domain/giftcard_model.dart';
 import '../../features/subscription/presentation/subscription_plans_screen.dart';
 import '../../features/subscription/presentation/my_subscription_screen.dart';
 import '../../features/wishroom/features/intro/wish_room_intro_screen.dart';
@@ -891,23 +886,6 @@ class AppRouter {
           '/reward/luckybag/history',
           const LuckyBagHistoryScreen(),
         );
-      case '/reward/giftcard':
-        return _pageNamed('/reward/giftcard', const GiftcardCatalogScreen());
-      case '/reward/giftcard/detail':
-        return _pageNamed(
-          '/reward/giftcard/detail',
-          GiftcardDetailScreen(
-            product: settings.arguments as GiftcardProductModel,
-          ),
-        );
-      case '/reward/giftcard/result':
-        return _pageNamed(
-          '/reward/giftcard/result',
-          GiftcardResultScreen(issue: settings.arguments as GiftcardIssueModel),
-        );
-      case '/reward/giftcard/my':
-        return _pageNamed('/reward/giftcard/my', const MyGiftcardsScreen());
-
       // ── [복주머니 마케팅 쿠폰] 쿠폰 등록 진입점 + 내 쿠폰함 ──
       // 지갑 화면("쿠폰 등록하기" 버튼 등)에서 이 라우트로 진입한다.
       // [마이페이지 리뉴얼 · DEV 2026-11-06 §S05] README §3-2 "직접 입력을

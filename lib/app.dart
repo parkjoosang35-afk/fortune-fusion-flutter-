@@ -52,8 +52,6 @@ import 'features/ranking/application/ranking_provider.dart';
 import 'features/ranking/data/ranking_repository.dart';
 import 'features/luckybag/application/luckybag_provider.dart';
 import 'features/luckybag/data/luckybag_repository.dart';
-import 'features/giftcard/application/giftcard_provider.dart';
-import 'features/giftcard/data/giftcard_repository.dart';
 import 'features/subscription/application/subscription_provider.dart';
 import 'features/subscription/data/subscription_repository.dart';
 import 'features/ad_banner/application/ad_banner_provider.dart';
@@ -288,9 +286,6 @@ class App extends StatelessWidget {
           create: (_) => RankingProvider(RankingRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => GiftcardProvider(GiftcardRepository()),
-        ),
-        ChangeNotifierProvider(
           create: (_) => SubscriptionProvider(SubscriptionRepository()),
         ),
         // [코인/포인트 잔재 제거] 과거 "신통방통 소원방"(wish_room) 모듈이 쓰던
@@ -485,7 +480,6 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     auth.registerLogoutCallback(
       context.read<SubscriptionProvider>().clearOnLogout,
     );
-    auth.registerLogoutCallback(context.read<GiftcardProvider>().clearOnLogout);
     auth.registerLogoutCallback(
       context.read<AttendanceProvider>().clearOnLogout,
     );
