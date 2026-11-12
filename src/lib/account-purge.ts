@@ -27,7 +27,8 @@
 //
 //   [C] RETAIN AS-IS — Wish/Comment/CommunityPost/Like/Report/MatchingLike/
 //       MatchingPair/Friend/Follow/ChatRoom/ChatMessage/AmuletGift/
-//       UserAmulet/AmuletCollection/GiftcardIssue/CouponIssue/
+//       UserAmulet/AmuletCollection/CouponIssue/
+//       ([2026-11] Giftcard* 7개 테이블은 상품권 기능 완전삭제로 함께 DROP됨)
 //       RankingSnapshot/UserAchievement/UserMission/Attendance/
 //       EventParticipation/UserSubscription/Notification/
 //       NotificationPreference/PushToken/UserPass/PassCategoryUsage/

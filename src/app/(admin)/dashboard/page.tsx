@@ -4,8 +4,9 @@ import Link from "next/link";
 
 // 05_Admin_System_Design.md §3.0 "대시보드" — 라이브 운영센터 + 통계 대시보드 2단 구성
 // Phase18-Dashboard 1차 소단위: 기존 04A 테이블(luckybag_open_logs/user_amulets/
-// giftcard_issues/wishes/matching_pairs/reports/error_logs/payments/point_histories/
+// wishes/matching_pairs/reports/error_logs/payments/point_histories/
 // statistics_snapshots/ai_request_logs)만으로 산출 가능한 위젯을 우선 구현한다.
+// [2026-11 정책변경] 상품권(giftcard) 교환 기능 전체 삭제로 giftcardToday 위젯 제거.
 // Phase18-Dashboard 2차 소단위(FortuneCore-1 후속): 04A E-1(fortune_requests) 테이블이
 //   신규 추가되어, 🟢"지금 운세 보는 사람 수" 위젯을 fortune_requests.status="pending"
 //   카운트로 해소한다(요청 접수~AI응답 완료 전까지의 상태를 seed_fortune_core.ts에서
@@ -68,7 +69,6 @@ export default async function DashboardPage() {
   const [
     luckybagToday,
     amuletToday,
-    giftcardToday,
     wishToday,
     compatibilityToday,
     reportsPending,
@@ -93,7 +93,6 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     prisma.luckybagOpenLog.count({ where: { createdAt: { gte: today }, status: "completed" } }),
     prisma.userAmulet.count({ where: { acquiredAt: { gte: today } } }),
-    prisma.giftcardIssue.count({ where: { issuedAt: { gte: today }, status: "issued" } }),
     prisma.wish.count({ where: { createdAt: { gte: today } } }),
     // [신통방통 관리자 최종 정리 지시서 - 대시보드 데이터소스 오류 수정]
     // 기존에는 matchingPair.count()를 사용했으나, MatchingPair는 이미 삭제된
@@ -305,16 +304,6 @@ export default async function DashboardPage() {
             <p className="text-sm text-slate-500">🎁 오늘 지급된 복주머니</p>
             {canSeeRevenue ? (
               <p className="mt-2 text-2xl font-bold text-slate-900">{luckybagToday.toLocaleString()}건</p>
-            ) : (
-              <p className="mt-2 text-xs text-slate-500">권한 없음(리워드 위젯 비노출)</p>
-            )}
-          </div>
-
-          {/* 오늘 교환된 상품권 */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-sm text-slate-500">🎟 오늘 교환된 상품권</p>
-            {canSeeRevenue ? (
-              <p className="mt-2 text-2xl font-bold text-slate-900">{giftcardToday.toLocaleString()}건</p>
             ) : (
               <p className="mt-2 text-xs text-slate-500">권한 없음(리워드 위젯 비노출)</p>
             )}

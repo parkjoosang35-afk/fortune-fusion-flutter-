@@ -20,17 +20,23 @@ import { todayRangeKst } from "@/lib/luck-pouch-engine";
 /** dev-spec.md §7 결정 항목 #4 — 하루 한도는 5회로 고정(관리자 확장 없음). */
 export const POUCH_BOX_DAILY_LIMIT = 5;
 
-/** dev-spec.md §4 보상 분배 — 가중 확률(합계 1.0). */
+/** dev-spec.md §4 보상 분배 — 가중 확률(합계 1.0).
+ *
+ * [보상 티어 축소, 2026-11] 사용자 지시("복주머니뽑기 보상 티어 300→100
+ * 축소안")에 따라 잭팟 상한을 300→100으로 낮췄다. 확률 분포(55/30/13/2%)와
+ * 각 등급 구간의 상대적 겹침 구조는 그대로 유지한 채, 모든 금액을 기존
+ * 최댓값(300) 대비 1/3 비율로 비례 축소했다 — 등급 간 상대적 체감(한 등급
+ * 올라갈 때마다 느끼는 보상감 차이)이 바뀌지 않도록 하기 위함이다. */
 const REWARD_TIERS: Array<{
   tier: "common" | "uncommon" | "rare" | "jackpot";
   chance: number;
   min: number;
   max: number;
 }> = [
-  { tier: "common", chance: 0.55, min: 50, max: 150 },
-  { tier: "uncommon", chance: 0.3, min: 150, max: 250 },
-  { tier: "rare", chance: 0.13, min: 200, max: 280 },
-  { tier: "jackpot", chance: 0.02, min: 300, max: 300 },
+  { tier: "common", chance: 0.55, min: 15, max: 50 },
+  { tier: "uncommon", chance: 0.3, min: 50, max: 85 },
+  { tier: "rare", chance: 0.13, min: 65, max: 95 },
+  { tier: "jackpot", chance: 0.02, min: 100, max: 100 },
 ];
 
 /**

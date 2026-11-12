@@ -19,7 +19,6 @@ const ALLOWED_CATEGORIES = new Set([
   "tarot-cards",
   "banners",
   "luckybag",
-  "giftcards",
   "popups",
   "events",
   // [사용자 요청: "오늘의 행운숫자" 관리자 콘텐츠 - 이미지/영상/스크립트 첨부 지원]

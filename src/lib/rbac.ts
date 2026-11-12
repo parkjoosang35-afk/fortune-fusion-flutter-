@@ -294,7 +294,8 @@ export const RBAC_MATRIX: Record<string, Record<AdminRoleCode, Perm>> = {
   bokju_coupon: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
   // [§8단계] 쿠폰 관리 화면을 삭제하며 RBAC_MATRIX.coupons 같은 별도 엔트리는
   // 애초에 없었다(쿠폰은 "shop" 메뉴코드 하위 화면이었음 — shop은 amulets/
-  // luckybag/giftcards 3개 화면이 여전히 쓰므로 그대로 유지).
+  // luckybag 2개 화면이 여전히 쓰므로 그대로 유지).
+  // [2026-11 정책변경] 상품권(giftcard) 교환 상점 기능 전체 삭제(관리자 화면 포함).
   shop: { super_admin: RWD, operator: RW, cs: R, content_manager: R },
   community: { super_admin: RWD, operator: RW, cs: RW, content_manager: R },
   // [신통방통 관리자 통합 간소화 실행 지시서 — 승인 지시 §2 "매칭 관리"]

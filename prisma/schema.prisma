@@ -180,7 +180,6 @@ model User {
   amuletGiftsSent               AmuletGift[]                  @relation("AmuletGiftFrom")
   amuletGiftsReceived           AmuletGift[]                  @relation("AmuletGiftTo")
   luckybagOpenLogs              LuckybagOpenLog[]
-  giftcardIssues                GiftcardIssue[]
   couponIssues                  CouponIssue[]
   communityPosts                CommunityPost[]
   wishes                        Wish[]
@@ -744,7 +743,6 @@ model PointHistory {
 
   wallet                      Wallet                       @relation(fields: [walletId], references: [id])
   user                        User                         @relation(fields: [userId], references: [id])
-  giftcardRefunds             GiftcardRefund[]
   dowanyeoConsultationRequest DowanyeoConsultationRequest?
 
   @@index([userId, createdAt])
@@ -1333,167 +1331,12 @@ model LuckybagOpenLog {
 // 다음 소단위에서 순서대로 추가한다(amulet_items -> user_amulets 분할 전례와 동일 방식).
 // ══════════════════════════════════════════════════════════════════
 
-// ── 04A J-1: giftcard_products (※Base 포함) ──
-// [스코프 결정] image_file_id(04A 원본, files.id FK)는 AmuletItem/LuckybagProduct와
-// 동일한 전례로 image_url 문자열로 단순화.
-// stock_count CHECK(>=0)는 SQLite datasource+Prisma 조합에서 DB 레벨 CHECK 제약을
-// 직접 선언할 수 없어(다른 숫자 컬럼과 동일 전례), zod에서 min(0) 검증 + 애플리케이션
-// 레벨에서만 음수 방지를 보장한다(원자적 감소는 J-2 발급 로직 구현 시 트랜잭션으로 처리 예정).
-model GiftcardProduct {
-  id            Int       @id @default(autoincrement())
-  name          String
-  brand         String
-  requiredPoint Int       @map("required_point")
-  stockCount    Int       @default(0) @map("stock_count") // CHECK(stock_count>=0) — 애플리케이션 레벨 검증
-  validDays     Int       @default(365) @map("valid_days") // 발급일로부터 유효기간(일)
-  imageUrl      String?   @map("image_url")
-  isActive      Boolean   @default(true) @map("is_active")
-  status        String    @default("active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
-  createdBy     String?   @map("created_by")
-  updatedBy     String?   @map("updated_by")
-
-  issues GiftcardIssue[]
-
-  @@index([brand])
-  @@index([isActive])
-  @@map("giftcard_products")
-}
-
-// ══════════════════════════════════════════════════════════════════
-// 05§3.4 "상품권 생명주기 조회" — 2차 소단위: J-2~J-7 조회 전용 통합 구현
-// [범위 결정] 이번 단계는 "생명주기 조회"(조회 전용) 화면만 구현한다.
-// "상품권 환불/재발급 처리"(2단계 확인 필수, 포인트 자동 복원)는 05§3.4상
-// 별도 화면으로 명시되어 있으므로, 실제 admin이 취소/환불/재발급을 "처리"하는
-// Server Action(쓰기)은 다음 소단위에서 구현한다. 이번 단계는 issues~expiry_logs
-// 각 이력 테이블을 조회 전용으로 노출하며, 시딩 데이터로 각 상태 전이를 보여준다.
-// ══════════════════════════════════════════════════════════════════
-
-// ── 04A J-2: giftcard_issues (※Base 포함) ── 조회 전용
-// status(Base) 사용값: requested/issued/failed/cancelled/expired
-// [스코프 결정] issued_code(04A 원본 "암호화" 컬럼)는 로컬 개발 DB에서는 평문 문자열로 단순화.
-model GiftcardIssue {
-  id         Int       @id @default(autoincrement())
-  userId     Int       @map("user_id")
-  productId  Int       @map("product_id")
-  pointSpent Int       @map("point_spent") // 거래시점 가격 스냅샷
-  issuedCode String?   @map("issued_code") // 발급된 쿠폰코드/바코드(로컬DB 평문 단순화)
-  issuedAt   DateTime? @map("issued_at")
-  expiresAt  DateTime? @map("expires_at")
-  status     String    @default("requested")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
-  createdBy  String?   @map("created_by")
-  updatedBy  String?   @map("updated_by")
-
-  user         User                @relation(fields: [userId], references: [id])
-  product      GiftcardProduct     @relation(fields: [productId], references: [id])
-  usage        GiftcardUsage?
-  cancels      GiftcardCancel[]
-  expiryLogs   GiftcardExpiryLog[]
-  reissuesFrom GiftcardReissue[]   @relation("GiftcardReissueOriginal")
-  reissuesTo   GiftcardReissue[]   @relation("GiftcardReissueNew")
-
-  @@index([userId, createdAt])
-  @@index([expiresAt])
-  @@map("giftcard_issues")
-}
-
-// ── 04A J-3: giftcard_usages (※Base 포함, UQ(issue_id)) ── 조회 전용
-model GiftcardUsage {
-  id               Int       @id @default(autoincrement())
-  issueId          Int       @unique @map("issue_id")
-  usedAt           DateTime  @default(now()) @map("used_at")
-  usedLocationMeta String?   @map("used_location_meta") // JSON 문자열(SQLite 네이티브 JSONB 없음)
-  status           String    @default("active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
-  createdBy        String?   @map("created_by")
-  updatedBy        String?   @map("updated_by")
-
-  issue GiftcardIssue @relation(fields: [issueId], references: [id])
-
-  @@map("giftcard_usages")
-}
-
-// ── 04A J-4: giftcard_cancels (※Base 포함) ── 조회 전용
-model GiftcardCancel {
-  id            Int       @id @default(autoincrement())
-  issueId       Int       @map("issue_id")
-  reason        String?
-  cancelledAt   DateTime  @default(now()) @map("cancelled_at")
-  refundedPoint Int       @map("refunded_point")
-  status        String    @default("active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
-  createdBy     String?   @map("created_by")
-  updatedBy     String?   @map("updated_by")
-
-  issue   GiftcardIssue    @relation(fields: [issueId], references: [id])
-  refunds GiftcardRefund[]
-
-  @@index([issueId])
-  @@map("giftcard_cancels")
-}
-
-// ── 04A J-5: giftcard_refunds (※Base 포함) ── 조회 전용
-// status(Base) 사용값: pending/completed/failed
-model GiftcardRefund {
-  id                   Int       @id @default(autoincrement())
-  cancelId             Int       @map("cancel_id")
-  refundPointHistoryId Int       @map("refund_point_history_id")
-  status               String    @default("pending")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  deletedAt            DateTime? @map("deleted_at")
-  createdBy            String?   @map("created_by")
-  updatedBy            String?   @map("updated_by")
-
-  cancel             GiftcardCancel @relation(fields: [cancelId], references: [id])
-  refundPointHistory PointHistory   @relation(fields: [refundPointHistoryId], references: [id])
-
-  @@index([cancelId])
-  @@map("giftcard_refunds")
-}
-
-// ── 04A J-6: giftcard_reissues (※Base 포함) ── 조회 전용
-model GiftcardReissue {
-  id              Int       @id @default(autoincrement())
-  originalIssueId Int       @map("original_issue_id")
-  newIssueId      Int       @map("new_issue_id")
-  reason          String?
-  status          String    @default("active")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
-  createdBy       String?   @map("created_by")
-  updatedBy       String?   @map("updated_by")
-
-  originalIssue GiftcardIssue @relation("GiftcardReissueOriginal", fields: [originalIssueId], references: [id])
-  newIssue      GiftcardIssue @relation("GiftcardReissueNew", fields: [newIssueId], references: [id])
-
-  @@index([originalIssueId])
-  @@map("giftcard_reissues")
-}
-
-// ── 04A J-7: giftcard_expiry_logs (Append-only) ── 조회 전용
-model GiftcardExpiryLog {
-  id        Int      @id @default(autoincrement())
-  issueId   Int      @map("issue_id")
-  expiredAt DateTime @default(now()) @map("expired_at")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  issue GiftcardIssue @relation(fields: [issueId], references: [id])
-
-  @@index([issueId])
-  @@index([expiredAt])
-  @@map("giftcard_expiry_logs")
-}
+// [2026-11 정책변경] 상품권(giftcard) 교환 기능 전체 삭제 — 과거 04A J-1~J-7
+// (giftcard_products/issues/usages/cancels/refunds/reissues/expiry_logs) 7개
+// 모델/테이블을 완전 삭제했다(관리자 화면·API·Flutter 앱 전부 삭제 완료 후,
+// 사용자 명시 지시("완전삭제")에 따라 DB 테이블까지 DROP). Payment 테이블의
+// 과거 order_type=giftcard 결제기록 3건은 폴리모픽 참조(FK 아님)라서 영향받지
+// 않으며, 04A 결제원장 보존 원칙에 따라 그대로 유지한다.
 
 // ══════════════════════════════════════════════════════════════════
 // 05§3.4 "쿠폰 관리" — 7차 소단위: J-8/J-9 쿠폰 CRUD/발급

@@ -30,7 +30,7 @@
 // ══════════════════════════════════════════════════════════════════
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { spendLuckPouch } from "@/lib/luck-pouch-engine";
+import { spendLuckPouch, todayRangeKst } from "@/lib/luck-pouch-engine";
 import { checkDailyAbsoluteLimit } from "@/lib/open-pass-service";
 
 type Tx = Prisma.TransactionClient;
@@ -119,6 +119,32 @@ export async function getCoupangClaimedTodayKey(userId: number): Promise<string 
   return log ? dateKey : null;
 }
 
+/** Freepass-first 강제 퍼널 경제 설계(2026-11) §"하루 3회 무료" 중 "광고 보고
+ * 무료로 보기"에 적용되는 1일 1회 캡. 쿠팡 프리패스(최대 2회)와 달리 전용
+ * 발급/소비 테이블이 없으므로, 이미 남아있는 ResultAccessTransaction 기록을
+ * 그대로 "오늘 AD 결제수단을 이미 썼는지"의 단일 소스로 재사용한다(신규
+ * 테이블을 만들지 않는다 — §8.1 공통화 원칙과 동일한 이유로 기존 데이터를
+ * 최대한 재사용). "failed" 상태(차감 자체가 없었던 거래)는 실사용으로 치지
+ * 않고 캡에서 제외한다 — AD는 차감할 자산이 없어 환불 시 "refunded"로
+ * 남더라도(§8.6) 이미 광고 1편을 실제로 시청까지 마친 뒤의 거래이므로
+ * refunded는 그대로 캡에 포함한다(광고 재시청 없이 캡만 회피하는 것을
+ * 막기 위함). */
+export async function getAdUsedTodayCount(userId: number): Promise<number> {
+  const { start, end } = todayRangeKst();
+  return prisma.resultAccessTransaction.count({
+    where: {
+      userId,
+      paymentMethod: "AD",
+      status: { not: "failed" },
+      createdAt: { gte: start, lt: end },
+    },
+  });
+}
+
+/** 광고(AD) 결제수단의 1일 발급 한도. 쿠팡 프리패스(2회) + 광고(1회) = 하루
+ * 최대 3회 무료 결과보기라는 경제 설계의 마지막 조각(2026-11 지시 반영). */
+export const AD_PAYMENT_DAILY_LIMIT = 1;
+
 export interface ResultAccessQuote {
   freePassRemaining: number;
   freePassHasLegacyUnlimited: boolean;
@@ -133,6 +159,11 @@ export interface ResultAccessQuote {
    * Flutter의 "오늘의 프리패스 2회 받기" 버튼 노출 조건(freePassRemaining===0
    * && !todayClaimed)을 문자열 null 체크 없이 바로 판단할 수 있게 한다. */
   todayClaimed: boolean;
+  /** [Freepass-first 강제 퍼널, 2026-11] 오늘(KST) 이미 "광고 보고 무료로
+   * 보기"를 사용했는지. adAvailable === !adUsedToday(캡 도달 시 false). */
+  adUsedToday: boolean;
+  /** 광고(AD) 결제수단의 1일 발급 한도(현재 1). 관리자 설정 없이 상수로 고정. */
+  adDailyLimit: number;
 }
 
 /**
@@ -145,12 +176,14 @@ export async function getResultAccessQuote(
   contentType: string,
   categoryKey?: string | null
 ): Promise<ResultAccessQuote> {
-  const [freePass, pouchBalance, price, coupangClaimedTodayKey] = await Promise.all([
+  const [freePass, pouchBalance, price, coupangClaimedTodayKey, adUsedTodayCount] = await Promise.all([
     getFreePassSummary(userId),
     getPouchBalance(userId),
     getResultAccessPrice(contentType, categoryKey),
     getCoupangClaimedTodayKey(userId),
+    getAdUsedTodayCount(userId),
   ]);
+  const adUsedToday = adUsedTodayCount >= AD_PAYMENT_DAILY_LIMIT;
   return {
     freePassRemaining: freePass.remainingCount,
     freePassHasLegacyUnlimited: freePass.hasLegacyUnlimited,
@@ -158,9 +191,15 @@ export async function getResultAccessQuote(
     pouchBalance,
     pouchPrice: price,
     pouchAvailable: true,
-    adAvailable: true,
+    // [Freepass-first 강제 퍼널, 2026-11] "쿠팡 2회 + 광고 1회 = 하루 3회
+    // 무료"를 서버에서 강제한다. 하루 한도에 도달하면 광고 버튼 자체를
+    // 비활성화해 더 이상 무료 시청으로 우회할 수 없게 한다(복주머니 결제
+    // 유도).
+    adAvailable: !adUsedToday,
     coupangClaimedTodayKey,
     todayClaimed: coupangClaimedTodayKey != null,
+    adUsedToday,
+    adDailyLimit: AD_PAYMENT_DAILY_LIMIT,
   };
 }
 
@@ -308,6 +347,18 @@ export async function beginResultAccess(
       throw new ResultAccessError(
         "AD_SESSION_NOT_COMPLETED",
         "광고 시청이 완료되지 않았습니다. 광고를 끝까지 시청해주세요."
+      );
+    }
+
+    // [Freepass-first 강제 퍼널, 2026-11 §8.3 서버 재검증] 시트를 연 시점의
+    // quote(adAvailable)만 믿지 않고, 실제 차감(거래 생성) 직전에 하루 캡을
+    // 다시 확인한다 — 광고 시청 도중 다른 기기/탭에서 이미 오늘 캡을 다
+    // 썼을 수 있으므로(§8.3 "클라이언트 선언은 참고용" 원칙과 동일한 이유).
+    const adUsedTodayCount = await getAdUsedTodayCount(userId);
+    if (adUsedTodayCount >= AD_PAYMENT_DAILY_LIMIT) {
+      throw new ResultAccessError(
+        "AD_DAILY_LIMIT_REACHED",
+        "오늘 광고 보고 무료로 보기를 모두 사용했어요. 내일 다시 이용할 수 있어요."
       );
     }
 

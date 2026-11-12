@@ -34,7 +34,6 @@ export default async function PouchPaymentOverviewPage() {
     walletAgg,
     pointHistoryToday,
     luckybagToday,
-    giftcardToday,
     couponActiveCount,
     couponRedeemedToday,
     paymentsToday,
@@ -52,7 +51,6 @@ export default async function PouchPaymentOverviewPage() {
       select: { amount: true, type: true, sourceType: true },
     }),
     prisma.luckybagOpenLog.count({ where: { createdAt: { gte: today }, status: "completed" } }),
-    prisma.giftcardIssue.count({ where: { issuedAt: { gte: today }, status: "issued" } }),
     prisma.bokjuCoupon.count({ where: { status: { in: ["ISSUED", "ALLOCATED", "DELIVERED", "ASSIGNED"] } } }),
     prisma.bokjuCoupon.count({ where: { redeemedAt: { gte: today } } }),
     prisma.payment.findMany({ where: { status: "paid", createdAt: { gte: today } }, select: { amount: true } }),
@@ -172,14 +170,10 @@ export default async function PouchPaymentOverviewPage() {
               ④ 상점 관리 →
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="rounded-xl border border-slate-200 bg-white p-4">
               <p className="text-xs text-slate-500">금일 복주머니뽑기</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">{luckybagToday.toLocaleString()}건</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs text-slate-500">금일 상품권 교환</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{giftcardToday.toLocaleString()}건</p>
             </div>
           </div>
         </section>
