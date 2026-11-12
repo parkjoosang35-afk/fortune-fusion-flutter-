@@ -252,6 +252,11 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { code: "ops_system", label: "서버/시스템 상태", path: "/ops" },
       // [Task11 신규] 3단계 자동진단(탐지→진단→승인게이트 조치) — "ops_system" 재사용.
       { code: "ops_system", label: "AI 자동진단", path: "/ai-system/diagnosis" },
+      // [2026-11-12 사주엔진관리 신규] saju_engine_deploy(별도 저장소, FastAPI,
+      // 운영서버 systemd "saju-engine.service"로 상시 구동) 전체를 조회·제한적
+      // 제어할 수 있는 신규 화면. "ops_system"(서버/시스템 상태와 동일 코드) 재사용 —
+      // 신규 RBAC 코드를 늘리지 않고 "시스템 관리자 전용"이라는 성격이 동일하기 때문.
+      { code: "ops_system", label: "🔮 사주엔진관리", path: "/ai-system/saju-engine" },
       { code: "ai_content", label: "AI 호출 로그/비용", path: "/ai-content/logs" },
       { code: "ops_security", label: "관리자 계정/역할(RBAC)", path: "/admin-users" },
       { code: "system_settings", label: "전역 설정값/에러로그", path: "/system-settings" },
