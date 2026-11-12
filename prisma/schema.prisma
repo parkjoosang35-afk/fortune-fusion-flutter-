@@ -5537,3 +5537,44 @@ model PremiumSajuSection {
   @@index([sectionKey, isActive])
   @@map("premium_saju_sections")
 }
+
+// ════════════════════════════════════════════════════════════════
+// [2026-11-11 기획_01_콘텐츠운영_화면설계 — "콘텐츠 1개 = 관리 화면 1개"]
+// 사장님 지시("A안: 지체없이 실행, 3개 질문은 합리적 기본값으로 임의 결정")에
+// 따라 §7의 3개 미결정 사항을 다음과 같이 확정하고 반영한다:
+//   Q1(프롬프트 편집 권한) → 기존 ai_content RBAC 그대로(별도 역할 분리 안 함,
+//     이 테이블/화면도 ai_content 코드로 가드).
+//   Q2(점검중 전환 시 자동환불) → 하지 않음(필요 시 기존 포인트조정
+//     /reward/policies 화면에서 운영자가 수동 처리 — 새 환불 메커니즘 발명 안 함).
+//   Q3(차감 고정값 관리자 수정 가능 여부) → 금액 자체는 이번 범위에서 편집
+//     기능을 만들지 않는다(실제 차감 로직이 economy_config 전역설정/코드
+//     하드코딩(gunghap route.ts)/귀인지도 등으로 제각각 분산돼 있어, 한
+//     테이블에서 "수정"하면 실제 차감 코드와 괴리될 위험이 큼 — §1
+//     "운영서버에 영향 가는 변경은 신중히"). 대신 "현재 얼마가 적용되고
+//     있고 어디서 결정되는지"를 투명하게 보여주는 조회용 메타만 둔다
+//     (pouchAmountLabel 등은 문자열 설명 — 실제 차감 코드와 별개).
+//
+// [범위] 9개 라이브 콘텐츠(saju/tarot/wishroom/talisman/guinji/
+// gunghap_saju/gunghap_invite/face/palm) + 신규 2개(premium_saju/dowanyeo)의
+// "노출 상태"만 이 테이블이 신규로 담당한다(탭④ 노출제어 — 기획서가 강조한
+// 유일한 진짜 신규 기능. 현재는 코드 배포로만 끌 수 있던 것을 관리자가
+// 직접 끌 수 있게 하는 것이 핵심). 탭①②③은 기존 FortuneCategory/
+// AiPromptTemplate 등 기존 테이블·화면을 그대로 재사용하고 링크만 연결한다
+// (중복 테이블 생성 금지 원칙).
+// ════════════════════════════════════════════════════════════════
+model ContentOpsConfig {
+  id              Int      @id @default(autoincrement())
+  // 9개 라이브 콘텐츠 + 2개 신규 서비스 고정 키(화이트리스트는
+  // src/lib/content-ops-meta.ts CONTENT_OPS_ITEMS에서 관리).
+  contentKey      String   @unique @map("content_key")
+  // 노출 상태: visible(노출) / hidden(숨김) / maintenance(점검중).
+  exposureStatus  String   @default("visible") @map("exposure_status")
+  // 점검중일 때 앱에 보여줄 안내문(exposureStatus=maintenance일 때만 사용).
+  maintenanceNote String?  @map("maintenance_note")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedBy       String?  @map("updated_by")
+
+  @@index([exposureStatus])
+  @@map("content_ops_configs")
+}

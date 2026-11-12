@@ -27,6 +27,10 @@ interface SubTab {
 }
 
 const TABS: SubTab[] = [
+  // [2026-11-11 기획_01 콘텐츠운영 통합화면] "콘텐츠 1개 = 관리 화면 1개"
+  // 원칙의 신규 진입점. 기존 9개 화면(프롬프트/카테고리/타로/궁합 등)을
+  // 대체하지 않고 "한눈에 보는 통합 목록 + 탭5개 상세"를 추가로 제공한다.
+  { href: "/ai-content/overview", label: "🆕 콘텐츠 통합관리" },
   { href: "/ai-content/prompts", label: "AI 프롬프트 템플릿" },
   { href: "/ai-content/categories", label: "운세 카테고리" },
   { href: "/ai-content/guinji", label: "귀인지도" },
