@@ -902,13 +902,46 @@ class _UsingOverlayViewState extends State<_UsingOverlayView>
 
 /// [호출 헬퍼] 정통사주 결과보기 게이트 바텀시트를 띄운다. 성공 시
 /// [ResultAccessBeginResult]를 반환, 취소/닫힘이면 null.
+///
+/// [Freepass-first 강제 퍼널, 2026-11] result_access_gate_sheet.dart의
+/// [showResultAccessGateSheet]와 동일한 분기 로직 — 쓸 수 있는 프리패스가
+/// 0개이고 오늘 쿠팡 프리패스를 아직 안 받았으면, 결제 게이트(3택)를 열기
+/// 전에 쿠팡 프리패스 발급 화면을 먼저 반드시 보여준다. 받으면 이어서
+/// 결제 게이트를 열고, 받지 않고 건너뛰면 이번 시도는 여기서 끝난다(다음
+/// 시도에도 조건이 그대로라 다시 쿠팡 화면이 뜬다) — 두 진입점(공통
+/// 게이트/사주 전용 게이트)이 동일한 정책을 공유해야 하므로(§15 "판정
+/// 기준 불일치 금지"와 같은 이유) 판정 로직 자체는 중복 구현하지 않고
+/// 여기서도 동일한 Provider(quote)/화면(showCoupangPassSheet)을 그대로
+/// 재사용한다.
 Future<ResultAccessBeginResult?> showSajuResultAccessGateSheet(
   BuildContext context, {
   String? contentId,
   required String contentTitle,
   String? quoteText,
   String returnRoute = '/saju-renewal',
-}) {
+}) async {
+  final resultAccessProvider = context.read<ResultAccessProvider>();
+  await resultAccessProvider.loadQuote(
+    contentType: 'saju_renewal',
+    categoryKey: 'saju_renewal',
+  );
+  final preQuote = resultAccessProvider.quote;
+  if (preQuote != null && !preQuote.freePassAvailable && !preQuote.todayClaimed) {
+    if (!context.mounted) return null;
+    await showCoupangPassSheet(context, categoryTitle: contentTitle);
+    if (!context.mounted) return null;
+    await resultAccessProvider.loadQuote(
+      contentType: 'saju_renewal',
+      categoryKey: 'saju_renewal',
+    );
+    final postQuote = resultAccessProvider.quote;
+    final stillNoPass =
+        postQuote == null ||
+        (!postQuote.freePassAvailable && !postQuote.todayClaimed);
+    if (stillNoPass) return null;
+  }
+
+  if (!context.mounted) return null;
   return showModalBottomSheet<ResultAccessBeginResult>(
     context: context,
     isScrollControlled: true,

@@ -497,6 +497,18 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
 
         // 이용시간/횟수 뱃지
         _buildDurationPill(durationLabel, isCountBased: isCountBased),
+        // [프리패스 1일 리셋 안내 — 2026-11 Freepass-first 강제 퍼널 설계]
+        // 쿠팡으로 받은 프리패스는 당일(KST 자정) 안에 쓰지 않으면 자동
+        // 소멸된다(관리자 정책 validityDays=1). "쌓아두고 나중에 몰아서
+        // 쓸 수 있다"는 오해를 막기 위해 받기 전에 미리 안내한다.
+        if (isCountBased) ...[
+          const SizedBox(height: MyPageSpacing.sp2),
+          Text(
+            '⏰ 오늘 받은 프리패스는 사용하지 않으면 하루(자정)가 지나면 사라져요',
+            style: MyPageTextStyles.caption.copyWith(color: MyPageColors.ink3),
+            textAlign: TextAlign.center,
+          ),
+        ],
         const SizedBox(height: MyPageSpacing.sp4),
 
         // 메인 CTA

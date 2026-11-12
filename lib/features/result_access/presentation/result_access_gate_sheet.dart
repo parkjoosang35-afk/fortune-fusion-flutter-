@@ -96,7 +96,57 @@ Future<ResultAccessBeginResult?> showResultAccessGateSheet(
   String? selectedCategory,
   String? question,
   String? resultRequestId,
-}) {
+}) async {
+  // [Freepass-first 강제 퍼널, 2026-11] 결제 게이트(프리패스/복주머니/광고
+  // 3택)를 열기 전에, 지금 쓸 수 있는 프리패스가 0개이고 오늘(KST) 쿠팡
+  // 프리패스를 아직 받지 않았다면 — 결제 게이트는 아예 열지 않고, 쿠팡
+  // 프리패스 발급 화면([showCoupangPassSheet])부터 반드시 먼저 보여준다.
+  //
+  // [사용자 지시 원문] "무조건 프리패스을 이용권 2회울 받으면 받고 나서
+  // 자기가 결과울 보든 다움에 보든 할거 아니야 프리패스을 거치면 그다음에는
+  // 결제 게이트을 열어줘 프리패스 이용권을 안하면 그 다움애도 프리패스가
+  // 나와야하고" — 즉:
+  //   1) 프리패스를 "받으면"(claim 성공) → 그 즉시 이어서 결제 게이트를
+  //      열어준다. 지금 당장 보든 나중에 보든은 그 안에서 사용자 자유.
+  //   2) 프리패스를 "받지 않으면"(나중에 할게요/닫기로 스킵) → 이번
+  //      시도에서는 결제 게이트를 열지 않는다. 다음 번 결과보기 시도에서도
+  //      조건이 그대로(0개·미수령)이므로 쿠팡 프리패스 화면이 다시 뜬다 —
+  //      결제 게이트로 건너뛸 방법이 없다(쿠팡 광고 노출 보장이 설계 목적).
+  final resultAccessProvider = context.read<ResultAccessProvider>();
+  await resultAccessProvider.loadQuote(
+    contentType: contentType,
+    categoryKey: categoryKey,
+  );
+  final preQuote = resultAccessProvider.quote;
+  // preQuote == null은 비로그인(UNAUTHORIZED)/네트워크 오류 등 조회 자체가
+  // 실패한 경우다 — 이 경우는 기존 동작 그대로 3택 게이트를 열어, 그 안의
+  // "로그인하고 결과보기" 안내(§_buildLoadError)로 처리되게 둔다(여기서
+  // 임의로 가로채지 않는다).
+  if (preQuote != null && !preQuote.freePassAvailable && !preQuote.todayClaimed) {
+    if (!context.mounted) return null;
+    await showCoupangPassSheet(context, categoryTitle: contentTitle);
+    if (!context.mounted) return null;
+    // 쿠팡 화면에서 실제로 받았는지(또는 그사이 다른 경로로 잔액이
+    // 생겼는지) 다시 확인한다 — claimAd 성공 여부를 이 시점에 직접 알 수
+    // 없으므로(쿠팡 시트가 내부에서 처리하고 void를 반환) 서버 최신
+    // 상태를 재조회해 판정한다.
+    await resultAccessProvider.loadQuote(
+      contentType: contentType,
+      categoryKey: categoryKey,
+    );
+    final postQuote = resultAccessProvider.quote;
+    final stillNoPass =
+        postQuote == null ||
+        (!postQuote.freePassAvailable && !postQuote.todayClaimed);
+    if (stillNoPass) {
+      // 받지 않고 건너뜀(나중에 할게요/닫기) → 이번 시도는 여기서 종료.
+      // 결제 게이트를 열지 않는다(위 설계 2번).
+      return null;
+    }
+    // 받음 → 아래로 이어져 결제 게이트를 바로 연다(위 설계 1번).
+  }
+
+  if (!context.mounted) return null;
   return showModalBottomSheet<ResultAccessBeginResult>(
     context: context,
     isScrollControlled: true,
