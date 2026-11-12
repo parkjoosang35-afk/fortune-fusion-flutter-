@@ -164,4 +164,53 @@ void main() {
       reason: '닫기 버튼은 확대 상태에서도 정상 동작해야 한다',
     );
   });
+
+  // ───────────────────────────────────────────────────────────────
+  // [더블탭으로 닫기] 배경 탭 닫기를 없앤 대신 추가한 닫기 수단.
+  // 가장 위험한 것은 "더블탭 인식기가 핀치를 죽이는 것"이므로
+  // 아래 두 테스트로 (a) 더블탭이 동작하고 (b) 핀치가 여전히 살아있음을
+  // 동시에 확인한다.
+  // ───────────────────────────────────────────────────────────────
+  testWidgets('R4: 여백을 두 번 탭하면 확대 화면이 닫힌다', (tester) async {
+    await _openFullScreen(tester);
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+
+    // X 버튼(우상단)과 겹치지 않는 좌측 여백.
+    final p = Offset(10, screen.height / 2);
+    await tester.tapAt(p);
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.tapAt(p);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(InteractiveViewer),
+      findsNothing,
+      reason: '더블탭으로 닫히지 않았다 (R4 위반)',
+    );
+  });
+
+  testWidgets('R5: 더블탭 인식기가 핀치를 죽이지 않는다', (tester) async {
+    await _openFullScreen(tester);
+
+    // 1) 핀치 → 확대 및 유지
+    await _pinchOut(tester, startHalfGap: 140);
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    final afterPinch = _currentScale(tester) ?? 1.0;
+    expect(
+      afterPinch,
+      greaterThan(1.2),
+      reason: 'R5 위반: 더블탭 도입 후 핀치가 죽었다. 배율=$afterPinch',
+    );
+
+    // 2) 핀치 직후에는 화면이 아직 열려 있어야 한다(잔여 탭으로 안 닫힘)
+    // 3) 그 다음 한 번 탭만으로는 닫히지 않아야 한다(오탐 방지)
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    await tester.tapAt(Offset(10, screen.height / 2));
+    await tester.pumpAndSettle();
+    expect(
+      find.byType(InteractiveViewer),
+      findsOneWidget,
+      reason: '한 번 탭으로 닫혔다 — 핀치 잔여 탭에 닫히는 회귀',
+    );
+  });
 }

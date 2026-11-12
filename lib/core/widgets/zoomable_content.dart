@@ -93,7 +93,7 @@ class ZoomableContent extends StatelessWidget {
   }
 }
 
-class _ZoomableFullScreenView extends StatelessWidget {
+class _ZoomableFullScreenView extends StatefulWidget {
   const _ZoomableFullScreenView({
     required this.heroTag,
     required this.backgroundColor,
@@ -105,90 +105,188 @@ class _ZoomableFullScreenView extends StatelessWidget {
   final WidgetBuilder builder;
 
   @override
+  State<_ZoomableFullScreenView> createState() =>
+      _ZoomableFullScreenViewState();
+}
+
+class _ZoomableFullScreenViewState extends State<_ZoomableFullScreenView> {
+  // ───────────────────────────────────────────────────────────────
+  // [더블탭으로 닫기]
+  // 배경 탭 닫기를 없앤 뒤 "닫는 방법이 X 버튼 하나뿐"이라 불편하다는
+  // 요청을 반영해, **더블탭**으로 닫을 수 있게 한다.
+  //
+  // ⚠️ 여기서 GestureDetector(onDoubleTap:)를 쓰면 안 된다.
+  // 이 프로젝트에서 InteractiveViewer를 GestureDetector(onScale*)나
+  // onDoubleTap*로 감쌌다가 **핀치가 아예 죽는 회귀를 두 번 겪었다.**
+  // GestureDetector는 제스처 아레나에 참여해 더블탭 인식기가 스케일
+  // 인식기보다 먼저 이기거나, 반대로 스케일 시작을 지연시킨다.
+  //
+  // 그래서 여기서는 **Listener**(로우레벨 포인터 콜백)만 쓴다.
+  // Listener는 제스처 아레나에 참여하지 않으므로 InteractiveViewer의
+  // 핀치/팬을 절대 빼앗지 않는다. 우리는 "두 번째 손가락이 닿은 시각"만
+  // 스스로 재서 더블탭을 판정한다.
+  //
+  // 핀치(두 손가락)와 겹치지 않도록 아래 조건을 모두 만족할 때만 닫는다.
+  //   1) 한 손가락으로만 두 번 (멀티터치 중이면 무시)
+  //   2) 각 탭이 아주 짧게 눌렸다 떼짐 (길게 누르기/드래그 배제)
+  //   3) 두 탭 사이 이동 거리가 작음 (스크롤/팬 배제)
+  //   4) 두 탭 간격이 300ms 이내
+  // ───────────────────────────────────────────────────────────────
+  static const Duration _doubleTapWindow = Duration(milliseconds: 300);
+  static const double _tapSlop = 20.0;
+
+  DateTime? _lastTapAt;
+  Offset? _lastTapPos;
+  DateTime? _downAt;
+  Offset? _downPos;
+  int _activePointers = 0;
+
+  void _close() {
+    if (!mounted) return;
+    Navigator.of(context).maybePop();
+  }
+
+  void _onPointerDown(PointerDownEvent e) {
+    _activePointers++;
+    _downAt = DateTime.now();
+    _downPos = e.position;
+  }
+
+  void _onPointerUp(PointerUpEvent e) {
+    _activePointers = (_activePointers - 1).clamp(0, 99);
+    final downAt = _downAt;
+    final downPos = _downPos;
+    // 손가락이 여러 개 닿은 상태에서 뗀 것은 핀치의 일부다 → 판정 제외.
+    if (_activePointers > 0 || downAt == null || downPos == null) {
+      _lastTapAt = null;
+      _lastTapPos = null;
+      return;
+    }
+    final held = DateTime.now().difference(downAt);
+    final moved = (e.position - downPos).distance;
+    _downAt = null;
+    _downPos = null;
+
+    // 길게 누르기 / 드래그는 "탭"이 아니다.
+    if (held > _doubleTapWindow || moved > _tapSlop) {
+      _lastTapAt = null;
+      _lastTapPos = null;
+      return;
+    }
+
+    final now = DateTime.now();
+    final prevAt = _lastTapAt;
+    final prevPos = _lastTapPos;
+    if (prevAt != null &&
+        prevPos != null &&
+        now.difference(prevAt) <= _doubleTapWindow &&
+        (e.position - prevPos).distance <= _tapSlop * 2) {
+      // 더블탭 성립
+      _lastTapAt = null;
+      _lastTapPos = null;
+      _close();
+      return;
+    }
+    _lastTapAt = now;
+    _lastTapPos = e.position;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // ─────────────────────────────────────────────────────────────
-          // [수정 1 — 배경 탭 닫기 제거]
-          // 원래 여기에는 `GestureDetector(behavior: opaque,
-          // onTap: maybePop)`가 깔려 있었다. 핀치로 확대한 뒤 손가락을
-          // 하나씩 떼는 과정에서 남은 손가락이 "탭"으로 인식되면 이 배경
-          // 탭이 실행되어 전체화면이 통째로 닫혔고, 사용자 눈에는
-          // **"확대가 원래대로 돌아갔다"** 로 보였다(실기기 신고 원문).
-          // 확대를 유지하려면 잔여 탭으로 닫히면 안 되므로 배경 닫기를
-          // 없앤다. 닫기는 우상단 X 버튼만 사용한다.
-          // ─────────────────────────────────────────────────────────────
-          //
-          // ─────────────────────────────────────────────────────────────
-          // [수정 2 — InteractiveViewer가 화면 전체를 덮게]
-          // 예전에는 `Center > Hero > InteractiveViewer` 순서라서
-          // InteractiveViewer의 hit-test 영역이 **콘텐츠 크기(예: 100x100)
-          // 만큼**밖에 안 됐다. 사용자는 두 손가락을 콘텐츠 픽셀 위에 정확히
-          // 올리지 않으므로, 한 손가락이라도 여백에 찍히면 그 포인터가
-          // InteractiveViewer에 전달되지 않아 **핀치 자체가 성립하지 않았다.**
-          // (위젯 테스트 실측: 콘텐츠 위에서 시작 → scale 3.8 / 여백에서
-          //  시작 → scale 1.0, 확대 안 됨)
-          // 그래서 InteractiveViewer를 Positioned.fill + SizedBox.expand로
-          // 화면 전체에 깔고, 보이는 콘텐츠만 Center로 가운데 정렬한다
-          // (레이아웃 상 보이는 모습은 이전과 동일).
-          // ─────────────────────────────────────────────────────────────
-          Positioned.fill(
-            child: Hero(
-              tag: heroTag,
-              child: InteractiveViewer(
-                minScale: 0.8,
-                maxScale: 5,
-                // [버그 수정 — APK 실기기 5차 신고 "확대기능 조금밖에 안됨"]
-                // boundaryMargin 기본값(EdgeInsets.zero)이면 확대 후 팬(이동)이
-                // 경계에 막힌다. 넉넉하게 주어 자유롭게 이동할 수 있게 한다.
-                boundaryMargin: const EdgeInsets.all(400),
-                child: SizedBox.expand(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: builder(context),
+      body: Listener(
+        onPointerDown: _onPointerDown,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: (_) {
+          _activePointers = (_activePointers - 1).clamp(0, 99);
+          _downAt = null;
+          _downPos = null;
+          _lastTapAt = null;
+          _lastTapPos = null;
+        },
+        child: Stack(
+          children: [
+            // ─────────────────────────────────────────────────────────────
+            // [수정 1 — 배경 탭 닫기 제거]
+            // 원래 여기에는 `GestureDetector(behavior: opaque,
+            // onTap: maybePop)`가 깔려 있었다. 핀치로 확대한 뒤 손가락을
+            // 하나씩 떼는 과정에서 남은 손가락이 "탭"으로 인식되면 이 배경
+            // 탭이 실행되어 전체화면이 통째로 닫혔고, 사용자 눈에는
+            // **"확대가 원래대로 돌아갔다"** 로 보였다(실기기 신고 원문).
+            // 확대를 유지하려면 잔여 탭으로 닫히면 안 되므로 배경 닫기를
+            // 없앤다. 닫기는 우상단 X 버튼만 사용한다.
+            // ─────────────────────────────────────────────────────────────
+            //
+            // ─────────────────────────────────────────────────────────────
+            // [수정 2 — InteractiveViewer가 화면 전체를 덮게]
+            // 예전에는 `Center > Hero > InteractiveViewer` 순서라서
+            // InteractiveViewer의 hit-test 영역이 **콘텐츠 크기(예: 100x100)
+            // 만큼**밖에 안 됐다. 사용자는 두 손가락을 콘텐츠 픽셀 위에 정확히
+            // 올리지 않으므로, 한 손가락이라도 여백에 찍히면 그 포인터가
+            // InteractiveViewer에 전달되지 않아 **핀치 자체가 성립하지 않았다.**
+            // (위젯 테스트 실측: 콘텐츠 위에서 시작 → scale 3.8 / 여백에서
+            //  시작 → scale 1.0, 확대 안 됨)
+            // 그래서 InteractiveViewer를 Positioned.fill + SizedBox.expand로
+            // 화면 전체에 깔고, 보이는 콘텐츠만 Center로 가운데 정렬한다
+            // (레이아웃 상 보이는 모습은 이전과 동일).
+            // ─────────────────────────────────────────────────────────────
+            Positioned.fill(
+              child: Hero(
+                tag: widget.heroTag,
+                child: InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 5,
+                  // [버그 수정 — APK 실기기 5차 신고 "확대기능 조금밖에 안됨"]
+                  // boundaryMargin 기본값(EdgeInsets.zero)이면 확대 후 팬(이동)이
+                  // 경계에 막힌다. 넉넉하게 주어 자유롭게 이동할 수 있게 한다.
+                  boundaryMargin: const EdgeInsets.all(400),
+                  child: SizedBox.expand(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: widget.builder(context),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: SafeArea(
-              child: IconButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(
-                  Icons.close_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.black.withValues(alpha: 0.35),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 24,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Center(
-                child: Text(
-                  '손가락으로 확대/축소할 수 있어요',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.65),
-                    fontSize: 12,
+            Positioned(
+              top: 8,
+              right: 8,
+              child: SafeArea(
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withValues(alpha: 0.35),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              bottom: 24,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Center(
+                  child: Text(
+                    '손가락으로 확대/축소 · 두 번 탭하면 닫혀요',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.65),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
