@@ -6,6 +6,14 @@ import 'package:flutter/material.dart';
 /// SVG 마법진)를 `CustomPainter`로 1:1 재현한다 — viewBox `-100 -100 200
 /// 200` 기준 좌표를 그대로 사용한다.
 ///
+/// [구 파일 보존 안내 — 2026-11 온보딩 전면 교체] 이 파일은 "아치형 히어로
+/// 프레임"(`onboarding_hero_frame.dart`) 디자인에서만 쓰이던 보조 마법진
+/// 구현이다. 2026-11 `design_handoff_onboarding_v2.zip` 교체로 온보딩
+/// 화면은 더 이상 아치 프레임을 쓰지 않지만(새 디자인은 "달+마법진"을
+/// 중심 그래픽(Orb)으로 삼는 전혀 다른 레이아웃), 프로젝트 관례(구 코드
+/// 삭제 대신 보존)에 따라 이 파일과 `onboarding_hero_frame.dart`는 그대로
+/// 둔다. 새 Orb용 마법진은 `onboarding_orb_sigil.dart`에 별도로 작성했다.
+///
 /// [v1→v2 변경] v1(`Onboarding.html`)은 점선 원 + 육각형 1개였지만, v2는
 /// README §3 지시("가운데 원과 별은 빼고 바깥 링, 룬, 육각성만")에 따라
 /// 점선 원을 제거하고 **육각성(Star of David류, 정삼각형 2개 겹침) 1조**로

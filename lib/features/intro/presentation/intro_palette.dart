@@ -127,4 +127,36 @@ class IntroPalette {
 
   /// 필수 입력 마커 / 時(시) 전용 포인트(핸드오프 --rose #f3a6c8).
   static const Color rose = Color(0xFFF3A6C8);
+
+  // ───────────────────────── [온보딩 전면 교체 - design_handoff_onboarding_v2.zip 반영] ─────────────────────────
+  // `Onboarding v2.html`(달+마법진+소개 3장 캐러셀 디자인)의 Design Tokens 중
+  // 기존 상수와 값이 미세하게 다르거나(픽셀 정확도 요구) 없던 것만 추가한다.
+  // 배경 3단 그라디언트(--bg-1/--bg-mid/--bg-2)는 README "배경색은 지금과
+  // 똑같이 유지"에 따라 기존 backgroundTop/Mid/Bottom을 그대로 재사용한다.
+
+  /// 가장 옅은 텍스트(핸드오프 --faint rgba(220,210,245,.4)). 기존
+  /// [textSecondary](65% 알파)보다 더 옅은 전용 톤 — SINTONG 라벨/안내 링크.
+  static const Color introFaint = Color(0x66DCD2F5);
+
+  /// glow 배경 위 잉크색(핸드오프 --ink #2a2050). 기존 [onPrimary]
+  /// (#2a1a3a)와 톤은 비슷하나 다른 핸드오프 값이라 픽셀 정확도를 위해
+  /// 별도 보관한다.
+  static const Color introInk = Color(0xFF2A2050);
+
+  /// Primary 버튼/달 그라디언트 상단(핸드오프 --glow-light #f3defb). 기존
+  /// [glowLight](#f2dcfb, 다른 핸드오프 값)와 별개로 둔다.
+  static const Color introGlowLight = Color(0xFFF3DEFB);
+
+  /// 진행 점(활성) 배경(핸드오프 rgba(232,200,245,.25) = glow 25% 알파).
+  static const Color introDotActiveBg = Color(0x40E8C8F5);
+
+  /// 緣 인장 그라디언트 시작(핸드오프 #d9604f, 160deg 그라디언트 최상단).
+  static const Color introSealLight = Color(0xFFD9604F);
+
+  /// 緣 인장 그라디언트 끝(핸드오프 #a33a2e).
+  static const Color introSealDark = Color(0xFFA33A2E);
+
+  /// 緣 인장 위 글자색(핸드오프 #fbeee6). 기존 [sealInk](#fff9e8)와 다른
+  /// 핸드오프 값이라 별도 보관한다.
+  static const Color introSealText = Color(0xFFFBEEE6);
 }

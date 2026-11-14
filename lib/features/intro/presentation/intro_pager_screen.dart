@@ -1,44 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../application/intro_config_provider.dart';
 import '../application/intro_state_provider.dart';
 import 'intro_palette.dart';
-import 'intro_text_styles.dart';
-import 'widgets/onboarding_action_buttons.dart';
-import 'widgets/onboarding_hero_frame.dart';
+import 'widgets/onboarding_copy_carousel.dart';
+import 'widgets/onboarding_entry_buttons.dart';
 import 'widgets/onboarding_notice_sheet.dart';
-import 'widgets/onboarding_star_petal_field.dart';
+import 'widgets/onboarding_orb.dart';
+import 'widgets/onboarding_star_dust_field.dart';
 
-/// [온보딩 v2 리디자인 2026-10-18 — `design_handoff_onboarding_redesign
-/// (2).zip` 전면 반영] 스플래시(1단계) 다음, 그리고 [OnboardingVideoScreen]
-/// (5대 기능 소개 영상) 다음에 이어지는 비로그인 첫 진입 화면.
+/// [온보딩 전면 교체 2026-11 — `design_handoff_onboarding_v2.zip` 전면
+/// 반영] 스플래시(1단계) 다음, 그리고 [OnboardingVideoScreen](5대 기능
+/// 소개 영상) 다음에 이어지는 비로그인 첫 진입 화면.
 ///
-/// [v1→v2 교체 배경] 이 화면은 2026-10-11에 이전 핸드오프
-/// (`design_handoff_onboarding_redesign.zip`, 버전 접미사 없음)를 전면
-/// 반영해 한 차례 교체된 바 있다. 이번 작업은 그 디자인의 **개정판(v2)**을
-/// 반영하는 것으로, README("기존 온보딩 화면... 리디자인한 버전")가 명시한
-/// 대로 신규 화면이 아니라 **동일 화면의 레이아웃 재구성**이다. 교체 범위는
-/// README "교체 범위: 온보딩 1화면(ENTRY·01). 다른 화면은 영향 없음"을
-/// 그대로 따르며, 기능/라우팅(4개 콜백의 목적지)은 바꾸지 않는다.
+/// [교체 배경] 이전 "아치형 히어로(한복 일러스트)" 디자인을 전면
+/// 교체한다. README("기존 온보딩 화면... 전체 교체") 명시대로 배경
+/// 그라데이션(3단 보라 그라디언트)만 기존 그대로 유지하고, 레이아웃·
+/// 비주얼·카피·모션은 완전히 새로 만든다. 기능/라우팅(버튼 3개가
+/// 이동하는 곳 — 회원가입/로그인/게스트 홈)은 바뀌지 않는다.
 ///
-/// [배경 변경 금지] README "배경 그라데이션은 기존 그대로 유지" 지시에 따라
-/// [_AmbientRadials]를 포함한 배경 레이어는 전혀 건드리지 않는다.
+/// [신규 TO-BE 구조] "빛나는 달 + 마법진 2겹 + 한자 글리프" 중심
+/// 그래픽(Orb) + 소개 3장 자동 캐러셀(命/願/福, 5.2초 간격) + CTA 3개
+/// (시작하기/로그인/먼저 둘러보기) + 재미·참고용 안내 바텀시트. 일러스트
+/// 이미지 에셋은 전혀 쓰지 않고 모두 CSS/SVG(Flutter에서는 CustomPainter/
+/// 그라디언트)로 그린다.
 ///
-/// [v1→v2 주요 레이아웃 차이]
-/// - Hero: v1의 단일 아치 카드(halo+sigil 1겹) → **2겹 Sigil(A 200s
-///   시계방향/B 140s 반시계방향) + 고정비율 Arch outer(문살눈금·keystone·
-///   moonwash·緣 인장)**로 전면 교체([OnboardingHeroFrame] 재작성).
-/// - 緣 인장: 글로우 그라디언트 배지 → 인주색(seal red) 세로형 "緣/INYEON" 배지.
-/// - Actions: Primary(그라디언트+pulse 애니메이션) 1개 + Ghost 1개 + 텍스트
-///   링크 2개 → Primary(단색+정적 shadow+trailing `→`) 1개 + **Ghost 2열
-///   그리드**(로그인/둘러보기) + 안내 링크 1개로 축소.
-/// - 별/꽃잎: 개수·분포·타이밍 전면 변경([OnboardingStarPetalField] 재작성).
-/// - 등장 시퀀스 총 길이 3.1s → **3.0s**(README §등장 모션 표 기준).
+/// [구 코드 보존 원칙] 이전 디자인이 쓰던 위젯들(`onboarding_hero_frame.
+/// dart`, `onboarding_sigil.dart`, `onboarding_action_buttons.dart`,
+/// `onboarding_star_petal_field.dart`, `onboarding_rise_in.dart`)은 더
+/// 이상 이 화면에서 참조되지 않지만, 프로젝트 관례에 따라 삭제하지 않고
+/// 그대로 둔다. 새 디자인 전용 위젯은 `onboarding_orb.dart`,
+/// `onboarding_copy_carousel.dart`, `onboarding_entry_buttons.dart`,
+/// `onboarding_star_dust_field.dart`에 신설했다.
 ///
-/// [진입 시퀀스 1회 재생] 세션(=앱 프로세스) 단위가 아니라 "최초 1회"로
-/// 구현한 기존 정책([_kIntroPlayedKey])을 그대로 유지한다.
+/// [진입 시퀀스 1회 재생] 세션 단위가 아니라 "최초 1회"로 구현한 기존
+/// 정책([_kIntroPlayedKey], 키 이름도 그대로 유지 — SharedPreferences에
+/// 이미 쌓인 값과 호환)을 그대로 유지한다.
 class IntroPagerScreen extends StatefulWidget {
   const IntroPagerScreen({super.key});
 
@@ -46,50 +46,62 @@ class IntroPagerScreen extends StatefulWidget {
   State<IntroPagerScreen> createState() => _IntroPagerScreenState();
 }
 
-/// README §등장 모션 타임라인 상수 — 값 자체를 바꾸지 않아야 "픽셀/타이밍
-/// 단위까지 온보딩 v2.html과 동일하게" 재현할 수 있다.
-class _OnboardingTiming {
-  _OnboardingTiming._();
+/// README §진입 시퀀스(1회) 타임라인 상수.
+class _EntryTiming {
+  _EntryTiming._();
 
-  /// "Meta, Sigil 2겹 | fade 0→1 | 2.4s ease-out, 0s".
-  static const double metaFadeDuration = 2.4;
+  static const double topBarStart = 0.2;
+  static const double topBarDuration = 1.2;
 
-  static const double eyebrowStart = 0.9;
-  static const double titleStart = 1.1;
-  static const double subStart = 1.3;
-  static const double riseDuration = 1.4;
+  static const double orbStart = 0.3;
+  static const double orbDuration = 1.8;
 
-  /// "緣 인장, Actions | 〃 | 1.4s, 1.6s" — Hero 내부의 緣 인장과 동일
-  /// 시점(1.6s)에 Actions도 함께 떠오른다.
-  static const double actionsStart = 1.6;
+  static const double copyStart = 1.0;
+  static const double copyDuration = 1.2;
 
-  /// 전체 등장 시퀀스 길이 — 마지막 rise(1.6s 지연 + 1.4s 길이) 완료 지점.
-  static const double totalDuration = actionsStart + riseDuration;
+  static const double actionsStart = 1.4;
+  static const double actionsDuration = 1.2;
+
+  static const double total = actionsStart + actionsDuration; // 2.6s.
 }
+
+/// 캐러셀 자동 전환 주기(README "5.2초마다 다음 장으로").
+const Duration _kCarouselDuration = Duration(milliseconds: 5200);
 
 class _IntroPagerScreenState extends State<IntroPagerScreen>
     with TickerProviderStateMixin {
   static const String _kIntroPlayedKey = 'onboarding_redesign_intro_played_v1';
 
-  late final AnimationController _introController;
+  late final AnimationController _entryController;
+  late final AnimationController _carouselTimer;
   bool _reduceMotion = false;
-  bool _skipEntryAnimation = false; // true면 즉시 최종 상태(재방문).
+  bool _skipEntryAnimation = false;
   bool _didCheckPlayed = false;
+  int _slideIndex = 0;
+  bool _isNoticeOpen = false;
 
   @override
   void initState() {
     super.initState();
-    _introController = AnimationController(
+    _entryController = AnimationController(
       vsync: this,
-      duration: Duration(
-        milliseconds: (_OnboardingTiming.totalDuration * 1000).round(),
-      ),
+      duration: Duration(milliseconds: (_EntryTiming.total * 1000).round()),
     );
+    _carouselTimer = AnimationController(
+      vsync: this,
+      duration: _kCarouselDuration,
+    )..addStatusListener(_onCarouselTick);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 관리자 설정(문구/이미지/보상수량)을 로드 — 실패 시 fallback 상수로 즉시 대체됨.
       context.read<IntroConfigProvider>().load();
       _resolveIntroPlayed();
     });
+  }
+
+  void _onCarouselTick(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _goToSlide(_slideIndex + 1, resetTimer: true);
+    }
   }
 
   Future<void> _resolveIntroPlayed() async {
@@ -101,8 +113,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
         await prefs.setBool(_kIntroPlayedKey, true);
       }
     } catch (_) {
-      // 조회 실패 시 안전하게 애니메이션을 1회 재생한다(최악의 경우
-      // 재방문해도 다시 재생되는 정도이며 화면 진행을 막지는 않음).
+      // 조회 실패 시 안전하게 애니메이션을 1회 재생한다.
     }
     if (!mounted) return;
     setState(() {
@@ -110,10 +121,17 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
       _didCheckPlayed = true;
     });
     if (alreadyPlayed || _reduceMotion) {
-      _introController.value = 1.0;
+      _entryController.value = 1.0;
     } else {
-      _introController.forward();
+      _entryController.forward();
     }
+    // README "진입 후 1.0s에 1장부터 시작".
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (!mounted) return;
+      if (!_reduceMotion) {
+        _carouselTimer.forward(from: 0);
+      }
+    });
   }
 
   @override
@@ -122,18 +140,51 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
     final reduce = MediaQuery.of(context).disableAnimations;
     if (reduce != _reduceMotion) {
       _reduceMotion = reduce;
-      // README "접근성 — prefers-reduced-motion이면 회전/꽃잎/등장 모션을
-      // 끄고 바로 최종 상태".
       if (reduce && _didCheckPlayed) {
-        _introController.value = 1.0;
+        _entryController.value = 1.0;
+        _carouselTimer.stop();
       }
     }
   }
 
   @override
   void dispose() {
-    _introController.dispose();
+    _entryController.dispose();
+    _carouselTimer.dispose();
     super.dispose();
+  }
+
+  void _goToSlide(int index, {required bool resetTimer}) {
+    final next = index % kOnboardingSlides.length;
+    setState(() => _slideIndex = next < 0 ? next + kOnboardingSlides.length : next);
+    if (resetTimer && !_reduceMotion && !_isNoticeOpen) {
+      _carouselTimer.forward(from: 0);
+    }
+  }
+
+  void _onSkip() {
+    _goToSlide(kOnboardingSlides.length - 1, resetTimer: true);
+  }
+
+  double _dragDx = 0;
+
+  void _onDragStart(DragStartDetails details) {
+    _dragDx = 0;
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    _dragDx += details.delta.dx;
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    // README "Stage 좌우 스와이프(40px 이상) — 왼쪽 → 다음 장, 오른쪽 →
+    // 이전 장".
+    if (_dragDx.abs() < 40) return;
+    if (_dragDx < 0) {
+      _goToSlide(_slideIndex + 1, resetTimer: true);
+    } else {
+      _goToSlide(_slideIndex - 1, resetTimer: true);
+    }
   }
 
   Future<void> _startAsGuest() async {
@@ -155,7 +206,16 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
   }
 
   void _openNoticeSheet() {
-    showOnboardingNoticeSheet(context);
+    setState(() => _isNoticeOpen = true);
+    // README "바텀시트가 열린 동안에는 자동 전환을 멈추는 것을 권장".
+    _carouselTimer.stop();
+    showOnboardingNoticeSheet(context).whenComplete(() {
+      if (!mounted) return;
+      setState(() => _isNoticeOpen = false);
+      if (!_reduceMotion) {
+        _carouselTimer.forward(from: 0);
+      }
+    });
   }
 
   @override
@@ -165,8 +225,8 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
 
     return Scaffold(
       body: DecoratedBox(
-        // [배경 변경 금지] README "배경 그라데이션은 기존 그대로 유지" —
-        // v1부터 쓰던 3단 그라디언트를 그대로 재사용한다.
+        // [배경 변경 금지] README "배경색은 지금과 똑같이 유지" — 기존
+        // 3단 그라디언트를 그대로 재사용한다.
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -181,28 +241,32 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
         ),
         child: Stack(
           children: [
-            // 라디얼 그라디언트 2겹(좌상단 크리스탈 / 우하단 glow) — 배경
-            // 레이어의 일부이므로 v1 그대로 유지(변경 금지 범위).
             const Positioned.fill(child: _AmbientRadials()),
             Positioned.fill(
-              child: OnboardingStarPetalField(reduceMotion: showReduced),
+              child: OnboardingStarDustField(reduceMotion: showReduced),
             ),
             SafeArea(
               child: AnimatedBuilder(
-                animation: _introController,
+                animation: Listenable.merge([_entryController, _carouselTimer]),
                 builder: (context, _) {
                   final elapsed = showReduced
-                      ? _OnboardingTiming.totalDuration
-                      : _introController.value *
-                            _OnboardingTiming.totalDuration;
+                      ? _EntryTiming.total
+                      : _entryController.value * _EntryTiming.total;
                   return _OnboardingContent(
                     elapsedSeconds: elapsed,
                     reduceMotion: showReduced,
+                    slideIndex: _slideIndex,
+                    carouselProgress: _carouselTimer.value,
                     showGuestOption: config.showGuestHint,
+                    onSkip: _onSkip,
+                    onDragStart: _onDragStart,
+                    onDragUpdate: _onDragUpdate,
+                    onDragEnd: _onDragEnd,
+                    onDotTap: (i) => _goToSlide(i, resetTimer: true),
                     onSignup: _goSignup,
                     onLogin: _goLogin,
-                    onDisclaimer: _openNoticeSheet,
                     onStartAsGuest: _startAsGuest,
+                    onDisclaimer: _openNoticeSheet,
                   );
                 },
               ),
@@ -214,7 +278,7 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
   }
 }
 
-/// 배경 라디얼 그라디언트 2겹(`.screen` background 2~3번째 레이어, 변경 금지).
+/// 배경 라디얼 그라디언트 2겹(변경 금지 범위, 기존 그대로 유지).
 class _AmbientRadials extends StatelessWidget {
   const _AmbientRadials();
 
@@ -249,129 +313,122 @@ class _AmbientRadials extends StatelessWidget {
   }
 }
 
-/// Meta row + Hero + Copy + Actions 전체 컬럼. README "상단 영역은 top
-/// 기준, 하단 액션은 bottom 기준으로 고정하고, 히어로 높이는 남는 공간에
-/// 맞춰 줄이는 방식을 권장"을 Column + Expanded 조합으로 구현한다(390×844
-/// 레퍼런스의 절대좌표를 그대로 쓰는 대신, 실제 기기 높이에 맞춰 Hero
-/// 영역만 유연하게 줄어드는 방식).
-///
-/// [실제 OS 크롬과의 분리] README 레이아웃 표의 "Status bar"(top 0 h54)와
-/// "Home indicator"(bottom 9)는 HTML 프로토타입이 iPhone 디바이스 베젤을
-/// 보여주기 위해 그린 가짜 UI이며, 실제 Flutter 앱은 진짜 OS 상태표시줄/
-/// 홈 인디케이터를 이미 가지고 있어 중복 렌더링하지 않는다(v1부터 이어온
-/// 동일 결정 — SafeArea로 실제 시스템 UI 영역만 피한다).
+/// TopBar + Stage(Orb+캐러셀) + Actions 전체 컬럼. README 레이아웃: "세로
+/// flex: TopBar(28px) → Stage(flex:1, 가운데 정렬) → Actions(하단)".
 class _OnboardingContent extends StatelessWidget {
   const _OnboardingContent({
     required this.elapsedSeconds,
     required this.reduceMotion,
+    required this.slideIndex,
+    required this.carouselProgress,
     required this.showGuestOption,
+    required this.onSkip,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    required this.onDotTap,
     required this.onSignup,
     required this.onLogin,
-    required this.onDisclaimer,
     required this.onStartAsGuest,
+    required this.onDisclaimer,
   });
 
   final double elapsedSeconds;
   final bool reduceMotion;
+  final int slideIndex;
+  final double carouselProgress;
   final bool showGuestOption;
+  final VoidCallback onSkip;
+  final GestureDragStartCallback onDragStart;
+  final GestureDragUpdateCallback onDragUpdate;
+  final GestureDragEndCallback onDragEnd;
+  final ValueChanged<int> onDotTap;
   final VoidCallback onSignup;
   final VoidCallback onLogin;
-  final VoidCallback onDisclaimer;
   final VoidCallback onStartAsGuest;
+  final VoidCallback onDisclaimer;
 
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
-    final isCompact = height <= 720; // v1과 동일한 반응형 기준 유지.
-    final titleFontSize = isCompact ? 24.0 : 28.0;
-    final heroMaxHeight = isCompact ? 360.0 : 430.0;
+    final isCompact = height <= 700; // README "@media (max-height:700px)".
+
+    // README "width: min(72vw, 290px, 40dvh)"(700px 이하 56vw/210px/32dvh).
+    final width = MediaQuery.of(context).size.width;
+    final orbSizeCandidates = isCompact
+        ? [width * 0.56, 210.0, height * 0.32]
+        : [width * 0.72, 290.0, height * 0.40];
+    final orbSize = orbSizeCandidates.reduce((a, b) => a < b ? a : b);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       child: Column(
         children: [
-          // Meta row — "神通萬通 · SINTONG" / "ENTRY · 01", fade 0→1 2.4s.
-          _MetaFade(elapsedSeconds: elapsedSeconds, reduceMotion: reduceMotion),
-          const SizedBox(height: 16),
-          // Hero — 2겹 Sigil + Arch 프레임. 남는 공간에 맞춰 축소.
-          Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: heroMaxHeight),
-              child: OnboardingHeroFrame(
-                heroAsset: 'assets/images/intro/hero-fullbody.png',
-                elapsedSeconds: elapsedSeconds,
-                reduceMotion: reduceMotion,
-              ),
+          SizedBox(
+            height: 28,
+            child: _FadeIn(
+              elapsedSeconds: elapsedSeconds,
+              startSeconds: _EntryTiming.topBarStart,
+              durationSeconds: _EntryTiming.topBarDuration,
+              child: _TopBar(onSkip: onSkip),
             ),
           ),
-          SizedBox(height: isCompact ? 14 : 20),
-          // Copy — Eyebrow / Title / Sub.
-          _MetaRiseIn(
-            elapsedSeconds: elapsedSeconds,
-            startSeconds: _OnboardingTiming.eyebrowStart,
-            child: const _EyebrowRow(),
-          ),
-          const SizedBox(height: 12),
-          _MetaRiseIn(
-            elapsedSeconds: elapsedSeconds,
-            startSeconds: _OnboardingTiming.titleStart,
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                // 온보딩 v2.html h1: 900 28px/1.3, tracking -.025em,
-                // text-shadow 0 2px 24px rgba(20,14,40,.8).
-                style: IntroTextStyles.title(fontSize: titleFontSize).copyWith(
-                  height: 1.3,
-                  shadows: const [
-                    Shadow(
-                      color: Color(0xCC140E28),
-                      offset: Offset(0, 2),
-                      blurRadius: 24,
-                    ),
-                  ],
-                ),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragStart: onDragStart,
+              onHorizontalDragUpdate: onDragUpdate,
+              onHorizontalDragEnd: onDragEnd,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const TextSpan(text: '이제, '),
-                  const TextSpan(
-                    text: '당신의 이야기',
-                    style: TextStyle(
-                      color: IntroPalette.primary,
-                      shadows: [
-                        Shadow(color: IntroPalette.glowShadow, blurRadius: 22),
-                      ],
+                  _FadeIn(
+                    elapsedSeconds: elapsedSeconds,
+                    startSeconds: _EntryTiming.orbStart,
+                    durationSeconds: _EntryTiming.orbDuration,
+                    useScaleBlur: true,
+                    child: OnboardingOrb(
+                      size: orbSize,
+                      glyphIndex: slideIndex,
+                      reduceMotion: reduceMotion,
                     ),
                   ),
-                  const TextSpan(text: '를\n펼쳐볼까요'),
+                  SizedBox(height: isCompact ? 14 : 28),
+                  _RiseFadeIn(
+                    elapsedSeconds: elapsedSeconds,
+                    startSeconds: _EntryTiming.copyStart,
+                    durationSeconds: _EntryTiming.copyDuration,
+                    child: OnboardingCopyCarousel(
+                      index: slideIndex,
+                      isCompact: isCompact,
+                    ),
+                  ),
+                  SizedBox(height: isCompact ? 14 : 22),
+                  OnboardingDots(
+                    count: kOnboardingSlides.length,
+                    activeIndex: slideIndex,
+                    activeProgress: carouselProgress,
+                    onTapDot: onDotTap,
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          _MetaRiseIn(
-            elapsedSeconds: elapsedSeconds,
-            startSeconds: _OnboardingTiming.subStart,
-            child: Text(
-              '달빛 아래 조용히 기다리고 있었어요',
-              textAlign: TextAlign.center,
-              // 온보딩 v2.html .sub: 400 14px/1.6, rgba(220,210,245,.62).
-              style: IntroTextStyles.sub(
-                color: const Color(0x9EDCD2F5),
-              ).copyWith(height: 1.6),
-            ),
-          ),
-          const Spacer(),
-          // Actions — Primary + Ghost 2열(or 단독) + 안내 링크.
-          _MetaRiseIn(
-            elapsedSeconds: elapsedSeconds,
-            startSeconds: _OnboardingTiming.actionsStart,
-            child: _ActionsBlock(
-              reduceMotion: reduceMotion,
+          Padding(
+            padding: EdgeInsets.only(top: isCompact ? 12 : 18),
+            child: _RiseFadeIn(
               elapsedSeconds: elapsedSeconds,
-              showGuestOption: showGuestOption,
-              onSignup: onSignup,
-              onLogin: onLogin,
-              onDisclaimer: onDisclaimer,
-              onStartAsGuest: onStartAsGuest,
+              startSeconds: _EntryTiming.actionsStart,
+              durationSeconds: _EntryTiming.actionsDuration,
+              child: _ActionsBlock(
+                isCompact: isCompact,
+                reduceMotion: reduceMotion,
+                showGuestOption: showGuestOption,
+                onSignup: onSignup,
+                onLogin: onLogin,
+                onStartAsGuest: onStartAsGuest,
+                onDisclaimer: onDisclaimer,
+              ),
             ),
           ),
         ],
@@ -380,156 +437,190 @@ class _OnboardingContent extends StatelessWidget {
   }
 }
 
-/// `.fade` — 순수 opacity 0→1 애니메이션(translateY/blur 없음). Meta row와
-/// Sigil 2겹이 공유하는 등장 효과(README 등장 모션 표 1행).
-class _MetaFade extends StatelessWidget {
-  const _MetaFade({required this.elapsedSeconds, required this.reduceMotion});
+/// `.fade` — 순수 opacity 전환(진입 시퀀스 1~2행: TopBar/Orb).
+class _FadeIn extends StatelessWidget {
+  const _FadeIn({
+    required this.elapsedSeconds,
+    required this.startSeconds,
+    required this.durationSeconds,
+    required this.child,
+    this.useScaleBlur = false,
+  });
 
   final double elapsedSeconds;
-  final bool reduceMotion;
+  final double startSeconds;
+  final double durationSeconds;
+  final Widget child;
+
+  /// true면 Orb 등장처럼 scale .9→1 + blur 8→0도 함께 적용한다.
+  final bool useScaleBlur;
 
   @override
   Widget build(BuildContext context) {
-    final p = reduceMotion
-        ? 1.0
-        : (elapsedSeconds / _OnboardingTiming.metaFadeDuration).clamp(0.0, 1.0);
-    final eased = Curves.easeOut.transform(p);
-    return Opacity(opacity: eased, child: const _MetaRow());
+    final p = ((elapsedSeconds - startSeconds) / durationSeconds).clamp(
+      0.0,
+      1.0,
+    );
+    final eased = const Cubic(0.2, 0.7, 0.2, 1).transform(p);
+    Widget result = Opacity(opacity: eased, child: child);
+    if (useScaleBlur) {
+      result = Transform.scale(scale: 0.9 + 0.1 * eased, child: result);
+    }
+    return result;
   }
 }
 
-/// `.rise`(v2 버전) — `@keyframes rise{from{opacity:0;translateY(14px)}
-/// to{opacity:1;transform:none}}`(v1과 달리 blur 단계가 없다).
-class _MetaRiseIn extends StatelessWidget {
-  const _MetaRiseIn({
+/// `.copy-wrap`/`.slide` 등장 — opacity + translateY(README "카피 + 점 |
+/// opacity 0→1, translateY 12→0").
+class _RiseFadeIn extends StatelessWidget {
+  const _RiseFadeIn({
     required this.elapsedSeconds,
     required this.startSeconds,
+    required this.durationSeconds,
     required this.child,
   });
 
   final double elapsedSeconds;
   final double startSeconds;
+  final double durationSeconds;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final p = ((elapsedSeconds - startSeconds) / _OnboardingTiming.riseDuration)
-        .clamp(0.0, 1.0);
-    final eased = Curves.easeOutCubic.transform(p);
+    final p = ((elapsedSeconds - startSeconds) / durationSeconds).clamp(
+      0.0,
+      1.0,
+    );
+    final eased = const Cubic(0.2, 0.7, 0.2, 1).transform(p);
     return Opacity(
       opacity: eased,
       child: Transform.translate(
-        offset: Offset(0, 14 * (1 - eased)),
+        offset: Offset(0, 12 * (1 - eased)),
         child: child,
       ),
     );
   }
 }
 
-/// Meta row — 좌: `神通萬通 · SINTONG`(가운데 점만 glow 색), 우: `ENTRY · 01`.
-class _MetaRow extends StatelessWidget {
-  const _MetaRow();
+/// TopBar — 좌: 브랜드 마크+「신통방통」+「SINTONG」, 우: 「건너뛰기」.
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.onSkip});
 
-  static TextStyle get _style => const TextStyle(
-    // [폰트 통일 버그수정] pubspec.yaml 등록명은 공백 없는 'IBMPlexMono' —
-    // 공백 포함 'IBM Plex Mono'는 매칭되지 않아 시스템 기본 폰트로
-    // 깨지고 있었다.
-    fontFamily: 'IBMPlexMono',
-    fontSize: 9.5,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 9.5 * 0.26,
-    color: Color(0x9EDCD2F5), // rgba(220,210,245,.62).
-  );
+  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        RichText(
-          text: TextSpan(
-            style: _style,
-            children: const [
-              TextSpan(text: '神通萬通 '),
-              TextSpan(
-                text: '·',
-                style: TextStyle(color: IntroPalette.primary),
+        Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                gradient: const LinearGradient(
+                  begin: Alignment(-0.6, -1),
+                  end: Alignment(0.6, 1),
+                  colors: [Color(0xFFF3DCFB), IntroPalette.primary],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: IntroPalette.primary.withValues(alpha: 0.35),
+                    blurRadius: 12,
+                  ),
+                ],
               ),
-              TextSpan(text: ' SINTONG'),
-            ],
+              child: Text(
+                '神',
+                style: GoogleFonts.notoSerifKr(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: IntroPalette.introInk,
+                  height: 1.0,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '신통방통',
+              style: GoogleFonts.notoSerifKr(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 13 * 0.02,
+                color: IntroPalette.textPrimary,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Text(
+              'SINTONG',
+              style: GoogleFonts.ibmPlexMono(
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 9 * 0.3,
+                color: IntroPalette.introFaint,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+        GestureDetector(
+          onTap: onSkip,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 0, 8),
+            child: Text(
+              '건너뛰기',
+              style: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: IntroPalette.textSecondary,
+              ),
+            ),
           ),
         ),
-        Text('ENTRY · 01', style: _style),
       ],
     );
   }
 }
 
-/// Eyebrow — 양옆 22×1px 실선 + "READY · TO · BEGIN"(v2: 그라디언트
-/// 대신 단색 `var(--line)` 라인으로 단순화).
-class _EyebrowRow extends StatelessWidget {
-  const _EyebrowRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _eyebrowLine(),
-        const SizedBox(width: 10),
-        Text(
-          'READY · TO · BEGIN',
-          style: IntroTextStyles.eyebrow().copyWith(
-            fontSize: 9.5,
-            letterSpacing: 9.5 * 0.4,
-          ),
-        ),
-        const SizedBox(width: 10),
-        _eyebrowLine(),
-      ],
-    );
-  }
-
-  Widget _eyebrowLine() {
-    return Container(width: 22, height: 1, color: IntroPalette.cardBorder);
-  }
-}
-
-/// Actions 블록 — Primary + (Ghost 2열 또는 단독) + 안내 링크.
+/// Actions — Primary + Ghost 2열 + 안내 링크.
 class _ActionsBlock extends StatelessWidget {
   const _ActionsBlock({
+    required this.isCompact,
     required this.reduceMotion,
-    required this.elapsedSeconds,
     required this.showGuestOption,
     required this.onSignup,
     required this.onLogin,
-    required this.onDisclaimer,
     required this.onStartAsGuest,
+    required this.onDisclaimer,
   });
 
+  final bool isCompact;
   final bool reduceMotion;
-  final double elapsedSeconds;
   final bool showGuestOption;
   final VoidCallback onSignup;
   final VoidCallback onLogin;
-  final VoidCallback onDisclaimer;
   final VoidCallback onStartAsGuest;
+  final VoidCallback onDisclaimer;
 
   @override
   Widget build(BuildContext context) {
-    // README "버튼은 1.6s부터 탭할 수 있어야 해요" — rise가 시작되는
-    // 시점부터 탭 가능하게 묶는다(그 이전엔 opacity 0이라 사실상 탭 불가).
-    final enabled = elapsedSeconds >= _OnboardingTiming.actionsStart;
+    final primaryHeight = isCompact ? 50.0 : 56.0;
+    final ghostHeight = isCompact ? 44.0 : 50.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        OnboardingPrimaryButton(
-          label: '시작하기',
+        OnboardingMoonPrimaryButton(
+          label: '내 이야기 시작하기',
           icon: '✧',
-          trailingIcon: '→',
+          height: primaryHeight,
           reduceMotion: reduceMotion,
-          enabled: enabled,
           onTap: onSignup,
         ),
         const SizedBox(height: 10),
@@ -537,59 +628,33 @@ class _ActionsBlock extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OnboardingGhostButton(
-                  label: '이미 계정이 있어요',
+                child: OnboardingMoonGhostButton(
+                  label: '로그인',
+                  leadingIcon: '☾',
+                  height: ghostHeight,
                   onTap: onLogin,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: OnboardingGhostButton(
-                  label: '둘러보기',
-                  icon: '☾',
+                child: OnboardingMoonGhostButton(
+                  label: '먼저 둘러보기',
+                  trailingIcon: '→',
+                  height: ghostHeight,
                   onTap: onStartAsGuest,
                 ),
               ),
             ],
           )
         else
-          OnboardingGhostButton(
-            label: '이미 계정이 있어요',
-            icon: '☾',
-            height: 46,
+          OnboardingMoonGhostButton(
+            label: '로그인',
+            leadingIcon: '☾',
+            height: ghostHeight,
             onTap: onLogin,
           ),
-        const SizedBox(height: 6),
-        TextButton(
-          onPressed: onDisclaimer,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-                color: Color(0x73DCD2F5), // rgba(220,210,245,.45).
-              ),
-              children: [
-                const TextSpan(text: 'ⓘ 이 앱은 '),
-                TextSpan(
-                  text: '재미·참고용 콘텐츠',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                    decorationStyle: TextDecorationStyle.dashed,
-                    decorationColor: const Color(0x59DCD2F5),
-                  ),
-                ),
-                const TextSpan(text: '예요'),
-              ],
-            ),
-          ),
-        ),
+        const SizedBox(height: 4),
+        OnboardingNoticeLink(onTap: onDisclaimer),
       ],
     );
   }
