@@ -318,10 +318,22 @@ class _ResultBody extends StatelessWidget {
     // 있으면 선택된 주제 라벨만 보여준다(레거시 majorId=null은 기존처럼
     // "8개 분야"로 표시).
     final majorId = result['majorId'] as String?;
-    final freeSectionTitle = majorId != null
+    // [2026-11 궁합 세부주제 표시 버그 수정 — 대표 신고 "성격/대화/감정
+    // 궁합을 따로 다 봤는데 다 똑같다" / 스크린샷 실증("썸 궁합"을
+    // 고르고도 항상 "궁합 결과예요"로만 표시됨)] 사용자가 고른 세부
+    // 주제(subName, 예: "썸 궁합")가 있으면 타이틀/섹션명/잠금해제 안내
+    // 문구 모두에 그대로 반영한다(서버 변경 없이 Flutter만으로 가능).
+    final subName = result['subName'] as String?;
+    final freeSectionTitle = subName != null
+        ? '$subName 등급'
+        : majorId != null
         ? '${ghMajorById(majorId).shortName} 궁합 등급'
         : '8개 분야 궁합 등급';
-    final lockedReportDesc = majorId != null
+    final lockedReportDesc = subName != null
+        ? '$subName 분야의 관계 특징 · 잘 맞는 부분 · 갈등 가능성 · '
+              '대화 방식 · 성장 가능성 · 주의할 점 · 개선 방향까지, 실제 사주\n'
+              '풀이를 바탕으로 한 7단계 전체 보고서를 확인할 수 있어요.'
+        : majorId != null
         ? '${ghMajorById(majorId).shortName} 분야의 관계 특징 · 잘 맞는 부분 · '
               '갈등 가능성 · 관계 개선 방향까지, 실제 사주 풀이를 바탕으로 한\n'
               '전체 보고서를 확인할 수 있어요.'
@@ -343,7 +355,9 @@ class _ResultBody extends StatelessWidget {
         const GHSteps(step: 4, labels: ['분야', '나', '상대', '분석']),
         GHTitle(
           mono: 'STEP 04 · RESULT',
-          title: '$ownerName님과 $guestName님의\n궁합 결과예요',
+          title: subName != null
+              ? '$ownerName님과 $guestName님의\n$subName 결과예요'
+              : '$ownerName님과 $guestName님의\n궁합 결과예요',
           center: true,
         ),
         Padding(
@@ -580,6 +594,15 @@ class _DetailCard extends StatelessWidget {
     final relationshipFeature = detail!['relationshipFeature'] as String?;
     final strength = detail!['strength'] as String?;
     final conflictRisk = detail!['conflictRisk'] as String?;
+    // [2026-11 유료 보고서 7단계 확대 지시 — "유료이니 분석을 더해서 4단계
+    // 밖에 안되니 7,8단계 만들어서 진행 충분히 결과를 만들어줘야지"]
+    // 신규 3필드(대화 방식/성장 가능성/주의할 점). 레거시(majorId=null)
+    // 결과는 서버 응답에 이 3필드가 아예 없으므로(undefined → JSON에서
+    // 생략) null로 들어와 해당 섹션이 자연스럽게 숨겨진다 — 기존 화면은
+    // 100% 그대로 유지된다.
+    final communicationStyle = detail!['communicationStyle'] as String?;
+    final growthPotential = detail!['growthPotential'] as String?;
+    final cautionPoint = detail!['cautionPoint'] as String?;
     final improvement = detail!['improvement'] as String?;
 
     return GHCard(
@@ -610,6 +633,12 @@ class _DetailCard extends StatelessWidget {
             _DetailSection(label: '잘 맞는 부분', body: strength),
           if (conflictRisk != null)
             _DetailSection(label: '갈등 가능성', body: conflictRisk),
+          if (communicationStyle != null)
+            _DetailSection(label: '대화와 교감의 방식', body: communicationStyle),
+          if (growthPotential != null)
+            _DetailSection(label: '관계가 깊어지는 계기', body: growthPotential),
+          if (cautionPoint != null)
+            _DetailSection(label: '조심해야 할 순간', body: cautionPoint),
           if (improvement != null)
             _DetailSection(label: '관계 개선 방향', body: improvement, last: true),
         ],
