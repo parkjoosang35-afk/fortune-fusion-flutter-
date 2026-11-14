@@ -202,10 +202,20 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
                 // 궤도 대신 재시도 안내를 보여준다(스피너는 쓰지 않음 —
                 // isLoadingMap 상태는 궤도+나만 그려진 빈 [DestinyMap]으로
                 // 자연스럽게 표현된다).
+                //
+                // [버그 수정 — 로그인 직후/비로그인 "별을 불러오지 못했어요"
+                // 오표시] UNAUTHORIZED(로그인 필요)는 "네트워크/서버 오류"가
+                // 아니라 "아직 로그인하지 않았거나 토큰이 아직 반영되지 않은
+                // 정상적인 상태"다. MAP_HOME_SPEC.md §9는 이 경우에도 지도를
+                // 비워 두지 않고 "8개 빈 자리 별"로 먼저 채우도록 명시한다 —
+                // 즉 UNAUTHORIZED는 아래 else 분기(DestinyMap, 빈 자리 포함)로
+                // 흘러가야 하며, 진짜 네트워크/서버 오류일 때만 재시도 UI를
+                // 보여준다.
                 if (_requestedMap &&
                     !provider.isLoadingMap &&
                     provider.mapLoaded &&
                     provider.error != null &&
+                    provider.errorCode != 'UNAUTHORIZED' &&
                     provider.mapPeople.isEmpty)
                   Center(
                     child: Column(
@@ -282,10 +292,15 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
           const SizedBox(height: 14),
 
           // primary CTA
-          GHButton(
-            label: provider.mapPeople.isEmpty ? '✦ 첫 궁합 시작하기' : '✦ 새 궁합 시작하기',
-            size: GHButtonSizeT.xl,
-            onPressed: () => _goMajor(context, method: 'direct'),
+          // [MAP_HOME_SPEC.md §3 「CTA 빛 스침」] 3.6s, 2.4s 지연 반복 —
+          // `_GhShineSweep`으로 버튼 위에 대각선 하이라이트가 주기적으로
+          // 스치는 연출을 추가한다(원본 `ghm-shine` keyframe 포팅).
+          _GhShineSweep(
+            child: GHButton(
+              label: provider.mapPeople.isEmpty ? '✦ 첫 궁합 시작하기' : '✦ 새 궁합 시작하기',
+              size: GHButtonSizeT.xl,
+              onPressed: () => _goMajor(context, method: 'direct'),
+            ),
           ),
           const SizedBox(height: 8),
           GHButton(
@@ -343,6 +358,88 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GunghapMajorScreen(method: 'direct', initialMajorId: majorId, skipToSub: true),
+      ),
+    );
+  }
+}
+
+/// [MAP_HOME_SPEC.md §3 「CTA 빛 스침」] 원본 `@keyframes ghm-shine`
+/// (`transform: translateX(-120%) skewX(-18deg)` → `translateX(260%)`)을
+/// Flutter로 포팅한 대각선 하이라이트 스침 애니메이션. 3.6초 주기로
+/// 반복하며, 시작 시 2.4초 지연을 둔다(원본과 동일).
+class _GhShineSweep extends StatefulWidget {
+  const _GhShineSweep({required this.child});
+  final Widget child;
+
+  @override
+  State<_GhShineSweep> createState() => _GhShineSweepState();
+}
+
+class _GhShineSweepState extends State<_GhShineSweep> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3600),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 2400), () {
+      if (mounted) _controller.repeat();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(GHRadius.button),
+      child: Stack(
+        children: [
+          widget.child,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final w = constraints.maxWidth;
+                      // -30%w ~ +130%w 구간을 선형 이동(원본 -120%~260%의
+                      // 좁은 버전 — 버튼 폭이 좁아도 자연스럽게 보이도록).
+                      final x = -0.3 * w + _controller.value * 1.6 * w;
+                      return Transform.translate(
+                        offset: Offset(x, 0),
+                        child: Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.skewX(-0.3),
+                          child: Container(
+                            width: w * 0.3,
+                            height: constraints.maxHeight,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.white.withValues(alpha: .45),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

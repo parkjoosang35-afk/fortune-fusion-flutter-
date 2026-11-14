@@ -28,24 +28,31 @@ import '../domain/gunghap_map_models.dart';
 import '../theme/gh_tokens.dart';
 
 /// [MAP_HOME_SPEC.md §9] 빈 자리 별(인연 슬롯) 8개 고정 명세.
+///
+/// [2026-11 디자인 원본 각도 반영 — 겹침 버그 수정] 기존에는 슬롯 id를
+/// 해시해 각도를 구했는데, 해시값이 서로 가까운 슬롯끼리 지도 위에서
+/// 겹쳐 보이는 문제가 있었다(사용자 스크린샷 실증 — "엄마"/"연인"
+/// 근접). 원본 `gh-home-map2.jsx`의 `GH_SLOTS[].a` 고정값을 그대로
+/// 가져와 지도 전체에 고르게 분산시킨다.
 class GhSlot {
-  const GhSlot(this.id, this.label, this.majorId, this.recommend, this.virtualScore);
+  const GhSlot(this.id, this.label, this.majorId, this.recommend, this.virtualScore, this.angleDeg);
   final String id;
   final String label;
   final String majorId;
   final String recommend;
   final int virtualScore;
+  final double angleDeg;
 }
 
 const List<GhSlot> ghSlots = [
-  GhSlot('spouse', '배우자', 'marriage', '부부 · 결혼 · 생활', 92),
-  GhSlot('mom', '엄마', 'family', '어머니·자녀 · 가족 생활', 88),
-  GhSlot('lover', '연인', 'love', '연애 · 썸 · 애정표현', 80),
-  GhSlot('bestfriend', '절친', 'friend', '절친 · 여행 · 취미', 76),
-  GhSlot('dad', '아빠', 'family', '아버지·자녀', 70),
-  GhSlot('colleague', '동료', 'business', '직장 동료 · 업무', 64),
-  GhSlot('sibling', '형제·자매', 'family', '형제·자매', 58),
-  GhSlot('crush', '썸', 'love', '썸 · 짝사랑', 52),
+  GhSlot('lover', '연인', 'love', '연애 · 썸 · 애정표현', 80, 300),
+  GhSlot('mom', '엄마', 'family', '어머니·자녀 · 가족 생활', 88, 210),
+  GhSlot('bestfriend', '절친', 'friend', '절친 · 여행 · 취미', 76, 120),
+  GhSlot('colleague', '동료', 'business', '직장 동료 · 업무', 64, 30),
+  GhSlot('spouse', '배우자', 'marriage', '부부 · 결혼 · 생활', 92, 345),
+  GhSlot('dad', '아빠', 'family', '아버지·자녀', 70, 165),
+  GhSlot('sibling', '형제·자매', 'family', '형제·자매', 58, 75),
+  GhSlot('crush', '썸', 'love', '썸 · 짝사랑', 52, 255),
 ];
 
 Color _ghElementColor(String element) =>
@@ -123,9 +130,9 @@ class _DestinyMapState extends State<DestinyMap> with TickerProviderStateMixin {
   }
 
   Offset _slotPos(GhSlot s, int idx, double k) {
-    // 슬롯은 공전하지 않는다 — id 해시 기반 고정 각도만 사용.
-    final hash = s.id.codeUnits.fold<int>(0, (acc, c) => (acc * 31 + c) & 0x7fffffff);
-    final a = (hash % 360) * pi / 180;
+    // 슬롯은 공전하지 않는다 — 디자인 원본 고정 각도(`GhSlot.angleDeg`)를
+    // 그대로 사용해 지도 전체에 고르게 분산시킨다.
+    final a = s.angleDeg * pi / 180;
     final r = ghScoreToRadius(s.virtualScore);
     return Offset(180 + cos(a) * r, 180 + sin(a) * r) * k;
   }
@@ -173,6 +180,9 @@ class _DestinyMapState extends State<DestinyMap> with TickerProviderStateMixin {
                       (_clock.lastElapsedDuration?.inMilliseconds ?? 0) /
                       1000 /
                       (260 * _speed),
+                  elapsedSeconds:
+                      (_clock.lastElapsedDuration?.inMilliseconds ?? 0) / 1000,
+                  vivid: widget.vivid,
                 ),
               ),
             ),
@@ -183,6 +193,45 @@ class _DestinyMapState extends State<DestinyMap> with TickerProviderStateMixin {
   }
 }
 
+/// [MAP_HOME_SPEC.md §2 「배경」 — 성운 + 별가루 70개(트윙클)]
+/// 원본 `gh-ui.jsx`의 `ghField(n, w, h, seed)` 결정적 의사난수 생성기를
+/// 그대로 포팅했다 — 매 리빌드마다 같은 좌표가 나오도록 선형합동
+/// 생성기(LCG)를 동일하게 사용한다.
+class _GhDustSpec {
+  const _GhDustSpec(this.x, this.y, this.r, this.o, this.twinkle);
+  final double x, y, r, o, twinkle;
+}
+
+List<_GhDustSpec> _ghField(int n, double w, double h, int seed) {
+  var s = seed;
+  double rnd() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  }
+
+  return List.generate(n, (_) {
+    final x = rnd() * w;
+    final y = rnd() * h;
+    final r = 0.4 + rnd() * 0.9;
+    final o = 0.25 + rnd() * 0.6;
+    final t = 2 + rnd() * 4;
+    return _GhDustSpec(x, y, r, o, t);
+  });
+}
+
+/// [MAP_HOME_SPEC.md §2 「배경」 — vivid: 유성 3개] 원본 `SkyFX`의 유성
+/// 좌표/지연/지속시간 고정값을 그대로 포팅.
+class _GhShootingSpec {
+  const _GhShootingSpec(this.topFrac, this.leftFrac, this.delay, this.dur);
+  final double topFrac, leftFrac, delay, dur;
+}
+
+const List<_GhShootingSpec> _ghShootingStars = [
+  _GhShootingSpec(.06, .88, 1.2, 7),
+  _GhShootingSpec(.22, 1.04, 4.6, 9),
+  _GhShootingSpec(.02, .60, 7.8, 11),
+];
+
 class _DestinyPainter extends CustomPainter {
   _DestinyPainter({
     required this.people,
@@ -192,22 +241,90 @@ class _DestinyPainter extends CustomPainter {
     required this.personPosOf,
     required this.slotPosOf,
     required this.ringTurn,
+    required this.elapsedSeconds,
+    required this.vivid,
     this.filter,
     this.selectedPersonKey,
   });
 
   final List<MapPerson> people;
   final List<GhSlot> slots;
-  final double k, intro, ringTurn;
+  final double k, intro, ringTurn, elapsedSeconds;
+  final bool vivid;
   final Offset Function(MapPerson) personPosOf;
   final Offset Function(GhSlot, int) slotPosOf;
   final String? filter, selectedPersonKey;
 
   static const _ringScoreCuts = [90, 82, 74, 66, 58, 40];
+  static final List<_GhDustSpec> _dust = _ghField(70, 360, 360, 7);
 
   @override
   void paint(Canvas canvas, Size size) {
     final c = Offset(180, 180) * k;
+
+    // [MAP_HOME_SPEC.md §2] 성운(nebula) — 중심부 바이올렛 글로우.
+    canvas.drawCircle(
+      c,
+      178 * k,
+      Paint()
+        ..shader = ui.Gradient.radial(c, 178 * k, [
+          GHColors.violet.withValues(alpha: .22),
+          GHColors.violet.withValues(alpha: 0),
+        ]),
+    );
+
+    // [MAP_HOME_SPEC.md §2] 별가루 70개 — 트윙클(깜빡임).
+    final dustSpeedScale = vivid ? .7 : 1.0;
+    for (var i = 0; i < _dust.length; i++) {
+      final d = _dust[i];
+      final period = d.twinkle * dustSpeedScale;
+      final phase = (elapsedSeconds / period + i * .11) % 1.0;
+      // ease-in-out 느낌의 사인파로 opacity .2~1 사이를 오간다.
+      final twinkle = 0.2 + 0.8 * (0.5 - 0.5 * cos(phase * 2 * pi));
+      canvas.drawCircle(
+        Offset(d.x, d.y) * k,
+        d.r * .9 * k,
+        Paint()..color = GHColors.ivory.withValues(alpha: (d.o * twinkle).clamp(0.0, 1.0)),
+      );
+    }
+
+    // [MAP_HOME_SPEC.md §2] vivid 모드 전용 — 유성 3개(사선으로 흐름).
+    if (vivid) {
+      for (final s in _ghShootingStars) {
+        final cycle = s.dur;
+        final t = ((elapsedSeconds - s.delay) % cycle + cycle) % cycle;
+        final prog = t / cycle;
+        // 0~6%: fade in, 6~22%: 이동하며 fade out, 나머지: 숨김.
+        double opacity;
+        if (prog < 0.06) {
+          opacity = prog / 0.06;
+        } else if (prog < 0.22) {
+          opacity = 1 - (prog - 0.06) / (0.22 - 0.06);
+        } else {
+          opacity = 0;
+        }
+        if (opacity <= 0) continue;
+        final travel = (prog.clamp(0.0, 0.22) / 0.22);
+        final startX = s.leftFrac * size.width;
+        final startY = s.topFrac * size.height;
+        final dx = -260 * k * travel;
+        final dy = 160 * k * travel;
+        final p1 = Offset(startX + dx, startY + dy);
+        final angle = -32 * pi / 180;
+        final p2 = p1 + Offset(cos(angle), sin(angle)) * 90 * k;
+        canvas.drawLine(
+          p1,
+          p2,
+          Paint()
+            ..strokeWidth = 1.4 * k
+            ..strokeCap = StrokeCap.round
+            ..shader = ui.Gradient.linear(p1, p2, [
+              GHColors.ivory.withValues(alpha: .95 * opacity),
+              GHColors.gold.withValues(alpha: .0),
+            ]),
+        );
+      }
+    }
 
     // 바깥 링: 12지지 + 눈금 72개 — 회전.
     canvas.save();
