@@ -661,9 +661,22 @@ class _CoupangClaimButton extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      '오늘의 프리패스 2회 받기',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    // [반응형 전수 점검 · 2026-11-11] 아이콘+라벨 폭이
+                    // textScale 1.3배 이상에서 버튼 가용 폭(약 279px)을
+                    // 넘어 가로 RenderFlex 오버플로(@1.3: 25px, @2.5:
+                    // 91px)를 일으켰다. result_access_gate_sheet.dart의
+                    // _GateOptionButton·coupang_pass_sheet.dart의
+                    // "쿠팡 방문하기"와 동일한 구조적 문제라 동일한
+                    // 해법(Flexible+ellipsis)으로 통일한다.
+                    Flexible(
+                      child: Text(
+                        '오늘의 프리패스 2회 받기',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),

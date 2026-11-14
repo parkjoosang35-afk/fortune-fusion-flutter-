@@ -21,13 +21,28 @@
 //    RenderFlex 오버플로(최대 150px) 발생. `FittedBox(fit: scaleDown)`로
 //    감싸 공간 부족 시에만 비율 유지한 채 축소하도록 수정했다(일반 크기
 //    에서는 기존과 완전히 동일하게 렌더링).
+//
+// [2026-11-11 반응형 전수 점검 — 테스트 인프라 보수]
+// "결과페이지 글씨 확대" 기능(커밋 7ba4753b 등)이 추가되면서
+// `SharedResultScreen`이 내부적으로 `ResultTextScaleOverlay`를 쓰게
+// 됐는데, 그 위젯은 `context.watch<TextScaleProvider>()`로 전역
+// Provider를 읽는다. 실제 앱에서는 app.dart의 최상위 `MultiProvider`가
+// 항상 이 Provider를 제공하지만, 이 테스트는 `MaterialApp`만 단독으로
+// pump해서 Provider 트리가 없어 `ProviderNotFoundException`이 났다 —
+// 이건 화면의 반응형/오버플로 버그가 아니라 "글씨 확대 기능 추가 당시
+// 이 테스트 파일이 함께 갱신되지 않은" 테스트 인프라 누락이다. 실제
+// 앱 동작에는 영향이 없으므로(Provider는 항상 존재) `ChangeNotifierProvider
+// <TextScaleProvider>`로 감싸 실제 앱과 동일한 조건을 맞춰준다.
 import 'dart:convert';
 
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/features/share/presentation/shared_result_screen.dart';
 
 void main() {
@@ -104,6 +119,7 @@ void main() {
     Size size,
     double scale,
   ) async {
+    SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -121,8 +137,11 @@ void main() {
       await tester.pumpWidget(
         MediaQuery(
           data: MediaQueryData(size: size, textScaler: TextScaler.linear(scale)),
-          child: const MaterialApp(
-            home: SharedResultScreen(shareId: 'share_test_001'),
+          child: ChangeNotifierProvider<TextScaleProvider>(
+            create: (_) => TextScaleProvider(),
+            child: const MaterialApp(
+              home: SharedResultScreen(shareId: 'share_test_001'),
+            ),
           ),
         ),
       );

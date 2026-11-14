@@ -460,6 +460,17 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ResultAccessProvider>();
+    // [반응형 전수 점검 · 2026-11-11] 이 시트는 옵션이 최대 4개
+    // (프리패스/복주머니/광고/쿠팡 클레임) + 안내문구까지 포함돼 다른
+    // 시트들보다 세로 길이가 길다. 기존에는 `Column`을 바로
+    // `Padding`/`SafeArea` 아래 두어 시스템 글자배율이 커지면(2.5배) 내용
+    // 높이가 바텀시트 가용 높이(524px)를 272px나 초과해도 흡수할 방법이
+    // 없었다(`RenderFlex#...OVERFLOWING`). 다른 S02/S04 공용 시트들
+    // (fortune_ad_watch_dialog, coupang_pass_sheet)과 동일한 패턴으로
+    // `SingleChildScrollView`를 추가해, 공간이 부족하면 스크롤로
+    // 흡수하도록 한다 — 시트 자체 높이는 `showModalBottomSheet`가
+    // 화면의 최대 92% 정도로 이미 제한하므로 별도 `ConstrainedBox`는
+    // 불필요하다.
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -468,41 +479,43 @@ class _ResultAccessGateSheetState extends State<ResultAccessGateSheet> {
           top: MyPageSpacing.sp3,
           bottom: MyPageSpacing.sp8 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHandle(),
-            const Text(
-              '결과보기',
-              style: TextStyle(
-                fontFamily: MyPageFonts.ui,
-                fontWeight: FontWeight.w800,
-                fontSize: 21,
-                height: 1.3,
-                color: MyPageColors.ink,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: MyPageSpacing.sp2),
-            Text(
-              '${widget.contentTitle} 결과를 아래 3가지 중 하나로 확인할 수 있어요.',
-              style: MyPageTextStyles.body,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: MyPageSpacing.sp5),
-            if (provider.isLoadingQuote)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(
-                  child: CircularProgressIndicator(color: MyPageColors.red),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHandle(),
+              const Text(
+                '결과보기',
+                style: TextStyle(
+                  fontFamily: MyPageFonts.ui,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 21,
+                  height: 1.3,
+                  color: MyPageColors.ink,
                 ),
-              )
-            else if (provider.quote == null)
-              _buildLoadError(provider)
-            else
-              _buildOptions(provider.quote!),
-          ],
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: MyPageSpacing.sp2),
+              Text(
+                '${widget.contentTitle} 결과를 아래 3가지 중 하나로 확인할 수 있어요.',
+                style: MyPageTextStyles.body,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: MyPageSpacing.sp5),
+              if (provider.isLoadingQuote)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: CircularProgressIndicator(color: MyPageColors.red),
+                  ),
+                )
+              else if (provider.quote == null)
+                _buildLoadError(provider)
+              else
+                _buildOptions(provider.quote!),
+            ],
+          ),
         ),
       ),
     );
