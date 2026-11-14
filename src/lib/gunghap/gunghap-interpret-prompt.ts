@@ -40,10 +40,18 @@ export interface GunghapInterpretTopicInfo {
   subName: string | null;
 }
 
+// [2026-11 유료 보고서 7단계 확장 지시] 기존 4요소(관계특징/잘맞는부분/
+// 갈등가능성/개선방향)에 3요소(대화와 교감의 방식/관계가 깊어지는 계기/
+// 조심해야 할 순간)를 추가해 상세 보고서 분량·깊이를 확대한다. 이 타입은
+// `gunghap-sub-narrative.ts`의 `SubNarrativeResult`(결정론적 무료 베이스)와
+// 1:1 대응하며, LLM에게도 동일한 7필드 스키마로 작성을 지시한다.
 export interface GunghapFreeNarrative {
   relationshipFeature: string;
   strength: string;
   conflictRisk: string;
+  communicationStyle: string;
+  growthPotential: string;
+  cautionPoint: string;
   improvement: string;
 }
 
@@ -159,15 +167,19 @@ score, confidence 같은 내부 필드명/코드는 참고만 하고 응답 텍�
 실제 이름을 자연스럽게 섞어 불러 개인화된 느낌을 주세요.
 
 [출력 형식 — 이 JSON 스키마만 그대로 채워서 응답하세요. 다른 설명/마크다운/
-코드펜스 금지]
+코드펜스 금지. 2026-11 분량 확대 지시로 기존 4개에서 7개 항목으로
+늘어났습니다 — 반드시 7개 필드를 모두 채우세요]
 {
   "relationshipFeature": "두 사람의 관계 특징을 FACT에 근거해 구체적으로 설명 (180~320자)",
   "strength": "잘 맞는 부분을 FACT에 근거해 구체적으로 설명 (180~320자)",
   "conflictRisk": "갈등 가능성을 FACT에 근거해 균형 있게 설명 (180~320자)",
+  "communicationStyle": "두 사람이 대화하고 교감하는 방식을 FACT에 근거해 설명 (180~320자)",
+  "growthPotential": "시간이 지날수록 이 관계(이번 주제 한정)가 어떻게 깊어질 수 있는지 설명 (180~320자)",
+  "cautionPoint": "이번 주제와 관련해 특히 조심해야 할 순간이나 시기를 FACT에 근거해 설명 (180~320자)",
   "improvement": "관계를 더 좋게 만들 수 있는 구체적인 개선 방향 제안 (180~320자)"
 }
 각 필드는 180~320자 범위를 지키세요(너무 짧게 끝내지 마세요 — 무료 요약보다
-확실히 더 풍부해야 합니다). 네 필드 모두 서로 다른 내용이어야 하며, 같은
+확실히 더 풍부해야 합니다). 일곱 필드 모두 서로 다른 내용이어야 하며, 같은
 문장을 반복해 분량을 채우지 마세요.
 `.trim();
 

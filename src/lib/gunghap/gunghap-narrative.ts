@@ -59,17 +59,21 @@ const CATEGORY_LABEL: Record<GunghapCategoryId, string> = {
   family: "가족",
 };
 
-function hasConflict(ev: CategoryEvidence): boolean {
+// [2026-11 궁합 세부주제 반영] 아래 세 함수는 세부 카테고리(subName)별
+// 결정론적 서술을 생성하는 `gunghap-sub-narrative.ts`에서도 그대로
+// 재사용한다(§6 "기존 엔진의 검증된 기능을 분석하여 재사용한다" 원칙 —
+// 복붙하지 않고 export해 단일 소스를 유지한다).
+export function hasConflict(ev: CategoryEvidence): boolean {
   return ev.chungCount > 0 || ev.hyungCount > 0 || ev.branchKindCounts.충 > 0 || ev.branchKindCounts.형 > 0;
 }
 
-function hasHarmony(ev: CategoryEvidence): boolean {
+export function hasHarmony(ev: CategoryEvidence): boolean {
   return ev.hapCount > 0 || ev.branchKindCounts.육합 > 0 || ev.branchKindCounts.삼합 > 0;
 }
 
 // ---------------- S1 서술 보조(공통) ----------------
 
-function s1Phrase(ev: CategoryEvidence): string {
+export function s1Phrase(ev: CategoryEvidence): string {
   if (ev.s1Kind === "상생") {
     return ev.s1Direction === "out"
       ? "한쪽의 기운이 다른 쪽을 북돋아 주는 상생의 흐름"

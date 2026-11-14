@@ -16,7 +16,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import type { GunghapFactResult } from "@/lib/gunghap/gunghap-relation-fact";
 import type { GunghapCategoryId } from "@/lib/gunghap/gunghap-category-rules";
+import { gradeCategory } from "@/lib/gunghap/gunghap-category-rules";
 import { filterStoredByMajorId } from "@/lib/gunghap/gunghap-compute-helper";
+import { buildFreeNarrative7 } from "@/lib/gunghap/gunghap-sub-narrative";
 import {
   CORS_HEADERS,
   CORS_HEADERS_WITH_AUTH,
@@ -37,6 +39,18 @@ interface StoredCategoryResult {
   strength: string;
   conflictRisk: string;
   improvement: string;
+}
+
+// [2026-11 유료 보고서 7단계 확대 — unlock/route.ts와 동일한 판별 기준을
+// 이 폴백 분기에서도 재사용한다. 두 파일에 중복 정의되어 있으나, 공용
+// 모듈로 추출할 만큼의 로직은 아니라고 판단해(단순 8개 문자열 리스트)
+// 기존 unlock/route.ts의 패턴을 그대로 따른다.]
+const ALLOWED_CATEGORY_IDS: GunghapCategoryId[] = [
+  "love", "marriage", "intimacy", "persona", "wealth", "business", "friend", "family",
+];
+
+function isKnownCategoryId(majorId: string | null): majorId is GunghapCategoryId {
+  return majorId != null && (ALLOWED_CATEGORY_IDS as string[]).includes(majorId);
 }
 
 export async function GET(
@@ -104,14 +118,52 @@ export async function GET(
         }
       }
       if (!detail) {
-        detail = visibleStored.map((c) => ({
-          categoryId: c.categoryId,
-          grade: c.grade,
-          relationshipFeature: c.relationshipFeature,
-          strength: c.strength,
-          conflictRisk: c.conflictRisk,
-          improvement: c.improvement,
-        }));
+        // [2026-11 궁합 세부주제 반영 — Section 4 폴백 일관성] unlock
+        // 호출 시 캐시가 항상 채워지므로 이 분기는 정상 흐름에서는 거의
+        // 발생하지 않지만(과도기 데이터 안전망), 혹시라도 발생하면
+        // unlock/route.ts와 동일하게 7필드 스키마를 유지해야 한다 —
+        // 여기서는 LLM을 호출하지 않고(재과금/재호출 방지) subName 기반
+        // 결정론적 7필드 템플릿(buildFreeNarrative7)만 사용한다.
+        if (isKnownCategoryId(result.majorId)) {
+          const targetCategoryId = result.majorId as GunghapCategoryId;
+          const targetStored =
+            visibleStored.find((c) => c.categoryId === targetCategoryId) ?? visibleStored[0];
+          const gradeResult = gradeCategory(fact, targetCategoryId);
+          const freeNarrative7 = buildFreeNarrative7(
+            targetCategoryId,
+            result.subName ?? null,
+            gradeResult.evidence,
+            {
+              relationshipFeature: targetStored.relationshipFeature,
+              strength: targetStored.strength,
+              conflictRisk: targetStored.conflictRisk,
+              improvement: targetStored.improvement,
+            },
+          );
+          detail = [
+            {
+              categoryId: targetCategoryId,
+              grade: targetStored.grade,
+              relationshipFeature: freeNarrative7.relationshipFeature,
+              strength: freeNarrative7.strength,
+              conflictRisk: freeNarrative7.conflictRisk,
+              communicationStyle: freeNarrative7.communicationStyle,
+              growthPotential: freeNarrative7.growthPotential,
+              cautionPoint: freeNarrative7.cautionPoint,
+              improvement: freeNarrative7.improvement,
+            },
+          ];
+        } else {
+          // [레거시 — majorId 없음] 기존 동작(8분야 4필드 템플릿) 유지.
+          detail = visibleStored.map((c) => ({
+            categoryId: c.categoryId,
+            grade: c.grade,
+            relationshipFeature: c.relationshipFeature,
+            strength: c.strength,
+            conflictRisk: c.conflictRisk,
+            improvement: c.improvement,
+          }));
+        }
       }
       // [2026-11 추가 검수 지시 — LLM 실패 시 환불 정책] unlock(POST)이 아닌
       // 이 GET으로 재열람할 때도(예: 궁합스토리에서 다시 들어온 경우) "이

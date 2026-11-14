@@ -49,6 +49,9 @@ export interface GunghapInterpretDetail {
   relationshipFeature: string;
   strength: string;
   conflictRisk: string;
+  communicationStyle: string;
+  growthPotential: string;
+  cautionPoint: string;
   improvement: string;
 }
 
@@ -99,20 +102,35 @@ interface NormalizedLlmResult {
   relationshipFeature: string;
   strength: string;
   conflictRisk: string;
+  communicationStyle: string;
+  growthPotential: string;
+  cautionPoint: string;
   improvement: string;
 }
+
+const DETAIL_FIELD_KEYS = [
+  "relationshipFeature",
+  "strength",
+  "conflictRisk",
+  "communicationStyle",
+  "growthPotential",
+  "cautionPoint",
+  "improvement",
+] as const;
 
 function normalizeLlmJson(parsed: unknown): NormalizedLlmResult | null {
   if (typeof parsed !== "object" || parsed === null) return null;
   const p = parsed as Record<string, unknown>;
-  const keys = ["relationshipFeature", "strength", "conflictRisk", "improvement"] as const;
-  for (const k of keys) {
+  for (const k of DETAIL_FIELD_KEYS) {
     if (typeof p[k] !== "string" || (p[k] as string).trim().length === 0) return null;
   }
   return {
     relationshipFeature: (p.relationshipFeature as string).trim(),
     strength: (p.strength as string).trim(),
     conflictRisk: (p.conflictRisk as string).trim(),
+    communicationStyle: (p.communicationStyle as string).trim(),
+    growthPotential: (p.growthPotential as string).trim(),
+    cautionPoint: (p.cautionPoint as string).trim(),
     improvement: (p.improvement as string).trim(),
   };
 }
@@ -124,12 +142,7 @@ function normalizeLlmJson(parsed: unknown): NormalizedLlmResult | null {
  * 자연스러운 문장 생성을 과도하게 제약할 수 있어 "반복 남용"만 차단). */
 function runLightQaCheck(result: NormalizedLlmResult): { ok: boolean; failures: string[] } {
   const failures: string[] = [];
-  const fields: Array<[string, string]> = [
-    ["relationshipFeature", result.relationshipFeature],
-    ["strength", result.strength],
-    ["conflictRisk", result.conflictRisk],
-    ["improvement", result.improvement],
-  ];
+  const fields: Array<[string, string]> = DETAIL_FIELD_KEYS.map((k) => [k, result[k]]);
   for (const [name, text] of fields) {
     if (text.length < FIELD_MIN_LENGTH) {
       failures.push(`${name}: 글자수 부족(${text.length}자, 최소 ${FIELD_MIN_LENGTH}자)`);
@@ -169,18 +182,16 @@ function buildFallbackResult(freeNarrative: GunghapFreeNarrative): NormalizedLlm
     relationshipFeature: freeNarrative.relationshipFeature,
     strength: freeNarrative.strength,
     conflictRisk: freeNarrative.conflictRisk,
+    communicationStyle: freeNarrative.communicationStyle,
+    growthPotential: freeNarrative.growthPotential,
+    cautionPoint: freeNarrative.cautionPoint,
     improvement: freeNarrative.improvement,
   };
 }
 
 function runFallbackQaCheck(result: NormalizedLlmResult): { ok: boolean; failures: string[] } {
   const failures: string[] = [];
-  const fields: Array<[string, string]> = [
-    ["relationshipFeature", result.relationshipFeature],
-    ["strength", result.strength],
-    ["conflictRisk", result.conflictRisk],
-    ["improvement", result.improvement],
-  ];
+  const fields: Array<[string, string]> = DETAIL_FIELD_KEYS.map((k) => [k, result[k]]);
   for (const [name, text] of fields) {
     if (text.trim().length === 0) failures.push(`${name}: 비어 있음`);
     for (const pattern of AI_LANGUAGE_PATTERNS) {

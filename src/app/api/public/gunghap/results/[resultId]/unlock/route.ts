@@ -66,6 +66,7 @@ import type { GunghapCategoryId } from "@/lib/gunghap/gunghap-category-rules";
 import { gradeCategory } from "@/lib/gunghap/gunghap-category-rules";
 import type { GunghapFactResult } from "@/lib/gunghap/gunghap-relation-fact";
 import { categoryLabel } from "@/lib/gunghap/gunghap-narrative";
+import { buildFreeNarrative7 } from "@/lib/gunghap/gunghap-sub-narrative";
 import {
   generateGunghapInterpret,
   GUNGHAP_INTERPRET_MODEL,
@@ -83,6 +84,10 @@ export const dynamic = "force-dynamic";
 
 const GUNGHAP_UNLOCK_AMOUNT = 100;
 
+// [2026-11 유료 보고서 7단계 확대] 기존 4필드(레거시, majorId=null
+// 8개 분야 전체)는 그대로 유지되고, 주제 선택(majorId 있음) 경로만 새
+// 3개 필드(communicationStyle/growthPotential/cautionPoint)가 채워진다 —
+// 선택적 필드로 두어 레거시 데이터(이 3필드 없음)와 타입 호환성을 유지한다.
 interface StoredCategoryResult {
   categoryId: GunghapCategoryId;
   grade: string;
@@ -90,6 +95,9 @@ interface StoredCategoryResult {
   relationshipFeature: string;
   strength: string;
   conflictRisk: string;
+  communicationStyle?: string;
+  growthPotential?: string;
+  cautionPoint?: string;
   improvement: string;
 }
 
@@ -277,6 +285,13 @@ export async function POST(
             relationshipFeature: c.relationshipFeature,
             strength: c.strength,
             conflictRisk: c.conflictRisk,
+            // [2026-11 7단계 확장] 레거시(majorId=null) 결과는 이 3필드가
+            // 없으므로(undefined) 응답에서 자연스럽게 생략된다(JSON.stringify
+            // undefined 필드 생략 동작) — Flutter는 null체크로 해당 섹션을
+            // 그냥 렌더링하지 않으므로 레거시 화면은 그대로 유지된다.
+            communicationStyle: c.communicationStyle,
+            growthPotential: c.growthPotential,
+            cautionPoint: c.cautionPoint,
             improvement: c.improvement,
           })),
         },
@@ -378,6 +393,26 @@ async function generateAndCacheDetail(
   const guestGenderRaw = (result as unknown as { guestGender?: string }).guestGender;
   const guestGender = guestGenderRaw === "male" || guestGenderRaw === "female" ? guestGenderRaw : null;
 
+  // [2026-11 궁합 세부주제 반영 — 대표 신고 "성격/대화/감정 궁합을 따로 다
+  // 봤는데 다 또같다" 버그 수정] LLM에게 넘길 "기준 무료 요약"을
+  // 기존 4필드(major 수준, subName 무시)가 아니라 54개 세부 카테고리
+  // 전용 7단계 서술(gunghap-sub-narrative.ts)로 교체한다 — 같은 majorId
+  // 안에서도 subName마다 서로 다른 근거/초점을 LLM에게 먼저 제공해,
+  // 실제 LLM 출력도 주제별로 달라지게 유도한다(fallback으로 그대로
+  // 반환되어도 이미 subName별로 다른 결정론적 문장이므로 체감 버그가
+  // 사라진다).
+  const freeNarrative7 = buildFreeNarrative7(
+    targetCategoryId,
+    result.subName ?? null,
+    gradeResult.evidence,
+    {
+      relationshipFeature: targetStored.relationshipFeature,
+      strength: targetStored.strength,
+      conflictRisk: targetStored.conflictRisk,
+      improvement: targetStored.improvement,
+    },
+  );
+
   const interpretOutcome = await generateGunghapInterpret({
     topic: {
       categoryId: targetCategoryId,
@@ -386,12 +421,7 @@ async function generateAndCacheDetail(
     },
     evidence: gradeResult.evidence,
     grade: gradeResult.grade,
-    freeNarrative: {
-      relationshipFeature: targetStored.relationshipFeature,
-      strength: targetStored.strength,
-      conflictRisk: targetStored.conflictRisk,
-      improvement: targetStored.improvement,
-    },
+    freeNarrative: freeNarrative7,
     owner: { name: ownerName, gender: ownerGender },
     guest: { name: result.guestName, gender: guestGender },
     relationTypeLabel: fact.base.relationTypeLabel,
@@ -404,6 +434,9 @@ async function generateAndCacheDetail(
     relationshipFeature: interpretOutcome.detail.relationshipFeature,
     strength: interpretOutcome.detail.strength,
     conflictRisk: interpretOutcome.detail.conflictRisk,
+    communicationStyle: interpretOutcome.detail.communicationStyle,
+    growthPotential: interpretOutcome.detail.growthPotential,
+    cautionPoint: interpretOutcome.detail.cautionPoint,
     improvement: interpretOutcome.detail.improvement,
   };
   const llmDetailList = [llmDetailEntry];
