@@ -1924,8 +1924,17 @@ class _PositionDetailSheet extends StatelessWidget {
                             alignment: Alignment.center,
                             // [결과페이지 확대 기능] 이미 커진 카드 이미지를
                             // 한 번 더 탭하면 전체화면 핀치줌 뷰로 열린다.
+                            // heroTag는 null로 둔다: 이 위젯은 이미 바깥의
+                            // `Hero(tag: heroTag)`(위 1898행) 서브트리 안에
+                            // 있으므로, 여기서 또 Hero를 생성하면 Flutter의
+                            // "Hero는 Hero의 자손이 될 수 없다" 제약을 어겨
+                            // 런타임에 크래시한다(태그가 달라도 구조적으로
+                            // 금지됨). null이면 ZoomableContent가 애니메이션
+                            // 없이 바로 전체화면으로 전환하며, 전체화면
+                            // 진입 후에는 전역 GlobalPinchZoomOverlay가
+                            // 핀치 확대를 그대로 제공한다.
                             child: ZoomableContent(
-                              heroTag: '${heroTag}_zoom',
+                              heroTag: null,
                               borderRadius: BorderRadius.circular(
                                 OzTokens.radiusLg,
                               ),

@@ -690,67 +690,94 @@ void main() {
     // 교차검증 기능/엔진 자체는 무수정이며, 다른 4개(관상/손금/궁합/사주)
     // 서브테스트는 전혀 영향 없다.
 
-    testWidgets('[사주] "다른 운세와 비교해보기" 탭 -> 교차검증 화면 도달(최소 미판정 정직 표시 확인)', (
-      tester,
-    ) async {
-      final faceRepo = FaceRepository();
-      final tarotRepo = TarotRepository();
-      final palmRepo = PalmRepository();
-      final compatRepo = CompatibilityRepository();
+    // [버그 아님 — 의도된 UI 개선] 커밋 781cf3f6("정통사주 UI 개선: 로딩 디자인
+    // 리디자인 + 저장/공유 통합 박스")에서 사용자 피드백("글씨가 안보이고 디자인을
+    // 개판으로했어")에 따라 사주 결과화면(story_detail_screen.dart)의 "다른 운세와
+    // 비교해보기" 교차검증 CTA를 의도적으로 제거하고 저장+공유 통합 박스로
+    // 대체했다(해당 커밋 메시지 및 story_detail_screen.dart 613~629행 주석 참조).
+    // Task 5 원 사양은 5개 화면 전부에 CTA를 요구했으나, 이후 사주 화면만 디자인
+    // 개편으로 CTA가 빠졌다 - 되돌릴지(CTA 복원) 여부는 디자인 결정이므로 사용자
+    // 승인 없이 임의로 복원하지 않는다. 이 테스트는 현재 의도된 동작과 충돌하므로
+    // 사용자 결정이 있을 때까지 skip 처리한다(관상/손금/궁합/타로 4개 화면의 CTA는
+    // 정상 유지되어 위 테스트들은 그대로 통과한다).
+    testWidgets(
+      '[사주] "다른 운세와 비교해보기" 탭 -> 교차검증 화면 도달(최소 미판정 정직 표시 확인)',
+      skip: true,
+      (tester) async {
+        final faceRepo = FaceRepository();
+        final tarotRepo = TarotRepository();
+        final palmRepo = PalmRepository();
+        final compatRepo = CompatibilityRepository();
 
-      final authProvider = AuthProvider(AuthRepository());
-      final sajuProvider = SajuRenewalProvider(SajuRenewalApi());
-      final orchestratorProvider = OrchestratorProvider(
-        FortuneOrchestrator(
-          gateway: DefaultDoorEngineGateway(
-            tarotRepository: tarotRepo,
-            faceRepository: faceRepo,
-            palmRepository: palmRepo,
-            compatibilityRepository: compatRepo,
+        final authProvider = AuthProvider(AuthRepository());
+        final sajuProvider = SajuRenewalProvider(SajuRenewalApi());
+        final orchestratorProvider = OrchestratorProvider(
+          FortuneOrchestrator(
+            gateway: DefaultDoorEngineGateway(
+              tarotRepository: tarotRepo,
+              faceRepository: faceRepo,
+              palmRepository: palmRepo,
+              compatibilityRepository: compatRepo,
+            ),
           ),
-        ),
-      );
-
-      http.Response topicsSelectResponse() {
-        final body = {
-          'success': true,
-          'data': {
-            'first_topic': {
-              'topic_id': 'MONEY_001',
-              'scene': 'money',
-              'title': '테스트 이야기 제목',
-              'is_timing': false,
-              'evidence_fact_keys': <String>[],
-            },
-            'candidates': <Map<String, dynamic>>[],
-            'key_facts': <String>['wood', 'fire'],
-            'fact_schema_version': 'v1',
-          },
-        };
-        return http.Response(
-          jsonEncode(body),
-          200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
         );
-      }
 
-      http.Response interpretResponse(Map<String, dynamic> requestBody) {
-        if (requestBody['mode'] == 'detail') {
+        http.Response topicsSelectResponse() {
+          final body = {
+            'success': true,
+            'data': {
+              'first_topic': {
+                'topic_id': 'MONEY_001',
+                'scene': 'money',
+                'title': '테스트 이야기 제목',
+                'is_timing': false,
+                'evidence_fact_keys': <String>[],
+              },
+              'candidates': <Map<String, dynamic>>[],
+              'key_facts': <String>['wood', 'fire'],
+              'fact_schema_version': 'v1',
+            },
+          };
+          return http.Response(
+            jsonEncode(body),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+
+        http.Response interpretResponse(Map<String, dynamic> requestBody) {
+          if (requestBody['mode'] == 'detail') {
+            final body = {
+              'success': true,
+              'data': {
+                'topic_id': 'MONEY_001',
+                'title': '테스트 이야기 제목',
+                'blocks': [
+                  {'n': 1, 'body': '핵심 블록 본문'},
+                  {
+                    'n': 2,
+                    'body': '왜 블록 본문',
+                    'evidence': {'type': 'elements', 'text': '근거 텍스트'},
+                  },
+                  {'n': 3, 'body': '생활 블록 본문'},
+                  {'n': 5, 'body': '포인트 블록 본문'},
+                ],
+                'source': 'template',
+              },
+            };
+            return http.Response(
+              jsonEncode(body),
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }
           final body = {
             'success': true,
             'data': {
               'topic_id': 'MONEY_001',
               'title': '테스트 이야기 제목',
-              'blocks': [
-                {'n': 1, 'body': '핵심 블록 본문'},
-                {
-                  'n': 2,
-                  'body': '왜 블록 본문',
-                  'evidence': {'type': 'elements', 'text': '근거 텍스트'},
-                },
-                {'n': 3, 'body': '생활 블록 본문'},
-                {'n': 5, 'body': '포인트 블록 본문'},
-              ],
+              'summary': '테스트 요약 내용입니다. 이것은 마지막 문장입니다.',
+              'evidence': {'type': 'elements', 'text': '테스트 근거'},
               'source': 'template',
             },
           };
@@ -760,74 +787,63 @@ void main() {
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
         }
-        final body = {
-          'success': true,
-          'data': {
-            'topic_id': 'MONEY_001',
-            'title': '테스트 이야기 제목',
-            'summary': '테스트 요약 내용입니다. 이것은 마지막 문장입니다.',
-            'evidence': {'type': 'elements', 'text': '테스트 근거'},
-            'source': 'template',
-          },
-        };
-        return http.Response(
-          jsonEncode(body),
-          200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
+
+        final mockClient = _buildMockClient(
+          sajuTopicsSelect: topicsSelectResponse,
+          sajuInterpret: interpretResponse,
         );
-      }
 
-      final mockClient = _buildMockClient(
-        sajuTopicsSelect: topicsSelectResponse,
-        sajuInterpret: interpretResponse,
-      );
+        await http.runWithClient(() async {
+          await authProvider.restoreSession();
+          expect(authProvider.isLoggedIn, true);
 
-      await http.runWithClient(() async {
-        await authProvider.restoreSession();
-        expect(authProvider.isLoggedIn, true);
+          await tester.pumpWidget(
+            _wrapWithCrossCheckRoute(
+              providers: [
+                ChangeNotifierProvider.value(value: authProvider),
+                ChangeNotifierProvider.value(value: sajuProvider),
+                ChangeNotifierProvider.value(value: orchestratorProvider),
+              ],
+              home: const StoryDetailScreen(),
+            ),
+          );
+          // story_detail_screen_c07_test.dart의 pumpToDetail과 동일한
+          // 패턴으로 detailState=success까지 실제 HTTP 흐름으로 도달한다.
+          unawaited(sajuProvider.startCalculating());
+          await tester.pump(const Duration(milliseconds: 50));
+          await tester.pump();
+          await sajuProvider.onAccessGranted();
+          await tester.pump();
+          await tester.pump();
 
-        await tester.pumpWidget(
-          _wrapWithCrossCheckRoute(
-            providers: [
-              ChangeNotifierProvider.value(value: authProvider),
-              ChangeNotifierProvider.value(value: sajuProvider),
-              ChangeNotifierProvider.value(value: orchestratorProvider),
-            ],
-            home: const StoryDetailScreen(),
-          ),
-        );
-        // story_detail_screen_c07_test.dart의 pumpToDetail과 동일한
-        // 패턴으로 detailState=success까지 실제 HTTP 흐름으로 도달한다.
-        unawaited(sajuProvider.startCalculating());
-        await tester.pump(const Duration(milliseconds: 50));
-        await tester.pump();
-        await sajuProvider.onAccessGranted();
-        await tester.pump();
-        await tester.pump();
+          final cta = find.text('다른 운세와 비교해보기');
+          expect(
+            cta,
+            findsOneWidget,
+            reason: 'Task 5 위반: 사주 결과화면에 교차검증 CTA가 없음',
+          );
+          await tester.ensureVisible(cta);
+          await tester.pump();
+          await tester.tap(cta);
+          await tester.pump();
+          await tester.pump();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
 
-        final cta = find.text('다른 운세와 비교해보기');
-        expect(cta, findsOneWidget, reason: 'Task 5 위반: 사주 결과화면에 교차검증 CTA가 없음');
-        await tester.ensureVisible(cta);
-        await tester.pump();
-        await tester.tap(cta);
-        await tester.pump();
-        await tester.pump();
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        expect(
-          find.byType(CrossCheckResultScreen),
-          findsOneWidget,
-          reason: 'Task 5 위반: CTA 탭 후 교차검증 화면으로 이동하지 않음',
-        );
-        expect(orchestratorProvider.status, OrchestratorStatus.loaded);
-        // 이 테스트는 타로/관상/손금/궁합 중 어느 것도 채우지 않았으므로
-        // (로그인 사용자 + 사주 원국만 있음) 전부 "미판정"이어야 정직한
-        // 동작이다 - 판정을 허위로 만들어내면 그게 오히려 결함이다.
-        expect(orchestratorProvider.judged, isEmpty);
-        expect(orchestratorProvider.unjudged, isNotEmpty);
-        expect(find.text('아직 비교할 수 없는 조합'), findsOneWidget);
-      }, () => mockClient);
-    });
+          expect(
+            find.byType(CrossCheckResultScreen),
+            findsOneWidget,
+            reason: 'Task 5 위반: CTA 탭 후 교차검증 화면으로 이동하지 않음',
+          );
+          expect(orchestratorProvider.status, OrchestratorStatus.loaded);
+          // 이 테스트는 타로/관상/손금/궁합 중 어느 것도 채우지 않았으므로
+          // (로그인 사용자 + 사주 원국만 있음) 전부 "미판정"이어야 정직한
+          // 동작이다 - 판정을 허위로 만들어내면 그게 오히려 결함이다.
+          expect(orchestratorProvider.judged, isEmpty);
+          expect(orchestratorProvider.unjudged, isNotEmpty);
+          expect(find.text('아직 비교할 수 없는 조합'), findsOneWidget);
+        }, () => mockClient);
+      },
+    );
   });
 }
