@@ -9,6 +9,7 @@ import '../../home/domain/saju_interpreter.dart';
 import '../../home/domain/user_profile_to_jeontong_adapter.dart';
 import '../../guinji/domain/guinji_owner_saju_summary.dart';
 import '../data/gunghap_repository.dart';
+import '../domain/gunghap_map_models.dart';
 import '../domain/gunghap_saju_adapter.dart';
 
 /// [멱등성 — requestKey 생성기] 직접 궁합 생성 "확인" 버튼을 누를 때마다
@@ -87,6 +88,19 @@ class GunghapProvider extends ChangeNotifier {
   String? _deletingResultId;
   String? get deletingResultId => _deletingResultId;
 
+  /// [2026-11 「인연지도」 디자인 핸드오프 2차 반영] `GET /gunghap/map`
+  /// 조회 결과(사람별 그룹화 완료 상태, 메인 홈 [DestinyMap]이 그대로
+  /// 사용). 로컬 하드코딩 데이터를 절대 쓰지 않는다 — 이 서버 응답만
+  /// 표시한다.
+  MapMe? _mapMe;
+  MapMe? get mapMe => _mapMe;
+  List<MapPerson> _mapPeople = const [];
+  List<MapPerson> get mapPeople => _mapPeople;
+  bool _isLoadingMap = false;
+  bool get isLoadingMap => _isLoadingMap;
+  bool _mapLoaded = false;
+  bool get mapLoaded => _mapLoaded;
+
   /// [전수검수 원칙 — 계정 격리] 로그아웃/회원탈퇴 시 메모리 상태를
   /// 완전히 초기화한다(다른 Provider와 동일한 관례).
   void clearOnLogout() {
@@ -101,6 +115,10 @@ class GunghapProvider extends ChangeNotifier {
     _isLoadingMyResults = false;
     _isCreatingDirect = false;
     _deletingResultId = null;
+    _mapMe = null;
+    _mapPeople = const [];
+    _isLoadingMap = false;
+    _mapLoaded = false;
     notifyListeners();
   }
 
@@ -508,5 +526,62 @@ class GunghapProvider extends ChangeNotifier {
         .toList();
     notifyListeners();
     return true;
+  }
+
+  /// GET /gunghap/map — 「인연지도」 메인 홈. [_mapMe]/[_mapPeople]을 갱신한다.
+  ///
+  /// [절대 원칙] 로컬 하드코딩 데이터를 전혀 쓰지 않는다 — 항상 이 서버
+  /// 응답만을 반영한다. 이미 점수·오행·좌표까지 서버가 계산해 내려주므로
+  /// (person_id 그룹화·황금각 배치 포함), 화면은 추가 가공 없이 그대로
+  /// [DestinyMap]에 넘기면 된다.
+  ///
+  /// 반환: 성공 시 true([mapMe]/[mapPeople] 참고), 실패 시 false
+  /// ([error]/[errorCode] 참고).
+  Future<bool> fetchGunghapMap() async {
+    _isLoadingMap = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+
+    final result = await _repository.fetchMap();
+    _isLoadingMap = false;
+    _mapLoaded = true;
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '인연지도를 불러오지 못했습니다.';
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return false;
+    }
+
+    final data = result.data!;
+    _mapMe = MapMe.fromJson(data['me'] as Map<String, dynamic>?);
+    final peopleRaw = data['people'];
+    _mapPeople = peopleRaw is List
+        ? peopleRaw
+              .whereType<Map<String, dynamic>>()
+              .map(MapPerson.fromJson)
+              .toList()
+        : const [];
+    notifyListeners();
+    return true;
+  }
+
+  /// GET /gunghap/relation/{resultId} — 인연지도 별 탭 시 RelationSheet가
+  /// 쓰는 오행 관계 FACT를 조회한다(순수 조회, 상태 캐시 없음 — 호출부가
+  /// 직접 반환값을 받아 시트에 넘긴다).
+  ///
+  /// 반환: 성공 시 {relation:{...}, body, good, care} 데이터, 실패 시
+  /// null([error]/[errorCode] 참고).
+  Future<Map<String, dynamic>?> fetchRelation(String resultId) async {
+    _error = null;
+    _errorCode = null;
+    final result = await _repository.fetchRelation(resultId);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '관계 정보를 불러오지 못했습니다.';
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return null;
+    }
+    return result.data;
   }
 }

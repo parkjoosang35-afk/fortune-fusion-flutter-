@@ -3,34 +3,108 @@
 // [궁합지도 Star Map 디자인 적용] design_handoff_gunghap_map.zip
 // `design_files/gunghap/gh-screens-a.jsx` ScreenHome(01 메인 홈) 포팅본.
 //
-// ⚠️ 범위: 사용자의 최종 지시("궁합지도 클릭시 지금 디자인 나오게
-// 만들어주면됨")에 따라 이번 턴은 **디자인/클릭 흐름만** 구현한다.
-// 실제 사주 FACT 엔진·초대장 토큰 발급·복주머니 차감 등 정식
-// 개발지시서(15섹션)의 백엔드 기능은 포함하지 않는다. 대분류→세부
-// 카테고리까지는 실제 화면 전환이 동작하며, 그 다음 단계(나의 정보
-// 입력 이후)는 아직 백엔드가 없어 "준비 중" 안내로 멈춘다.
+// [2026-11 「인연지도」 디자인 핸드오프 2차 반영] `MAP_HOME_SPEC.md`에
+// 따라 메인 그래픽을 2인 전용 [StarMap]에서 다인 궤도 [DestinyMap]으로
+// 교체했다 — `GunghapProvider.fetchGunghapMap()`(`GET /gunghap/map`)의
+// 실제 서버 응답(사람별 그룹화·점수·황금각 배치 완료)만 사용하며, 로컬
+// 하드코딩 데이터는 쓰지 않는다. [StarMap]은 삭제하지 않고 2인 전용
+// 화면(초대/결과)에서 계속 쓰인다 — 서로 대체 관계가 아니다(역할 분리).
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
 import '../application/gunghap_provider.dart';
+import '../domain/gunghap_map_models.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
+import '../widgets/destiny_map.dart';
 import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
-import '../widgets/star_map.dart';
+import '../widgets/relation_sheet.dart';
+import '../widgets/slot_sheet.dart';
 import '../widgets/cat_icon.dart';
 import '../domain/gunghap_data.dart';
+import 'gunghap_invite_screen.dart';
 import 'gunghap_major_screen.dart';
 import 'gunghap_result_screen.dart';
 import 'gunghap_story_screen.dart';
 
-class GunghapHomeScreen extends StatelessWidget {
+class GunghapHomeScreen extends StatefulWidget {
   const GunghapHomeScreen({super.key});
 
   @override
+  State<GunghapHomeScreen> createState() => _GunghapHomeScreenState();
+}
+
+class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
+  String? _filterMajor; // null = 전체
+  bool _requestedMap = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadMap());
+  }
+
+  void _loadMap() {
+    if (!mounted) return;
+    setState(() => _requestedMap = true);
+    context.read<GunghapProvider>().fetchGunghapMap();
+  }
+
+  void _openResult(String resultId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => GunghapResultScreen(resultId: resultId)),
+    );
+  }
+
+  void _onTapPerson(MapPerson p) {
+    final provider = context.read<GunghapProvider>();
+    final major = ghMajorById(p.majorId);
+    showRelationSheet(
+      context,
+      p,
+      provider: provider,
+      majorName: major.name,
+      majorHanja: major.hanja,
+      onOpenResult: _openResult,
+      onAddGunghap: () => _goMajor(context, method: 'direct'),
+    );
+  }
+
+  void _onTapSlot(GhSlot slot) {
+    final provider = context.read<GunghapProvider>();
+    showSlotSheet(
+      context,
+      slot,
+      filledCount: provider.mapPeople.length,
+      onInvite: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => GunghapInviteScreen(method: 'invite', majorId: slot.majorId),
+        ),
+      ),
+      onDirect: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              GunghapMajorScreen(method: 'direct', initialMajorId: slot.majorId, skipToSub: true),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final provider = context.watch<GunghapProvider>();
+    final people = _filterMajor == null
+        ? provider.mapPeople
+        : provider.mapPeople.where((p) => p.majorId == _filterMajor).toList();
+    final headline = provider.mapPeople.isEmpty
+        ? '나의 인연 지도를\n그려 볼까요'
+        : provider.mapPeople.length < 8
+        ? '인연지도를\n조금 더 채워 볼까요'
+        : '나를 중심으로 도는\n인연의 별들';
+
     return GHScreen(
       // [하단바 누락 수정] 신통방통 공용 하단 네비게이션 바
       // (홈/신당부적/복주머니/마이)를 그대로 재사용한다. 궁합지도는
@@ -88,22 +162,18 @@ class GunghapHomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '정통 사주로 보는 두 사람의 궁합',
+                      'DESTINY MAP · 因緣之圖',
                       style: GHText.ui(size: 12, weight: FontWeight.w600, color: GHColors.gold),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                '두 사람의 인연을\n확인해 보세요',
-                textAlign: TextAlign.center,
-                style: GHText.display(size: 28),
-              ),
+              Text(headline, textAlign: TextAlign.center, style: GHText.display(size: 28)),
             ],
           ),
 
-          // key graphic — full bleed-ish
+          // key graphic — 인연지도(DestinyMap, 다인 궤도)
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Stack(
@@ -128,30 +198,93 @@ class GunghapHomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14),
-                    child: StarMap(aName: '나', bName: '그 사람', big: true),
+                // [MAP_HOME_SPEC.md §6 — 오류] 조회 자체가 실패하면
+                // 궤도 대신 재시도 안내를 보여준다(스피너는 쓰지 않음 —
+                // isLoadingMap 상태는 궤도+나만 그려진 빈 [DestinyMap]으로
+                // 자연스럽게 표현된다).
+                if (_requestedMap &&
+                    !provider.isLoadingMap &&
+                    provider.mapLoaded &&
+                    provider.error != null &&
+                    provider.mapPeople.isEmpty)
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '별을 불러오지 못했어요',
+                          style: GHText.ui(size: 13, color: GHColors.gray),
+                        ),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: _loadMap,
+                          child: Text(
+                            '다시 시도',
+                            style: GHText.ui(
+                              size: 13,
+                              weight: FontWeight.w700,
+                              color: GHColors.gold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Center(
+                    child: DestinyMap(
+                      people: people,
+                      filterMajor: _filterMajor,
+                      onTapPerson: _onTapPerson,
+                      onTapSlot: _onTapSlot,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 0, bottom: 14),
+            padding: const EdgeInsets.only(top: 0, bottom: 10),
             child: Text(
-              '두 사람의 운명을 잇는 별의 지도',
+              '안쪽 궤도일수록 궁합 점수가 높아요 · 별을 누르면 궁합 관계가 열려요',
               textAlign: TextAlign.center,
-              style: GHText.ui(size: 14, color: GHColors.gray),
+              style: GHText.ui(size: 12, color: GHColors.gray),
             ),
           ),
 
+          // 분야 칩 — 전체/8개 대분류 필터
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GHChip(
+                    label: '전체',
+                    active: _filterMajor == null,
+                    onTap: () => setState(() => _filterMajor = null),
+                  ),
+                ),
+                for (final m in ghMajors)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GHChip(
+                      label: m.shortName,
+                      active: _filterMajor == m.id,
+                      onTap: () => setState(
+                        () => _filterMajor = _filterMajor == m.id ? null : m.id,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
           // primary CTA
           GHButton(
-            label: '궁합 시작하기',
+            label: provider.mapPeople.isEmpty ? '✦ 첫 궁합 시작하기' : '✦ 새 궁합 시작하기',
             size: GHButtonSizeT.xl,
-            leading: const Text('✦', style: TextStyle(fontSize: 15)),
             onPressed: () => _goMajor(context, method: 'direct'),
           ),
           const SizedBox(height: 8),
@@ -161,23 +294,6 @@ class GunghapHomeScreen extends StatelessWidget {
             size: GHButtonSizeT.md,
             leading: const Text('✉', style: TextStyle(color: GHColors.gold)),
             onPressed: () => _goMajor(context, method: 'invite'),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 14,
-            runSpacing: 6,
-            children: [
-              for (final (i, t) in const ['분야 선택', '두 사람 정보', '무료 결과'].indexed)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('${i + 1}', style: GHText.mono(color: GHColors.gold, size: 10)),
-                    const SizedBox(width: 6),
-                    Text(t, style: GHText.ui(size: 12, color: GHColors.gray)),
-                  ],
-                ),
-            ],
           ),
 
           const SizedBox(height: 38),

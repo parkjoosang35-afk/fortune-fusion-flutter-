@@ -50,6 +50,8 @@ ApiResult<T> gunghapNetworkOrGenericFailure<T>(
 /// - `POST /api/public/gunghap/direct` → [createDirect] (인증 필요, Phase 4)
 /// - `GET  /api/public/gunghap/my-results` → [fetchMyResults] (인증 필요, Phase 4)
 /// - `DELETE /api/public/gunghap/results/{resultId}` → [deleteResult] (인증 필요, 소유자 전용, Phase 4)
+/// - `GET  /api/public/gunghap/map` → [fetchMap] (인증 필요, 「인연지도」 메인 홈)
+/// - `GET  /api/public/gunghap/relation/{resultId}` → [fetchRelation] (인증 필요, 소유자 전용, RelationSheet)
 ///
 /// [guinji_repository.dart와 동일한 패턴] 이 Repository는 귀인지도
 /// `GuinjiRepository`와 완전히 동일한 구조(ApiResult 래핑, authHeader
@@ -482,6 +484,91 @@ class GunghapRepository {
       return gunghapNetworkOrGenericFailure(
         e,
         '삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  /// GET /gunghap/map — 「인연지도」 메인 홈. 로그인 회원이 본 모든 궁합을
+  /// person_id(동일 인물) 기준으로 그룹화해, 각 인물의 "가장 최근 분석"
+  /// 점수·일간·오행·이력을 반환한다(인증 필수).
+  ///
+  /// [디자인 핸드오프 — design_handoff_gunghap_map.zip MAP_HOME_SPEC.md §5]
+  /// 신규 API. [fetchMyResults]와 달리 "사람별로 이미 그룹화된" 형태로
+  /// 내려오므로, 이 메서드를 호출하는 화면은 별도로 그룹화 로직을 짤
+  /// 필요가 없다.
+  ///
+  /// 반환: {me: {stem, element} | null, people: [{personKey, name,
+  /// element, stem, score, angleDeg, majorId, resultId,
+  /// history: [{resultId, sub, date, paid, score}]}]}
+  Future<ApiResult<Map<String, dynamic>>> fetchMap() async {
+    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/gunghap/map');
+    debugPrint('[GunghapRepository] [fetchMap] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401) {
+        debugPrint('[GunghapRepository] [fetchMap] 401 -> 로그인 필요');
+        return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '인연지도를 불러오지 못했습니다.';
+        debugPrint('[GunghapRepository] [fetchMap] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '인연지도를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  /// GET /gunghap/relation/{resultId} — 인연지도의 별을 탭했을 때 여는
+  /// RelationSheet가 쓰는 "나-상대 오행 관계" FACT(인증 필수, 소유자
+  /// 전용). [resultId]는 [fetchMap]이 내려준 각 인물의 최신 `resultId`를
+  /// 그대로 사용한다.
+  ///
+  /// 반환: {relation: {key, short, hanja, ko, label, arrow}, body,
+  /// good: [...], care: [...]}
+  Future<ApiResult<Map<String, dynamic>>> fetchRelation(String resultId) async {
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/relation/$resultId',
+    );
+    debugPrint('[GunghapRepository] [fetchRelation] 요청 -> $uri');
+
+    try {
+      final authHeader = await AuthTokenStore.authHeader();
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json', ...authHeader})
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401) {
+        debugPrint('[GunghapRepository] [fetchRelation] 401 -> 로그인 필요');
+        return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '관계 정보를 불러오지 못했습니다.';
+        debugPrint('[GunghapRepository] [fetchRelation] 실패 -> $error');
+        return ApiResult.fail(error, code: decoded['code'] as String?);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data);
+    } catch (e) {
+      return gunghapNetworkOrGenericFailure(
+        e,
+        '관계 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
       );
     }
   }

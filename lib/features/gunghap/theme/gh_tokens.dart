@@ -3,12 +3,13 @@
 // [궁합지도 Star Map 디자인 적용] design_handoff_gunghap_map.zip
 // `flutter_starter/lib/gunghap/theme/gh_tokens.dart` 포팅본.
 //
-// 이번 작업 범위: "궁합지도 클릭시 지금 디자인 나오게 만들어주면됨" —
-// 사용자가 보낸 15섹션 분량의 정식 개발 지시서(실제 사주 FACT 엔진,
-// 초대장 토큰 백엔드, 복주머니 결제 연동, 관리자 CRUD 등)는 이번
-// 턴에서 구현하지 않는다. 디자인 핸드오프의 비주얼/클릭 흐름만
-// 정적으로 구현한다 — 추후 실제 엔진 연동 시 이 파일의 토큰은
-// 그대로 재사용 가능하다.
+// [2026-11 「인연지도」 디자인 핸드오프 2차 반영 — 포인트 컬러 통일]
+// design_handoff_gunghap_map (1).zip `README.md` §4 디자인 토큰 확정에
+// 따라 기존 Champagne Gold(#C6A15B 계열)를 Accent Gold(#E2C07F 계열)
+// 단일 팔레트로 전면 교체한다. 토큰 "이름"(gold/goldLight/goldDark 등)은
+// 하위 호환을 위해 그대로 유지하고 값만 교체했다 — 이 토큰을 참조하는
+// gh_button.dart/gh_screen.dart/star_map.dart/cat_icon.dart 등 기존
+// 화면들은 코드 변경 없이 새 색상이 자동 반영된다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
@@ -17,9 +18,9 @@ abstract final class GHColors {
   static const bg1 = Color(0xFF19233D); // Deep Navy — top tint
   static const cardSolid = Color(0xFF202B47); // Dark Blue
   static const card = Color(0xC7202B47); // 78%
-  static const gold = Color(0xFFC6A15B); // Champagne Gold
-  static const goldLight = Color(0xFFD4B272);
-  static const goldDark = Color(0xFFB38E4B);
+  static const gold = Color(0xFFE2C07F); // Accent Gold (2026-11 통일)
+  static const goldLight = Color(0xFFF0D9A8); // Accent Gold Light
+  static const goldDark = Color(0xFFD3AE69); // Accent Gold Deep
   static const violet = Color(0xFF8C7CC3); // Mystic Violet
   static const violetText = Color(0xFFB5A9E0);
   static const violetTextLight = Color(0xFFD8D0F2);
@@ -30,7 +31,7 @@ abstract final class GHColors {
   static const mint = Color(0xFF91C8B0);
   static const rose = Color(0xFFD98C7A);
   static const ink = Color(0xFF1A1408);
-  static const glowShadow = Color(0x52C6A15B); // 32%
+  static const glowShadow = Color(0x52E2C07F); // 32%
   static const kakao = Color(0xFFFEE500);
   static const kakaoText = Color(0xFF191600);
   static const scrim = Color(0xB3080C1A);
@@ -75,7 +76,7 @@ abstract final class GHShadow {
     BoxShadow(color: GHColors.glowShadow, blurRadius: 22, offset: Offset(0, 6)),
   ];
   static const xl = [
-    BoxShadow(color: Color(0x6BC6A15B), blurRadius: 34, offset: Offset(0, 10)),
+    BoxShadow(color: Color(0x6BE2C07F), blurRadius: 34, offset: Offset(0, 10)),
   ];
   static const selected = [
     BoxShadow(color: GHColors.glowShadow, blurRadius: 24, offset: Offset(0, 6)),
