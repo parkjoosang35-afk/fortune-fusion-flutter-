@@ -1,8 +1,15 @@
-// [사용자 요청 — 외부 검수 지시 ③ Task 5] 사주·타로·관상·손금·궁합 5개 결과
+// [사용자 요청 — 외부 검수 지시 ③ Task 5] 타로·관상·손금·궁합 4개 결과
 // 화면에서 "다른 운세와 비교해보기"/"운세비교" CTA를 실제로 탭해 교차검증
 // 화면([CrossCheckResultScreen])으로 정상 이동하는지, 그리고 그 화면이
 // [OrchestratorProvider]를 통해 실제로 엔진 결과를 받아 렌더링하는지를
 // 코드 추론이 아니라 실제 위젯 실행으로 검증한다.
+//
+// [2026-11 사주 CTA 삭제 확정] 원래 Task 5 사양은 사주를 포함한 5개
+// 화면을 요구했으나, 커밋 781cf3f6의 디자인 개편(저장/공유 통합 박스)으로
+// 사주 결과화면(story_detail_screen.dart)에서 CTA가 제거되었고, 사용자가
+// 복원 대신 "삭제"로 최종 확정했다. 이에 따라 사주 서브테스트는 이 파일에서
+// 제거했다 - 사주↔관상/손금/궁합/타로 교차검증 규칙 자체는 무수정이며
+// (cross_check_rules.dart), 사주 쪽 진입점만 UI에서 빠진 상태다.
 //
 // [설계 핵심 — cross_check_rules.dart 조사로 확인된 제약] 현재 등록된 4개
 // 규칙은 전부 "사주 ↔ 다른 한 문"쌍만 정의되어 있다(사주↔관상/사주↔손금/
@@ -20,7 +27,6 @@
 // restoreSession()을 통해 실제 로그인 플로우(토큰 저장 -> `/me` 호출 ->
 // UserModel 파싱)를 그대로 타는 것이다(AuthTokenStore 구조를 바꾸지 않는다는
 // 제약 준수).
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -64,10 +70,6 @@ import 'package:flutter_app/features/fortune/tarot/application/tarot_session_con
 import 'package:flutter_app/features/fortune/tarot/data/tarot_repository.dart';
 import 'package:flutter_app/features/fortune/tarot/domain/tarot_model.dart';
 import 'package:flutter_app/features/fortune/tarot/presentation/tarot_result_screen.dart';
-
-import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
-import 'package:flutter_app/features/saju_renewal/screens/story_detail_screen.dart';
-import 'package:flutter_app/features/saju_renewal/state/saju_renewal_provider.dart';
 
 /// 사주 계산에 쓰일 생년월일을 가진 로그인 사용자. 1990-03-15 08:30 남성 —
 /// [DefaultDoorEngineGateway.getSajuProfile]이 이 값을 실제 PHASE1~4
@@ -227,7 +229,7 @@ void main() {
     await AuthTokenStore.clear();
   });
 
-  group('5개 결과화면 교차검증 CTA 직접 실행(외부 검수 지시 ③ Task 5)', () {
+  group('4개 결과화면 교차검증 CTA 직접 실행(외부 검수 지시 ③ Task 5, 사주 CTA는 삭제됨)', () {
     testWidgets('[관상] "다른 운세와 비교해보기" 탭 -> 교차검증 화면 도달 + '
         '사주↔관상(SajuFaceDriveRule) 판정(judged) 1건 이상 표시', (tester) async {
       final faceRepo = FaceRepository();
@@ -690,160 +692,13 @@ void main() {
     // 교차검증 기능/엔진 자체는 무수정이며, 다른 4개(관상/손금/궁합/사주)
     // 서브테스트는 전혀 영향 없다.
 
-    // [버그 아님 — 의도된 UI 개선] 커밋 781cf3f6("정통사주 UI 개선: 로딩 디자인
-    // 리디자인 + 저장/공유 통합 박스")에서 사용자 피드백("글씨가 안보이고 디자인을
-    // 개판으로했어")에 따라 사주 결과화면(story_detail_screen.dart)의 "다른 운세와
-    // 비교해보기" 교차검증 CTA를 의도적으로 제거하고 저장+공유 통합 박스로
-    // 대체했다(해당 커밋 메시지 및 story_detail_screen.dart 613~629행 주석 참조).
-    // Task 5 원 사양은 5개 화면 전부에 CTA를 요구했으나, 이후 사주 화면만 디자인
-    // 개편으로 CTA가 빠졌다 - 되돌릴지(CTA 복원) 여부는 디자인 결정이므로 사용자
-    // 승인 없이 임의로 복원하지 않는다. 이 테스트는 현재 의도된 동작과 충돌하므로
-    // 사용자 결정이 있을 때까지 skip 처리한다(관상/손금/궁합/타로 4개 화면의 CTA는
-    // 정상 유지되어 위 테스트들은 그대로 통과한다).
-    testWidgets(
-      '[사주] "다른 운세와 비교해보기" 탭 -> 교차검증 화면 도달(최소 미판정 정직 표시 확인)',
-      skip: true,
-      (tester) async {
-        final faceRepo = FaceRepository();
-        final tarotRepo = TarotRepository();
-        final palmRepo = PalmRepository();
-        final compatRepo = CompatibilityRepository();
-
-        final authProvider = AuthProvider(AuthRepository());
-        final sajuProvider = SajuRenewalProvider(SajuRenewalApi());
-        final orchestratorProvider = OrchestratorProvider(
-          FortuneOrchestrator(
-            gateway: DefaultDoorEngineGateway(
-              tarotRepository: tarotRepo,
-              faceRepository: faceRepo,
-              palmRepository: palmRepo,
-              compatibilityRepository: compatRepo,
-            ),
-          ),
-        );
-
-        http.Response topicsSelectResponse() {
-          final body = {
-            'success': true,
-            'data': {
-              'first_topic': {
-                'topic_id': 'MONEY_001',
-                'scene': 'money',
-                'title': '테스트 이야기 제목',
-                'is_timing': false,
-                'evidence_fact_keys': <String>[],
-              },
-              'candidates': <Map<String, dynamic>>[],
-              'key_facts': <String>['wood', 'fire'],
-              'fact_schema_version': 'v1',
-            },
-          };
-          return http.Response(
-            jsonEncode(body),
-            200,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
-        }
-
-        http.Response interpretResponse(Map<String, dynamic> requestBody) {
-          if (requestBody['mode'] == 'detail') {
-            final body = {
-              'success': true,
-              'data': {
-                'topic_id': 'MONEY_001',
-                'title': '테스트 이야기 제목',
-                'blocks': [
-                  {'n': 1, 'body': '핵심 블록 본문'},
-                  {
-                    'n': 2,
-                    'body': '왜 블록 본문',
-                    'evidence': {'type': 'elements', 'text': '근거 텍스트'},
-                  },
-                  {'n': 3, 'body': '생활 블록 본문'},
-                  {'n': 5, 'body': '포인트 블록 본문'},
-                ],
-                'source': 'template',
-              },
-            };
-            return http.Response(
-              jsonEncode(body),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            );
-          }
-          final body = {
-            'success': true,
-            'data': {
-              'topic_id': 'MONEY_001',
-              'title': '테스트 이야기 제목',
-              'summary': '테스트 요약 내용입니다. 이것은 마지막 문장입니다.',
-              'evidence': {'type': 'elements', 'text': '테스트 근거'},
-              'source': 'template',
-            },
-          };
-          return http.Response(
-            jsonEncode(body),
-            200,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
-        }
-
-        final mockClient = _buildMockClient(
-          sajuTopicsSelect: topicsSelectResponse,
-          sajuInterpret: interpretResponse,
-        );
-
-        await http.runWithClient(() async {
-          await authProvider.restoreSession();
-          expect(authProvider.isLoggedIn, true);
-
-          await tester.pumpWidget(
-            _wrapWithCrossCheckRoute(
-              providers: [
-                ChangeNotifierProvider.value(value: authProvider),
-                ChangeNotifierProvider.value(value: sajuProvider),
-                ChangeNotifierProvider.value(value: orchestratorProvider),
-              ],
-              home: const StoryDetailScreen(),
-            ),
-          );
-          // story_detail_screen_c07_test.dart의 pumpToDetail과 동일한
-          // 패턴으로 detailState=success까지 실제 HTTP 흐름으로 도달한다.
-          unawaited(sajuProvider.startCalculating());
-          await tester.pump(const Duration(milliseconds: 50));
-          await tester.pump();
-          await sajuProvider.onAccessGranted();
-          await tester.pump();
-          await tester.pump();
-
-          final cta = find.text('다른 운세와 비교해보기');
-          expect(
-            cta,
-            findsOneWidget,
-            reason: 'Task 5 위반: 사주 결과화면에 교차검증 CTA가 없음',
-          );
-          await tester.ensureVisible(cta);
-          await tester.pump();
-          await tester.tap(cta);
-          await tester.pump();
-          await tester.pump();
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 100));
-
-          expect(
-            find.byType(CrossCheckResultScreen),
-            findsOneWidget,
-            reason: 'Task 5 위반: CTA 탭 후 교차검증 화면으로 이동하지 않음',
-          );
-          expect(orchestratorProvider.status, OrchestratorStatus.loaded);
-          // 이 테스트는 타로/관상/손금/궁합 중 어느 것도 채우지 않았으므로
-          // (로그인 사용자 + 사주 원국만 있음) 전부 "미판정"이어야 정직한
-          // 동작이다 - 판정을 허위로 만들어내면 그게 오히려 결함이다.
-          expect(orchestratorProvider.judged, isEmpty);
-          expect(orchestratorProvider.unjudged, isNotEmpty);
-          expect(find.text('아직 비교할 수 없는 조합'), findsOneWidget);
-        }, () => mockClient);
-      },
-    );
+    // [사용자 지시 — 2026-11 사주 CTA 삭제 확정] 사주 결과화면의 "다른 운세와
+    // 비교해보기" 교차검증 CTA는 커밋 781cf3f6에서 디자인 개편(저장/공유
+    // 통합 박스)에 따라 이미 제거되었고, 사용자가 복원하지 않고 "삭제"로
+    // 최종 확정했다. 더 이상 존재하지 않는 UI 진입점을 검증하던 테스트라
+    // skip 대신 완전히 제거한다 - 사주 교차검증 엔진/규칙 자체는 무수정이며
+    // (cross_check_rules.dart의 사주↔관상/손금/궁합/타로 4개 규칙 그대로
+    // 유지), 다른 4개(관상/손금/궁합/타로) 화면의 CTA 테스트는 전혀 영향
+    // 없이 그대로 통과한다.
   });
 }
