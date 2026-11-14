@@ -474,10 +474,19 @@ class _CoupangPassSheetState extends State<_CoupangPassSheet>
                   color: MyPageColors.ink,
                 ),
                 const SizedBox(width: MyPageSpacing.sp2),
-                Text(
-                  '쿠팡 방문하기',
-                  style: MyPageTextStyles.row.copyWith(
-                    fontWeight: FontWeight.w700,
+                // [반응형 전수 점검 · 2026-11-11] textScale 2.5배에서 아이콘
+                // +라벨 폭이 시트 내용 최대폭(272px)을 18px 넘어 가로
+                // RenderFlex 오버플로가 났다(`Row(mainAxisSize: min)` 안의
+                // Text에 폭 제한/축약 수단이 없었음). Flexible로 감싸 부모가
+                // 준 폭 안에서 줄어들 수 있게 하고 ellipsis를 보강한다 —
+                // 평소(짧은 라벨, 공간 충분)에는 지금과 시각적으로 동일하다.
+                Flexible(
+                  child: Text(
+                    '쿠팡 방문하기',
+                    overflow: TextOverflow.ellipsis,
+                    style: MyPageTextStyles.row.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],

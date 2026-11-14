@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/util/qa_text_scale.dart';
+import 'core/responsive/app_text_scale_guard.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/theme/text_scale_provider.dart';
@@ -403,6 +404,24 @@ class App extends StatelessWidget {
                 // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
                 // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
                 final framed = WebMobileFrame(child: content);
+                // [반응형 완전 정비 — 2026-11, 전역 글자배율 안전망]
+                // 사용자 리포트("어떤 휴대폰에선 사이즈가 말도 안되게 안
+                // 잡힌다")의 핵심 원인 중 하나는 기기 접근성 설정("글자 크기
+                // 크게")이 앱 전체에 아무 제한 없이 그대로 반영되어, 고정
+                // 크기로 짜인 레이아웃에서 텍스트가 잘리거나 카드가 깨지는
+                // 것이었다. 기존에는 소원방 모듈의 화면 2곳
+                // (character_shop_screen.dart, wishroom_shell.dart)에서만
+                // 로컬로 1.3배 상한을 뒀는데, 이를 여기(MaterialApp.builder
+                // = 모든 라우트/팝업/모달의 공통 조상)로 승격해 앱 전체에
+                // 동일하게 적용한다. AppTextScaleGuard 참고. 기존 두 화면의
+                // 로컬 clamp는 중복 적용돼도 무해하므로(이미 1.3배 이하인
+                // 값을 다시 1.3배로 clamp = 변화 없음) 그대로 둔다.
+                final guarded = MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: AppTextScaleGuard.clamp(context)),
+                  child: framed,
+                );
                 // [결과페이지 글씨 확대 기능 — 범위 수정, 2026-11] 처음에는
                 // 사용자가 결과화면의 "가-/가+" 컨트롤로 저장한 배율을 여기
                 // (MaterialApp.builder, 즉 Navigator 바깥 = 앱 전체)에서
@@ -417,14 +436,16 @@ class App extends StatelessWidget {
                 // child 트리에만 개별적으로 적용하도록 책임을 옮긴다. 여기
                 // 전역 지점에는 QA 전용 ?ts= 오버라이드만 남겨둔다(자동화
                 // 캡처 목적 한정 — 쿼리 파라미터가 없으면 기존과 동일하게
-                // 아무 영향도 주지 않는다).
+                // 위의 시스템 배율 안전망만 적용된다). QA 오버라이드는 자동화
+                // 캡처 테스트에서 임의 배율을 강제로 재현해야 할 수 있으므로
+                // 안전망보다 우선 적용한다(guarded 바깥에 한 번 더 씌움).
                 final scaled = (qaScale == null || qaScale == 1.0)
-                    ? framed
+                    ? guarded
                     : MediaQuery(
                         data: MediaQuery.of(
                           context,
                         ).copyWith(textScaler: TextScaler.linear(qaScale)),
-                        child: framed,
+                        child: guarded,
                       );
                 // [신통방통 전역 핀치 확대 시스템] MaterialApp.builder는
                 // Navigator(모든 화면/팝업/모달)의 공통 조상이므로, 여기

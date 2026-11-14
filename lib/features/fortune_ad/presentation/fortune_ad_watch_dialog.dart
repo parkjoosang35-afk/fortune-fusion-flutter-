@@ -311,11 +311,24 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // README §S02/S04: 시트 padding `12 24 40`. starting/verifying/granted/
-    // error 단계는 내용 높이에 맞춰 자연스럽게 커지되(SingleChildScrollView로
-    // 긴 에러 메시지·큰 textScale 대비), watching 단계만 광고 영역(150px) +
-    // 진행률 UI가 들어갈 고정 공간이 필요해 기존 420px 높이 컨테이너를
-    // 그대로 유지한다.
+    // README §S02/S04: 시트 padding `12 24 40`.
+    //
+    // [반응형 전수 점검 · 2026-11-11] watching 단계는 원래 `Expanded` 기반
+    // 레이아웃을 쓰기 위해 `SizedBox(height: 420)`로 높이를 강제 고정했었다
+    // (420px 안에서 광고 영역이 Expanded로 "남는 공간을 채우는" 구조였음).
+    // 그런데 시스템 글자배율이 커지면(2.0~2.5배) 제목/안내문구/배너 텍스트가
+    // 커져 420px를 초과하고, Expanded는 이를 0으로 클램프하면서 Column
+    // 전체가 세로로 31~124px만큼 overflow되는 실제 버그가 있었다
+    // (debugDumpRenderTree로 확인: `RenderFlex#...OVERFLOWING` 안의
+    // 광고영역 SizedBox가 `h=0.0`으로 찌그러짐).
+    //
+    // 근본 수정: watching 단계도 다른 단계와 동일하게
+    // `ConstrainedBox(maxHeight:420) + SingleChildScrollView`로 통일한다 —
+    // 420px 안에 들어가면(기존 모든 실사용 케이스) 지금과 완전히 동일하게
+    // 보이고, 글자배율이 커져 내용이 420px를 넘으면 overflow 예외 대신
+    // 자연스럽게 스크롤된다. 이에 맞춰 `_WatchingView`의 광고 영역도
+    // `Expanded`로 감싸지 않고 README 스펙대로 150px 고정 높이를 그대로
+    // 쓰도록 수정했다(아래 `_WatchingView.build()` 참고).
     return SafeArea(
       top: false,
       child: Padding(
@@ -325,12 +338,10 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
           top: MyPageSpacing.sp3,
           bottom: 40 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: _stage == _Stage.watching
-            ? SizedBox(height: 420, child: _buildBody())
-            : ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 420),
-                child: SingleChildScrollView(child: _buildBody()),
-              ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 420),
+          child: SingleChildScrollView(child: _buildBody()),
+        ),
       ),
     );
   }
@@ -345,18 +356,24 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
           ),
         );
       case _Stage.watching:
+        // [반응형 전수 점검 · 2026-11-11] 바깥쪽이 이제
+        // `SingleChildScrollView`(높이 제약 없음)라 `Expanded`를 쓸 수 없다
+        // (Expanded는 반드시 "유한한 높이"를 가진 조상이 필요한데, 스크롤뷰는
+        // 그 반대로 자식에게 무한한 높이를 내려준다 — 그대로 두면
+        // "RenderFlex children have non-zero flex but incoming height
+        // constraints are unbounded" 예외가 난다). `_WatchingView`는 내부에서
+        // 광고 영역(150px)을 README 스펙대로 고정 높이로 직접 그리도록
+        // 수정했으므로, 여기서는 그냥 내용 크기만큼만 차지하면 된다.
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHandle(),
-            Expanded(
-              child: _WatchingView(
-                ad: widget.ad,
-                videoController: _videoController,
-                remaining: _remaining,
-                total: _totalSeconds,
-                onClose: _closeAsCancelled,
-              ),
+            _WatchingView(
+              ad: widget.ad,
+              videoController: _videoController,
+              remaining: _remaining,
+              total: _totalSeconds,
+              onClose: _closeAsCancelled,
             ),
           ],
         );
@@ -483,9 +500,15 @@ class _WatchingView extends StatelessWidget {
       return _buildAdmobWaitingView();
     }
     final progress = total == 0 ? 1.0 : 1 - (remaining / total);
+    // [반응형 전수 점검 · 2026-11-11] 바깥쪽이 더 이상 "유한한 높이를 강제로
+    // 채우는" Expanded 컨테이너가 아니라 `SingleChildScrollView`(무한 높이
+    // 허용)이므로, 이 Column도 `mainAxisSize: min`으로 바꿔 내용물 높이만큼만
+    // 차지하게 한다(기존 기본값 max는 "가능한 최대 높이"를 요구하는데,
+    // 무한 높이 컨텍스트에서는 이것이 레이아웃 예외의 원인이 된다).
     return Stack(
       children: [
         Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // README §S04: 제목 "광고 보고 / 복주머니 받기" 21px/800 2줄,
@@ -510,39 +533,47 @@ class _WatchingView extends StatelessWidget {
             const SizedBox(height: MyPageSpacing.sp4),
             // README §S04: 광고 영역 150px, radius 16, 1px dashed, 하단 3px
             // 빨강 진행바 — S02와 동일한 공용 위젯 재사용.
-            Expanded(
-              child: MyPageDashedBorderBox(
-                radius: MyPageRadius.btn,
-                height: 150,
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        MyPageRadius.btn - 1,
+            //
+            // [반응형 전수 점검 · 2026-11-11] 이전에는 이 박스를 `Expanded`로
+            // 감싸 "남는 공간을 채우도록" 했었다 — 하지만
+            // `MyPageDashedBorderBox` 자체가 이미 내부적으로
+            // `SizedBox(height: 150)`(고정값)을 갖고 있어 Expanded는 전혀
+            // 불필요했고, 오히려 글자배율이 커져 제목/안내문구가 길어지면
+            // 바깥 Column(420px 제약 안)의 "남는 공간"이 0 밑으로 떨어지면서
+            // Expanded가 이를 강제로 0으로 찌그러뜨려(h=0.0) Column 전체가
+            // 31~124px 세로로 overflow되는 실제 버그의 직접 원인이었다
+            // (debugDumpRenderTree로 확인). README 스펙대로 150px 고정
+            // 높이만 쓰고 Expanded는 제거한다 — 공간이 모자라면 바깥
+            // `SingleChildScrollView`가 전체를 스크롤 처리한다.
+            MyPageDashedBorderBox(
+              radius: MyPageRadius.btn,
+              height: 150,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(MyPageRadius.btn - 1),
+                    child: Center(child: _buildContent()),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(MyPageRadius.btn - 1),
                       ),
-                      child: Center(child: _buildContent()),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(MyPageRadius.btn - 1),
-                        ),
-                        child: SizedBox(
-                          height: 3,
-                          child: LinearProgressIndicator(
-                            value: progress.clamp(0.0, 1.0),
-                            minHeight: 3,
-                            backgroundColor: Colors.transparent,
-                            color: MyPageColors.red,
-                          ),
+                      child: SizedBox(
+                        height: 3,
+                        child: LinearProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          minHeight: 3,
+                          backgroundColor: Colors.transparent,
+                          color: MyPageColors.red,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: MyPageSpacing.sp3),

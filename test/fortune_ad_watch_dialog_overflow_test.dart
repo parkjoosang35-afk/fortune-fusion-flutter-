@@ -1,33 +1,30 @@
 // [신통방통 반응형 화면 규격 통일 지시서] 복주머니 광고 시청 팝업
 // (FortuneAdWatchDialog) 오버플로 회귀 테스트.
 //
-// [확인된 실제 버그 2건 - debugDumpRenderTree로 근본원인 확정]
+// [2026-11-11 반응형 전수 점검 — 2차 수정]
 //
-// 배경: 이 다이얼로그는 Dialog 본문 전체가 `SizedBox(height: 420)`로
-// 고정되어 있었다 — 지금까지 이 지시서에서 고친 버그들은 대부분
-// "가로(Row) 오버플로"였지만, 이 다이얼로그는 구조상 "세로(Column)
-// 오버플로" 위험이 있는 첫 사례였다.
+// 이 파일은 애초(2026-10-31) `SizedBox(height: 420)` 고정 레이아웃 시절에
+// 작성됐다가, 2026-11-06 S04 Minimal Design B 리스킨
+// (`fortune_ad_watch_dialog.dart` 커밋 8c95fdde)으로 watching 단계의 UI가
+// "광고 제목(ad.title) 노출" → "고정 문구(`광고 보고\n복주머니 받기`) 노출"로
+// 바뀌면서 테스트와 실제 구현이 어긋나 있었다(`find.text(_longTitle)`이
+// 영원히 실패). 그 사실을 이번 점검에서 발견해 바로잡았다 — 리스킨 당시
+// 의도된 디자인 변경(관리자 입력 제목 대신 고정 카피를 쓰는 것)이므로 이
+// 테스트를 현재 구현에 맞게 갱신한다(기능 자체를 되돌리지 않음).
 //
-// 버그 1) watching 단계(_WatchingView): 광고 제목(ad.title)에 maxLines
-// 제한이 없어, 아주 긴 제목(관리자가 임의로 입력 가능) + textScale
-// 1.5배 이상 조합에서 하단 고정 텍스트 블록(Padding+Column, Expanded가
-// 아님)이 여러 줄로 늘어나 Stack의 고정 420px 영역을 넘어 세로
-// RenderFlex 오버플로가 발생했다(320x568@2.0에서 실측 35px,
-// debugDumpRenderTree로 `Column ← Stack ← _WatchingView ← SizedBox`
-// 체인에서 OVERFLOWING 확인). 수정: 제목/안내문구 Text에
-// `maxLines: 2, overflow: TextOverflow.ellipsis` 추가 — 길이가 넘치면
-// 말줄임표로 축약되고, 기존처럼 짧은 제목은 한 줄로 그대로 보인다.
-//
-// 버그 2) error 단계(_ErrorView): 긴 에러 메시지(네트워크 오류 등 서버가
-// 내려줄 수 있는 문자열 길이가 가변적) + textScale 1.5배 이상 조합에서
-// `Center > Padding > Column(mainAxisSize: min)`이 420px보다 커져
-// 세로 오버플로가 발생했다(320x568@1.5/2.0/2.5에서 실측 76px/316px/
-// 666px). 수정: watching 단계를 제외한 나머지 단계(starting/verifying/
-// granted/error)는 `SizedBox(height:420)` 대신
-// `ConstrainedBox(maxHeight:420) + SingleChildScrollView`로 감싸,
-// 내용이 420px보다 커지면 스크롤되게 했다 — 420px보다 작을 때는 기존과
-// 시각적으로 완전히 동일하다. watching 단계는 Expanded 기반 레이아웃이라
-// 고정 420px가 필요하므로 그대로 유지했다.
+// [확인된 실제 버그 — debugDumpRenderTree로 근본원인 확정, 이번에 수정]
+// watching 단계(_WatchingView, non-admob)에서 광고 영역을 그리는
+// `MyPageDashedBorderBox`는 자체적으로 `SizedBox(height: 150)` 고정
+// 높이를 이미 갖고 있는데도, 바깥 Column에서 다시 이를 `Expanded`로
+// 감싸고 있었다. textScale이 2.0~2.5배로 커져 제목/안내문구 텍스트가
+// 길어지면, Expanded가 요구하는 "남는 공간"이 음수가 되면서 광고 영역이
+// 강제로 0px까지 찌그러지고 Column 전체가 세로로 31px(@2.0)/124px(@2.5)
+// 오버플로됐다. 수정: 1) Dialog 본문을 watching 단계도 포함해 전부
+// `ConstrainedBox(maxHeight:420) + SingleChildScrollView`로 통일(420px
+// 이내면 기존과 완전히 동일, 넘치면 예외 대신 스크롤), 2) 그에 따라
+// 더 이상 유효하지 않은 `Expanded`(광고 영역을 감싸던 것, watching 단계
+// 바깥 Column의 `_WatchingView`를 감싸던 것)를 제거하고 README 스펙대로
+// 150px 고정 높이만 사용.
 //
 // [테스트 인프라 참고] watching 단계 테스트는 `_tick()`이 매초 재귀적으로
 // `Future.delayed`를 예약하므로, 테스트가 끝나기 전에 그 카운트다운
@@ -132,6 +129,11 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final provider = FortuneAdProvider(_FakeFortuneAdRepository());
+      // [2026-11-11] S04 리스킨 이후 non-admob watching 화면은 ad.title을
+      // 더 이상 렌더링하지 않는다(고정 카피 "광고 보고/복주머니 받기"로
+      // 대체됨) — 그래도 "관리자가 긴 제목을 넣어도 다른 부작용이 없는지"는
+      // 의미가 있으므로 ad 모델에는 여전히 _longTitle을 넣어 둔다(현재는
+      // 화면에 쓰이지 않지만 회귀 발생 시 조기 발견 목적).
       final ad = _buildAd(title: _longTitle);
 
       await tester.pumpWidget(
@@ -168,8 +170,9 @@ void main() {
         isNull,
         reason: 'FortuneAdWatchDialog watching $label overflow 없어야 함',
       );
-      // watching 단계의 광고 제목이 실제로 렌더링됐는지 확인(단계 진입 검증).
-      expect(find.text(_longTitle), findsOneWidget);
+      // watching 단계가 실제로 렌더링됐는지 확인(단계 진입 검증) —
+      // S04 리스킨 이후 고정 카피 헤드라인으로 검증한다.
+      expect(find.text('광고 보고\n복주머니 받기'), findsOneWidget);
 
       // [테스트 인프라] `_tick()`의 재귀 Future.delayed 카운트다운
       // (watchSeconds초)을 끝까지 흘려보내 watching -> verifying -> granted
