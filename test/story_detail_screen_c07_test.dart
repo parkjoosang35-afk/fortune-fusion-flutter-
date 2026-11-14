@@ -12,6 +12,7 @@ import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_app/core/auth/auth_token_store.dart';
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/saju_renewal/data/saju_renewal_api.dart';
@@ -164,12 +165,20 @@ void main() {
     });
   }
 
+  // [2026-11-14 나머지 실패 조사] StoryDetailScreen이 "결과페이지 글씨
+  // 확대" 기능(커밋 e294710f, 이 테스트보다 나중에 추가됨)의
+  // ResultTextScaleOverlay(TextScaleProvider 필요)로 감싸져
+  // ProviderNotFoundException이 발생했다 — 레이아웃/로직 버그가 아니라
+  // 테스트 인프라가 신규 기능을 따라가지 못한 것이다.
   Widget wrap() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
         ChangeNotifierProvider(
           create: (_) => SajuRenewalProvider(SajuRenewalApi()),
+        ),
+        ChangeNotifierProvider<TextScaleProvider>(
+          create: (_) => TextScaleProvider(),
         ),
       ],
       child: const MaterialApp(home: StoryDetailScreen()),

@@ -33,6 +33,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_app/core/auth/auth_token_store.dart';
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/core/orchestrator/door_engine_gateway.dart';
 import 'package:flutter_app/core/orchestrator/fortune_orchestrator.dart';
 import 'package:flutter_app/core/orchestrator/orchestrator_provider.dart';
@@ -162,8 +163,20 @@ Widget _wrapWithCrossCheckRoute({
   required List<SingleChildWidget> providers,
   required Widget home,
 }) {
+  // [2026-11-14 나머지 실패 조사] CrossCheckResultScreen으로 전환되기 전
+  // 머무는 5개 결과화면(관상/손금/궁합/타로/사주)이 모두 "결과페이지
+  // 글씨 확대" 기능(커밋 e294710f, 이 테스트보다 나중에 추가됨)의
+  // ResultTextScaleOverlay(TextScaleProvider 필요)로 감싸져 있어
+  // ProviderNotFoundException이 발생했다 — CTA 내비게이션 로직 자체의
+  // 버그가 아니라 테스트 인프라가 신규 기능을 따라가지 못한 것이므로,
+  // 호출부마다 고칠 필요 없이 이 공용 래퍼 하나에 추가한다.
   return MultiProvider(
-    providers: providers,
+    providers: [
+      ...providers,
+      ChangeNotifierProvider<TextScaleProvider>(
+        create: (_) => TextScaleProvider(),
+      ),
+    ],
     child: MaterialApp(
       onGenerateRoute: (settings) {
         if (settings.name == AppRouter.crossCheckResultRoute) {

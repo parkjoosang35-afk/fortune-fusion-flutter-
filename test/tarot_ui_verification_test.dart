@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/core/util/original_result_capture.dart';
 import 'package:flutter_app/features/fortune/tarot/application/tarot_audio_controller.dart';
 import 'package:flutter_app/features/fortune/tarot/application/tarot_provider.dart';
@@ -72,12 +73,21 @@ TarotResultModel _buildFixtureResult() {
   );
 }
 
+// [2026-11-14 나머지 실패 조사] TarotResultScreen이 "결과페이지 글씨
+// 확대" 기능(커밋 e294710f, 이 테스트보다 나중에 추가됨)의
+// ResultTextScaleOverlay(TextScaleProvider 필요)로 감싸져
+// ProviderNotFoundException이 발생했다 — AI 리딩 문구/탭-확대 상세
+// 기능 자체의 버그가 아니라 테스트 인프라가 신규 기능을 따라가지
+// 못한 것이다.
 Widget _wrapWithProviders(Widget child) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),
       ChangeNotifierProvider(create: (_) => TarotSessionController()),
       ChangeNotifierProvider(create: (_) => TarotAudioController()),
+      ChangeNotifierProvider<TextScaleProvider>(
+        create: (_) => TextScaleProvider(),
+      ),
     ],
     child: MaterialApp(home: child),
   );

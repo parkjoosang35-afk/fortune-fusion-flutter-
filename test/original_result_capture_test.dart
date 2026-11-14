@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/core/util/original_result_capture.dart';
 import 'package:flutter_app/core/widgets/result_card_stack.dart';
 import 'package:provider/provider.dart';
@@ -243,16 +244,31 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final provider = face ? _FaceFixture() : _PalmFixture();
+      // [2026-11-14 나머지 실패 조사] FaceResultScreen/PalmResultScreen이
+      // "결과페이지 글씨 확대" 기능(커밋 e294710f, 이 테스트보다 나중에
+      // 추가됨)의 ResultTextScaleOverlay(TextScaleProvider 필요)로
+      // 감싸져 ProviderNotFoundException이 발생했다 — 캡처 프레임
+      // 연결 자체의 버그가 아니라 테스트 인프라가 신규 기능을 따라가지
+      // 못한 것이므로 TextScaleProvider를 함께 주입한다.
       await tester.pumpWidget(
-        face
-            ? ChangeNotifierProvider<FaceProvider>.value(
+        MultiProvider(
+          providers: [
+            if (face)
+              ChangeNotifierProvider<FaceProvider>.value(
                 value: provider as FaceProvider,
-                child: const MaterialApp(home: FaceResultScreen()),
               )
-            : ChangeNotifierProvider<PalmProvider>.value(
+            else
+              ChangeNotifierProvider<PalmProvider>.value(
                 value: provider as PalmProvider,
-                child: const MaterialApp(home: PalmResultScreen()),
               ),
+            ChangeNotifierProvider<TextScaleProvider>(
+              create: (_) => TextScaleProvider(),
+            ),
+          ],
+          child: MaterialApp(
+            home: face ? const FaceResultScreen() : const PalmResultScreen(),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
       final scene = tester.widget<OriginalResultScene>(

@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/guinji/application/guinji_provider.dart';
@@ -26,12 +27,25 @@ import 'package:flutter_app/features/guinji/presentation/guinji_map_ranking_scre
 import 'package:flutter_app/features/guinji/presentation/guinji_guest_result_screen.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_map_guest_join_screen.dart';
 
+// [2026-11-14 나머지 실패 조사] `guinji_map_result_screen`/
+// `guinji_guest_result_screen`이 "결과페이지 글씨 확대" 기능(커밋
+// e294710f, 이 테스트 파일보다 나중에 추가됨) 적용 대상이 되면서
+// `ResultTextScaleOverlay`(context.watch<TextScaleProvider>() 사용)로
+// 감싸졌다. 이 테스트의 `_wrap()`은 그 기능 추가 이전에 작성되어
+// `TextScaleProvider`를 Provider 트리에 두지 않아 6건이
+// `ProviderNotFoundException`으로 실패했다 — 레이아웃/렌더링 버그가
+// 아니라 테스트 인프라가 신규 기능을 따라가지 못한 것이므로,
+// shared_result_screen_overflow_test.dart에서 쓴 것과 동일하게
+// `ChangeNotifierProvider<TextScaleProvider>`를 추가해 보강한다.
 Widget _wrap(Widget child) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
       ChangeNotifierProvider(
         create: (_) => GuinjiProvider(GuinjiRepository()),
+      ),
+      ChangeNotifierProvider<TextScaleProvider>(
+        create: (_) => TextScaleProvider(),
       ),
     ],
     child: MaterialApp(home: child),

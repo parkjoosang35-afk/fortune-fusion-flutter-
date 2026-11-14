@@ -1,14 +1,24 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_deep_result_screen.dart';
 import 'package:flutter_app/features/guinji/domain/guinji_person.dart';
 
 void main() {
   testWidgets('귀인지도 상세의 캡처 영역은 화면 뷰포트가 아닌 전체 본문', (tester) async {
-    await tester.pumpWidget(MaterialApp(home:GuinjiDeepResultScreen(person:const GuinjiPerson(
-      id:'test',name:'검수',birth:'1995·05·15',ohaeng:'mok',relation:'BI_HWA',score:70,note:'검수',
-    ))));
+    // [2026-11-14 나머지 실패 조사] GuinjiDeepResultScreen이 "결과페이지
+    // 글씨 확대" 기능(커밋 e294710f, 이 테스트보다 나중에 추가됨)의
+    // ResultTextScaleOverlay(TextScaleProvider 필요)로 감싸져
+    // ProviderNotFoundException이 발생했다 — 캡처 영역 크기 계약 자체의
+    // 버그가 아니라 테스트 인프라가 신규 기능을 따라가지 못한 것이다.
+    await tester.pumpWidget(ChangeNotifierProvider<TextScaleProvider>(
+      create: (_) => TextScaleProvider(),
+      child: MaterialApp(home:GuinjiDeepResultScreen(person:const GuinjiPerson(
+        id:'test',name:'검수',birth:'1995·05·15',ohaeng:'mok',relation:'BI_HWA',score:70,note:'검수',
+      ))),
+    ));
     await tester.pump();
     final scroll=find.byType(SingleChildScrollView);
     expect(scroll, findsOneWidget);

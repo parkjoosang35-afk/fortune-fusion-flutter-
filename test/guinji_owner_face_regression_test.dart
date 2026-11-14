@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_app/core/api/api_result.dart';
+import 'package:flutter_app/core/theme/text_scale_provider.dart';
 import 'package:flutter_app/features/guinji/application/guinji_provider.dart';
 import 'package:flutter_app/features/guinji/data/guinji_repository.dart';
 import 'package:flutter_app/features/guinji/presentation/guinji_map_result_screen.dart';
@@ -32,8 +33,19 @@ void main() {
   testWidgets('참여자가 없어도 결과 지도는 입력에서 고른 소유자 얼굴을 직접 받는다', (tester) async {
     SharedPreferences.setMockInitialValues({});
     const face = 'assets/images/guinji/chars/m30_face.jpg';
-    await tester.pumpWidget(ChangeNotifierProvider(
-      create: (_) => GuinjiProvider(_Repository()),
+    // [2026-11-14 나머지 실패 조사] GuinjiMapResultScreen이 "결과페이지
+    // 글씨 확대" 기능(커밋 e294710f, 이 테스트보다 나중에 추가됨) 적용
+    // 대상이 되어 ResultTextScaleOverlay(TextScaleProvider 필요)로
+    // 감싸졌다. 이 테스트는 GuinjiProvider만 주입해 ProviderNotFoundException이
+    // 발생했었다 — guinji_map_screens_smoke_test.dart와 동일한 원인이라
+    // 동일하게 TextScaleProvider를 MultiProvider에 추가해 보강한다.
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => GuinjiProvider(_Repository())),
+        ChangeNotifierProvider<TextScaleProvider>(
+          create: (_) => TextScaleProvider(),
+        ),
+      ],
       child: const MaterialApp(home: GuinjiMapResultScreen(ownerFacePath: face)),
     ));
     await tester.pump();
