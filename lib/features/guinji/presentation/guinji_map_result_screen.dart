@@ -324,234 +324,866 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
   }
 
   Widget _buildScaffold(int total, List<GuinjiPerson> topThree) {
+    const slotTotal = 8; // v5 TP_SLOT_TOTAL
+    final empty = total == 0;
+    final recent = widget.people.reversed.take(3).toList();
+
     return ResultTextScaleOverlay(
       child: Scaffold(
-        backgroundColor: GmColors.bg,
-        appBar: GmTopBar(
-          back: true,
-          title: '${widget.ownerName}님의 귀인 지도',
-          onShare: _openShareSheet,
+        backgroundColor: GmColors.bgBottom,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: GmColors.fg, size: 20),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          title: const Text(
+            '귀인지도',
+            style: TextStyle(
+              fontFamily: GmText.body,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: GmColors.fg,
+            ),
+          ),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add, color: GmColors.fg, size: 22),
+              tooltip: '귀인 초대',
+              onPressed: _openShareSheet,
+            ),
+          ],
         ),
-        body: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 헤더
-                // [핸드오프 `CMain` 헤더 1:1 이식] 원본은 "{members.length}명과
-                // 연결되어 있어요" 문구 + 버튼 2개(♛ 랭킹 / ＋ 초대)만 있다.
-                // "목록 보기"는 CMain 헤더에 없는 버튼이었다(유형별 목록은
-                // 랭킹 화면의 두 번째 탭으로만 진입 가능) — ＋ 초대로 교체.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '$total명과 연결되어 있어요',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            color: GmColors.muted,
+        body: Container(
+          decoration: const BoxDecoration(gradient: GmColors.bgGradient),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).padding.top + 56,
+                  ),
+                  // ── 헤더: GUINJI·貴人之圖 + 타이틀 + 케미 랭킹 버튼 ──
+                  // (v5 TpMain 헤더 1:1 이식)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'GUINJI · 貴人之圖',
+                                style: TextStyle(
+                                  fontFamily: GmText.mono,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 2.6,
+                                  color: GmColors.gold,
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                empty
+                                    ? '빈 자리에 귀인의\n별을 띄워 보세요'
+                                    : total < slotTotal
+                                    ? '귀인지도를\n조금 더 채워 볼까요'
+                                    : '${widget.ownerName}님을 비추는',
+                                style: const TextStyle(
+                                  fontFamily: GmText.display,
+                                  fontSize: 23,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.8,
+                                  height: 1.28,
+                                  color: GmColors.fg,
+                                ),
+                              ),
+                              if (!empty && total >= slotTotal)
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: '$total명',
+                                        style: const TextStyle(
+                                          color: GmColors.gold,
+                                        ),
+                                      ),
+                                      const TextSpan(text: '의 귀인'),
+                                    ],
+                                  ),
+                                  style: const TextStyle(
+                                    fontFamily: GmText.display,
+                                    fontSize: 23,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.8,
+                                    height: 1.28,
+                                    color: GmColors.fg,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        // 케미 랭킹 버튼(왕관)
+                        GestureDetector(
+                          onTap: _openRanking,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 2),
+                            padding: const EdgeInsets.fromLTRB(12, 9, 12, 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: GmColors.gold.withValues(alpha: 0.4),
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  GmColors.gold.withValues(alpha: 0.16),
+                                  GmColors.gold.withValues(alpha: 0.04),
+                                ],
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.emoji_events,
+                                  color: GmColors.gold,
+                                  size: 22,
+                                ),
+                                const SizedBox(height: 5),
+                                const Text(
+                                  '케미 랭킹',
+                                  style: TextStyle(
+                                    fontFamily: GmText.ui,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: GmColors.gold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 지도(전체 폭) — 인터랙티브 애니메이션 노드 그래프.
+                  GuinjiAnimatedRelationGraph(
+                    centerTitle: '${widget.ownerName}님',
+                    centerSubtitle: '나',
+                    ownerFacePath: widget.ownerFacePath,
+                    people: widget.people,
+                    onSelect: _handleNodeTap,
+                    emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
+                    filter: _filter,
+                  ),
+
+                  // 진행 표시(귀인 N명 · 빈 자리 M) — v5 8명 기준 점 표시.
+                  if (!empty && total < slotTotal)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 13,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: GmColors.bgBottom.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: GmColors.line),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: List.generate(slotTotal, (i) {
+                                  final filled = i < total;
+                                  return Container(
+                                    width: 7,
+                                    height: 7,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 1.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: filled
+                                          ? GmColors.gold
+                                          : Colors.transparent,
+                                      border: Border.all(
+                                        color: GmColors.gold.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '귀인 $total명 · 빈 자리 ${slotTotal - total}',
+                                style: const TextStyle(
+                                  fontFamily: GmText.ui,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: GmColors.fg,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한
-                      // 개념] 초대 링크 없이 소유자가 지인 정보를 직접
-                      // 입력해 즉시 등록하는 진입점. 기존 2버튼(랭킹/초대)
-                      // 레이아웃을 깨지 않도록 아이콘 전용 컴팩트 버튼으로
-                      // 추가한다.
-                      Tooltip(
-                        message: '지인 직접 추가',
-                        child: OutlinedButton(
-                          onPressed: _openDirectAdd,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: GmColors.fg,
-                            side: const BorderSide(color: GmColors.line),
-                            shape: const CircleBorder(),
-                            minimumSize: const Size(32, 32),
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: const Icon(
-                            Icons.person_add_alt_1,
-                            size: 15,
+                    ),
+                  // 안내 문구.
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      total < slotTotal
+                          ? '점선 별은 빈 자리예요 · 누르면 채우는 방법이 열려요'
+                          : '가운데에 가까울수록 케미가 높아요 · 바깥 인장을 누르면 유형별로 모아 봐요',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: GmText.ui,
+                        fontSize: 12,
+                        height: 1.6,
+                        color: GmColors.dim,
+                      ),
+                    ),
+                  ),
+
+                  // [흐름 정합성] 나는 어떤 사람일까 카드.
+                  if (widget.ownerSajuSummary != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                      child: _GmOwnerSajuCard(
+                        ownerName: widget.ownerName,
+                        summary: widget.ownerSajuSummary!,
+                      ),
+                    ),
+
+                  // [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한
+                  // 관계유형만 칩으로 노출하고, 탭하면 지도에서 해당
+                  // 유형만 강조한다.
+                  if (widget.people.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                      child: _GmTypeFilterRow(
+                        people: widget.people,
+                        selected: _filter,
+                        onSelect: (key) => setState(
+                          () => _filter = _filter == key ? null : key,
+                        ),
+                      ),
+                    ),
+
+                  if (widget.people.isNotEmpty && widget.people.length < 3)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: _GmFewMembersBanner(count: widget.people.length),
+                    ),
+
+                  // 귀인 초대장 박스(적색 그라데이션 — v5 "請" 봉인 디자인).
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: _GuinjiInviteBox(onTap: _openShareSheet),
+                  ),
+                  // 직접 추가 박스(v5 "記" 디자인).
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                    child: _GuinjiDirectAddBox(onTap: _openDirectAdd),
+                  ),
+
+                  // 여섯 가지 인연 알아보기 — 2열 그리드.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+                    child: _GuinjiTypeGuideSection(
+                      people: widget.people,
+                      onTapType: (key) {
+                        // 해당 유형으로 필터 후 랭킹 화면 2번째 탭으로
+                        // 이동(상세 유형 안내 시트는 후속 작업).
+                        setState(() => _filter = key);
+                      },
+                    ),
+                  ),
+
+                  // 최근 들어온 인연.
+                  if (!empty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+                      child: _GuinjiRecentSection(
+                        people: recent,
+                        onOpenAll: _openRanking,
+                        onTapPerson: _handleNodeTap,
+                      ),
+                    ),
+
+                  // 웹 일반 AdSense.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                    child: const WebAdInPage(
+                      surface: WebAdSurface.guinji,
+                      adSlot: '',
+                    ),
+                  ),
+
+                  // 상위 3명(전체 보기 포함, 기존 로직 유지).
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                    child: Row(
+                      children: [
+                        const Text(
+                          '가장 강한 인연',
+                          style: TextStyle(
+                            fontFamily: GmText.body,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                             color: GmColors.fg,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      OutlinedButton(
-                        onPressed: _openRanking,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: GmColors.fg,
-                          side: const BorderSide(color: GmColors.line),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9999),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                        ),
-                        child: const Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '♛ ',
-                                style: TextStyle(color: GmColors.gold),
-                              ),
-                              TextSpan(text: '랭킹'),
-                            ],
-                          ),
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      ElevatedButton(
-                        onPressed: _openShareSheet,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: GmColors.fg,
-                          foregroundColor: GmColors.onFg,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9999),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 4,
-                          ),
-                        ),
-                        child: const Text(
-                          '＋ 초대',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // [흐름 정합성] "나는 어떤 사람인지" — 관계 그래프(아직 지인이
-                // 없으면 비어 있음)보다 먼저, 실계산된 내 사주 요약을 보여준다.
-                if (widget.ownerSajuSummary != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    child: _GmOwnerSajuCard(
-                      ownerName: widget.ownerName,
-                      summary: widget.ownerSajuSummary!,
-                    ),
-                  ),
-
-                // 인터랙티브 애니메이션 노드 그래프(pan/zoom/drag/tap +
-                // 회전 궤도/레이더 펄스/호흡/에너지 흐름 애니메이션).
-                GuinjiAnimatedRelationGraph(
-                  centerTitle: '${widget.ownerName}님',
-                  centerSubtitle: '나',
-                  ownerFacePath: widget.ownerFacePath,
-                  people: widget.people,
-                  onSelect: _handleNodeTap,
-                  // [핸드오프 `CEmpty` 안내문구 1:1 이식]
-                  emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
-                  filter: _filter,
-                ),
-
-                // [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한 관계유형만
-                // 칩으로 노출하고, 탭하면 지도에서 해당 유형만 강조한다.
-                if (widget.people.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                    child: _GmTypeFilterRow(
-                      people: widget.people,
-                      selected: _filter,
-                      onSelect: (key) =>
-                          setState(() => _filter = _filter == key ? null : key),
-                    ),
-                  ),
-
-                // [핸드오프 `CMain` 3명 미만 배너 이식, `top:584`] 원본은
-                // 고정 캔버스(CW×CH) 위에 절대좌표로 지도와 겹쳐 배치되지만,
-                // 이 화면은 스크롤 레이아웃이라 같은 의도(지도 바로 아래,
-                // "가장 강한 인연" 리스트보다 먼저)로 그래프 직후에 둔다.
-                if (widget.people.isNotEmpty && widget.people.length < 3)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                    child: _GmFewMembersBanner(count: widget.people.length),
-                  ),
-
-                // [웹 일반 AdSense 전체 확장 — 귀인지도] 노드 그래프(콘텐츠)와
-                // "가장 강한 인연" 리스트(콘텐츠) 사이 — CTA("친구 초대하고
-                // 지도 완성하기")와는 충분히 떨어져 있어 혼동 우려가 없다.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: const WebAdInPage(
-                    surface: WebAdSurface.guinji,
-                    adSlot: '',
-                  ),
-                ),
-
-                // 상위 3명
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                  child: Row(
-                    children: [
-                      const Text(
-                        '가장 강한 인연',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: GmColors.fg,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: _openFriends,
-                        child: const Text(
-                          '전체 보기',
-                          style: TextStyle(fontSize: 11, color: GmColors.gold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (topThree.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Text(
-                      '지인을 초대하면 여기에 표시돼요',
-                      style: TextStyle(fontSize: 12, color: GmColors.dim),
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      children: topThree
-                          .map(
-                            (p) => _GmFriendRow(
-                              person: p,
-                              onTap: () => _handleNodeTap(p),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _openFriends,
+                          child: const Text(
+                            '전체 보기',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: GmColors.gold,
                             ),
-                          )
-                          .toList(),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  if (topThree.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        '지인을 초대하면 여기에 표시돼요',
+                        style: TextStyle(fontSize: 12, color: GmColors.dim),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: topThree
+                            .map(
+                              (p) => _GmFriendRow(
+                                person: p,
+                                onTap: () => _handleNodeTap(p),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
 
-                // 공유 CTA
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                  child: GmRoseButton(
-                    label: '친구 초대하고 지도 완성하기',
-                    onPressed: _openShareSheet,
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-              ],
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// v5 TpMain "귀인 초대장 보내기" 박스 — 적색 그라데이션 봉인 디자인.
+class _GuinjiInviteBox extends StatelessWidget {
+  const _GuinjiInviteBox({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: GmColors.gold.withValues(alpha: 0.45)),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFB8402F), Color(0xFF8A2A22), Color(0xFF5E1A1E)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: GmColors.red.withValues(alpha: 0.32),
+              blurRadius: 28,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Transform.rotate(
+              angle: -0.09,
+              child: Container(
+                width: 50,
+                height: 50,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: GmColors.gold,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  '請',
+                  style: TextStyle(
+                    fontFamily: GmText.display,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF5E1A1E),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '귀인 초대장 보내기',
+                    style: TextStyle(
+                      fontFamily: GmText.body,
+                      fontSize: 17.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFFFF3DC),
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    '카카오톡으로 보내면 지인이 직접 입력해요\n앱으로 참여하면 +20P',
+                    style: TextStyle(
+                      fontFamily: GmText.ui,
+                      fontSize: 12.5,
+                      height: 1.45,
+                      color: Color(0xC7FFEBD2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: GmColors.gold, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// v5 TpMain "생년월일을 알아요 · 직접 추가" 박스.
+class _GuinjiDirectAddBox extends StatelessWidget {
+  const _GuinjiDirectAddBox({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: GmColors.line),
+          color: GmColors.card.withValues(alpha: 0.5),
+        ),
+        child: Row(
+          children: [
+            Transform.rotate(
+              angle: -0.09,
+              child: Container(
+                width: 50,
+                height: 50,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: GmColors.gold),
+                ),
+                child: const Text(
+                  '記',
+                  style: TextStyle(
+                    fontFamily: GmText.display,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                    color: GmColors.gold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '생년월일을 알아요 · 직접 추가',
+                    style: TextStyle(
+                      fontFamily: GmText.body,
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w700,
+                      color: GmColors.fg,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    '가족·연인처럼 생일을 아는 사람은 바로 볼 수 있어요',
+                    style: TextStyle(
+                      fontFamily: GmText.ui,
+                      fontSize: 12.5,
+                      height: 1.45,
+                      color: GmColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: GmColors.muted, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// v5 TpMain "여섯 가지 인연 알아보기" — 2열 그리드(관계유형 6종 카드).
+class _GuinjiTypeGuideSection extends StatelessWidget {
+  const _GuinjiTypeGuideSection({required this.people, required this.onTapType});
+
+  final List<GuinjiPerson> people;
+  final void Function(String key) onTapType;
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = <String, int>{};
+    for (final p in people) {
+      counts[p.relation] = (counts[p.relation] ?? 0) + 1;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'GUIDE · 06',
+          style: TextStyle(
+            fontFamily: GmText.mono,
+            fontSize: 10,
+            letterSpacing: 2.6,
+            color: GmColors.dim,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          '여섯 가지 인연 알아보기',
+          style: TextStyle(
+            fontFamily: GmText.body,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: GmColors.fg,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.5,
+          children: [
+            for (final t in guinjiTypeOrder)
+              _TypeGuideCard(
+                spec: guinjiTypeOf(t),
+                count: counts[t] ?? 0,
+                onTap: () => onTapType(t),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TypeGuideCard extends StatelessWidget {
+  const _TypeGuideCard({
+    required this.spec,
+    required this.count,
+    required this.onTap,
+  });
+
+  final GuinjiTypeSpec spec;
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: GmColors.hair),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              spec.color.withValues(alpha: 0.08),
+              GmColors.card.withValues(alpha: 0.06),
+            ],
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: spec.color,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    spec.hanja,
+                    style: const TextStyle(
+                      fontFamily: GmText.display,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: GmColors.onFg,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  spec.label,
+                  style: const TextStyle(
+                    fontFamily: GmText.body,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: GmColors.fg,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            Expanded(
+              child: Text(
+                spec.desc,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: GmText.ui,
+                  fontSize: 12,
+                  height: 1.4,
+                  color: GmColors.muted,
+                ),
+              ),
+            ),
+            Text(
+              '$count명 · 자세히 ›',
+              style: TextStyle(
+                fontFamily: GmText.ui,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: spec.color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// v5 TpMain "최근 들어온 인연" 섹션.
+class _GuinjiRecentSection extends StatelessWidget {
+  const _GuinjiRecentSection({
+    required this.people,
+    required this.onOpenAll,
+    required this.onTapPerson,
+  });
+
+  final List<GuinjiPerson> people;
+  final VoidCallback onOpenAll;
+  final void Function(GuinjiPerson person) onTapPerson;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'RECENT',
+                    style: TextStyle(
+                      fontFamily: GmText.mono,
+                      fontSize: 10,
+                      letterSpacing: 2.6,
+                      color: GmColors.dim,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    '최근 들어온 인연',
+                    style: TextStyle(
+                      fontFamily: GmText.body,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: GmColors.fg,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: onOpenAll,
+              child: const Text(
+                '전체 목록 ›',
+                style: TextStyle(fontSize: 13, color: GmColors.muted),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: GmColors.hair),
+            color: GmColors.card.withValues(alpha: 0.2),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < people.length; i++)
+                _RecentRow(
+                  person: people[i],
+                  showDivider: i != 0,
+                  onTap: () => onTapPerson(people[i]),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentRow extends StatelessWidget {
+  const _RecentRow({
+    required this.person,
+    required this.showDivider,
+    required this.onTap,
+  });
+
+  final GuinjiPerson person;
+  final bool showDivider;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final spec = guinjiTypeOf(person.relation);
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          border: showDivider
+              ? const Border(top: BorderSide(color: GmColors.hair))
+              : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: spec.color.withValues(alpha: 0.16),
+                border: Border.all(color: spec.color),
+              ),
+              child: Text(
+                person.name.isNotEmpty ? person.name.substring(0, 1) : '?',
+                style: TextStyle(
+                  fontFamily: GmText.display,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: spec.color,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    person.name,
+                    style: const TextStyle(
+                      fontFamily: GmText.body,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: GmColors.fg,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: spec.hanja,
+                          style: const TextStyle(
+                            fontFamily: GmText.display,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        TextSpan(text: ' ${spec.label}'),
+                      ],
+                    ),
+                    style: TextStyle(
+                      fontFamily: GmText.ui,
+                      fontSize: 12,
+                      color: spec.color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '${person.score}',
+              style: const TextStyle(
+                fontFamily: GmText.display,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: GmColors.fg,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 16, color: GmColors.dim),
+          ],
         ),
       ),
     );

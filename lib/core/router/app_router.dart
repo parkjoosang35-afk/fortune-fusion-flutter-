@@ -94,6 +94,10 @@ import '../../features/guinji/presentation/guinji_direct_input_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
+// [임시 QA 전용 — v5 핸드오프 이식 검증용] 아래 '/guinji-map/m/qa-preview'
+// 라우트에서 guinjiSamplePeople 목데이터를 사용하기 위한 import.
+// 검증 완료 후 해당 라우트와 함께 제거할 것.
+import '../../features/guinji/domain/guinji_person.dart';
 import '../../features/gunghap/presentation/gunghap_guest_input_screen.dart';
 import '../../features/gunghap/presentation/gunghap_story_screen.dart';
 import '../../features/guinji/navigation/guinji_page_route.dart';
@@ -383,6 +387,17 @@ class AppRouter {
             subtitle: '사주 여덟 글자를 읽는 중',
             onComplete: () => appNavigatorKey.currentState
                 ?.pushReplacementNamed('/guinji-map/m'),
+          ),
+        );
+      // [임시 QA 전용 — v5 핸드오프 이식 검증용] 백엔드 세션 없이도 샘플
+      // 12명 목데이터로 H4 화면을 즉시 렌더링해 디자인 검증용 스크린샷을
+      // 찍기 위한 라우트. 검증 완료 후 제거할 것.
+      case '/guinji-map/m/qa-preview':
+        return _guinjiNamed(
+          '/guinji-map/m/qa-preview',
+          const GuinjiMapResultScreen(
+            ownerName: '하늘',
+            people: guinjiSamplePeople,
           ),
         );
       case '/guinji-map/m':

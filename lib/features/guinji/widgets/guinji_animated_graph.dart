@@ -440,21 +440,20 @@ class _GuinjiAnimatedRelationGraphState
           )
         : IgnorePointer(child: content);
 
-    final container = Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+    // [v5 "심야의 신전" 핸드오프] `TpMap`은 좌우 여백 없이 화면 전체 폭을
+    // 차지하며(`margin: '0 -20px'`), 둥근 테두리 카드가 아니라 배경
+    // 그라데이션(오로라 성운) 위에 바로 떠 있는 지도다. 기존 박스 카드
+    // 스타일(테두리·radius·좌우 margin)을 제거해 v5와 동일하게 맞춘다.
+    final container = SizedBox(
       height: widget.height,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [GmColors.bg, GmColors.card.withValues(alpha: 0.6)],
-        ),
-        border: Border.all(color: GmColors.line),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      clipBehavior: Clip.antiAlias,
+      width: double.infinity,
       child: Stack(
         children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(gradient: GmColors.bgGradient),
+            ),
+          ),
           Positioned.fill(child: gestureWrapped),
           // [핸드오프 `CEmpty` 이식] 6슬롯 점선 방사형 비주얼은
           // [GuinjiGraphPainter]가 캔버스 위에 직접 그린다(위 CustomPaint).

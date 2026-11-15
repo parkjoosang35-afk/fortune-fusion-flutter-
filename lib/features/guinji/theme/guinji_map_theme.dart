@@ -1,24 +1,42 @@
 // lib/features/guinji_map/theme/guinji_map_theme.dart
-// 최종(v2) 토큰 — 기존 GmColors/GmText 상수만 교체하면 전 화면 반영 (명세서 §8)
-// guinji_theme.dart 의 GuinjiColors 도 같은 값으로 맞출 것
+// [2026 디자인 핸드오프 v5 — "심야의 신전(Midnight Temple)" 전면 교체]
+// `design_handoff_guinji_map_v5/design_files/guinji-temple.jsx`의 `TP` 전역
+// 색상 상수를 1:1 이식한다. 기존 GmColors/GmText 상수만 교체하면 전 화면에
+// 즉시 반영된다. guinji_theme.dart 의 GuinjiColors 도 같은 값으로 맞출 것.
 import 'package:flutter/material.dart';
 
 class GmColors {
-  static const bg = Color(0xFF0B0B0D); // 전 화면 배경 (단색 · 그라데이션/별 없음)
-  static const card = Color(0xFF161618); // 캐릭터 카드 · 카드
-  static const sheet = Color(0xFF111113); // 바텀시트 (결제 · 공유)
-  static const tabBar = Color(0xFF18181B);
-  static const fg = Color(0xFFF2F0EC); // 본문 · 흰 알약 버튼 배경
-  static const onFg = Color(0xFF0B0B0D); // 흰 버튼 위 글자
-  static const muted = Color(0x85F2F0EC); // 52%
-  static const dim = Color(0x52F2F0EC); // 32%
-  static const line = Color(0x29FFFFFF); // 16% 테두리
-  static const hair = Color(0x14FFFFFF); // 8% 헤어라인
-  static const gold = Color(0xFFE9C46A); // 강조 (랭킹 1위 · 마일스톤 · 인트로 CTA · 프리패스)
-  static const goldTop = Color(0xFFF7E4AE); // 인트로 CTA 그라데이션 위
-  static const mapLine = Color(0x38FFFFFF); // 지도 방사선 22%
-  static const mapWeb = Color(0x1AFFFFFF); // 같은 유형 이웃선 10%
-  static const danger = Color(0xFFEF7A55); // 삭제 · 공유 중단
+  // ── 배경: 보라빛 "심야의 신전" 그라데이션(위→아래) ──
+  // 단색 배경이 필요한 곳(Scaffold.backgroundColor 등)은 bg(중간톤 근사치)를
+  // 쓰고, 지도 메인처럼 그라데이션 전체를 보여줘야 하는 화면은 [bgGradient]를
+  // 사용한다.
+  static const bgTop = Color(0xFF1A0D2E); // TP.bg1
+  static const bgBottom = Color(0xFF0A0716); // TP.bg2
+  static const bg = Color(0xFF120A1F); // 단색 폴백(= bgTop/bgBottom 중간)
+  static const bgGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [bgTop, bgBottom],
+  );
+  static const card = Color(0xFF1C1230); // TP.cardS — 캐릭터 카드 · 카드
+  static const sheet = Color(0xFF170E29); // TP.sheet — 바텀시트 (결제 · 공유)
+  static const tabBar = Color(0xFF0D0819); // 하단 탭바
+  static const fg = Color(0xFFF8F2E6); // TP.fg — 본문 · 밝은 글자
+  static const onFg = Color(0xFF1A0D2E); // TP.ink — 금색 버튼 위 글자
+  static const muted = Color(0x9EE8DCC8); // TP.mut 62%
+  static const dim = Color(0x66E8DCC8); // TP.dim 40%
+  static const line = Color(0x24FFEBC8); // TP.line 14%
+  static const hair = Color(0x14FFEBC8); // TP.hair 8%
+  static const gold = Color(0xFFF5CF6A); // TP.gold — 강조(랭킹·마일스톤·인장)
+  static const goldTop = Color(0xFFFCE7B0); // 그라데이션 상단(밝은 금)
+  static const goldShadow = Color(0x59F5CF6A); // TP.goldSh 35%
+  // 신규: 카카오/주요 CTA 버튼(TpBtn kind='gold') — 금색과는 별개 토큰
+  static const gjPrimary = Color(0xFFFEE500);
+  static const gjOnPrimary = Color(0xFF191600);
+  static const mapLine = Color(0x38FFEBC8); // 지도 방사선
+  static const mapWeb = Color(0x1AFFEBC8); // 같은 유형 이웃선
+  static const danger = Color(0xFFEF7A55); // 삭제 · 공유 중단(= 충돌극복 색과 동일 계열)
+  static const red = Color(0xFFC94A3B); // TP.red — 초대장 박스 포인트
 
   // [2026-12 버그수정 — 귀인지도 공유 화면 공유옵션 대비 문제]
   // `fg`/`muted`는 다크 배경(`bg`/`card`/`sheet`) 전용 글자색으로 설계됐다.
