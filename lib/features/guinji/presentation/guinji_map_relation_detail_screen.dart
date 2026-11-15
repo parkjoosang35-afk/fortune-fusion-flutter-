@@ -847,21 +847,21 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
               onTap: () => setState(() => _pick = _PayPick.freepass),
             ),
             const SizedBox(height: 8),
-            // [2026-12 테스트 제거] ② 福 복주머니로 보기 옵션을 사용자 요청에
-            // 따라 테스트로 숨긴다. `_PayOptionTile`/`onUnlockPouch` 콜백과
-            // 서버 unlock API(`method: 'point'`)는 그대로 남겨 두며, 추후
-            // 되돌릴 수 있도록 이 주석 아래에 원본 위젯을 보존한다.
-            //
-            // _PayOptionTile(
-            //   icon: const _IcoPouch(),
-            //   title: '복주머니로 보기',
-            //   sub: '복주머니로 바로 열어요',
-            //   right: '',
-            //   selected: false,
-            //   disabled: false,
-            //   onTap: widget.onUnlockPouch,
-            // ),
-            // const SizedBox(height: 8),
+            // [2026-12 복원 — 디자인 핸드오프(§05-5·§10·§11) 영구 유지 항목]
+            // ② 福 복주머니로 보기. 핸드오프와 동일하게 누르는 즉시
+            // 해금되는 방식(별도 확정 버튼 없음)이라 `_PayPick` 선택
+            // 상태에는 포함하지 않는다. 가격 숫자는 [2026-12 사용자 지시]에
+            // 따라 계속 숨긴 채 "복주머니로 바로 열어요" 문구만 노출한다.
+            _PayOptionTile(
+              icon: const _IcoPouch(),
+              title: '복주머니로 보기',
+              sub: '복주머니로 바로 열어요',
+              right: '',
+              selected: false,
+              disabled: false,
+              onTap: widget.onUnlockPouch,
+            ),
+            const SizedBox(height: 8),
             // ③ ☾ 광고 보고 무료로 보기.
             _PayOptionTile(
               icon: const _IcoAd(),

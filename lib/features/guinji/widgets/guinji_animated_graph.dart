@@ -210,6 +210,11 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
 class _GuinjiAnimatedRelationGraphState
     extends State<GuinjiAnimatedRelationGraph>
     with TickerProviderStateMixin {
+  // [핸드오프 §05-2·§11·§14 줌 보정] "핀치 1~1.8배"에 맞춘 배율 범위.
+  // 과거 0.6(축소 가능)~2.5(과도한 확대)는 스펙에 없던 임의 값이었다.
+  static const double _minScale = 1.0;
+  static const double _maxScale = 1.8;
+
   final _key = GlobalKey();
   double _scale = 1;
   double _panX = 0, _panY = 0;
@@ -377,6 +382,14 @@ class _GuinjiAnimatedRelationGraphState
     final gestureWrapped = widget.interactive
         ? GestureDetector(
             behavior: HitTestBehavior.opaque,
+            // [핸드오프 §05-2·§11·§14 줌 보정] "더블탭 리셋"을 추가한다.
+            // 더블탭은 onScale 제스처 아레나와 별도로 인식되므로, 핀치/
+            // 드래그 로직과 충돌 없이 함께 둘 수 있다.
+            onDoubleTap: () => setState(() {
+              _scale = 1;
+              _panX = 0;
+              _panY = 0;
+            }),
             onScaleStart: (details) {
               _moved = false;
               final n = _hitTest(details.localFocalPoint);
@@ -392,7 +405,12 @@ class _GuinjiAnimatedRelationGraphState
             onScaleUpdate: (details) {
               if (details.pointerCount >= 2) {
                 setState(() {
-                  _scale = (_pinchStart * details.scale).clamp(0.6, 2.5);
+                  // [핸드오프 §05-2·§11·§14 줌 보정] 배율 범위를 스펙이
+                  // 명시한 "핀치 1~1.8배"로 맞춘다(기존 0.6~2.5배는 폐기).
+                  _scale = (_pinchStart * details.scale).clamp(
+                    _minScale,
+                    _maxScale,
+                  );
                 });
                 return;
               }
@@ -457,15 +475,15 @@ class _GuinjiAnimatedRelationGraphState
                 ),
               ),
             ),
-          if (widget.interactive && widget.showControls)
+          // [핸드오프 §05-2·§11·§14 줌 보정] "확대 중에는 '⌖ 원래 크기'
+          // 버튼"만 요구한다 — 기존 상시 노출 +/-/리셋 3버튼 패널은
+          // 스펙에 없던 임의 UI였으므로, 확대 상태(_scale > 1)에서만
+          // 뜨는 단일 리셋 버튼으로 교체한다.
+          if (widget.interactive && widget.showControls && _scale > 1.0)
             Positioned(
               top: 12,
               right: 12,
-              child: _GmGraphZoomControls(
-                onZoomIn: () =>
-                    setState(() => _scale = (_scale + 0.2).clamp(0.6, 2.5)),
-                onZoomOut: () =>
-                    setState(() => _scale = (_scale - 0.2).clamp(0.6, 2.5)),
+              child: _GmGraphResetButton(
                 onReset: () => setState(() {
                   _scale = 1;
                   _panX = 0;
@@ -490,45 +508,42 @@ class _GuinjiAnimatedRelationGraphState
   }
 }
 
-class _GmGraphZoomControls extends StatelessWidget {
-  const _GmGraphZoomControls({
-    required this.onZoomIn,
-    required this.onZoomOut,
-    required this.onReset,
-  });
+/// [핸드오프 §05-2 "⌖ 원래 크기" 버튼 1:1 이식] 확대 중(scale > 1)에만
+/// 나타나는 단일 리셋 버튼 — 기존 상시 노출 +/-/리셋 3버튼 패널을 대체.
+class _GmGraphResetButton extends StatelessWidget {
+  const _GmGraphResetButton({required this.onReset});
 
-  final VoidCallback onZoomIn, onZoomOut, onReset;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: GmColors.card.withValues(alpha: 0.9),
-        border: Border.all(color: GmColors.line),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          _btn(Icons.add, onZoomIn),
-          const SizedBox(height: 4.0),
-          _btn(Icons.remove, onZoomOut),
-          const SizedBox(height: 4),
-          _btn(Icons.restart_alt, onReset),
-        ],
+    return Material(
+      color: GmColors.card.withValues(alpha: 0.9),
+      shape: const StadiumBorder(side: BorderSide(color: GmColors.line)),
+      child: InkWell(
+        onTap: onReset,
+        customBorder: const StadiumBorder(),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.center_focus_strong, size: 14, color: GmColors.fg),
+              SizedBox(width: 4),
+              Text(
+                '원래 크기',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: GmColors.fg,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
-
-  Widget _btn(IconData i, VoidCallback tap) => InkWell(
-    onTap: tap,
-    borderRadius: BorderRadius.circular(8),
-    child: SizedBox(
-      width: 28,
-      height: 28,
-      child: Icon(i, size: 14, color: GmColors.fg),
-    ),
-  );
 }
 
 class _GmGraphLegend extends StatelessWidget {
