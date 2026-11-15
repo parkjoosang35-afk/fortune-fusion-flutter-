@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/result_text_scale_overlay.dart';
@@ -207,38 +206,32 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                 showControls: false,
                 height: 260,
               ),
-              // [귀인지도 핸드오프 v4 — L5 "지인 결과 맛보기 + 잠금 10장"]
-              // `guinji-loop.jsx`의 `LpTeaser` 1:1 이식. 1장(한눈에 보는 두
-              // 사람)의 실제 문구 앞부분만 높이 제한+그라데이션 페이드로
-              // 보여주고, 2~10장은 제목 + 금색 자물쇠만 나열한다. 이
-              // 화면(비로그인 게스트)은 아직 계정/지도 멤버가 없어
-              // `_handleUnlock`(관계 상세 화면 전용, memberId+인증 필요)을
-              // 그대로 재사용할 수 없으므로, CTA는 README §12-0 루프가
-              // 명시한 다음 단계("설치 → L6 → A7·A8" / "앱 → A6")로 가는
-              // 입구인 [onCreateOwnMap](회원가입/내 지도 만들기 유도)을
-              // 그대로 호출한다 — 절대 원칙(자동 전환 금지)과 동일하게
-              // 게스트가 버튼을 직접 눌렀을 때만 동작한다.
+              // [귀인지도 핸드오프 v4 — L5, 2026-12 광고형 재설계]
+              // `guinji-loop.jsx`의 `LpTeaser` 레이아웃(1장 맛보기 +
+              // 2~10장 제목+자물쇠)은 그대로 가져오되, 문구는 '결제하면
+              // 열린다'는 해금 뉘앙스에서 '내 지도를 만들면 이런 깊은
+              // 풀이를 가질 수 있다'는 광고/유도 뉘앙스로 바꿨다 —
+              // [대표 확인 완료, 2026-12] 이 화면이 보여주는 것은
+              // 호스트-게스트 두 사람의 관계 그 자체이고, 그 관계의
+              // 10장 심층 풀이를 결제해서 볼 권한은 지도 소유자인
+              // 호스트에게만 있다(게스트 본인은 이 관계를 결제할 권한이
+              // 아예 없음 — `guinji_map_relation_detail_screen.dart`의
+              // `_handleUnlock`은 호스트 전용). 따라서 이 위젯은 '잠금
+              // 해제' 기능이 아니라 순수 홍보/미리보기이며, CTA는
+              // 항상 [onCreateOwnMap](자기 지도 만들기, 이 관계와는
+              // 무관한 완전히 새로운 여정)만 호출한다 — 절대 원칙(자동
+              // 전환 금지)과 동일하게 게스트가 버튼을 직접 눌렀을 때만
+              // 동작한다.
               Padding(
                 padding: const EdgeInsets.only(top: 20),
                 child: _GuinjiDeepTeaser(
                   hostName: hostName,
                   meName: centerName,
                   relationKey: relationKey,
-                  onUnlock:
+                  onCreateOwnMap:
                       onCreateOwnMap ??
                       () => Navigator.of(context).pushNamed('/guinji-map'),
                 ),
-              ),
-              const SizedBox(height: 20),
-              // [절대 원칙] 이 버튼은 게스트가 직접 탭했을 때만
-              // onCreateOwnMap을 호출한다. 자동 실행되는 타이머/딜레이는
-              // 존재하지 않는다.
-              GmRoseButton(
-                label: '내 지도 만들기 · 무료',
-                icon: Icons.arrow_forward,
-                onPressed:
-                    onCreateOwnMap ??
-                    () => Navigator.of(context).pushNamed('/guinji-map'),
               ),
               const SizedBox(height: 24),
               const SizedBox(height: 24),
@@ -250,21 +243,29 @@ class GuinjiGuestResultScreen extends StatelessWidget {
   }
 }
 
-/// [귀인지도 핸드오프 v4 — L5] `LpTeaser` 1:1 이식 — 1장 맛보기(실제 문구
-/// 90자 내외, 높이 82 제한 + 하단 60px 그라데이션 페이드) + 2~10장 제목
-/// 목록(블러 처리 + 금색 자물쇠) + 해금 CTA(G-7) + 보조문(G-8).
+/// [귀인지도 핸드오프 v4 — L5, 2026-12 광고형 재설계] `LpTeaser` 레이아웃을
+/// 1:1로 가져오되(1장 맛보기 + 2~10장 제목 목록), 문구를 '결제 해금'이
+/// 아니라 '내 지도를 만들면 이런 깊이의 풀이를 가질 수 있다'는 광고로
+/// 바꿨다. [대표 확인 — 2026-12] 게스트는 이 관계(호스트-게스트)의 10장
+/// 풀이를 결제할 권한 자체가 없다(그건 지도 소유자인 호스트의 몫).
+/// 따라서 이 위젯은 '잠금 해제' 기능이 아니라 순수 홍보/유도용
+/// 미리보기이며, 버튼은 항상 [onCreateOwnMap](자기 지도 만들기, 완전히
+/// 새로운 여정)만 호출한다.
 class _GuinjiDeepTeaser extends StatelessWidget {
   const _GuinjiDeepTeaser({
     required this.hostName,
     required this.meName,
     required this.relationKey,
-    required this.onUnlock,
+    required this.onCreateOwnMap,
   });
 
   final String hostName;
   final String meName;
   final String relationKey;
-  final VoidCallback onUnlock;
+
+  /// "나도 내 지도 만들기" — 게스트가 직접 탭했을 때만 호출된다(자동
+  /// 트리거 금지, 절대 원칙).
+  final VoidCallback onCreateOwnMap;
 
   static const _chapters = [
     '한눈에 보는 두 사람',
@@ -288,7 +289,7 @@ class _GuinjiDeepTeaser extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GmLabelMini('$hostName님과의 자세한 관계 풀이 · 10장'),
+        const GmLabelMini('내 지도를 만들면 이런 풀이를 가질 수 있어요'),
         const SizedBox(height: 10),
         // 1장 맛보기 카드.
         ClipRRect(
@@ -356,7 +357,11 @@ class _GuinjiDeepTeaser extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        // 2~10장 — 제목 + 금색 자물쇠(블러 처리된 제목).
+        // [2026-12 광고형 재설계] 2~10장 — 제목 + 금색 자물쇠. 이
+        // 자물쇠는 "결제하면 열린다"가 아니라 "귀인지도를 만들면 이런
+        // 깊이의 풀이 10장을 가질 수 있다"는 견본(샘플) 표시다 — 실제로
+        // 게스트가 이 10장을 결제해서 여는 경로는 없다(위 클래스 주석
+        // 참고).
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: GmColors.hair),
@@ -413,17 +418,19 @@ class _GuinjiDeepTeaser extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        // G-7 해금 버튼 + G-8 보조문. 이 화면(비로그인 게스트)에는 웹/앱
-        // 구분 없이 동일한 전환 CTA("내 지도 만들기")를 노출한다 —
-        // kIsWeb 분기는 버튼 문구에만 적용(핸드오프 G-7 웹/앱 문구 분기).
+        // [2026-12 광고형 재설계] G-7 자리의 CTA를 "해금" 문구에서
+        // "광고/유도" 문구로 교체했다 — 웹/앱 구분 없이 누르면 이
+        // 관계와는 무관한 "내 지도 만들기" 여정으로 이동한다(아래 빌드
+        // 화면의 중복 '내 지도 만들기 · 무료' 버튼은 이 버튼으로
+        // 흡수되어 제거했다).
         GmRoseButton(
-          label: kIsWeb ? '앱에서 전체 풀이 보기' : '전체 풀이 열기',
-          icon: Icons.menu_book_outlined,
-          onPressed: onUnlock,
+          label: '내 지도 만들기 · 무료',
+          icon: Icons.arrow_forward,
+          onPressed: onCreateOwnMap,
         ),
         const SizedBox(height: 8),
         const Text(
-          '프리패스 · 복주머니 · 광고로 열 수 있어요',
+          '나도 내 지도를 만들면 귀인들과 이런 깊은 풀이를 볼 수 있어요',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 11, color: GmColors.dim),
         ),
