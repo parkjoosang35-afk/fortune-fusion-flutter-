@@ -267,7 +267,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   /// 전송하도록 고쳐졌으므로, 여기서도 플랫폼 분기 없이 항상
   /// [_shareViaLink]만 사용한다. (레거시 [_captureAndShare]는 더 이상
   /// 호출되지 않지만, 과거 코드 경로 회귀 추적을 위해 일단 남겨둔다.)
-  Future<void> _showShareOptions(int guin) async {
+  Future<void> _showShareOptions() async {
     if (_capturing) return;
     await _shareViaLink();
   }
@@ -334,12 +334,38 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   @override
   Widget build(BuildContext context) {
     final people = widget.people;
-    // [V2 전환] 폐기된 12종 코드(JORYEOK/JAGEUKJE) 하드코딩 비교를
-    // V2 6종(SANG_SAENG/SANG_GEUK)으로 교체. 기존 "조력/자극제" 의미에
-    // 가장 가까운 V2 유형으로 매핑했다.
-    final guin = people.where((p) => p.relation == 'CHEON_GWII').length;
-    final oreunpal = people.where((p) => p.relation == 'SANG_SAENG').length;
-    final horang = people.where((p) => p.relation == 'SANG_GEUK').length;
+    // [2026-12 근본 재설계 — "자랑할 수 없는 카드" 버그 수정]
+    // 과거에는 V2 6종 중 CHEON_GWII/SANG_SAENG/SANG_GEUK 딱 3종만
+    // (그마저도 "오른팔"/"호랑이 선생"이라는 이미 폐기된 구 5종 용어로)
+    // 집계해서, 나머지 3종(HAP/BI_HWA/CHUNG)인 사람은 카드에 전혀
+    // 반영되지 않았다 — 그 결과 지도에 사람이 있어도 "귀인 0명"처럼
+    // 보여 공유할수록 오히려 민망한 카드가 됐다(대표 리포트: "이게
+    // 자랑할 수 있는 카드인가? 숫자만 있고 설명이 없다").
+    //
+    // [수정] 이미 앱 전체가 쓰고 있는 3대 카테고리 체계
+    // (guinjiCategoryOrder: 귀인/인연/조율, `guinji_relation_meta.dart`)
+    // 로 6종을 빠짐없이 집계하고, 가장 많은 관계유형 하나를 뽑아
+    // "왜 좋은지" 한 줄 설명을 함께 보여준다 — 숫자만 던지지 않고
+    // 스토리가 있는 카드로 만든다.
+    final total = people.length;
+    final categoryCounts = <String, int>{
+      for (final cat in guinjiCategoryOrder)
+        cat.key: people
+            .where((p) => guinjiRelationMetaOf(p.relation).category == cat.key)
+            .length,
+    };
+    String? dominantKey;
+    var dominantCount = 0;
+    for (final key in guinjiRelationOrder) {
+      final count = people.where((p) => p.relation == key).length;
+      if (count > dominantCount) {
+        dominantCount = count;
+        dominantKey = key;
+      }
+    }
+    final dominantMeta = dominantKey != null
+        ? guinjiRelationMetaOf(dominantKey)
+        : null;
 
     return ResultTextScaleOverlay(
       child: Scaffold(
@@ -373,9 +399,9 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                           key: _cardKey,
                           child: _TheCard(
                             ownerName: widget.ownerName,
-                            guin: guin,
-                            oreunpal: oreunpal,
-                            horang: horang,
+                            total: total,
+                            categoryCounts: categoryCounts,
+                            dominantMeta: dominantMeta,
                           ),
                         ),
                       ),
@@ -397,7 +423,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                             label: _capturing ? '준비하는 중' : '공유하기',
                             onPressed: _capturing
                                 ? () {}
-                                : () => _showShareOptions(guin),
+                                : _showShareOptions,
                           ),
                         ),
                       ],
@@ -474,18 +500,41 @@ class _MonoLabel extends StatelessWidget {
 }
 
 /// 카드 본체 — 240×320(3:4), 회전 마법진 배경 + 통계 + 인용구.
+///
+/// [2026-12 근본 재설계 — "자랑할 수 없는 카드" 버그 수정] 기존에는
+/// V2 6종 중 CHEON_GWII/SANG_SAENG/SANG_GEUK 딱 3종만, 그마저도 이미
+/// 폐기된 구 5종 용어("오른팔"/"호랑이 선생")로 표기했다. 그 결과
+/// ① HAP/BI_HWA/CHUNG 유형 참여자는 카드에 전혀 반영되지 않아 실제로는
+/// 지도에 사람이 있어도 "귀인 0명"처럼 보이고, ② 숫자만 있고 "왜
+/// 좋은 건지" 설명이 전혀 없어 받는 사람이 자랑의 포인트를 알 수
+/// 없었다. 대표 피드백("귀인 2명 카드가... 뭘 자랑하라는거야?")을
+/// 반영해 ① 앱 전체가 이미 쓰고 있는 3대 카테고리 체계(귀인/인연/조율
+/// — `guinjiCategoryOrder`, `guinji_relation_meta.dart`)로 6종을
+/// 빠짐없이 집계하고, ② 가장 많은 관계유형의 한 줄 설명
+/// ([GuinjiRelationMeta.description])을 인용구 자리에 넣어 "그래서
+/// 이게 왜 좋은 지도인지" 바로 보이도록 했다. 비식별 원칙(이름 비공개)
+/// 은 그대로 유지한다.
 class _TheCard extends StatelessWidget {
   const _TheCard({
     required this.ownerName,
-    required this.guin,
-    required this.oreunpal,
-    required this.horang,
+    required this.total,
+    required this.categoryCounts,
+    required this.dominantMeta,
   });
 
   final String ownerName;
-  final int guin;
-  final int oreunpal;
-  final int horang;
+
+  /// 전체 참여자 수 — 히어로 숫자(특정 유형 하나에 의존하지 않으므로
+  /// 사람이 있는 한 0으로 보일 일이 사실상 없다).
+  final int total;
+
+  /// 카테고리 키('boost'/'path'/'care') → 인원수. V2 6종을 빠짐없이
+  /// 3대 카테고리로 집계한 값(guinjiCategoryOrder 순서로 표시).
+  final Map<String, int> categoryCounts;
+
+  /// 가장 인원이 많은 관계유형의 메타 — 카드 하단 인용구를 이 유형의
+  /// 설명으로 채워 "왜 좋은지"를 보여준다. 참여자가 없으면 null.
+  final GuinjiRelationMeta? dominantMeta;
 
   @override
   Widget build(BuildContext context) {
@@ -569,7 +618,7 @@ class _TheCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '귀인 $guin명',
+                  '소중한 인연 $total명',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: GuinjiFonts.display,
@@ -584,7 +633,10 @@ class _TheCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '오른팔 $oreunpal · 호랑이 선생 $horang',
+                  [
+                    for (final cat in guinjiCategoryOrder)
+                      '${cat.title} ${categoryCounts[cat.key] ?? 0}',
+                  ].join(' · '),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: GuinjiFonts.body,
@@ -602,10 +654,12 @@ class _TheCard extends StatelessWidget {
                       bottom: BorderSide(color: GuinjiColors.surfaceCardBorder),
                     ),
                   ),
-                  child: const Text(
-                    '"간절히 원하면,\n온 우주가 도와준다"',
+                  child: Text(
+                    dominantMeta != null
+                        ? '"${dominantMeta!.description}"'
+                        : '"간절히 원하면,\n온 우주가 도와준다"',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: GuinjiFonts.body,
                       fontStyle: FontStyle.italic,
                       fontSize: 10,
