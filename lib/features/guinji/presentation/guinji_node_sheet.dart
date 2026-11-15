@@ -522,31 +522,35 @@ class _PersonHero extends StatelessWidget {
                       ],
                     ),
                     alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          hanja,
-                          style: TextStyle(
-                            fontFamily: GmText.display,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                            color: GmColors.onFg,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            hanja,
+                            style: TextStyle(
+                              fontFamily: GmText.display,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                              color: GmColors.onFg,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          label,
-                          style: const TextStyle(
-                            fontFamily: GmText.ui,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w700,
-                            height: 1,
-                            color: GmColors.onFg,
+                          const SizedBox(height: 3),
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              fontFamily: GmText.ui,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              height: 1,
+                              color: GmColors.onFg,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
