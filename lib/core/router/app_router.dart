@@ -94,10 +94,13 @@ import '../../features/guinji/presentation/guinji_direct_input_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
-// [임시 QA 전용 — v5 핸드오프 이식 검증용] 아래 '/guinji-map/m/qa-preview'
-// 라우트에서 guinjiSamplePeople 목데이터를 사용하기 위한 import.
-// 검증 완료 후 해당 라우트와 함께 제거할 것.
+// [임시 QA 전용 — v5 핸드오프 이식 검증용] 아래 '/guinji-map/m/qa-preview',
+// '/guinji-map/m/qa-node-sheet' 라우트에서 사용하는 import들.
+// 검증 완료 후 해당 라우트들과 함께 제거할 것.
 import '../../features/guinji/domain/guinji_person.dart';
+import '../../features/guinji/domain/guinji_relation_meta.dart';
+import '../../features/guinji/presentation/guinji_node_sheet.dart';
+import '../../features/guinji/theme/guinji_map_theme.dart';
 import '../../features/gunghap/presentation/gunghap_guest_input_screen.dart';
 import '../../features/gunghap/presentation/gunghap_story_screen.dart';
 import '../../features/guinji/navigation/guinji_page_route.dart';
@@ -398,6 +401,34 @@ class AppRouter {
           const GuinjiMapResultScreen(
             ownerName: '하늘',
             people: guinjiSamplePeople,
+          ),
+        );
+      // [임시 QA 전용 — v5 핸드오프 이식 검증용] H5(인물 상세 바텀시트)를
+      // 백엔드/제스처 없이 즉시 열어 디자인 검증용 스크린샷을 찍기 위한
+      // 라우트. 검증 완료 후 위 qa-preview와 함께 제거할 것.
+      case '/guinji-map/m/qa-node-sheet':
+        return _guinjiNamed(
+          '/guinji-map/m/qa-node-sheet',
+          Builder(
+            builder: (context) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final p = guinjiSamplePeople.first;
+                final meta = guinjiRelationMetaOf(p.relation);
+                showGuinjiNodeSheet(
+                  context: context,
+                  name: p.name,
+                  birthLabel: p.birth,
+                  relationKey: p.relation,
+                  score: p.score,
+                  narratorText: '${p.name}님은 ${meta.description}',
+                  evidenceRows: const [],
+                );
+              });
+              return const Scaffold(
+                backgroundColor: GmColors.bgBottom,
+                body: SizedBox.expand(),
+              );
+            },
           ),
         );
       case '/guinji-map/m':
