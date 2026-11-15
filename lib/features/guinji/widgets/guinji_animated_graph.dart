@@ -1,3 +1,16 @@
+// lib/features/guinji/widgets/guinji_animated_graph.dart
+// [2026 디자인 핸드오프 v5 — "심야의 신전" 지도 비주얼 전면 재작성]
+// `design_handoff_guinji_map_v5/design_files/guinji-temple.jsx`의
+// `TpMap`(SVG, 228~394줄)을 Flutter `CustomPainter`로 1:1 변환한다.
+// README §3 지시: "귀인지도 전 화면을 이 디자인으로 100% 교체. 기존
+// 화면의 레이아웃·색·폰트·문구·컴포넌트는 하나도 남기지 않는다. 남기는
+// 것은 로직만"에 따라, 이전(v2/v3) 스타일의 회전 궤도 링·레이더 펄스
+// 비주얼은 완전히 제거하고 v5 고유의 비주얼(오로라 성운·금빛 광선·별
+// 먼지·반짝임·별똥별·한자 인장 범례·육각 궤도 배치)로 교체한다.
+// 유지하는 로직: 배치 알고리즘은 `guinji_layout.dart`의 `tpPlace()` 포팅을
+// 그대로 쓰고, 공개 위젯 API([GuinjiAnimatedRelationGraph] 생성자 파라미터
+// 대부분)와 [parseGuinjiBirthLabel] 유틸은 호출부(여러 화면)가 그대로
+// 참조하므로 보존한다.
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -7,54 +20,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../../../core/zoom/pinch_zoom_exclusion.dart';
 import '../character/guinji_character.dart';
 import '../domain/guinji_person.dart';
-import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import '../theme/guinji_type_spec.dart';
 import 'guinji_layout.dart';
-
-/// [바이럴 페이지 개편 — 2026] `/guinji-map/m`(M·My Map)의 관계 그래프에
-/// 쓰던 애니메이션 로직을 공용 위젯으로 추출했다. M화면(pan/zoom/drag
-/// 인터랙티브)과 게스트 결과 화면(Y·비인터랙티브, 호스트+게스트 2노드
-/// 미니 지도)이 동일한 시각 언어(회전 궤도 링·레이더 펄스·호흡하는
-/// 노드·에너지 흐름·등장 애니메이션)를 공유하도록 한다.
-///
-/// [바이럴 흐름 — "메인귀인지도 기능이 다 나온다"] 사용자가 요구한 핵심은
-/// 초대 링크로 들어온 게스트가 생년월일을 입력하면, 회원가입한 본계정
-/// 사용자가 보는 "내 귀인지도"(M화면)와 동일한 애니메이션 지도 경험을
-/// 그 자리에서(로그인 없이) 보게 하는 것이다. 이 위젯을 양쪽에서 공유하는
-/// 것이 그 요구의 기술적 구현이다.
-class GuinjiGraphNode {
-  GuinjiGraphNode({
-    required this.x,
-    required this.y,
-    required this.r,
-    required this.color,
-    required this.person,
-    required this.labelTop,
-    this.facePath,
-  });
-
-  double x, y, r;
-  final Color color;
-  final GuinjiPerson person;
-
-  /// handoff `n.side === 'top'` — true면 이름표가 노드 위쪽(노드가 지도
-  /// 하반부에 있을 때), false면 아래쪽.
-  final bool labelTop;
-
-  /// 캐릭터 얼굴 에셋 경로(`assets/images/guinji/chars/*_face.jpg`).
-  /// 생년월일을 파싱할 수 없으면 null — 폴백(색상 원+이니셜)으로 렌더.
-  final String? facePath;
-}
-
-/// 지도 배치 결과 — 노드 목록 + 실제 중심 좌표(핸드오프 `GJ.layout()`의
-/// `cx,cy`와 동일한 공식으로 계산됨, size.width/2·height/2와는 padT/padB
-/// 만큼 미세하게 다를 수 있어 별도로 전달한다).
-class GuinjiGraphLayoutResult {
-  GuinjiGraphLayoutResult(this.nodes, this.center);
-  final List<GuinjiGraphNode> nodes;
-  final Offset center;
-}
 
 /// "YYYY·MM·DD" 형식의 [GuinjiPerson.birth] 문자열을 [DateTime]으로
 /// 변환한다. 파싱할 수 없으면 null(캐릭터 사진 없이 폴백 렌더).
@@ -72,29 +40,37 @@ DateTime? parseGuinjiBirthLabel(String label) {
   }
 }
 
-/// [people]을 핸드오프 원본 `GJ.layout()`(`guinji_layout.dart`
-/// `computeGuinjiLayout`)과 동일한 알고리즘으로 배치한다: ①각도는
-/// 관계유형별 부채꼴(천생귀인 12시부터 시계방향) ②거리는 점수(높을수록
-/// 중심 가까이) ③중심에서 뻗는 직선이라 교차 불가 ④라벨은 위/아래 노드
-/// 측면 자동 배정 ⑤노드·라벨·중앙·경계 충돌을 2D로 밀어내기(최대 400회).
-GuinjiGraphLayoutResult layoutGuinjiGraphNodes(
-  List<GuinjiPerson> people,
-  Size size,
-) {
-  if (people.isEmpty || size.width <= 0 || size.height <= 0) {
-    return GuinjiGraphLayoutResult(
-      const [],
-      Offset(size.width / 2, size.height / 2),
-    );
-  }
+/// v5 `tpPlace()` 결과 1명분 + 렌더링에 필요한 파생 정보(색·얼굴 경로).
+/// x,y는 드래그(제스처)로 즉석에서 바뀔 수 있어 mutable.
+class GuinjiTpRenderNode {
+  GuinjiTpRenderNode({
+    required this.person,
+    required this.type,
+    required this.score,
+    required this.x,
+    required this.y,
+    required this.color,
+    this.facePath,
+  });
+
+  final GuinjiPerson person;
+  final String type;
+  final int score;
+  double x, y; // 캔버스 좌표계(390×520) 기준.
+  final Color color;
+  final String? facePath;
+}
+
+List<GuinjiTpRenderNode> _buildRenderNodes(List<GuinjiPerson> people) {
+  if (people.isEmpty) return const [];
   final nodeIns = people
       .map((p) => GuinjiNodeIn(p.id, p.name, p.relation, p.score))
       .toList();
-  final layout = computeGuinjiLayout(nodeIns, size);
+  final placement = computeGuinjiTpPlacement(nodeIns);
   final byId = {for (final p in people) p.id: p};
-  final nodes = layout.nodes.map((n) {
-    final p = byId[n.m.id]!;
-    final meta = guinjiRelationMetaOf(p.relation);
+  return placement.nodes.map((n) {
+    final p = byId[n.id]!;
+    final spec = guinjiTypeOf(n.type);
     final birth = parseGuinjiBirthLabel(p.birth);
     final facePath = birth == null
         ? null
@@ -103,55 +79,20 @@ GuinjiGraphLayoutResult layoutGuinjiGraphNodes(
             gender: GuinjiCharacter.fromKey(p.gender),
             stableKey: p.id,
           ).face;
-    return GuinjiGraphNode(
+    return GuinjiTpRenderNode(
+      person: p,
+      type: n.type,
+      score: n.score,
       x: n.x,
       y: n.y,
-      r: layout.d.nodeD / 2,
-      color: meta.color,
-      person: p,
-      labelTop: n.labelTop,
+      color: spec.color,
       facePath: facePath,
     );
   }).toList();
-  return GuinjiGraphLayoutResult(nodes, layout.center);
 }
 
-/// 배경 반짝임용 별 하나의 사양(위치는 컨테이너 크기에 대한 0~1 비율).
-class GuinjiGraphStarSpec {
-  GuinjiGraphStarSpec({
-    required this.dx,
-    required this.dy,
-    required this.phase,
-    required this.speed,
-    required this.maxOpacity,
-    required this.radius,
-    required this.gold,
-  });
-
-  final double dx, dy, phase, speed, maxOpacity, radius;
-  final bool gold;
-}
-
-List<GuinjiGraphStarSpec> generateGuinjiGraphStars({
-  int count = 18,
-  int seed = 7,
-}) {
-  final rnd = math.Random(seed);
-  return List.generate(count, (i) {
-    return GuinjiGraphStarSpec(
-      dx: rnd.nextDouble(),
-      dy: rnd.nextDouble(),
-      phase: rnd.nextDouble() * math.pi * 2,
-      speed: 0.6 + rnd.nextDouble() * 1.2,
-      maxOpacity: 0.25 + rnd.nextDouble() * 0.35,
-      radius: 0.8 + rnd.nextDouble() * 1.4,
-      gold: i.isEven,
-    );
-  });
-}
-
-/// 애니메이션 관계 그래프 — 화려하고 정교한 움직임을 가진 귀인지도의
-/// 핵심 비주얼. [interactive]가 true면 pan(빈 공간 드래그)/zoom(pinch)/
+/// 애니메이션 관계 그래프 — v5 "심야의 신전" 귀인 마법진(`TpMap`)의
+/// Flutter 이식. [interactive]가 true면 pan(빈 공간 드래그)/zoom(pinch)/
 /// drag(노드 이동)/tap(노드 선택)을 지원하고(M화면용), false면 순수
 /// 감상용 애니메이션만 재생한다(게스트 결과 화면 등 미니 프리뷰용).
 class GuinjiAnimatedRelationGraph extends StatefulWidget {
@@ -162,20 +103,22 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
     this.centerSubtitle = '',
     this.ownerFacePath,
     this.onSelect,
+    this.onTypeTap,
+    this.onEmptySlotTap,
     this.interactive = true,
     this.showControls = true,
-    this.showLegend = true,
-    this.height = 500, // [사용자 피드백 — 지도를 더 크게] 기본 380 → 500
+    this.height = 500,
     this.emptyHint,
     this.filter,
   });
 
   final List<GuinjiPerson> people;
 
-  /// 중앙 노드 위쪽 굵은 텍스트(예: "지민님", 게스트 화면에선 호스트 이름).
+  /// [v5] 중앙 "나" 노드는 항상 소유자 얼굴 고정이므로 중앙 타이틀/서브
+  /// 타이틀은 지도 위가 아니라 호출부 헤더에서 이미 보여준다. 다만 기존
+  /// 호출부가 여전히 넘겨주는 값이라 파라미터는 유지한다(현재 지도
+  /// 렌더링에는 사용하지 않음 — v5 TpMap은 중앙에 "나" 캡슐만 표시).
   final String centerTitle;
-
-  /// 중앙 노드 아래쪽 보조 텍스트(예: "나").
   final String centerSubtitle;
 
   /// 입력 화면에서 선택된 소유자의 얼굴. 참여자 얼굴과 분리한다.
@@ -183,23 +126,27 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
 
   final void Function(GuinjiPerson person)? onSelect;
 
+  /// [v5 `onSeat`/`setFilter` 이식] 바깥 한자 인장(관계유형 범례)을 탭했을
+  /// 때 호출된다. 인원이 있는 유형이면 "그 유형만 강조 필터 토글", 없는
+  /// 유형이면 "그 유형으로 추가하기" 의미로 호출부가 해석해 처리한다.
+  final void Function(String type)? onTypeTap;
+
+  /// [v5 `onSlot` 이식] 빈 자리 별(엄마/절친/연인 등)을 탭했을 때 호출.
+  final void Function(GuinjiTpSlot slot)? onEmptySlotTap;
+
   /// pan/zoom/drag/tap 제스처 활성화 여부.
   final bool interactive;
 
-  /// 우측 상단 확대/축소/리셋 컨트롤 표시 여부.
+  /// 우측 상단 "원래 크기" 리셋 컨트롤 표시 여부(확대 중에만 노출).
   final bool showControls;
-
-  /// 좌측 하단 범례(카테고리 색상) 표시 여부.
-  final bool showLegend;
 
   final double height;
 
-  /// people이 빈 배열일 때 중앙에 표시할 안내 문구. null이면 표시하지 않음.
+  /// people이 빈 배열일 때 중앙 아래에 표시할 안내 문구. null이면 표시 안 함.
   final String? emptyHint;
 
-  /// [핸드오프 `CMain` filter 상태 이식] 관계 유형(6종 키) 하나를 지정하면
-  /// 해당 유형의 노드/방사선만 강조하고, 나머지는 흐리게 처리한다. null이면
-  /// 필터 없음(전체 표시). 외부(M화면의 유형 칩)에서 제어한다.
+  /// [v5 `filter` 상태 이식] 관계 유형(6종 키) 하나를 지정하면 해당
+  /// 유형의 노드/방사선/오로라만 강조하고, 나머지는 흐리게 처리한다.
   final String? filter;
 
   @override
@@ -210,8 +157,6 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
 class _GuinjiAnimatedRelationGraphState
     extends State<GuinjiAnimatedRelationGraph>
     with TickerProviderStateMixin {
-  // [핸드오프 §05-2·§11·§14 줌 보정] "핀치 1~1.8배"에 맞춘 배율 범위.
-  // 과거 0.6(축소 가능)~2.5(과도한 확대)는 스펙에 없던 임의 값이었다.
   static const double _minScale = 1.0;
   static const double _maxScale = 1.8;
 
@@ -219,34 +164,32 @@ class _GuinjiAnimatedRelationGraphState
   double _scale = 1;
   double _panX = 0, _panY = 0;
   double _pinchStart = 1;
-  final _nodes = <GuinjiGraphNode>[];
-  Offset _center = Offset.zero;
-  GuinjiGraphNode? _dragging;
+  List<GuinjiTpRenderNode> _nodes = const [];
+  GuinjiPerson? _dragging;
   bool _panning = false;
   bool _moved = false;
   int _lastNodeCount = -1;
 
-  /// [핸드오프 `sel` 상태 이식] 탭으로 선택된 노드 — 드래그 종료 후에도
-  /// 유지되어(onSelect 콜백이 N·Sheet을 띄우고 닫혀도) 방사선/링 강조가
-  /// 계속 표시된다. 다시 탭하면 토글(선택 해제).
+  /// 캔버스(390×520) → 실제 위젯 픽셀 변환 스케일/오프셋. [_rebuildLayout]에서
+  /// RenderBox 크기가 바뀔 때마다 다시 계산한다(히트테스트에 필요).
+  double _fitScale = 1;
+  double _fitDy = 0;
+
   GuinjiPerson? _selected;
 
-  /// 연속 "시계" — 12초 주기로 0→1 반복. 링 회전/펄스/호흡/에너지 흐름이
-  /// 모두 이 값에서 서로 다른 배속으로 파생된다.
+  /// 0→1로 무한 반복되는 긴 주기(1시간) 컨트롤러 — `elapsedSeconds =
+  /// value * period`로 모든 배경 애니메이션(오로라·광선·먼지·반짝임·
+  /// 별똥별·호흡·펄스)의 위상을 파생한다. v5가 CSS `animation-duration`별로
+  /// 각자 다른 주기를 쓰는 것과 동일하게, Painter가 `elapsedSeconds`를
+  /// 받아 레이어마다 다른 주기로 나눠 쓴다.
+  static const double _timePeriodSeconds = 3600;
   late final AnimationController _timeController;
 
   /// 최초 진입(혹은 인원 수 변화) 시 한 번 재생되는 등장(entrance) 애니메이션.
   late final AnimationController _entranceController;
 
-  late final List<GuinjiGraphStarSpec> _starSpecs;
-
-  /// [핸드오프 `Face` 이식 — 사진 노드] 캐릭터 얼굴 jpg를 미리 디코드해
-  /// 캐시한다(CustomPainter는 동기 렌더만 가능하므로, 로드 완료 후
-  /// setState로 다시 그린다). 키 = facePath.
   final Map<String, ui.Image> _faceImageCache = {};
   final Set<String> _faceLoading = {};
-
-  /// 소유자("나") 얼굴 캐시 — 데모 고정 ID.
   ui.Image? _ownerFaceImage;
 
   @override
@@ -254,15 +197,17 @@ class _GuinjiAnimatedRelationGraphState
     super.initState();
     _timeController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 12),
+      duration: const Duration(seconds: 3600),
     )..repeat();
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _starSpecs = generateGuinjiGraphStars();
     WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildLayout());
-    _loadFaceImage(_ownerFaceAsset(fallback: 'assets/images/guinji/chars/f30_face.jpg'), isOwner: true);
+    _loadFaceImage(
+      _ownerFaceAsset(fallback: 'assets/images/guinji/chars/f30_face.jpg'),
+      isOwner: true,
+    );
   }
 
   @override
@@ -271,7 +216,10 @@ class _GuinjiAnimatedRelationGraphState
     _rebuildLayout();
     if (oldWidget.ownerFacePath != widget.ownerFacePath) {
       _ownerFaceImage = null;
-      _loadFaceImage(_ownerFaceAsset(fallback: 'assets/images/guinji/chars/f30_face.jpg'), isOwner: true);
+      _loadFaceImage(
+        _ownerFaceAsset(fallback: 'assets/images/guinji/chars/f30_face.jpg'),
+        isOwner: true,
+      );
     }
   }
 
@@ -284,13 +232,13 @@ class _GuinjiAnimatedRelationGraphState
 
   void _rebuildLayout() {
     final box = _key.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
+    if (box == null || !box.hasSize) return;
     final size = box.size;
-    final result = layoutGuinjiGraphNodes(widget.people, size);
-    _nodes
-      ..clear()
-      ..addAll(result.nodes);
-    _center = result.center;
+    if (size.width <= 0 || size.height <= 0) return;
+    _fitScale = size.width / tpCanvasWidth;
+    _fitDy = (size.height - tpCanvasHeight * _fitScale) / 2;
+    final nodes = _buildRenderNodes(widget.people);
+    _nodes = nodes;
     if (_nodes.isNotEmpty && _nodes.length != _lastNodeCount) {
       _lastNodeCount = _nodes.length;
       _entranceController.forward(from: 0);
@@ -302,11 +250,7 @@ class _GuinjiAnimatedRelationGraphState
     if (mounted) setState(() {});
   }
 
-  /// [핸드오프 `Face` 이식] 에셋 jpg를 [ui.Image]로 비동기 디코드해
-  /// 캐시한다. 이미 캐시되었거나 로딩 중이면 중복 로드하지 않는다.
   String _ownerFaceAsset({required String fallback}) {
-    // 소유자는 people에 포함되지 않는다. 입력 화면의 얼굴 경로를 사용한다.
-    // 아직 저장된 소유자 얼굴이 없는 이전 지도만 기본 얼굴을 사용한다.
     return widget.ownerFacePath ?? fallback;
   }
 
@@ -328,19 +272,55 @@ class _GuinjiAnimatedRelationGraphState
         if (isOwner) _ownerFaceImage = frame.image;
       });
     } catch (_) {
-      // 에셋이 없으면 폴백(색상 원+이니셜) 렌더로 자연스럽게 이어진다.
+      // 에셋이 없으면 폴백(유형색 원+이니셜) 렌더로 자연스럽게 이어진다.
     } finally {
       _faceLoading.remove(assetPath);
     }
   }
 
-  GuinjiGraphNode? _hitTest(Offset local) {
-    final tx = (local.dx - _panX) / _scale;
-    final ty = (local.dy - _panY) / _scale;
+  /// 위젯 로컬 좌표(픽셀) → 캔버스 좌표계(390×520)로 역변환.
+  Offset _toCanvasSpace(Offset local) {
+    final fx = (local.dx - _panX) / _scale;
+    final fy = (local.dy - _panY) / _scale;
+    return Offset((fx) / _fitScale, (fy - _fitDy) / _fitScale);
+  }
+
+  GuinjiTpRenderNode? _hitTestNode(Offset local) {
+    final c = _toCanvasSpace(local);
+    final density = GuinjiTpDensity.of(widget.people.length);
+    final r = density.nr;
     for (final n in _nodes.reversed) {
-      final dx = tx - n.x;
-      final dy = ty - n.y;
-      if (dx * dx + dy * dy <= n.r * n.r * 1.4) return n;
+      final dx = c.dx - n.x;
+      final dy = c.dy - n.y;
+      if (dx * dx + dy * dy <= r * r * 1.6) return n;
+    }
+    return null;
+  }
+
+  /// 바깥 유형 한자 인장(범례) 히트테스트 — v5 `lx,ly` 좌표 반경 18px
+  /// (캔버스 좌표계) 안을 탭하면 해당 유형으로 판정한다.
+  String? _hitTestTypeLegend(Offset local) {
+    final c = _toCanvasSpace(local);
+    for (var k = 0; k < guinjiTypeOrder.length; k++) {
+      final (lx, ly) = tpTypeLegendPos(k);
+      final dx = c.dx - lx, dy = c.dy - ly;
+      if (dx * dx + dy * dy <= 18 * 18) return guinjiTypeOrder[k];
+    }
+    return null;
+  }
+
+  GuinjiTpSlot? _hitTestEmptySlot(Offset local) {
+    final c = _toCanvasSpace(local);
+    final filled = widget.people.map((p) => p.name).toSet();
+    final slots = guinjiTpSlots
+        .where((s) => !filled.contains(s.label))
+        .take(math.max(0, tpSlotTotal - widget.people.length));
+    for (final s in slots) {
+      final a = tpRad(s.angleDeg);
+      final x = tpCenterX + math.cos(a) * (62 + s.k * 76);
+      final y = tpCenterY + math.sin(a) * (78 + s.k * 118);
+      final dx = c.dx - x, dy = c.dy - y;
+      if (dx * dx + dy * dy <= 22 * 22) return s;
     }
     return null;
   }
@@ -349,24 +329,20 @@ class _GuinjiAnimatedRelationGraphState
   Widget build(BuildContext context) {
     final content = CustomPaint(
       key: _key,
-      painter: null,
       child: SizedBox.expand(
         child: AnimatedBuilder(
           animation: Listenable.merge([_timeController, _entranceController]),
           builder: (context, _) {
             return CustomPaint(
-              painter: GuinjiGraphPainter(
+              painter: GuinjiTempleMapPainter(
                 nodes: _nodes,
-                center: _center,
-                centerTitle: widget.centerTitle,
-                centerSubtitle: widget.centerSubtitle,
+                people: widget.people,
                 scale: _scale,
                 panX: _panX,
                 panY: _panY,
-                time: _timeController.value,
+                elapsedSeconds: _timeController.value * _timePeriodSeconds,
                 entrance: _entranceController.value,
-                draggingPerson: _dragging?.person,
-                stars: _starSpecs,
+                draggingPerson: _dragging,
                 faceImages: _faceImageCache,
                 ownerFaceImage: _ownerFaceImage,
                 selectedPerson: _selected,
@@ -382,9 +358,6 @@ class _GuinjiAnimatedRelationGraphState
     final gestureWrapped = widget.interactive
         ? GestureDetector(
             behavior: HitTestBehavior.opaque,
-            // [핸드오프 §05-2·§11·§14 줌 보정] "더블탭 리셋"을 추가한다.
-            // 더블탭은 onScale 제스처 아레나와 별도로 인식되므로, 핀치/
-            // 드래그 로직과 충돌 없이 함께 둘 수 있다.
             onDoubleTap: () => setState(() {
               _scale = 1;
               _panX = 0;
@@ -392,9 +365,9 @@ class _GuinjiAnimatedRelationGraphState
             }),
             onScaleStart: (details) {
               _moved = false;
-              final n = _hitTest(details.localFocalPoint);
+              final n = _hitTestNode(details.localFocalPoint);
               if (n != null) {
-                _dragging = n;
+                _dragging = n.person;
                 _panning = false;
               } else {
                 _panning = true;
@@ -405,8 +378,6 @@ class _GuinjiAnimatedRelationGraphState
             onScaleUpdate: (details) {
               if (details.pointerCount >= 2) {
                 setState(() {
-                  // [핸드오프 §05-2·§11·§14 줌 보정] 배율 범위를 스펙이
-                  // 명시한 "핀치 1~1.8배"로 맞춘다(기존 0.6~2.5배는 폐기).
                   _scale = (_pinchStart * details.scale).clamp(
                     _minScale,
                     _maxScale,
@@ -417,8 +388,15 @@ class _GuinjiAnimatedRelationGraphState
               if (details.focalPointDelta.distance > 3) _moved = true;
               setState(() {
                 if (_dragging != null) {
-                  _dragging!.x += details.focalPointDelta.dx / _scale;
-                  _dragging!.y += details.focalPointDelta.dy / _scale;
+                  final node = _nodes
+                      .where((n) => n.person == _dragging)
+                      .cast<GuinjiTpRenderNode?>()
+                      .firstWhere((_) => true, orElse: () => null);
+                  if (node != null) {
+                    final denom = _scale * _fitScale;
+                    node.x += details.focalPointDelta.dx / denom;
+                    node.y += details.focalPointDelta.dy / denom;
+                  }
                 } else if (_panning) {
                   _panX += details.focalPointDelta.dx;
                   _panY += details.focalPointDelta.dy;
@@ -427,23 +405,31 @@ class _GuinjiAnimatedRelationGraphState
             },
             onScaleEnd: (details) {
               if (_dragging != null && !_moved) {
-                final tapped = _dragging!.person;
+                final tapped = _dragging!;
                 setState(() {
                   _selected = _selected == tapped ? null : tapped;
                 });
                 widget.onSelect?.call(tapped);
+              } else if (_dragging == null && !_moved && !_panning) {
+                // no-op: 아래 onTapUp 전용 레이어가 범례/슬롯을 처리.
               }
               _dragging = null;
               _panning = false;
+            },
+            onTapUp: (details) {
+              if (_moved) return;
+              final type = _hitTestTypeLegend(details.localPosition);
+              if (type != null) {
+                widget.onTypeTap?.call(type);
+                return;
+              }
+              final slot = _hitTestEmptySlot(details.localPosition);
+              if (slot != null) widget.onEmptySlotTap?.call(slot);
             },
             child: content,
           )
         : IgnorePointer(child: content);
 
-    // [v5 "심야의 신전" 핸드오프] `TpMap`은 좌우 여백 없이 화면 전체 폭을
-    // 차지하며(`margin: '0 -20px'`), 둥근 테두리 카드가 아니라 배경
-    // 그라데이션(오로라 성운) 위에 바로 떠 있는 지도다. 기존 박스 카드
-    // 스타일(테두리·radius·좌우 margin)을 제거해 v5와 동일하게 맞춘다.
     final container = SizedBox(
       height: widget.height,
       width: double.infinity,
@@ -455,12 +441,9 @@ class _GuinjiAnimatedRelationGraphState
             ),
           ),
           Positioned.fill(child: gestureWrapped),
-          // [핸드오프 `CEmpty` 이식] 6슬롯 점선 방사형 비주얼은
-          // [GuinjiGraphPainter]가 캔버스 위에 직접 그린다(위 CustomPaint).
-          // 여기서는 그 아래(하단)에 안내 문구만 겹치지 않게 배치한다.
           if (widget.people.isEmpty && widget.emptyHint != null)
             Align(
-              alignment: const Alignment(0, 0.72),
+              alignment: const Alignment(0, 0.78),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
@@ -474,10 +457,6 @@ class _GuinjiAnimatedRelationGraphState
                 ),
               ),
             ),
-          // [핸드오프 §05-2·§11·§14 줌 보정] "확대 중에는 '⌖ 원래 크기'
-          // 버튼"만 요구한다 — 기존 상시 노출 +/-/리셋 3버튼 패널은
-          // 스펙에 없던 임의 UI였으므로, 확대 상태(_scale > 1)에서만
-          // 뜨는 단일 리셋 버튼으로 교체한다.
           if (widget.interactive && widget.showControls && _scale > 1.0)
             Positioned(
               top: 12,
@@ -490,25 +469,16 @@ class _GuinjiAnimatedRelationGraphState
                 }),
               ),
             ),
-          if (widget.showLegend)
-            const Positioned(left: 12, bottom: 12, child: _GmGraphLegend()),
         ],
       ),
     );
 
-    // [신통방통 전역 핀치 확대 시스템 — 제외 구역] interactive=true일
-    // 때만 이 위젯 자체가 이미 "2손가락 핀치 = 지도 확대/이동"이라는
-    // 독자적인 의미를 갖고 실좌표를 바꾼다(노드가 계속 탭 가능한 상태로
-    // 남아야 한다). 전역 엔진(화면 스크린샷 확대)이 그 위에 겹치면 같은
-    // 제스처가 이중으로 해석돼 둘 다 어색해지므로 제외한다. interactive=
-    // false(게스트 미니 프리뷰 등 순수 감상용)는 자체 핀치 로직이 없는
-    // 정적 비주얼이라 전역 엔진이 그대로 적용되어도 무방하다.
     return widget.interactive ? PinchZoomDisabled(child: container) : container;
   }
 }
 
-/// [핸드오프 §05-2 "⌖ 원래 크기" 버튼 1:1 이식] 확대 중(scale > 1)에만
-/// 나타나는 단일 리셋 버튼 — 기존 상시 노출 +/-/리셋 3버튼 패널을 대체.
+/// [v5 §05-2 "⌖ 원래 크기" 버튼 1:1 이식] 확대 중(scale > 1)에만 나타나는
+/// 단일 리셋 버튼.
 class _GmGraphResetButton extends StatelessWidget {
   const _GmGraphResetButton({required this.onReset});
 
@@ -545,84 +515,73 @@ class _GmGraphResetButton extends StatelessWidget {
   }
 }
 
-class _GmGraphLegend extends StatelessWidget {
-  const _GmGraphLegend();
+/// 배경 레이어(오로라·광선·먼지·반짝임·별똥별) 각 장식 하나의 고정
+/// 사양. 매 프레임 재계산하지 않도록 painter 밖(top-level 캐시)에서
+/// 한 번만 생성한다(v5 `tpM(() => ..., [])`와 동일한 "최초 1회 계산" 의도).
+class _TpDustSpec {
+  const _TpDustSpec(this.x, this.y, this.r, this.duration, this.delay);
+  final double x, y, r, duration, delay;
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: GmColors.card.withValues(alpha: 0.9),
-        border: Border.all(color: GmColors.line),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '거리 = 관계 거리',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: GmColors.muted,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              for (final cat in guinjiCategoryOrder) ...[
-                _swatch(_categoryColor(cat.key), cat.title),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+class _TpSparkSpec {
+  const _TpSparkSpec(this.x, this.y, this.r, this.duration, this.delay, this.color);
+  final double x, y, r, duration, delay;
+  final Color color;
+}
 
-  Widget _swatch(Color c, String label) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-      ),
-      const SizedBox(width: 4),
-      Text(label, style: const TextStyle(fontSize: 10, color: GmColors.fg)),
-    ],
+final List<_TpDustSpec> _tpDust = List.generate(26, (i) {
+  return _TpDustSpec(
+    (i * 53 + 17) % tpCanvasWidth.toInt().toDouble(),
+    (i * 97 + 31) % tpCanvasHeight.toInt().toDouble(),
+    .6 + (i % 3) * .5,
+    6 + (i % 5) * 1.6,
+    (i % 7) * .9,
   );
-}
+});
 
-/// 카테고리(boost/path/care) 대표 색상 — 해당 카테고리에 속한 첫 관계
-/// 유형의 색을 그대로 사용한다(V2 6종, 2종씩 묶음).
-Color _categoryColor(String category) {
-  final keys = guinjiRelationKeysByCategory[category];
-  if (keys == null || keys.isEmpty) return GmColors.gold;
-  return guinjiRelationMetaOf(keys.first).color;
-}
+const List<Color> _tpSparkColors = [
+  Color(0xFFFFF6D8),
+  Color(0xFFF5CF6A),
+  Color(0xFFD9B8FF),
+  Color(0xFFFFD1E0),
+];
+
+final List<_TpSparkSpec> _tpSparks = List.generate(16, (i) {
+  return _TpSparkSpec(
+    (i * 71 + 23) % tpCanvasWidth.toInt().toDouble(),
+    (i * 113 + 41) % tpCanvasHeight.toInt().toDouble(),
+    1 + (i % 3) * .6,
+    2.4 + (i % 5) * .7,
+    (i % 8) * .5,
+    _tpSparkColors[i % 4],
+  );
+});
+
+/// v5 고정 3개 별똥별 좌표(`[[x,y,delay], ...]`, 283줄).
+const List<List<double>> _tpMeteors = [
+  [330, 40, 0],
+  [380, 150, 3.5],
+  [250, 10, 7],
+];
 
 /// [GuinjiAnimatedRelationGraph]의 실제 렌더링을 담당하는 CustomPainter.
 ///
-/// [핸드오프 `CleanMap` 1:1 이식] 중심에서 뻗는 방사선(흰색 22%) + 같은
-/// 유형끼리의 이웃 연결선(그물망, 흰색 10%) + 사진 노드(원형 얼굴, 선택
-/// 시 유형색 링+글로우+1.12배 확대) + 이름+한자/유형 라벨(노드 위/아래
-/// 자동 배정) 위에, 기존에 만들어둔 회전 궤도 링·레이더 펄스·호흡·에너지
-/// 흐름 애니메이션을 그대로 겹쳐 그린다(핸드오프에는 없는 추가 생동감).
-class GuinjiGraphPainter extends CustomPainter {
-  GuinjiGraphPainter({
+/// v5 `TpMap`(SVG) 레이어를 순서대로 1:1 재현한다:
+/// 1) 유형별 오로라 성운(회전·확대 호흡) 2) 중심에서 퍼지는 금빛 광선
+/// (90초 1회전) 3) 금빛 먼지 + 반짝이는 십자 플레어 4) 별똥별 5) 바깥
+/// 유형 한자 인장 범례(필터 겸용) 6) 중앙 코어 글로우+플레어 7) 중심→
+/// 노드 연결선(유형색·점수 기반 굵기·흐르는 에너지 입자) 8) 인물 노드
+/// (원형 얼굴+유형색 헤일로+호흡+플로팅+라벨) 9) 빈 자리 별(8명 미만일
+/// 때) 10) 중앙 "나" 노드(점선 회전 링+펄스+골드 캡슐).
+class GuinjiTempleMapPainter extends CustomPainter {
+  GuinjiTempleMapPainter({
     required this.nodes,
-    required this.center,
-    required this.centerTitle,
-    required this.centerSubtitle,
+    required this.people,
     required this.scale,
     required this.panX,
     required this.panY,
-    required this.time,
+    required this.elapsedSeconds,
     required this.entrance,
-    required this.stars,
     required this.faceImages,
     this.ownerFaceImage,
     this.draggingPerson,
@@ -630,327 +589,495 @@ class GuinjiGraphPainter extends CustomPainter {
     this.filter,
   });
 
-  final List<GuinjiGraphNode> nodes;
-
-  /// 레이아웃이 계산한 실제 중심 좌표(핸드오프 `GJ.layout()`의 cx,cy).
-  final Offset center;
-  final String centerTitle;
-  final String centerSubtitle;
+  final List<GuinjiTpRenderNode> nodes;
+  final List<GuinjiPerson> people;
   final double scale, panX, panY;
 
-  /// 0→1 무한 반복되는 시계값(12초 주기).
-  final double time;
+  /// `AnimationController.value * period` — 계속 증가하는 경과 초.
+  final double elapsedSeconds;
 
   /// 0(등장 시작)→1(완전히 배치 완료) 등장 진행도.
   final double entrance;
 
-  final List<GuinjiGraphStarSpec> stars;
-
-  /// facePath → 디코드된 이미지 캐시(공유 — 매 프레임 재디코드하지 않음).
   final Map<String, ui.Image> faceImages;
-
-  /// "나" 중앙 노드 얼굴(없으면 골드 원+이니셜 폴백).
   final ui.Image? ownerFaceImage;
-
-  /// 현재 드래그 중인 노드 — breathing/float을 잠시 멈춘다.
   final GuinjiPerson? draggingPerson;
-
-  /// 현재 선택된 노드(탭/드래그로 선택) — 핸드오프 `sel` 상태와 동일하게
-  /// 링+글로우+확대 및 방사선 강조 처리.
   final GuinjiPerson? selectedPerson;
-
-  /// [핸드오프 `filter` 상태 이식] 특정 관계유형 키만 강조(`off(n)` 로직:
-  /// 선택 또는 필터와 무관한 노드는 opacity 0.28로 흐리게 처리).
   final String? filter;
 
   static const _twoPi = math.pi * 2;
 
-  /// 핸드오프 `off(n)` — 선택된 노드가 있는데 이 노드가 아니거나, 필터가
-  /// 지정됐는데 이 노드 유형이 아니면 흐리게 처리해야 함.
-  bool _isOff(GuinjiGraphNode n) {
+  bool _isOff(GuinjiTpRenderNode n) {
     if (selectedPerson != null && selectedPerson != n.person) return true;
-    if (filter != null && filter != n.person.relation) return true;
+    if (filter != null && filter != n.type) return true;
     return false;
+  }
+
+  double _entranceForNode(int index, int total) {
+    if (total == 0) return entrance;
+    final stagger = total <= 1 ? 0.0 : (index / total) * 0.4;
+    final local = ((entrance - stagger) / (1 - 0.4)).clamp(0.0, 1.0);
+    return Curves.easeOutCubic.transform(local);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    // ── 배경 별빛 반짝임(팬/줌 영향을 받지 않도록 canvas 변환 전에 그린다) ──
-    for (final s in stars) {
-      final tw = (math.sin(time * _twoPi * s.speed + s.phase) + 1) / 2;
-      final opacity = 0.15 + tw * s.maxOpacity;
-      canvas.drawCircle(
-        Offset(s.dx * size.width, s.dy * size.height),
-        s.radius * (0.6 + tw * 0.4),
-        Paint()
-          ..color = (s.gold ? GmColors.gold : GmColors.fg).withValues(
-            alpha: opacity,
-          ),
-      );
-    }
+    final fitScale = size.width / tpCanvasWidth;
+    final fitDy = (size.height - tpCanvasHeight * fitScale) / 2;
 
     canvas.save();
     canvas.translate(panX, panY);
     canvas.scale(scale);
+    canvas.translate(0, fitDy);
+    canvas.scale(fitScale);
 
-    final cx = center.dx;
-    final cy = center.dy;
-
-    // ── 중앙 광량(핸드오프: radial-gradient 흰색 9% → 투명, 반경 130) ──
-    canvas.drawCircle(
-      Offset(cx, cy),
-      130,
-      Paint()
-        ..shader = ui.Gradient.radial(Offset(cx, cy), 130, [
-          Colors.white.withValues(alpha: 0.09),
-          Colors.white.withValues(alpha: 0),
-        ]),
+    const cx = tpCenterX, cy = tpCenterY;
+    final many = people.length > 12;
+    final counts = guinjiTpCounts(
+      people.map((p) => GuinjiNodeIn(p.id, p.name, p.relation, p.score)).toList(),
     );
 
-    // ── 회전하는 궤도 링(반지름별로 속도를 달리해 정교함을 살린다) ──
-    final ringBase = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    _dashed(
-      canvas,
-      Offset(cx, cy),
-      80,
-      ringBase..color = GmColors.line,
-      rotation: time * _twoPi * 0.5,
-    );
-    _dashed(
-      canvas,
-      Offset(cx, cy),
-      140,
-      ringBase..color = GmColors.line,
-      rotation: -time * _twoPi * 0.32,
-    );
-    _dashed(
-      canvas,
-      Offset(cx, cy),
-      200,
-      ringBase..color = GmColors.hair,
-      rotation: time * _twoPi * 0.2,
+    _paintAurora(canvas, counts);
+    _paintGoldenRays(canvas);
+    _paintDustAndSparks(canvas);
+    _paintMeteors(canvas);
+    _paintTypeLegend(canvas, counts);
+    _paintCenterCore(canvas);
+    _paintConnections(canvas, cx, cy, many);
+    _paintOwnerBack(canvas, cx, cy);
+    _paintPersonNodes(canvas, many);
+    _paintEmptySlots(canvas, cx, cy);
+    _paintOwnerFront(canvas, cx, cy);
+
+    canvas.restore();
+  }
+
+  // ── 1. 유형별 오로라 성운 (258~266줄) ──────────────────────────
+  void _paintAurora(Canvas canvas, Map<String, int> counts) {
+    const cx = tpCenterX, cy = tpCenterY;
+    // 중앙 보라 성운 바탕(`tp-neb`).
+    final nebPaint = Paint()
+      ..shader = ui.Gradient.radial(const Offset(cx, cy), 190, [
+        const Color(0xFF7A3FC0).withValues(alpha: .34),
+        const Color(0xFF4A2380).withValues(alpha: .12),
+        const Color(0xFF2A1050).withValues(alpha: 0),
+      ], [0, 0.6, 1])
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18)
+      ..blendMode = BlendMode.screen;
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(cx, cy), width: 380, height: 500),
+      nebPaint,
     );
 
-    // ── 중심에서 퍼져나가는 레이더 펄스(radar ping) ──
-    for (int i = 0; i < 2; i++) {
-      final t = ((time + i * 0.5) % 1.0);
-      final pulseRadius = 20 + t * 190;
-      final pulseOpacity = (1 - t) * 0.35;
-      if (pulseOpacity > 0.01) {
+    for (var k = 0; k < guinjiTypeOrder.length; k++) {
+      final t = guinjiTypeOrder[k];
+      final n = counts[t] ?? 0;
+      if (n == 0) continue;
+      final a = tpRad(k * 60 - 90.0);
+      final ax = cx + math.cos(a) * 112, ay = cy + math.sin(a) * 158;
+      final spec = guinjiTypeOf(t);
+      final on = filter == t;
+      final opacity = filter != null && !on ? .05 : (on ? .5 : .26);
+      final period = 7 + k;
+      final delay = k * .6;
+      final breathe =
+          1 + 0.09 * (1 + math.sin((elapsedSeconds - delay) / period * _twoPi)) / 2 * 1.3;
+      final rx = (52 + math.min(n, 6) * 6) * breathe;
+      final ry = (70 + math.min(n, 6) * 8) * breathe;
+      final rot = k * 60 * math.pi / 180 +
+          math.sin((elapsedSeconds - delay) / period * _twoPi) * .1;
+      canvas.save();
+      canvas.translate(ax, ay);
+      canvas.rotate(rot);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset.zero, width: rx * 2, height: ry * 2),
+        Paint()
+          ..color = spec.color.withValues(alpha: opacity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16)
+          ..blendMode = BlendMode.screen,
+      );
+      canvas.restore();
+    }
+  }
+
+  // ── 2. 중심에서 퍼지는 금빛 광선 (267~273줄) ───────────────────
+  void _paintGoldenRays(Canvas canvas) {
+    const cx = tpCenterX, cy = tpCenterY;
+    final spin = (elapsedSeconds / 90) * _twoPi;
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.rotate(spin);
+    canvas.translate(-cx, -cy);
+    for (var i = 0; i < 16; i++) {
+      final a = tpRad(i * 22.5);
+      final len = i.isOdd ? 150.0 : 230.0;
+      final w = i.isOdd ? 4.0 : 7.0;
+      final px = -math.sin(a) * w, py = math.cos(a) * w;
+      final tipX = cx + math.cos(a) * len, tipY = cy + math.sin(a) * len * 1.15;
+      final period = 3 + (i % 4);
+      final delay = i * .25;
+      final tw = (1 + math.sin((elapsedSeconds - delay) / period * _twoPi)) / 2;
+      final baseOpacity = i.isOdd ? .35 : .55;
+      final opacity = baseOpacity * (0.2 + tw * 0.5) / 0.7;
+      final path = Path()
+        ..moveTo(cx + px, cy + py)
+        ..lineTo(cx - px, cy - py)
+        ..lineTo(tipX, tipY)
+        ..close();
+      canvas.drawPath(
+        path,
+        Paint()
+          ..shader = ui.Gradient.linear(
+            Offset(cx, cy),
+            Offset(tipX, tipY),
+            [
+              const Color(0xFFFFE9A8).withValues(alpha: .55),
+              const Color(0xFFFFE9A8).withValues(alpha: 0),
+            ],
+          )
+          ..color = Color.fromRGBO(255, 233, 168, opacity.clamp(0.0, 1.0))
+          ..blendMode = BlendMode.screen,
+      );
+    }
+    canvas.restore();
+  }
+
+  // ── 3. 금빛 먼지 + 반짝이는 십자 플레어 (274~281줄) ────────────
+  void _paintDustAndSparks(Canvas canvas) {
+    for (var i = 0; i < _tpDust.length; i++) {
+      final s = _tpDust[i];
+      final t = (((elapsedSeconds - s.delay) % s.duration) / s.duration).clamp(
+        0.0,
+        1.0,
+      );
+      double opacity;
+      if (t < 0.3) {
+        opacity = (t / 0.3) * .7;
+      } else if (t < 0.7) {
+        opacity = .7 - (t - 0.3) / 0.4 * .2;
+      } else {
+        opacity = .5 * (1 - (t - 0.7) / 0.3);
+      }
+      final dy = -30 * t;
+      canvas.drawCircle(
+        Offset(s.x, s.y + dy),
+        s.r,
+        Paint()
+          ..color = (i % 4 == 0 ? GmColors.gold : Colors.white)
+              .withValues(alpha: opacity.clamp(0.0, 1.0)),
+      );
+    }
+    for (final s in _tpSparks) {
+      final phase = ((elapsedSeconds - s.delay) % s.duration) / s.duration;
+      final swing = math.sin(phase * _twoPi);
+      final scalePulse = (0.2 + (swing + 1) / 2 * 0.8).clamp(0.0, 1.0);
+      final opacity = ((swing + 1) / 2).clamp(0.0, 1.0);
+      final rot = phase * math.pi / 4 + math.pi / 4;
+      canvas.save();
+      canvas.translate(s.x, s.y);
+      canvas.rotate(rot);
+      canvas.scale(scalePulse <= 0 ? 0.01 : scalePulse);
+      final path = Path()
+        ..moveTo(0, -s.r * 4)
+        ..lineTo(s.r * .5, 0)
+        ..lineTo(0, s.r * 4)
+        ..lineTo(-s.r * .5, 0)
+        ..close()
+        ..moveTo(-s.r * 4, 0)
+        ..lineTo(0, s.r * .5)
+        ..lineTo(s.r * 4, 0)
+        ..lineTo(0, -s.r * .5)
+        ..close();
+      canvas.drawPath(path, Paint()..color = s.color.withValues(alpha: opacity));
+      canvas.drawCircle(Offset.zero, s.r * .8, Paint()..color = Colors.white.withValues(alpha: opacity));
+      canvas.restore();
+    }
+  }
+
+  // ── 4. 별똥별 (282~284줄) ───────────────────────────────────
+  void _paintMeteors(Canvas canvas) {
+    for (final m in _tpMeteors) {
+      final x = m[0], y = m[1], delay = m[2];
+      const dur = 9.0;
+      final t = ((elapsedSeconds - delay) % dur) / dur;
+      double opacity = 0;
+      if (t < 0.02) {
+        opacity = t / 0.02;
+      } else if (t < 0.10) {
+        opacity = 1 - (t - 0.02) / 0.08;
+      }
+      if (opacity <= 0) continue;
+      final progress = (t / 0.10).clamp(0.0, 1.0);
+      final sx = x - 260 * (t < 0.10 ? progress : 1);
+      final sy = y + 125 * (t < 0.10 ? progress : 1);
+      canvas.drawLine(
+        Offset(sx, sy),
+        Offset(sx + 46, sy - 22),
+        Paint()
+          ..color = Colors.white.withValues(alpha: opacity.clamp(0.0, 1.0))
+          ..strokeWidth = 1.4
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+  }
+
+  // ── 바깥 유형 호 + 라벨 (= 범례 겸 필터, 286~298줄) ────────────
+  void _paintTypeLegend(Canvas canvas, Map<String, int> counts) {
+    for (var k = 0; k < guinjiTypeOrder.length; k++) {
+      final t = guinjiTypeOrder[k];
+      final spec = guinjiTypeOf(t);
+      final on = filter == t;
+      final lit = (counts[t] ?? 0) > 0;
+      final (lx, ly) = tpTypeLegendPos(k);
+      final groupOpacity = filter != null && !on ? .3 : 1.0;
+
+      canvas.save();
+      canvas.translate(lx, ly);
+      canvas.rotate(-4 * math.pi / 180);
+      final rrect = RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-12, -12, 24, 24),
+        const Radius.circular(6),
+      );
+      if (on) {
+        canvas.drawRRect(rrect, Paint()..color = spec.color.withValues(alpha: groupOpacity));
+      } else if (lit) {
+        canvas.drawRRect(
+          rrect,
+          Paint()..color = const Color(0xFF1D1130).withValues(alpha: groupOpacity),
+        );
+      }
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3
+          ..color = spec.color.withValues(alpha: (lit ? 1.0 : .35) * groupOpacity),
+      );
+      canvas.restore();
+
+      _paintTextCentered(
+        canvas,
+        Offset(lx, ly + .5),
+        spec.hanja,
+        13,
+        (on ? GmColors.onFg : spec.color).withValues(
+          alpha: (lit ? 1.0 : .5) * groupOpacity,
+        ),
+        weight: FontWeight.w900,
+        fontFamily: GmText.display,
+      );
+      if (lit) {
+        final bx = lx + 11, by = ly - 11;
         canvas.drawCircle(
-          Offset(cx, cy),
-          pulseRadius,
+          Offset(bx, by),
+          7,
+          Paint()..color = spec.color.withValues(alpha: groupOpacity),
+        );
+        canvas.drawCircle(
+          Offset(bx, by),
+          7,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.4
-            ..color = GmColors.gold.withValues(alpha: pulseOpacity),
+            ..strokeWidth = 1.5
+            ..color = const Color(0xFF120A22).withValues(alpha: groupOpacity),
         );
-      }
-    }
-
-    // ── [핸드오프 `CEmpty` 이식] 지인이 한 명도 없을 때, 6개의 점선
-    // 슬롯("＋")을 중심에서 방사형으로 배치해 "앞으로 채워질 자리"임을
-    // 보여준다. 원본 좌표(CW=390 기준 `cx+cos(a)*125, cy+sin(a)*135`,
-    // 각도 `-90°+i*60°+0.2rad`)를 현재 캔버스 폭 비율로 스케일링한다.
-    if (nodes.isEmpty) {
-      final emptyScale = (size.width / 390.0).clamp(0.6, 1.4);
-      final dashedPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = Colors.white.withValues(alpha: 0.22);
-      for (int i = 0; i < 6; i++) {
-        final angle = -math.pi / 2 + i * math.pi / 3 + 0.2;
-        final sx = cx + math.cos(angle) * 125 * emptyScale;
-        final sy = cy + math.sin(angle) * 135 * emptyScale;
-        _dashedLine(
+        _paintTextCentered(
           canvas,
-          Offset(cx, cy),
-          Offset(sx, sy),
-          Paint()
-            ..strokeWidth = 1
-            ..color = Colors.white.withValues(alpha: 0.12),
-        );
-        _dashed(canvas, Offset(sx, sy), 23 * emptyScale, dashedPaint);
-        _text(
-          canvas,
-          Offset(sx, sy),
-          '+',
-          15 * emptyScale,
-          GmColors.dim,
-          weight: FontWeight.w400,
+          Offset(bx, by + .5),
+          '${counts[t] ?? 0}',
+          8,
+          GmColors.onFg.withValues(alpha: groupOpacity),
+          weight: FontWeight.w800,
         );
       }
+      _paintTextCentered(
+        canvas,
+        Offset(lx, ly + 22),
+        spec.short,
+        9.5,
+        (on ? spec.color : GmColors.muted).withValues(
+          alpha: (lit ? 1.0 : .45) * groupOpacity,
+        ),
+        weight: FontWeight.w700,
+      );
     }
+  }
 
-    // ── [핸드오프 `webs`] 같은 유형끼리 정렬 순서로 인접한 노드를 연결하는
-    // 그물망(흰색 10%, 선택/필터 중엔 무관한 쪽 0.04로 더 흐리게) ──
-    for (final t in guinjiTypeOrder) {
-      final group = nodes.where((n) => n.person.relation == t).toList();
-      for (var i = 0; i < group.length - 1; i++) {
-        final a = group[i], b = group[i + 1];
-        final ae = _entranceForNode(a, entrance);
-        final be = _entranceForNode(b, entrance);
-        if (ae < 0.98 || be < 0.98) continue;
-        final dimmed =
-            (selectedPerson != null || filter != null) &&
-            !((selectedPerson != null &&
-                    (selectedPerson == a.person ||
-                        selectedPerson == b.person)) ||
-                filter == t);
-        canvas.drawLine(
-          Offset(a.x, a.y),
-          Offset(b.x, b.y),
-          Paint()
-            ..color = Colors.white.withValues(alpha: dimmed ? 0.04 : 0.1)
-            ..strokeWidth = 1,
-        );
-      }
-    }
+  // ── 중앙 코어 (300~305줄) ────────────────────────────────────
+  void _paintCenterCore(Canvas canvas) {
+    const cx = tpCenterX, cy = tpCenterY;
+    final breathe = 1 + math.sin(elapsedSeconds / 4 * _twoPi) * 0.06;
+    canvas.drawCircle(
+      const Offset(cx, cy),
+      96 * breathe,
+      Paint()
+        ..shader = ui.Gradient.radial(const Offset(cx, cy), 96 * breathe, [
+          GmColors.gold.withValues(alpha: .5),
+          GmColors.gold.withValues(alpha: .12),
+          GmColors.gold.withValues(alpha: 0),
+        ], [0, 0.4, 1]),
+    );
+    final flareBreathe = 1 + math.sin(elapsedSeconds / 3 * _twoPi) * 0.12;
+    final flarePaint = Paint()
+      ..color = Colors.white.withValues(alpha: .18 * flareBreathe)
+      ..blendMode = BlendMode.screen;
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(cx, cy), width: 240 * flareBreathe, height: 4.4),
+      flarePaint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(cx, cy), width: 4.4, height: 300 * flareBreathe),
+      flarePaint,
+    );
+    canvas.drawCircle(
+      const Offset(cx, cy),
+      54 * flareBreathe * .7,
+      Paint()
+        ..shader = ui.Gradient.radial(const Offset(cx, cy), 54 * flareBreathe, [
+          const Color(0xFFFFF6D8).withValues(alpha: .63),
+          GmColors.gold.withValues(alpha: .3),
+          GmColors.gold.withValues(alpha: 0),
+        ], [0, 0.25, 1]),
+    );
+  }
 
-    // ── 중심→노드 방사선(핸드오프: 흰색 22%, 선택/필터 시 유형색 강조,
-    // 무관한 노드는 0.05로 흐리게) + 흐르는 에너지 입자 ──
-    for (final n in nodes) {
-      final nodeEntrance = _entranceForNode(n, entrance);
+  // ── 연결선 (307~324줄) ───────────────────────────────────────
+  void _paintConnections(Canvas canvas, double cx, double cy, bool many) {
+    const ownerR = tpOwnerRadius;
+    final density = GuinjiTpDensity.of(people.length);
+    for (var i = 0; i < nodes.length; i++) {
+      final n = nodes[i];
+      final nodeEntrance = _entranceForNode(i, nodes.length);
+      final spec = guinjiTypeOf(n.type);
+      final isSel = selectedPerson == n.person;
+      final dim = (filter != null && filter != n.type) ||
+          (selectedPerson != null && !isSel);
+
       final ex = cx + (n.x - cx) * nodeEntrance;
       final ey = cy + (n.y - cy) * nodeEntrance;
-      final isSelected = selectedPerson == n.person;
-      final isFiltered = filter != null && filter == n.person.relation;
-      final off = _isOff(n);
-      final lineAlpha = isSelected
-          ? 0.9
-          : isFiltered
-          ? 0.6
-          : off
-          ? 0.05
-          : 0.22;
-      canvas.drawLine(
-        Offset(cx, cy),
-        Offset(ex, ey),
-        Paint()
-          ..color = (isSelected || isFiltered ? n.color : Colors.white)
-              .withValues(alpha: lineAlpha * nodeEntrance)
-          ..strokeWidth = isSelected ? 2 : 1,
-      );
-      if (nodeEntrance > 0.98 && !off) {
-        for (int k = 0; k < 2; k++) {
-          final flow = ((time * (0.7 + k * 0.15)) + k * 0.5) % 1.0;
-          final fx = cx + (n.x - cx) * flow;
-          final fy = cy + (n.y - cy) * flow;
-          final fade = math.sin(flow * math.pi);
+      final dx = ex - cx, dy = ey - cy;
+      final len = math.sqrt(dx * dx + dy * dy).clamp(0.001, double.infinity);
+      final ux = dx / len, uy = dy / len;
+      final x1 = cx + ux * (ownerR + 3), y1 = cy + uy * (ownerR + 3);
+      final x2 = ex - ux * (density.nr + 2), y2 = ey - uy * (density.nr + 2);
+      final w = (many ? .7 : 1.0) + (n.score / 100) * (many ? 1.0 : 1.6);
+      final opacity = dim ? .1 : 1.0;
+
+      if (isSel) {
+        canvas.drawLine(
+          Offset(x1, y1),
+          Offset(x2, y2),
+          Paint()
+            ..color = spec.color.withValues(alpha: .45 * opacity)
+            ..strokeWidth = w + 7
+            ..strokeCap = StrokeCap.round
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5),
+        );
+      }
+      final linePaint = Paint()
+        ..color = spec.color.withValues(
+          alpha: (isSel ? 1.0 : many ? .5 : .75) * opacity,
+        )
+        ..strokeWidth = isSel ? w + 1.2 : w
+        ..strokeCap = StrokeCap.round;
+      if (spec.dash != null) {
+        _drawDashedLine(
+          canvas,
+          Offset(x1, y1),
+          Offset(x2, y2),
+          linePaint,
+          spec.dash!.map((v) => v * .55).toList(),
+        );
+      } else {
+        canvas.drawLine(Offset(x1, y1), Offset(x2, y2), linePaint);
+      }
+
+      final flow = isSel || (!many && selectedPerson == null);
+      if (flow && nodeEntrance > 0.98 && !dim) {
+        final dur = isSel ? 1.0 : 2.6 - n.score / 100;
+        for (var k = 0; k < 2; k++) {
+          final t = ((elapsedSeconds + k * dur / 2) % dur) / dur;
+          final fx = x2 + (x1 - x2) * t;
+          final fy = y2 + (y1 - y2) * t;
+          final fade = math.sin(t * math.pi);
           canvas.drawCircle(
             Offset(fx, fy),
-            2.2,
-            Paint()..color = n.color.withValues(alpha: 0.75 * fade),
+            isSel ? 2.6 : 1.7,
+            Paint()..color = const Color(0xFFFFF8E6).withValues(alpha: fade.clamp(0.0, 1.0)),
           );
         }
       }
     }
+  }
 
-    // ── 중앙 노드("나"): 사진(있으면) + 은은한 호흡(scale) + 오라 ──
-    final ownerBreath = 1 + math.sin(time * _twoPi * 0.5) * 0.035;
-    const ownerR = 34.0;
-    canvas.drawCircle(
-      Offset(cx, cy),
-      (ownerR + 6) * ownerBreath,
-      Paint()..color = GmColors.gold.withValues(alpha: 0.14),
-    );
-    if (ownerFaceImage != null) {
-      _drawFaceImage(
-        canvas,
-        ownerFaceImage!,
-        Offset(cx, cy),
-        ownerR * ownerBreath,
-        1.0,
-        ringColor: Colors.white.withValues(alpha: 0.7),
-      );
-    } else {
-      canvas.drawCircle(
-        Offset(cx, cy),
-        ownerR * ownerBreath,
-        Paint()..color = GmColors.card,
-      );
-    }
-    _text(
-      canvas,
-      Offset(cx, cy + ownerR * ownerBreath + 16),
-      centerTitle,
-      11,
-      GmColors.fg,
-      weight: FontWeight.w600,
-    );
-    if (centerSubtitle.isNotEmpty) {
-      _text(
-        canvas,
-        Offset(cx, cy + ownerR * ownerBreath + 30),
-        centerSubtitle,
-        9,
-        GmColors.muted,
-      );
-    }
-
-    // ── 인물 노드: 등장(scale+fade) + 호흡 + 미세 플로팅 + 사진 + 라벨 ──
-    for (final n in nodes) {
-      final nodeEntrance = _entranceForNode(n, entrance);
+  // ── 인물 노드 (326~344줄) ────────────────────────────────────
+  void _paintPersonNodes(Canvas canvas, bool many) {
+    final density = GuinjiTpDensity.of(people.length);
+    final nr = density.nr;
+    for (var i = 0; i < nodes.length; i++) {
+      final n = nodes[i];
+      final nodeEntrance = _entranceForNode(i, nodes.length);
       if (nodeEntrance <= 0.001) continue;
       final isDragging = draggingPerson == n.person;
-      final isSelected = selectedPerson == n.person;
-      final seedOffset = n.person.name.hashCode % 1000 / 1000.0;
-      final breathe = isDragging
-          ? 1.0
-          : 1 + math.sin(time * _twoPi * 0.7 + seedOffset * _twoPi) * 0.06;
+      final isSel = selectedPerson == n.person;
+      final off = _isOff(n);
+      final seed = n.person.name.hashCode % 1000 / 1000.0;
       final floatY = isDragging
           ? 0.0
-          : math.sin(time * _twoPi * 0.45 + seedOffset * _twoPi) * 2.5;
-      final ox = n.x;
-      final oy = n.y + floatY;
-      final selScale = isSelected ? 1.12 : 1.0;
-      final r = n.r * breathe * selScale * nodeEntrance.clamp(0.0, 1.0);
-      // [핸드오프 off(n)] 선택/필터와 무관한 노드는 투명도 0.28로 흐리게.
-      final offAlpha = _isOff(n) ? 0.28 : 1.0;
-      final alpha = nodeEntrance.clamp(0.0, 1.0) * offAlpha;
-      final faceImage = n.facePath != null ? faceImages[n.facePath] : null;
+          : math.sin(elapsedSeconds / (4 + (i % 3)) * _twoPi + seed * _twoPi) * 2.5;
+      final ox = cx(n), oy = cy(n) + floatY;
+      final selR = isSel ? nr + 3 : nr;
+      final r = selR * nodeEntrance.clamp(0.0, 1.0);
+      final alpha = nodeEntrance.clamp(0.0, 1.0) * (off ? .22 : 1.0);
 
-      if (isSelected) {
+      // 등장 링 울림(ripple) — 처음 한 번만, entrance 초입 구간에서만 표시.
+      if (nodeEntrance < 0.65 && nodeEntrance > 0.02) {
+        final rippleT = (nodeEntrance / 0.65).clamp(0.0, 1.0);
+        canvas.drawCircle(
+          Offset(ox, oy),
+          (nr + 5) * (1 + rippleT * 1.3),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.3
+            ..color = n.color.withValues(alpha: (1 - rippleT) * .8),
+        );
+      }
+
+      if (isSel) {
         canvas.drawCircle(
           Offset(ox, oy),
           r + 10,
           Paint()..color = n.color.withValues(alpha: 0.26 * alpha),
         );
-      }
-
-      if (faceImage != null) {
-        _drawFaceImage(
-          canvas,
-          faceImage,
-          Offset(ox, oy),
-          r,
-          alpha,
-          ringColor: (isSelected
-              ? n.color
-              : Colors.white.withValues(alpha: 0.18)),
-          ringWidth: isSelected ? 1.5 : 1,
-        );
-      } else {
-        // 폴백: 핸드오프 사진 에셋이 아직 없을 때 — 유형색 원 + 이니셜.
+        final pulseT = (elapsedSeconds % 1.4) / 1.4;
         canvas.drawCircle(
           Offset(ox, oy),
-          r,
-          Paint()..color = n.color.withValues(alpha: alpha),
-        );
-        canvas.drawCircle(
-          Offset(ox, oy),
-          r,
+          (r + 5) * (1 + pulseT * .9),
           Paint()
-            ..color = Colors.white.withValues(
-              alpha: alpha * (isSelected ? 1 : 0.5),
-            )
             ..style = PaintingStyle.stroke
-            ..strokeWidth = isSelected ? 1.5 : 1,
+            ..strokeWidth = 1.4
+            ..color = n.color.withValues(alpha: (1 - pulseT) * .6),
         );
+      }
+      // 유형색 헤일로(글로우).
+      canvas.drawCircle(
+        Offset(ox, oy),
+        r * 1.9,
+        Paint()
+          ..shader = ui.Gradient.radial(Offset(ox, oy), r * 1.9, [
+            n.color.withValues(alpha: .7 * alpha),
+            n.color.withValues(alpha: 0),
+          ])
+          ..color = n.color.withValues(alpha: (isSel ? 1.0 : .5) * alpha),
+      );
+
+      final faceImage = n.facePath != null ? faceImages[n.facePath] : null;
+      if (faceImage != null && r > 0) {
+        _drawFaceImage(canvas, faceImage, Offset(ox, oy), r, alpha);
+      } else {
+        canvas.drawCircle(Offset(ox, oy), r, Paint()..color = const Color(0xFF2A1D40).withValues(alpha: alpha));
         if (alpha > 0.5 && n.person.name.isNotEmpty) {
-          _text(
+          _paintTextCentered(
             canvas,
             Offset(ox, oy),
             n.person.name.substring(0, 1),
@@ -960,155 +1087,317 @@ class GuinjiGraphPainter extends CustomPainter {
           );
         }
       }
+      canvas.drawCircle(
+        Offset(ox, oy),
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = isSel ? 2.4 : 1.6
+          ..color = n.color.withValues(alpha: alpha),
+      );
 
-      if (alpha > 0.6) {
-        final spec = guinjiTypeOf(n.person.relation);
-        final labelY = n.labelTop ? oy - r - 8 : oy + r + 8;
-        final nameY = n.labelTop ? labelY - 14 : labelY + 7;
-        final typeY = n.labelTop ? labelY : labelY + 21;
-        _text(
-          canvas,
-          Offset(ox, nameY),
-          n.person.name,
-          11,
-          (isSelected ? GmColors.fg : const Color(0xC7F2F0EC)).withValues(
-            alpha: alpha,
+      if (alpha > 0.55) {
+        final labelY = oy + r + density.fs + 1;
+        final nameSpan = TextSpan(
+          text: n.person.name,
+          style: TextStyle(
+            fontSize: density.fs,
+            fontWeight: FontWeight.w700,
+            fontFamily: GmText.ui,
+            color: (isSel ? n.color : GmColors.fg).withValues(alpha: alpha),
           ),
-          weight: FontWeight.w600,
+          children: (isSel || !many)
+              ? [
+                  TextSpan(
+                    text: ' ${n.score}',
+                    style: TextStyle(
+                      fontFamily: GmText.mono,
+                      fontSize: density.fs - .5,
+                      color: n.color.withValues(alpha: alpha),
+                    ),
+                  ),
+                ]
+              : null,
         );
-        _text(
-          canvas,
-          Offset(ox, typeY),
-          '${spec.hanja} ${spec.short}',
-          9.5,
-          n.color.withValues(alpha: alpha * 0.92),
-          weight: FontWeight.w600,
-        );
+        _paintOutlinedRichText(canvas, Offset(ox, labelY), nameSpan);
       }
     }
-
-    canvas.restore();
   }
 
-  /// [핸드오프 `Face` 이식] 원형으로 클리핑한 캐릭터 얼굴 이미지를 그린다.
-  /// 테두리(ring)와 중심 좌표 기준 글로우를 함께 처리한다.
-  void _drawFaceImage(
-    Canvas canvas,
-    ui.Image image,
-    Offset o,
-    double r,
-    double alpha, {
-    Color? ringColor,
-    double ringWidth = 1,
-  }) {
+  double cx(GuinjiTpRenderNode n) => n.x;
+  double cy(GuinjiTpRenderNode n) => n.y;
+
+  // ── 빈 자리 별 (369~379줄) ───────────────────────────────────
+  void _paintEmptySlots(Canvas canvas, double cx, double cy) {
+    final filled = people.map((p) => p.name).toSet();
+    final slots = guinjiTpSlots
+        .where((s) => !filled.contains(s.label))
+        .take(math.max(0, tpSlotTotal - people.length))
+        .toList();
+    for (var i = 0; i < slots.length; i++) {
+      final s = slots[i];
+      final a = tpRad(s.angleDeg);
+      final x = cx + math.cos(a) * (62 + s.k * 76);
+      final y = cy + math.sin(a) * (78 + s.k * 118);
+      final fadeIn = (entrance).clamp(0.0, 1.0);
+      if (fadeIn <= 0.01) continue;
+
+      _drawDashedLine(
+        canvas,
+        Offset(cx + math.cos(a) * 36, cy + math.sin(a) * 36),
+        Offset(x - math.cos(a) * 18, y - math.sin(a) * 18),
+        Paint()
+          ..color = GmColors.gold.withValues(alpha: .22 * fadeIn)
+          ..strokeWidth = .8,
+        const [2, 4],
+      );
+      final pulseT = ((elapsedSeconds + i * .35) % 2.8) / 2.8;
+      canvas.drawCircle(
+        Offset(x, y),
+        13 * (1 + pulseT * 1.2),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = .8
+          ..color = GmColors.gold.withValues(alpha: (1 - pulseT) * .6 * fadeIn),
+      );
+      final seatT = (0.5 + 0.5 * math.sin((elapsedSeconds + i * .3) / 2.4 * _twoPi));
+      canvas.drawCircle(
+        Offset(x, y),
+        13,
+        Paint()..color = const Color(0xFF1A0D2E).withValues(alpha: .75 * fadeIn),
+      );
+      _drawDashedCircle(
+        canvas,
+        Offset(x, y),
+        13,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = GmColors.gold.withValues(alpha: (.5 + seatT * .5) * fadeIn),
+      );
+      _paintTextCentered(
+        canvas,
+        Offset(x, y + .5),
+        '+',
+        14,
+        const Color(0xFFFFE9A8).withValues(alpha: fadeIn),
+        weight: FontWeight.w600,
+      );
+      _paintOutlinedRichText(
+        canvas,
+        Offset(x, y + 26),
+        TextSpan(
+          text: s.label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            fontFamily: GmText.body,
+            color: GmColors.muted.withValues(alpha: fadeIn),
+          ),
+        ),
+      );
+    }
+  }
+
+  // ── 나(소유자) 노드 배경(링류) — 인물보다 먼저, 341~344 사이 느낌으로
+  // 사람 노드보다는 먼저 그려 사람 노드가 위에 오지 않게(실제 v5는 나
+  // 노드가 가장 마지막 — 381~391줄)에 맞춰, 배경 장식 링만 먼저 그리고
+  // 얼굴은 [_paintOwnerFront]에서 맨 위에 그린다.
+  void _paintOwnerBack(Canvas canvas, double cx, double cy) {
+    const r = tpOwnerRadius;
+    final burstT = (elapsedSeconds % 1.2) / 1.2;
+    if (burstT < 0.98) {
+      canvas.drawCircle(
+        Offset(cx, cy),
+        (r + 2) + burstT * (r + 2) * 4,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(.5, 6 * (1 - burstT))
+          ..color = GmColors.gold.withValues(alpha: 1 - burstT),
+      );
+    }
+  }
+
+  void _paintOwnerFront(Canvas canvas, double cx, double cy) {
+    const r = tpOwnerRadius;
+    final pulseT = (elapsedSeconds % 3.2) / 3.2;
+    canvas.drawCircle(
+      Offset(cx, cy),
+      (r + 2) * (1 + pulseT * .9),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = GmColors.gold.withValues(alpha: (1 - pulseT) * .5),
+    );
+    final spin = (elapsedSeconds / 30) * _twoPi;
+    _drawDashedCircle(
+      canvas,
+      Offset(cx, cy),
+      r + 9,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .9
+        ..color = GmColors.gold.withValues(alpha: .55),
+      dashPattern: const [1.5, 5],
+      rotation: spin,
+    );
+    canvas.drawCircle(Offset(cx, cy), r, Paint()..color = const Color(0xFF2A1D40));
+    if (ownerFaceImage != null) {
+      _drawFaceImage(canvas, ownerFaceImage!, Offset(cx, cy), r, 1.0);
+    }
+    canvas.drawCircle(
+      Offset(cx, cy),
+      r + .5,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4
+        ..color = GmColors.gold,
+    );
+    final capsuleRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, cy + r), width: 30, height: 15),
+      const Radius.circular(7.5),
+    );
+    canvas.drawRRect(capsuleRect, Paint()..color = GmColors.gold);
+    _paintTextCentered(
+      canvas,
+      Offset(cx, cy + r + .5),
+      '나',
+      9,
+      GmColors.onFg,
+      weight: FontWeight.w800,
+    );
+  }
+
+  // ── 그리기 헬퍼 ──────────────────────────────────────────────
+  void _drawFaceImage(Canvas canvas, ui.Image image, Offset o, double r, double alpha) {
     if (r <= 0) return;
     final rect = Rect.fromCircle(center: o, radius: r);
     canvas.save();
     canvas.clipPath(Path()..addOval(rect));
-    // 이미지를 커버 방식으로 중앙 정사각 크롭해 원형 안에 그린다.
-    final src = Rect.fromLTWH(
-      0,
-      0,
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
     final srcSize = image.width < image.height
         ? image.width.toDouble()
         : image.height.toDouble();
-    final srcSquare = Rect.fromCenter(
-      center: src.center,
+    final src = Rect.fromCenter(
+      center: Offset(image.width / 2, image.height / 2),
       width: srcSize,
       height: srcSize,
     );
     canvas.drawImageRect(
       image,
-      srcSquare,
+      src,
       rect,
       Paint()..color = Colors.white.withValues(alpha: alpha),
     );
     canvas.restore();
-    if (ringColor != null) {
-      canvas.drawCircle(
-        o,
-        r,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = ringWidth
-          ..color = ringColor.withValues(alpha: ringColor.a * alpha),
-      );
-    }
   }
 
-  /// 노드별로 등장 시작 시점을 살짝 엇갈리게(stagger) 만들어 순차적으로
-  /// 퍼져나가는 느낌을 준다.
-  double _entranceForNode(GuinjiGraphNode n, double globalEntrance) {
-    final total = nodes.length;
-    if (total == 0) return globalEntrance;
-    final idx = nodes.indexOf(n);
-    final stagger = total <= 1 ? 0.0 : (idx / total) * 0.4;
-    final local = ((globalEntrance - stagger) / (1 - 0.4)).clamp(0.0, 1.0);
-    return Curves.easeOutCubic.transform(local);
-  }
-
-  void _dashed(
-    Canvas c,
-    Offset center,
-    double radius,
-    Paint p, {
-    double rotation = 0,
-  }) {
-    const step = 6 / 180 * math.pi;
-    for (double a = rotation; a < _twoPi + rotation; a += step * 2) {
-      c.drawLine(
-        Offset(
-          center.dx + math.cos(a) * radius,
-          center.dy + math.sin(a) * radius,
-        ),
-        Offset(
-          center.dx + math.cos(a + step) * radius,
-          center.dy + math.sin(a + step) * radius,
-        ),
-        p,
-      );
-    }
-  }
-
-  /// [핸드오프 `CEmpty` 이식] 두 점을 잇는 점선(`stroke-dasharray: 3 5`에
-  /// 해당하는 느낌의 짧은 선분 반복). `_dashed`는 원(링)용이라 직선에는
-  /// 쓸 수 없어 별도 헬퍼를 둔다.
-  void _dashedLine(Canvas c, Offset from, Offset to, Paint p) {
-    const dashLen = 4.0, gapLen = 5.0;
+  void _drawDashedLine(
+    Canvas canvas,
+    Offset from,
+    Offset to,
+    Paint paint,
+    List<double> pattern,
+  ) {
     final total = (to - from).distance;
     if (total <= 0) return;
     final dir = (to - from) / total;
     double covered = 0;
+    var idx = 0;
     while (covered < total) {
-      final segEnd = math.min(covered + dashLen, total);
-      c.drawLine(from + dir * covered, from + dir * segEnd, p);
-      covered += dashLen + gapLen;
+      final segLen = pattern[idx % pattern.length];
+      final on = idx.isEven;
+      final segEnd = math.min(covered + segLen, total);
+      if (on) {
+        canvas.drawLine(from + dir * covered, from + dir * segEnd, paint);
+      }
+      covered += segLen;
+      idx++;
     }
   }
 
-  void _text(
-    Canvas c,
+  void _drawDashedCircle(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    Paint paint, {
+    List<double> dashPattern = const [2.5, 2.5],
+    double rotation = 0,
+  }) {
+    final circumference = _twoPi * radius;
+    final dashLen = dashPattern[0], gapLen = dashPattern.length > 1 ? dashPattern[1] : dashPattern[0];
+    final step = (dashLen + gapLen) / radius;
+    for (double a = rotation; a < _twoPi + rotation; a += step) {
+      final a2 = a + dashLen / radius;
+      canvas.drawLine(
+        Offset(center.dx + math.cos(a) * radius, center.dy + math.sin(a) * radius),
+        Offset(center.dx + math.cos(a2) * radius, center.dy + math.sin(a2) * radius),
+        paint,
+      );
+    }
+    // circumference 참조는 스타일 일관성을 위해 남겨둔다(향후 dash 밀도
+    // 조정 시 참고용 — 현재는 step 계산에 radius로 충분).
+    assert(circumference >= 0);
+  }
+
+  void _paintTextCentered(
+    Canvas canvas,
     Offset o,
-    String s,
-    double size,
+    String text,
+    double fontSize,
     Color color, {
     FontWeight weight = FontWeight.w600,
+    String fontFamily = GmText.ui,
   }) {
     final tp = TextPainter(
       text: TextSpan(
-        text: s,
-        style: TextStyle(fontSize: size, color: color, fontWeight: weight),
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          color: color,
+          fontWeight: weight,
+          fontFamily: fontFamily,
+        ),
       ),
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
     tp.layout();
-    tp.paint(c, Offset(o.dx - tp.width / 2, o.dy - tp.height / 2));
+    tp.paint(canvas, Offset(o.dx - tp.width / 2, o.dy - tp.height / 2));
+  }
+
+  /// [v5 `paintOrder: stroke` 이식] 어두운 외곽선(stroke)을 먼저 그려 밝은
+  /// 글자가 배경과 섞이지 않고 또렷하게 보이게 한다(지도 배경이 복잡해도
+  /// 라벨 가독성 유지).
+  void _paintOutlinedRichText(Canvas canvas, Offset center, TextSpan span) {
+    TextSpan withForeground(TextSpan s, Paint p) {
+      return TextSpan(
+        text: s.text,
+        style: (s.style ?? const TextStyle()).copyWith(foreground: p),
+        children: s.children
+            ?.map((c) => withForeground(c as TextSpan, p))
+            .toList(),
+      );
+    }
+
+    final strokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = const Color(0xF2140A22);
+    final strokeTp = TextPainter(
+      text: withForeground(span, strokePaint),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout();
+    strokeTp.paint(canvas, Offset(center.dx - strokeTp.width / 2, center.dy - strokeTp.height / 2));
+
+    final fillTp = TextPainter(
+      text: span,
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout();
+    fillTp.paint(canvas, Offset(center.dx - fillTp.width / 2, center.dy - fillTp.height / 2));
   }
 
   @override
-  bool shouldRepaint(covariant GuinjiGraphPainter oldDelegate) => true;
+  bool shouldRepaint(covariant GuinjiTempleMapPainter oldDelegate) => true;
 }

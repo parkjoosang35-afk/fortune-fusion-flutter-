@@ -483,6 +483,12 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     ownerFacePath: widget.ownerFacePath,
                     people: widget.people,
                     onSelect: _handleNodeTap,
+                    // [v5 `onSeat`/`setFilter` 이식] 바깥 한자 인장을 탭하면
+                    // 해당 유형 필터를 토글한다(상단 칩과 동일한 상태 공유).
+                    onTypeTap: (key) =>
+                        setState(() => _filter = _filter == key ? null : key),
+                    // [v5 `onSlot` 이식] 빈 자리 별을 탭하면 직접 추가 화면으로.
+                    onEmptySlotTap: (_) => _openDirectAdd(),
                     emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
                     filter: _filter,
                   ),

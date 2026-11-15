@@ -34,13 +34,19 @@ class GuinjiTypeSpec {
 }
 
 /// 방향 순서 = 12시부터 시계방향 (지도 배치 · 필터 · 범례 공통).
+/// [v5 "심야의 신전" 지도 재작성 — 2026] `design_handoff_guinji_map_v5/
+/// design_files/guinji-data.js`의 `TYPE_ORDER`(코드 카테고리 순: 귀인(boost)
+/// → 인연(path) → 조율(care))와 정확히 동일한 순서로 교정했다. 이전 값은
+/// `HAP`과 `SANG_SAENG` 위치가 바뀐 구버전(v2/v3)이었다 — `tpPlace()`가
+/// `k*60-90`(고정 60도 방향)으로 배치하므로, 이 순서가 바뀌면 지도의
+/// "2시 방향 = 인연합" 같은 방향 약속 자체가 깨진다.
 /// [중요] 기존 `guinji_person.dart`의 `guinjiRelationOrder`는 순서가 다르므로
 /// (SANG_GEUK↔BI_HWA 위치가 반대) 지도 배치 각도 계산에는 반드시 이
 /// `guinjiTypeOrder`를 사용한다.
 const guinjiTypeOrder = [
   'CHEON_GWII',
-  'HAP',
   'SANG_SAENG',
+  'HAP',
   'BI_HWA',
   'SANG_GEUK',
   'CHUNG',

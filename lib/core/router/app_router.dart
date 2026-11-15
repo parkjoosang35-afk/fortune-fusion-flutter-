@@ -90,6 +90,7 @@ import '../../features/guinji/presentation/guinji_landing_screen.dart';
 import '../../features/guinji/presentation/guinji_input_screen.dart';
 import '../../features/guinji/presentation/guinji_calculating_screen.dart';
 import '../../features/guinji/presentation/guinji_map_result_screen.dart';
+import '../../features/guinji/domain/guinji_person.dart' show guinjiSamplePeople;
 import '../../features/guinji/presentation/guinji_direct_input_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
@@ -401,6 +402,16 @@ class AppRouter {
                 ownerFacePath: provider.ownerFacePath,
               );
             },
+          ),
+        );
+      // [임시 QA 검증용 — v5 TpMap 지도 재작성 Playwright 캡처 전용]
+      // 12명 샘플 데이터로 지도를 바로 렌더링한다. 검증 완료 후 제거할 것.
+      case '/guinji-map/m/qa-temple-preview':
+        return _guinjiNamed(
+          '/guinji-map/m/qa-temple-preview',
+          const GuinjiMapResultScreen(
+            ownerName: '하늘',
+            people: guinjiSamplePeople,
           ),
         );
       // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한 개념] 지도
