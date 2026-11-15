@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
@@ -9,12 +10,15 @@ import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/result_text_scale_overlay.dart';
+import 'package:kakao_flutter_sdk_share/kakao_flutter_sdk_share.dart';
+
 import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 import '../application/guinji_provider.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
+import '../share/guinji_share_kakao.dart' show guinjiResultTemplate;
 import '../theme/guinji_theme.dart';
 import '../../../core/sound/sintong_sound_service.dart';
 import '../widgets/guinji_bg_atmosphere.dart';
@@ -268,6 +272,65 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     await _shareViaLink();
   }
 
+  /// [귀인지도 핸드오프 v4 — L2 "카카오 결과 공유 피드" 와이어링, 2026-12]
+  /// [대표 지시] 랭킹 화면의 "결과 카드로 공유하기" CTA에 카카오 전용
+  /// 버튼을 별도로 추가한다(기존 범용 "공유하기" 버튼은 그대로 두고
+  /// 건드리지 않는다 — 다른 공유 대상(문자/더보기)에 예쁜 카드형
+  /// FeedTemplate이 안 뜨는 문제를 방지하려면 전용 버튼 분리가 안전함,
+  /// 대표 승인사항).
+  ///
+  /// [비식별 원칙] [guinjiResultTemplate]과 동일하게 관계유형별 인원수
+  /// 집계만 담아 보낸다 — 이름/생년월일 등 개인정보는 전혀 포함하지
+  /// 않는다. 토큰이 없으면(샘플 데이터로 열람 중인 경우 등) 카톡 공유
+  /// 자체가 불가능하므로 안내만 하고 종료한다.
+  bool _kakaoSharing = false;
+  Future<void> _handleKakaoShare() async {
+    if (_kakaoSharing || _capturing) return;
+    final provider = context.read<GuinjiProvider>();
+    final token = provider.mapToken;
+    if (token == null || token.isEmpty) {
+      AppToast.show(context, '아직 공유 가능한 지도가 없어요. 지도를 먼저 만들어주세요.');
+      return;
+    }
+    if (kIsWeb) {
+      // [웹 미지원 — guinji_share_kakao.dart 상단 주석과 동일 제약]
+      // kakao_flutter_sdk_share는 웹 플랫폼 메서드 채널을 구현하지 않아
+      // ShareClient 호출 시 MissingPluginException이 발생한다.
+      AppToast.show(context, '카카오톡 공유는 앱에서만 지원해요. "공유하기" 버튼을 이용해주세요.');
+      return;
+    }
+    setState(() => _kakaoSharing = true);
+    try {
+      final people = widget.people;
+      final relationCounts = <String, int>{
+        for (final key in guinjiRelationOrder)
+          key: people.where((p) => p.relation == key).length,
+      };
+      final available = await ShareClient.instance.isKakaoTalkSharingAvailable();
+      if (!available) {
+        if (!mounted) return;
+        AppToast.show(context, '카카오톡이 설치되어 있지 않아요.');
+        return;
+      }
+      final shareUri = await ShareClient.instance.shareDefault(
+        template: guinjiResultTemplate(
+          host: widget.ownerName,
+          token: token,
+          relationCounts: relationCounts,
+        ),
+      );
+      await ShareClient.instance.launchKakaoTalk(shareUri);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[GuinjiResultCard] 카카오 공유 실패: $e');
+      }
+      if (!mounted) return;
+      AppToast.show(context, '카카오톡 공유에 실패했어요. 다시 시도해주세요.', isError: true);
+    } finally {
+      if (mounted) setState(() => _kakaoSharing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final people = widget.people;
@@ -338,6 +401,18 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    // [L2 와이어링 — 대표 승인: 전용 버튼으로 분리] 카카오
+                    // 전용 "카드형 공유" 버튼. 위 "공유하기"(OS 공유
+                    // 시트/서버 링크, 모든 앱 대상 범용)와는 별개로, 이
+                    // 버튼만 카카오톡에 [guinjiResultTemplate] 카드를
+                    // 직접 꽂아 보낸다.
+                    _KakaoShareButton(
+                      label: _kakaoSharing ? '카카오톡 여는 중' : '카카오톡으로 지도 자랑하기',
+                      onPressed: _kakaoSharing || _capturing
+                          ? () {}
+                          : _handleKakaoShare,
                     ),
                   ],
                 ),
@@ -631,6 +706,61 @@ class _PrimaryButton extends StatelessWidget {
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: GuinjiColors.ink,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [귀인지도 핸드오프 v4 — L2 "카카오 결과 공유 피드" 전용 버튼, 2026-12]
+/// 위 [_PrimaryButton](범용 "공유하기", 지도 라벤더 색)과는 시각적으로
+/// 구분되도록 카카오 공식 브랜드 컬러(배경 `#FEE500`, 글자 `#3A1D1D`)를
+/// 그대로 쓴다 — `guinji_map_share_screen.dart`의 `_ShareOption`(카카오
+/// 전용 bg/텍스트 색 분기)과 동일한 색상 토큰을 재사용해 다른 화면의
+/// 카카오 버튼과 일관된 룩앤필을 유지한다.
+class _KakaoShareButton extends StatelessWidget {
+  const _KakaoShareButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  static const _kakaoBg = Color(0xFFFEE500);
+  static const _kakaoInk = Color(0xFF3A1D1D);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: _kakaoBg,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.chat_bubble_rounded,
+                  size: 16,
+                  color: _kakaoInk,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: GuinjiFonts.body,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: _kakaoInk,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
