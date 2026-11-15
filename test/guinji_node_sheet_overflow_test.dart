@@ -79,7 +79,12 @@ void main() {
           debugDumpRenderTree();
         }
         expect(ex, isNull);
-        expect(find.text('관계 자세히 보기'), findsOneWidget);
+        // [v5 "심야의 신전" 포팅] CTA 버튼 문구가 `guinji-temple.jsx`
+        // `TpPersonSheet`의 `unlocked ? '✓ 열어 둔 풀이 바로 보기' :
+        // '더 자세한 관계 보기'`로 교체됐다(README §3 "문구는 하나도
+        // 남기지 않는다" 지시에 따른 v5 1:1 포팅). 이 테스트의 unlocked는
+        // 항상 기본값(false)이므로 '더 자세한 관계 보기'가 뜬다.
+        expect(find.text('더 자세한 관계 보기'), findsOneWidget);
       },
     );
   }

@@ -278,14 +278,6 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     Navigator.of(context).pushNamed('/guinji-map/m/share');
   }
 
-  void _openFriends() {
-    if (widget.onOpenFriends != null) {
-      widget.onOpenFriends!();
-      return;
-    }
-    Navigator.of(context).pushNamed('/guinji-map/m/friends');
-  }
-
   // [귀인지도 기능 정리 — 2] 신규 디자인 계열에 랭킹 화면 진입점이
   // 아예 없던 문제를 해결한다. 상단 "목록 보기" 버튼 옆에 배치.
   void _openRanking() {
@@ -301,13 +293,10 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
   @override
   Widget build(BuildContext context) {
     final total = widget.people.length;
-    final top3 = widget.people.toList()
-      ..sort((a, b) => b.score.compareTo(a.score));
-    final topThree = top3.take(3).toList();
 
     return Stack(
       children: [
-        _buildScaffold(total, topThree),
+        _buildScaffold(total),
         // [05-4 지인 도착 애니메이션] 지도(M)를 보고 있을 때 새 멤버가
         // 감지되면 화면 전체 위에 겹쳐 재생한다(핸드오프 "지도를 보고
         // 있을 때 재생" — 지도 자체는 가리지 않고 그 위에 효과만 더함).
@@ -323,7 +312,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     );
   }
 
-  Widget _buildScaffold(int total, List<GuinjiPerson> topThree) {
+  Widget _buildScaffold(int total) {
     const slotTotal = 8; // v5 TP_SLOT_TOTAL
     final empty = total == 0;
     final recent = widget.people.reversed.take(3).toList();
@@ -640,60 +629,6 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                       adSlot: '',
                     ),
                   ),
-
-                  // 상위 3명(전체 보기 포함, 기존 로직 유지).
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                    child: Row(
-                      children: [
-                        const Text(
-                          '가장 강한 인연',
-                          style: TextStyle(
-                            fontFamily: GmText.body,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: GmColors.fg,
-                          ),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: _openFriends,
-                          child: const Text(
-                            '전체 보기',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: GmColors.gold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (topThree.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      child: Text(
-                        '지인을 초대하면 여기에 표시돼요',
-                        style: TextStyle(fontSize: 12, color: GmColors.dim),
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: topThree
-                            .map(
-                              (p) => _GmFriendRow(
-                                person: p,
-                                onTap: () => _handleNodeTap(p),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
 
                   const SizedBox(height: 40),
                 ],
@@ -1265,113 +1200,6 @@ class _GmTypeFilterRow extends StatelessWidget {
                 fontWeight: FontWeight.w500,
                 color: on ? spec.color : GmColors.muted,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// F/M화면 공용 컴포넌트 — 새 디자인 `friend_row.dart`의 `FriendRow` 이식.
-class _GmFriendRow extends StatelessWidget {
-  const _GmFriendRow({required this.person, this.onTap});
-
-  final GuinjiPerson person;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final meta = guinjiRelationMetaOf(person.relation);
-    final color = meta.color;
-    final label = meta.label;
-    final initial = person.name.isNotEmpty ? person.name.substring(0, 1) : '?';
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withValues(alpha: 0.15),
-                border: Border.all(color: color.withValues(alpha: 0.4)),
-              ),
-              child: Text(
-                initial,
-                style: TextStyle(
-                  fontFamily: GmText.display,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        person.name,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: GmColors.fg,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      GmChip(
-                        label: label,
-                        background: color.withValues(alpha: 0.12),
-                        foreground: color,
-                        borderColor: color.withValues(alpha: 0.25),
-                        fontSize: 10,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    meta.short,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, color: GmColors.dim),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${person.score}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
-                ),
-                const Text(
-                  'SCORE',
-                  style: TextStyle(
-                    fontSize: 8,
-                    letterSpacing: 0.6,
-                    color: GmColors.dim,
-                  ),
-                ),
-              ],
             ),
           ],
         ),

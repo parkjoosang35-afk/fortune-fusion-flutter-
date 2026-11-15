@@ -142,7 +142,14 @@ void main() {
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.text('지인을 초대하면 여기에 표시돼요'), findsOneWidget);
+    // [v5 "심야의 신전" 포팅] 구버전 "가장 강한 인연" 섹션(및 그 빈 상태
+    // 문구)은 v5 디자인에 없어 완전히 제거됐다. 빈 상태 안내는 이제
+    // 지도 그래프 자체의 emptyHint로 표시된다(guinji_map_result_screen.dart
+    // 호출부 참고).
+    expect(
+      find.text('링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('M · My Map 화면이 실제 people 데이터로 노드를 렌더한다', (

@@ -614,15 +614,23 @@ class _ScoreCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            '$score',
-            style: TextStyle(
-              fontFamily: GmText.display,
-              fontSize: 38,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-              height: 1,
-              color: color,
+          // [반응형 화면 규격 통일 — v5 포팅 회귀 수정] 좁은 화면(320)에서
+          // textScale을 2.0~2.5까지 올리면 38px 점수 숫자가 Row 폭을
+          // 과도하게 차지해 오른쪽 Expanded 영역이 밀려 넘친다.
+          // FittedBox로 감싸 필요시 축소되도록 한다
+          // (test/guinji_node_sheet_overflow_test.dart 회귀 검증).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '$score',
+              style: TextStyle(
+                fontFamily: GmText.display,
+                fontSize: 38,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.6,
+                height: 1,
+                color: color,
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -633,22 +641,30 @@ class _ScoreCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      '케미 점수',
-                      style: TextStyle(
-                        fontFamily: GmText.ui,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12.5,
-                        color: GmColors.muted,
+                    const Flexible(
+                      child: Text(
+                        '케미 점수',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: GmText.ui,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12.5,
+                          color: GmColors.muted,
+                        ),
                       ),
                     ),
-                    Text(
-                      '$grade등급',
-                      style: const TextStyle(
-                        fontFamily: GmText.ui,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12.5,
-                        color: GmColors.fg,
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        '$grade등급',
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          fontFamily: GmText.ui,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                          color: GmColors.fg,
+                        ),
                       ),
                     ),
                   ],
