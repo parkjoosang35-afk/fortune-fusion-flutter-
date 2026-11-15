@@ -1,11 +1,12 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: gh_typography.dart
-// [궁합지도 Star Map 디자인 적용] `flutter_starter/.../gh_typography.dart`
-// 포팅본. 원본 핸드오프는 google_fonts(GoogleFonts.notoSerifKr 등)를
-// 쓰지만, 이 프로젝트는 이미 동일한 서체 3종(NotoSerifKR/GowunBatang/
-// IBMPlexMono)을 assets/fonts/wish_room/ 에 번들하여 family 이름으로
-// 직접 참조하는 기존 관례(saju_dark_tokens.dart 등)가 있으므로, 중복
-// 네트워크/에셋 다운로드 없이 동일 패턴을 그대로 따른다.
+// [궁합지도 전면 리디자인 — 2026-11 2차 핸드오프] `00_DEV_MAPPING.md`
+// §2-5(서체) 반영. 서체 체계(Pretendard·Noto Serif KR·IBM Plex Mono)는
+// 기존과 동일(§2-5와 이미 일치) — 색상은 gh_tokens.dart 교체로 자동
+// 반영된다. 이번 변경은 §2-5 크기표에 정의된 신규 역할(homeTitle·
+// sheetTitle·resultTitle·reportCover·appBar·chip·navLabel)을 추가한다.
+// 기존 역할(display/title/reportSection/cardTitle/reportBody/button/
+// ui/caption/mono)은 이름과 시그니처를 유지해 하위 호환을 지킨다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import 'gh_tokens.dart';
@@ -17,6 +18,18 @@ abstract final class GHText {
   static const _mono = 'IBMPlexMono';
   static const _ui = 'Pretendard';
 
+  // ── §2-5 homeTitle: 25/900/1.3, -0.035em — S01 헤더 ──
+  static TextStyle homeTitle({double size = 25, Color color = GHColors.fg}) =>
+      TextStyle(
+        fontFamily: _body,
+        fontSize: size,
+        fontWeight: FontWeight.w900,
+        height: 1.3,
+        letterSpacing: -0.035 * size,
+        color: color,
+      );
+
+  /// display: 24/700/1.32, -0.025em — 화면 제목 (GHTitle 본문)
   static TextStyle display({double size = 28, Color color = GHColors.ivory}) =>
       TextStyle(
         fontFamily: _serif,
@@ -37,11 +50,46 @@ abstract final class GHText {
         color: color,
       );
 
-  static TextStyle reportSection() => const TextStyle(
+  // ── §2-5 sheetTitle: 21~22/900/1.35, -0.03em — 시트 제목 ──
+  static TextStyle sheetTitle({double size = 21, Color color = GHColors.fg}) =>
+      TextStyle(
+        fontFamily: _body,
+        fontSize: size,
+        fontWeight: FontWeight.w900,
+        height: 1.35,
+        letterSpacing: -0.03 * size,
+        color: color,
+      );
+
+  // ── §2-5 resultTitle: 34/900/1.2, -0.03em + gradTitle — S17 세부명 ──
+  // gradTitle은 그라데이션 텍스트이므로 색은 호출부에서 ShaderMask로
+  // 덧씌운다. 기본 color는 GHColors.fg(그라데이션 미적용 폴백).
+  static TextStyle resultTitle({double size = 34, Color color = GHColors.fg}) =>
+      TextStyle(
+        fontFamily: _body,
+        fontSize: size,
+        fontWeight: FontWeight.w900,
+        height: 1.2,
+        letterSpacing: -0.03 * size,
+        color: color,
+      );
+
+  // ── §2-5 reportCover: 30/900, -0.03em — S22 표지 ──
+  static TextStyle reportCover({double size = 30, Color color = GHColors.fg}) =>
+      TextStyle(
+        fontFamily: _body,
+        fontSize: size,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.03 * size,
+        color: color,
+      );
+
+  /// §2-5 sectionTitle: 19/700, accent, -0.02em — 보고서 장
+  static TextStyle reportSection() => TextStyle(
     fontFamily: _serif,
     fontSize: 19,
     fontWeight: FontWeight.w700,
-    color: GHColors.gold,
+    color: GHColors.accent,
     letterSpacing: -0.38,
   );
 
@@ -54,6 +102,16 @@ abstract final class GHText {
         color: color,
       );
 
+  // ── §2-5 appBar: 16/700 — AppBar 제목 ──
+  static TextStyle appBar({double size = 16, Color color = GHColors.fg}) =>
+      TextStyle(
+        fontFamily: _body,
+        fontSize: size,
+        fontWeight: FontWeight.w700,
+        color: color,
+      );
+
+  /// reportBody: 15.5/400/1.95 — 보고서 본문
   static TextStyle reportBody() => TextStyle(
     fontFamily: _body,
     fontSize: 15.5,
@@ -96,4 +154,20 @@ abstract final class GHText {
         letterSpacing: size * 0.3,
         color: color,
       );
+
+  // ── §2-5 chip: 12/600 ──
+  static TextStyle chip({Color color = GHColors.muted}) => TextStyle(
+    fontFamily: _ui,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: color,
+  );
+
+  // ── §2-5 navLabel: 11.5/500(on 700) — 하단바 ──
+  static TextStyle navLabel({bool active = false, Color? color}) => TextStyle(
+    fontFamily: _ui,
+    fontSize: 11.5,
+    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    color: color ?? (active ? GHColors.accent : GHColors.muted),
+  );
 }

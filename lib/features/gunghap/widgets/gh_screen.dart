@@ -184,86 +184,44 @@ class GHIconButton extends StatelessWidget {
   );
 }
 
-/// Never-flat background: navy gradient + 2 radial washes + star dust.
+/// [00_DEV_MAPPING §2-1 `gradBg` / §3-1] 화이트 테마 배경 — 순백색 바탕 +
+/// 화면 상단 320px에만 걸리는 radial 핑크 10%·라벤더 9% 워시.
+/// (이전 "네이비 그라데이션 + 성운 + 별가루" 다크 배경을 전면 대체)
 class GHBackdrop extends StatelessWidget {
   const GHBackdrop({super.key, this.intensity = 1});
   final double intensity;
   @override
   Widget build(BuildContext context) => Stack(
     children: [
-      Positioned.fill(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [GHColors.bg1, GHColors.bg2],
-              stops: const [0, .55],
+      Positioned.fill(child: ColoredBox(color: GHColors.bg2)),
+      Positioned(
+        left: 0,
+        right: 0,
+        top: 0,
+        height: 320,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: GHGradients.backdropPink,
             ),
           ),
         ),
       ),
-      Positioned.fill(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(-.7, -1),
-              radius: 1.2,
-              colors: [
-                GHColors.violet.withValues(alpha: .16 * intensity),
-                Colors.transparent,
-              ],
-              stops: const [0, .55],
+      Positioned(
+        left: 0,
+        right: 0,
+        top: 0,
+        height: 320,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: GHGradients.backdropLavender,
             ),
           ),
         ),
       ),
-      Positioned.fill(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(1, 1),
-              radius: .9,
-              colors: [
-                GHColors.gold.withValues(alpha: .08 * intensity),
-                Colors.transparent,
-              ],
-              stops: const [0, .6],
-            ),
-          ),
-        ),
-      ),
-      const Positioned.fill(child: _StarDust()),
     ],
   );
-}
-
-class _StarDust extends StatelessWidget {
-  const _StarDust();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _DustPainter());
-}
-
-class _DustPainter extends CustomPainter {
-  @override
-  void paint(Canvas c, Size s) {
-    var seed = 3;
-    double rnd() {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    }
-
-    final p = Paint()..color = GHColors.ivory;
-    for (var i = 0; i < 46; i++) {
-      final x = rnd() * s.width, y = rnd() * s.height;
-      final r = .4 + rnd() * .9, o = .25 + rnd() * .6;
-      rnd(); // twinkle duration (animate with AnimationController if desired)
-      c.drawCircle(Offset(x, y), r, p..color = GHColors.ivory.withValues(alpha: o * .7));
-    }
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
 }
 
 // ─────────────────────────────────────────────────────────

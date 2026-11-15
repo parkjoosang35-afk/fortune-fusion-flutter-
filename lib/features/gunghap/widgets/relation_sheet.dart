@@ -120,13 +120,10 @@ class _RelationSheetState extends State<_RelationSheet> {
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .86),
       child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF222D4A), GHColors.bg1],
-          ),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(GHRadius.sheet)),
+        decoration: BoxDecoration(
+          gradient: GHGradients.sheet,
+          border: Border.all(color: GHColors.line),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(GHRadius.sheet)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
