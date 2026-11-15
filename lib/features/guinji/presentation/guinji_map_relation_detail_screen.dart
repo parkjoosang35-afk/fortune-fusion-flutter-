@@ -847,23 +847,21 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
               onTap: () => setState(() => _pick = _PayPick.freepass),
             ),
             const SizedBox(height: 8),
-            // ② 福 복주머니로 보기 — [2026-12 사용자 지시로 가격 숫자 UI
-            // 삭제] 화면에 하드코딩된 "50개가 필요해요" 문구를 제거한다
-            // (실제 차감 가격은 여전히 서버 `PointPolicy('guinji_unlock_
-            // special')`이 단독으로 결정·검증하며, 이 UI 텍스트 변경은
-            // 그 정책/금액 자체를 전혀 바꾸지 않는다 — 단지 가격을 화면에
-            // 노출하지 않을 뿐). 핸드오프 s11 "복주머니 정책: 잔액 UI에
-            // '+충전' 버튼 금지"는 그대로 지켜 충전 버튼은 달지 않는다.
-            _PayOptionTile(
-              icon: const _IcoPouch(),
-              title: '복주머니로 보기',
-              sub: '복주머니로 바로 열어요',
-              right: '',
-              selected: false,
-              disabled: false,
-              onTap: widget.onUnlockPouch,
-            ),
-            const SizedBox(height: 8),
+            // [2026-12 테스트 제거] ② 福 복주머니로 보기 옵션을 사용자 요청에
+            // 따라 테스트로 숨긴다. `_PayOptionTile`/`onUnlockPouch` 콜백과
+            // 서버 unlock API(`method: 'point'`)는 그대로 남겨 두며, 추후
+            // 되돌릴 수 있도록 이 주석 아래에 원본 위젯을 보존한다.
+            //
+            // _PayOptionTile(
+            //   icon: const _IcoPouch(),
+            //   title: '복주머니로 보기',
+            //   sub: '복주머니로 바로 열어요',
+            //   right: '',
+            //   selected: false,
+            //   disabled: false,
+            //   onTap: widget.onUnlockPouch,
+            // ),
+            // const SizedBox(height: 8),
             // ③ ☾ 광고 보고 무료로 보기.
             _PayOptionTile(
               icon: const _IcoAd(),
