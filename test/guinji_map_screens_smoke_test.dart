@@ -224,7 +224,33 @@ void main() {
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.text('지도를 여는 중…'), findsOneWidget);
+    // [A12 핸드오프 v4 재이식] 링크 복사 줄(실링크 텍스트 노출)은 §8
+    // 삭제 항목에 따라 제거됐다 — mapToken 공백 여부와 무관하게 항상
+    // 뜨는 시트 타이틀로 렌더 여부를 검증한다.
+    expect(find.text('귀인 초대하기'), findsOneWidget);
+  });
+
+  testWidgets('S · Share 화면 "⋯" 버튼이 링크 관리 패널을 토글한다', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const GuinjiMapShareScreen(
+          ownerName: '지민',
+          mapToken: 'test-token-123',
+        ),
+      ),
+    );
+    await tester.pump();
+    // [A12 §3-1 "우상단 ⋯ → 링크 관리 패널"] 기본 상태에서는 패널이
+    // 접혀 있어야 한다.
+    expect(find.text('새 링크 만들기'), findsNothing);
+    await tester.tap(find.byTooltip('링크 관리'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('새 링크 만들기'), findsOneWidget);
+    // 다시 탭하면 접힌다.
+    await tester.tap(find.byTooltip('링크 관리'));
+    await tester.pump();
+    expect(find.text('새 링크 만들기'), findsNothing);
   });
 
   // [핸드오프 §05-3 `RankScreen` 1:1 이식] "유형별 목록"은 더 이상 별도

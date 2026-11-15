@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../core/widgets/zoomable_content.dart';
+import '../deep/guinji_deep_text.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
@@ -205,7 +207,29 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                 showControls: false,
                 height: 260,
               ),
-              const SizedBox(height: 24),
+              // [귀인지도 핸드오프 v4 — L5 "지인 결과 맛보기 + 잠금 10장"]
+              // `guinji-loop.jsx`의 `LpTeaser` 1:1 이식. 1장(한눈에 보는 두
+              // 사람)의 실제 문구 앞부분만 높이 제한+그라데이션 페이드로
+              // 보여주고, 2~10장은 제목 + 금색 자물쇠만 나열한다. 이
+              // 화면(비로그인 게스트)은 아직 계정/지도 멤버가 없어
+              // `_handleUnlock`(관계 상세 화면 전용, memberId+인증 필요)을
+              // 그대로 재사용할 수 없으므로, CTA는 README §12-0 루프가
+              // 명시한 다음 단계("설치 → L6 → A7·A8" / "앱 → A6")로 가는
+              // 입구인 [onCreateOwnMap](회원가입/내 지도 만들기 유도)을
+              // 그대로 호출한다 — 절대 원칙(자동 전환 금지)과 동일하게
+              // 게스트가 버튼을 직접 눌렀을 때만 동작한다.
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: _GuinjiDeepTeaser(
+                  hostName: hostName,
+                  meName: centerName,
+                  relationKey: relationKey,
+                  onUnlock:
+                      onCreateOwnMap ??
+                      () => Navigator.of(context).pushNamed('/guinji-map'),
+                ),
+              ),
+              const SizedBox(height: 20),
               // [절대 원칙] 이 버튼은 게스트가 직접 탭했을 때만
               // onCreateOwnMap을 호출한다. 자동 실행되는 타이머/딜레이는
               // 존재하지 않는다.
@@ -222,6 +246,188 @@ class GuinjiGuestResultScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// [귀인지도 핸드오프 v4 — L5] `LpTeaser` 1:1 이식 — 1장 맛보기(실제 문구
+/// 90자 내외, 높이 82 제한 + 하단 60px 그라데이션 페이드) + 2~10장 제목
+/// 목록(블러 처리 + 금색 자물쇠) + 해금 CTA(G-7) + 보조문(G-8).
+class _GuinjiDeepTeaser extends StatelessWidget {
+  const _GuinjiDeepTeaser({
+    required this.hostName,
+    required this.meName,
+    required this.relationKey,
+    required this.onUnlock,
+  });
+
+  final String hostName;
+  final String meName;
+  final String relationKey;
+  final VoidCallback onUnlock;
+
+  static const _chapters = [
+    '한눈에 보는 두 사람',
+    '관계를 이루는 다섯 가지 힘',
+    '처음 만났을 때의 느낌',
+    '서로에게 흐르는 기운',
+    '마음 깊은 곳의 결',
+    '서로에게 어떤 사람인가',
+    '함께하면 좋은 일',
+    '조심하면 좋은 것',
+    '계절마다 달라지는 흐름',
+    '관계를 이어가는 방법',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final deep = guinjiDeepText[relationKey] ?? guinjiDeepText['BI_HWA']!;
+    // [G-5 맛보기 문단] summary[0] 앞부분 — {n}=호스트, {me}=게스트(나).
+    final firstParagraph = fill(deep.summary.first, n: hostName, me: meName);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GmLabelMini('$hostName님과의 자세한 관계 풀이 · 10장'),
+        const SizedBox(height: 10),
+        // 1장 맛보기 카드.
+        ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                decoration: BoxDecoration(
+                  color: GmColors.card,
+                  border: Border.all(color: GmColors.line),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '01 · 한눈에 보는 두 사람',
+                      style: TextStyle(
+                        fontFamily: GmText.display,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: GmColors.gold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 82,
+                      child: ClipRect(
+                        child: Text(
+                          firstParagraph,
+                          style: const TextStyle(
+                            fontFamily: GmText.body,
+                            fontSize: 14,
+                            height: 1.7,
+                            color: GmColors.fg,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 하단 그라데이션 페이드.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 56,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          GmColors.card.withValues(alpha: 0),
+                          GmColors.card,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // 2~10장 — 제목 + 금색 자물쇠(블러 처리된 제목).
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: GmColors.hair),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Column(
+            children: [
+              for (var i = 1; i < _chapters.length; i++)
+                Container(
+                  decoration: BoxDecoration(
+                    border: i > 1
+                        ? const Border(top: BorderSide(color: GmColors.hair))
+                        : null,
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Opacity(
+                    opacity: 0.75,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          child: Text(
+                            (i + 1).toString().padLeft(2, '0'),
+                            style: const TextStyle(
+                              fontFamily: GmText.mono,
+                              fontSize: 11,
+                              color: GmColors.dim,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _chapters[i],
+                            style: const TextStyle(
+                              fontFamily: GmText.ui,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: GmColors.muted,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.lock_outline,
+                          size: 15,
+                          color: GmColors.gold,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        // G-7 해금 버튼 + G-8 보조문. 이 화면(비로그인 게스트)에는 웹/앱
+        // 구분 없이 동일한 전환 CTA("내 지도 만들기")를 노출한다 —
+        // kIsWeb 분기는 버튼 문구에만 적용(핸드오프 G-7 웹/앱 문구 분기).
+        GmRoseButton(
+          label: kIsWeb ? '앱에서 전체 풀이 보기' : '전체 풀이 열기',
+          icon: Icons.menu_book_outlined,
+          onPressed: onUnlock,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          '프리패스 · 복주머니 · 광고로 열 수 있어요',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: GmColors.dim),
+        ),
+      ],
     );
   }
 }

@@ -10,7 +10,6 @@ import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
 import '../share/guinji_share_kakao.dart' show guinjiInviteTemplate;
 import '../theme/guinji_map_theme.dart';
-import '../widgets/guinji_map_widgets.dart';
 import 'guinji_share_screen.dart' show buildGuinjiInviteLink;
 
 /// [2026-09 버그수정] 공유 대상(카톡/SMS/더보기) 식별자.
@@ -198,6 +197,16 @@ Future<void> shareGuinjiMapInvite(
 /// L/M화면이 `pushNamed('/guinji-map/m/share')`로 접근하는 기존 방식을
 /// 그대로 유지하므로, 화면 자체는 별도 라우트(전체화면)로 두고 내부
 /// 디자인만 바텀시트 스타일(상단 라운드+핸들바)로 재현한다.
+///
+/// [귀인지도 핸드오프 v4 — A12 재이식, 2026 최종개발 핸드오프] README
+/// §3-1 A12 행이 명시한 `TpInviteSheet` 구조로 내부를 전면 교체했다:
+/// "전체 화면 → **바텀시트**. 카카오 배너 + 더보기. 우상단 `⋯` → **링크
+/// 관리 패널**. **마일스톤 배너·OG 미리보기 카드·문자/인스타 아이콘 줄
+/// 삭제**". 라우트 자체(전체화면 PageRoute, `pushNamed` 3개 호출부,
+/// 위젯 생성자 시그니처)는 그대로 둔 채 — 호출부/테스트 변경 없이 —
+/// 화면을 투명 Scaffold + 하단 정렬 카드로 그려 시각적으로 바텀시트처럼
+/// 보이게 한다(배경을 탭하면 `maybePop()`으로 닫힘, 핸들바+카드 자체를
+/// 탭해도 닫히지 않도록 내부에서 탭을 흡수).
 class GuinjiMapShareScreen extends StatefulWidget {
   const GuinjiMapShareScreen({
     super.key,
@@ -237,12 +246,12 @@ class GuinjiMapShareScreen extends StatefulWidget {
 }
 
 class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
-  bool _copied = false;
-  String? _displayLink;
-  String? _displayLinkToken;
-
   // ── [귀인지도 초대링크 재발급 v1.1] 소유자 링크 관리 ────────────
   bool _linkActionLoading = false;
+
+  /// [A12 핸드오프 재이식] 우상단 "⋯"로 토글하는 "링크 관리" 패널 노출
+  /// 여부(`TpInviteSheet`의 `manage` 로컬 상태와 동일한 역할).
+  bool _manageOpen = false;
 
   @override
   void initState() {
@@ -284,12 +293,7 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
     final provider = context.read<GuinjiProvider>();
     final data = await provider.reissueInviteLink();
     if (!mounted) return;
-    setState(() {
-      _linkActionLoading = false;
-      // 토큰이 바뀌었으므로 다음 build에서 _link가 새로 계산되도록
-      // 캐시 키를 무효화한다.
-      _displayLinkToken = null;
-    });
+    setState(() => _linkActionLoading = false);
     if (data == null) {
       AppToast.show(context, provider.error ?? '링크 재발급에 실패했습니다.');
       return;
@@ -346,177 +350,184 @@ class _GuinjiMapShareScreenState extends State<GuinjiMapShareScreen> {
     AppToast.show(context, '링크를 다시 열었어요.');
   }
 
-  /// [귀인지도 실구현] 실존하지 않는 하드코딩 도메인 대신
-  /// `guinji_share_screen.dart`의 [buildGuinjiInviteLink]를 재사용해 실제
-  /// `EnvConfig.adminApiBaseUrl` 기반 링크를 만든다. 화면 진입 후 토큰이
-  /// 바뀌지 않는 한 1회만 생성해 고정한다.
-  String get _link {
-    // [재발급 반영] provider가 재발급으로 mapToken을 갱신했으면 그 값을
-    // 우선 사용한다(위젯이 다시 생성되지 않아도 새 링크가 즉시 보이도록).
-    final token = context.watch<GuinjiProvider>().mapToken ?? widget.mapToken;
-    if (token.isEmpty) return '지도를 여는 중…';
-    if (_displayLinkToken != token) {
-      _displayLinkToken = token;
-      _displayLink = buildGuinjiInviteLink(token);
-    }
-    return _displayLink!;
-  }
-
-  Future<void> _copyLink() async {
-    await Clipboard.setData(ClipboardData(text: _link));
-    if (!mounted) return;
-    setState(() => _copied = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _copied = false);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    // [A12 핸드오프 재이식] 전체화면 라우트(guinjiPageRoute, opaque:
+    // true)는 그대로 두되, 내부를 투명 Scaffold + 하단 정렬 카드로 그려
+    // 시각적으로 "바텀시트"처럼 보이게 한다. 배경(카드 바깥)을 탭하면
+    // 닫히고, 카드 자체를 탭해도 그 탭이 배경까지 전달되지 않도록
+    // 안쪽 GestureDetector가 흡수한다.
     return Scaffold(
-      backgroundColor: GmColors.bg,
-      appBar: GmTopBar(back: true, title: '친구 초대'),
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 바텀시트 느낌의 장식용 핸들바
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: GmColors.line,
-                    borderRadius: BorderRadius.circular(9999),
+      backgroundColor: Colors.transparent,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).maybePop(),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: GmColors.sheet,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: GmColors.gold.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
                   ),
                 ),
-                const GmLabelMini('SHARE'),
-                const SizedBox(height: 4),
-                const Text(
-                  '친구를 초대해\n지도를 완성해보세요',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: GmText.display,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: GmColors.fg,
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '더 많은 친구가 참여할수록\n내 관계 지도가 선명해져요.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: GmColors.muted,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // 카카오 OG 미리보기
-                _KakaoOgPreview(
-                  ownerName: widget.ownerName,
-                  guinjiCount: widget.guinjiCount,
-                ),
-                const SizedBox(height: 16),
-
-                // 실제 초대 링크 복사 행
-                _ShareLinkRow(link: _link, copied: _copied, onCopy: _copyLink),
-                const SizedBox(height: 20),
-
-                _ShareOption(
-                  icon: Icons.chat_bubble,
-                  iconColor: const Color(0xFF3A1D1D),
-                  bg: const Color(0xFFFEE500),
-                  title: '카카오톡으로 공유',
-                  desc: '친구/그룹 채팅으로 바로 초대',
-                  onTap: widget.onKakaoShare,
-                ),
-                const SizedBox(height: 8),
-                _ShareOption(
-                  icon: Icons.sms_outlined,
-                  title: '문자(SMS)로 공유',
-                  desc: '메시지 앱으로 링크 전달',
-                  onTap: widget.onSmsShare,
-                ),
-                const SizedBox(height: 8),
-                _ShareOption(
-                  icon: Icons.more_horiz,
-                  title: '더보기',
-                  desc: '다른 앱으로 공유하기',
-                  onTap: widget.onMoreShare,
-                ),
-
-                // [2026-12 버그수정 — guinji-invite-fix 지시서 R2] "N명
-                // 모으면 축하 이벤트가 열려요" 배너(`_RetentionBanner`)의
-                // UI 렌더링만 제거한다. 참여자 카운트 집계(`joinedCount`,
-                // `GuinjiProvider.people.length`)와 실제 마일스톤 보상
-                // 지급(서버 `milestoneJustReached` → 결과 화면
-                // `_maybeShowMilestoneCelebration()` 축하 다이얼로그 +
-                // 복주머니 지급)은 이 배너와 완전히 별개의 경로이므로 전혀
-                // 영향받지 않는다 — 이 화면에서 "모으는 중" 안내 문구만
-                // 사라질 뿐, 집계/보상 로직은 그대로 유지된다.
-                //
-                // [2026-12 사용자 지시로 삭제] 이전에 핸드오프 `AppShareSheet`
-                // invite 모드의 "+20P" 배너를 1:1 이식했으나, 신통방통에는
-                // "P(포인트)" 단위 자체가 존재하지 않는다(재화는 "복주머니"
-                // 개수 단위) — 사용자 지적("신통방통은 20p라는게 없어
-                // 복주머니지")에 따라 이 배너를 완전히 제거한다. 실제 친구
-                // 초대 보상 정책은 위 [_RetentionBanner](마일스톤 달성 시
-                // 복주머니 N개 지급)로만 안내하며, 이 화면에는 그 외
-                // 재화 단위 안내를 추가하지 않는다.
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: GmColors.card.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: GmColors.muted,
-                        height: 1.5,
-                      ),
+                child: SafeArea(
+                  top: false,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        TextSpan(
-                          text: 'Tip. ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: GmColors.fg,
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: GmColors.line,
+                              borderRadius: BorderRadius.circular(9999),
+                            ),
                           ),
                         ),
-                        TextSpan(
-                          text:
-                              '이 링크는 만료 없이 계속 사용할 수 있어요. 그만 받고 싶다면 링크를 중단할 수 있어요.',
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                '귀인 초대하기',
+                                style: TextStyle(
+                                  fontFamily: GmText.display,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.4,
+                                  color: GmColors.fg,
+                                ),
+                              ),
+                            ),
+                            // [A12 §3-1 "우상단 ⋯ → 링크 관리 패널"] 새
+                            // 화면으로 이동하지 않고 이 시트 안에서
+                            // 토글한다 — _LinkManagementSection(재발급/
+                            // 중단/다시켜기/상태)은 기존 로직을 그대로
+                            // 재사용(변경 없음).
+                            _GmSheetIconButton(
+                              icon: Icons.more_horiz,
+                              tooltip: '링크 관리',
+                              selected: _manageOpen,
+                              onTap: () =>
+                                  setState(() => _manageOpen = !_manageOpen),
+                            ),
+                            const SizedBox(width: 6),
+                            _GmSheetIconButton(
+                              icon: Icons.close,
+                              tooltip: '닫기',
+                              onTap: () => Navigator.of(context).maybePop(),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          '링크를 받은 지인이 생년월일을 넣으면\n바로 지도에 별이 떠요',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: GmColors.muted,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        // [A12 "카카오 배너 + 더보기"] 마일스톤 배너·OG
+                        // 미리보기 카드·문자(SMS)/인스타 아이콘 줄·링크
+                        // 복사 줄은 핸드오프 §8 삭제 항목에 따라 전부
+                        // 제거했다 — 공유 수단은 카카오톡과 "더보기"(OS
+                        // 공유시트/클립보드 폴백) 두 가지로만 압축한다.
+                        _ShareOption(
+                          icon: Icons.chat_bubble,
+                          iconColor: const Color(0xFF3A1D1D),
+                          bg: const Color(0xFFFEE500),
+                          title: '카카오톡으로 초대',
+                          desc: '친구를 고르면 바로 보내져요',
+                          onTap: widget.onKakaoShare,
+                        ),
+                        const SizedBox(height: 8),
+                        _ShareOption(
+                          icon: Icons.more_horiz,
+                          title: '더보기',
+                          desc: '다른 앱으로 초대장 보내기',
+                          onTap: widget.onMoreShare,
+                        ),
+                        if (_manageOpen) ...[
+                          const SizedBox(height: 18),
+                          const _LinkManagementSectionDivider(),
+                          const SizedBox(height: 12),
+                          _LinkManagementSection(
+                            loading: _linkActionLoading,
+                            onReissue: _confirmReissue,
+                            onRevoke: _confirmRevoke,
+                            onReactivate: _reactivate,
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 20),
-                const _LinkManagementSectionDivider(),
-                const SizedBox(height: 12),
-                _LinkManagementSection(
-                  loading: _linkActionLoading,
-                  onReissue: _confirmReissue,
-                  onRevoke: _confirmRevoke,
-                  onReactivate: _reactivate,
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+/// [A12 핸드오프 재이식] 초대 시트 헤더의 "⋯"(링크 관리 토글)/"✕"(닫기)
+/// 아이콘 버튼 — `TpIconBtn`(반투명 원형 배경) 스타일을 재현한다.
+class _GmSheetIconButton extends StatelessWidget {
+  const _GmSheetIconButton({
+    required this.icon,
+    required this.onTap,
+    this.tooltip,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = Material(
+      color: selected
+          ? GmColors.gold.withValues(alpha: 0.18)
+          : GmColors.fg.withValues(alpha: 0.06),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: Icon(
+            icon,
+            size: 17,
+            color: selected ? GmColors.gold : GmColors.fg,
+          ),
+        ),
+      ),
+    );
+    if (tooltip == null) return button;
+    return Tooltip(message: tooltip!, child: button);
   }
 }
 
@@ -653,204 +664,6 @@ class _LinkManagementSection extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-/// 새 디자인 `_KakaoOgPreview` 이식 — OG standard aspect ratio(1200:630)
-/// 미리보기 카드. [GmStarsBackground] + [LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [GmColors.card, GmColors.bg])] 사용.
-class _KakaoOgPreview extends StatelessWidget {
-  const _KakaoOgPreview({required this.ownerName, required this.guinjiCount});
-
-  final String ownerName;
-  final int guinjiCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 320),
-        decoration: BoxDecoration(
-          // [P3 공유 화면 정합화 — 2026-12] 인트로·지도·OG 이미지와 같은
-          // 다크 프리미엄 톤으로 전환(이 카드가 실제 공유 이미지의
-          // 축소판이라 브랜드 톤을 실어야 함). 기존 라이트 카드(#FBFBFB/
-          // #E5E5E5)는 본체(GmColors 다크 테마)와 이질적이었다.
-          color: GmColors.card,
-          border: Border.all(color: GmColors.gold, width: 1.5),
-        ),
-        child: Column(
-          children: [
-            AspectRatio(
-              aspectRatio: 1200 / 630,
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [GmColors.card, GmColors.bg],
-                      ),
-                    ),
-                  ),
-                  const Positioned.fill(child: GmStarsBackground(opacity: 0.7)),
-                  // [캐릭터 삭제 — 사용자 요청] 기존 우측 반신 캐릭터
-                  // 패널(ShaderMask+Image.asset)을 삭제했다. 텍스트 우측
-                  // 여백(padding right:100)은 레이아웃 안정성을 위해 유지.
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '신통방통 · 귀인지도',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: GmColors.gold,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Padding(
-                          // 우측 캐릭터 패널과 텍스트가 겹치지 않도록 우측에
-                          // 여백을 확보한다(패널 폭 140 중 앞쪽 절반은
-                          // 페이드로 비어 있으므로 100이면 충분히 안전).
-                          padding: const EdgeInsets.only(right: 100),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // [줄바꿈 고정] 자동 줄바꿈에 맡기면 카드 폭에
-                              // 따라 "귀인지도"라는 한 단어가 "귀인 지"/"도"
-                              // 처럼 어색하게 쪼개질 수 있어(사용자 리포트),
-                              // 항상 "OO님의" / "귀인지도" 두 줄로 고정한다.
-                              Text(
-                                '$ownerName님의\n귀인지도',
-                                style: const TextStyle(
-                                  fontFamily: GmText.display,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: GmColors.fg,
-                                  height: 1.25,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '귀인 $guinjiCount명이 밝히는 중',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: GmColors.muted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    '$ownerName님의 귀인지도',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: GmText.display,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: GmColors.fg,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    '나는 이 사람에게 어떤 사람일까?',
-                    style: TextStyle(
-                      fontFamily: GmText.body,
-                      fontSize: 10.5,
-                      color: GmColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 실제 초대 링크 복사 행 — 기존 [buildGuinjiInviteLink] 기반 실링크를
-/// 그대로 보여주고 복사한다.
-class _ShareLinkRow extends StatelessWidget {
-  const _ShareLinkRow({
-    required this.link,
-    required this.copied,
-    required this.onCopy,
-  });
-
-  final String link;
-  final bool copied;
-  final VoidCallback onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        border: Border.all(color: GmColors.line),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              link,
-              overflow: TextOverflow.ellipsis,
-              // [P3 — 2026-12 대비 규칙] 이 행의 배경은 밝은 흰색 계열이라
-              // 다크 배경 전용 GmColors.fg(거의 흰색)를 쓰면 글자가 거의
-              // 보이지 않았다(라이트 카드 전용 토큰으로 교체).
-              style: const TextStyle(
-                fontSize: 11,
-                letterSpacing: 0.2,
-                color: GmColors.fgOnLight,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Material(
-            color: GmColors.gold,
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: onCopy,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: Text(
-                  copied ? '복사됨' : '복사',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
