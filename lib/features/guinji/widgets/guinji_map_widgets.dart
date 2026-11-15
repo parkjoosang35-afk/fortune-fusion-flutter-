@@ -19,12 +19,20 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.title,
     this.onShare,
     this.onBack,
+    this.trailing,
   });
 
   final bool back;
   final String? title;
   final VoidCallback? onShare;
   final VoidCallback? onBack;
+
+  /// [귀인지도 핸드오프 v4 — A12 초대 시트 "⋯" 링크 관리] 우측 슬롯에
+  /// 공유 아이콘([onShare]) 대신 임의의 액션(예: 더보기 "⋯" 버튼)을
+  /// 넣고 싶은 화면을 위한 범용 오버라이드. 지정하면 [onShare] 기반
+  /// 기본 아이콘 대신 이 위젯을 그린다 — 기존 호출부(6곳, 전부 이
+  /// 파라미터를 넘기지 않음)는 동작 변화가 전혀 없다(하위 호환).
+  final Widget? trailing;
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -104,17 +112,18 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           SizedBox(
             width: 40,
-            child: onShare != null
-                ? IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.ios_share,
-                      color: GmColors.fg,
-                      size: 18,
-                    ),
-                    onPressed: onShare,
-                  )
-                : null,
+            child: trailing ??
+                (onShare != null
+                    ? IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(
+                          Icons.ios_share,
+                          color: GmColors.fg,
+                          size: 18,
+                        ),
+                        onPressed: onShare,
+                      )
+                    : null),
           ),
         ],
       ),
