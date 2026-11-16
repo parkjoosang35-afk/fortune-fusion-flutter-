@@ -64,42 +64,125 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
   }
 
   Future<void> _confirmDelete(GuinjiPerson p) async {
-    // [핸드오프 `RankScreen` 삭제 확인 모달 1:1 이식] "OO님을 지도에서
-    // 뺄까요" + "관계 결과와 열어 둔 풀이도 함께 사라져요" + 취소/빼기.
+    // [QA 대조 — SPEC §6 H11 "삭제 다이얼로그: 중앙, 라운드 22, #1C1230 ·
+    // 얼굴 56 · 제목 18 · 본문 13.5 · 버튼 46h (취소 Ghost / 빼기
+    // danger)"] design_files/guinji-rank.jsx 원문의 `del &&` 블록을
+    // 1:1 이식 — 기존 코드는 얼굴 이미지가 없고 버튼이 기본 TextButton
+    // (우측 정렬, 높이/배경/테두리 없음)이라 SPEC과 불일치했다.
+    final type = guinjiTypeOf(p.relation);
+    final birth = parseGuinjiBirthLabel(p.birth);
+    final character = birth == null
+        ? null
+        : GuinjiCharacter.of(
+            birth: birth,
+            gender: GuinjiCharacter.fromKey(p.gender),
+            stableKey: p.id,
+          );
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: GmColors.card,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        // [오버플로 수정] 긴 이름(p.name) + 큰 textScale 환경에서 제목+본문+
-        // 액션이 다이얼로그 높이를 넘겨 320x568@2.0에서 8px, @2.5에서
-        // 282px RenderFlex 오버플로 발생을 확인. AlertDialog의 내장
-        // scrollable 옵션으로 title+content만 스크롤 가능하게 하여 해결
-        // (디자인/색상/문구 변경 없음).
-        scrollable: true,
-        title: Text(
-          '${p.name}님을 지도에서 뺄까요',
-          style: const TextStyle(
-            fontFamily: GmText.display,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: GmColors.fg,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF222222),
+                  image: character == null
+                      ? null
+                      : DecorationImage(
+                          image: AssetImage(character.face),
+                          fit: BoxFit.cover,
+                          onError: (_, _) {},
+                        ),
+                  border: Border.all(color: type.color, width: 1.5),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '${p.name}님을 지도에서 뺄까요',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: GmText.display,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: GmColors.fg,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                '관계 결과와 열어 둔 풀이도 함께 사라져요',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: GmText.ui,
+                  fontSize: 13.5,
+                  height: 1.55,
+                  color: GmColors.muted,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 46,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: GmColors.fg,
+                          side: const BorderSide(color: GmColors.line),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(23),
+                          ),
+                        ),
+                        child: const Text(
+                          '취소',
+                          style: TextStyle(
+                            fontFamily: GmText.ui,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 46,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: GmColors.danger,
+                          foregroundColor: GmColors.onFg,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(23),
+                          ),
+                        ),
+                        child: const Text(
+                          '빼기',
+                          style: TextStyle(
+                            fontFamily: GmText.ui,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        content: const Text(
-          '관계 결과와 열어 둔 풀이도 함께 사라져요',
-          style: TextStyle(fontSize: 13.5, height: 1.55, color: GmColors.muted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('취소', style: TextStyle(color: GmColors.fg)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('빼기', style: TextStyle(color: GmColors.danger)),
-          ),
-        ],
       ),
     );
     if (confirmed == true) widget.onMemberDelete?.call(p);
@@ -122,7 +205,11 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
               child: Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  // [QA 대조 — SPEC §6 H11 "세그먼트 2탭: 배경
+                  // rgba(255,235,200,.05)"] design_files/guinji-rank.jsx
+                  // 기준 흰색이 아닌 따뜻한 톤(cardTint) — 기존 코드는
+                  // 순수 흰색 5%를 쓰고 있었다.
+                  color: GmColors.cardTint,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -201,7 +288,11 @@ class _TabButton extends StatelessWidget {
         height: 36,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? GmColors.fg : Colors.transparent,
+          // [QA 대조 — SPEC §6 H11 "세그먼트 2탭: 선택 금 배경 + ink
+          // 글자"] design_files/guinji-rank.jsx 기준 선택 배경은 금색
+          // (CK.gold)이다 — 기존 코드는 GmColors.fg(크림 흰색)를 써서
+          // 금색 강조가 빠져 있었다.
+          color: active ? GmColors.gold : Colors.transparent,
           borderRadius: BorderRadius.circular(11),
         ),
         child: Text(
@@ -720,9 +811,14 @@ class _ListTab extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             children: [
               _FilterChip(
+                // [QA 대조 — SPEC §6 H11 "칩 줄: 선택 시 유형색 22% /
+                // 전체는 금"] design_files/guinji-rank.jsx 기준 "전체"
+                // 칩의 강조색은 금(CK.gold)이다 — 기존 코드는
+                // GmColors.fg(크림 흰색)를 써서 전체 선택 시 다른
+                // 유형 칩과 시각적으로 구분되지 않았다.
                 label: '전체 ${list.length}',
                 hanja: null,
-                color: GmColors.fg,
+                color: GmColors.gold,
                 active: filter == null,
                 onTap: () => onFilter(null),
               ),
@@ -782,8 +878,15 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: active ? color : GmColors.line),
+          // [QA 대조 — SPEC §6 H11 "칩 줄: 선택 시 유형색 22% / 전체는
+          // 금"] design_files/guinji-rank.jsx 원문: `background: on
+          // ? (t ? c + '22' : CK.gold) : 'transparent'` — 유형 칩은
+          // 자기 색 22% 배경, "전체" 칩은 금색 단색 배경이다. 기존
+          // 코드는 "전체" 칩 배경을 GmColors.fg(크림 흰색)로
+          // 하드코딩해 둬서, 호출부에서 color 파라미터를 금색으로
+          // 바꿔도 배경에는 반영되지 않는 버그가 있었다.
           color: active
-              ? (hanja != null ? color.withValues(alpha: 0.13) : GmColors.fg)
+              ? (hanja != null ? color.withValues(alpha: 0.13) : color)
               : Colors.transparent,
         ),
         child: Row(
