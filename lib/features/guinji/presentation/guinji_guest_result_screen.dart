@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../core/widgets/zoomable_content.dart';
+import '../../share/application/share_service.dart';
+import '../../share/domain/share_result_model.dart';
 import '../deep/guinji_deep_text.dart';
+import '../deep/guinji_reasons.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
@@ -78,6 +81,43 @@ class GuinjiGuestResultScreen extends StatelessWidget {
   /// 지도에 참여 중인 전체 인원 수) — "지금 N명이 함께해요" 안내에 사용.
   /// null이면 안내 문구 자체를 숨긴다.
   final int? mapTotal;
+
+  /// [귀인지도 v5 — G2/W2 QA 대조 보강] COPY.md G2 "footer(앱) = 나도 내
+  /// 귀인지도 만들기 / 결과 공유하기"의 두 번째 버튼. `guinji_map_relation_
+  /// detail_screen.dart`의 `_handleShare()`와 동일하게 `ShareService.
+  /// shareResult(resultType: relationship)`를 호출해 호스트-게스트 관계
+  /// 유형/점수/근거를 공유 링크로 전달한다 — 게스트 본인 생년월일 등
+  /// 민감정보는 payload에 포함하지 않는다(이미 화면에 보이는 이름·유형·
+  /// 점수·근거 요약만 포함).
+  Future<void> _handleShare(BuildContext context) async {
+    final meta = guinjiRelationMetaOf(relationKey);
+    final message = '$hostName님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
+    try {
+      await ShareService.shareResult(
+        context,
+        resultType: ShareResultType.relationship,
+        title: message,
+        description: '${meta.label} · 신통방통 귀인지도',
+        payload: {
+          'kind': 'relationship',
+          'relationType': meta.key,
+          'relationLabel': meta.label,
+          'summary': meta.long,
+          'highlights': [meta.specialInsight, ...meta.tips],
+          'personName': hostName,
+          'score': score,
+          'note': evidenceSummary,
+        },
+        subject: '신통방통 귀인지도',
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('결과 공유에 실패했어요. 다시 시도해주세요.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -174,6 +214,14 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                 evidenceSummary: evidenceSummary,
                 body: body,
               ),
+              // [귀인지도 v5 — G2/W2 QA 대조 보강] SPEC §6 G2-5 "근거 박스" ·
+              // COPY.md G2 "reasons = 왜 이렇게 나왔나요 → §1-2". H5(인물
+              // 시트, `guinji_node_sheet.dart`)가 이미 같은 `guinjiReasons`
+              // 데이터로 구현해 둔 S1~S5 행 패턴을 그대로 이식한다.
+              if ((guinjiReasons[relationKey] ?? const []).isNotEmpty) ...[
+                const SizedBox(height: 18),
+                _GuinjiReasonBox(relationKey: relationKey, color: color),
+              ],
               const SizedBox(height: 24),
               const Divider(color: GmColors.line, height: 1),
               const SizedBox(height: 16),
@@ -233,7 +281,37 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                       () => Navigator.of(context).pushNamed('/guinji-map'),
                 ),
               ),
+              // [귀인지도 v5 — G2/W2 QA 대조 보강, G1과 동일 원칙] SPEC §6
+              // G2-7 "점선 안내 박스" · COPY.md G2 note. 원문 note(앱)은
+              // "+20P가 쌓였어요"이지만, 백엔드(`join/route.ts` 설계 결정
+              // 1)는 익명 참여에 포인트를 절대 지급하지 않는다 — G1에서
+              // 사용자가 결정한 원칙(B: 사실과 일치하는 COPY.md 웹 버전
+              // 문구로 플랫폼 구분 없이 통일)을 그대로 적용해, 여기서도
+              // "참여가 완료돼…" 문구 하나로 통일한다.
+              const SizedBox(height: 16),
+              _GiGuestDashedNotice(hostName: hostName),
               const SizedBox(height: 24),
+              // [귀인지도 v5 — G2/W2 QA 대조 보강] SPEC §6 G2-8 "footer(앱:
+              // Primary + Ghost / 웹: 문구 다름)" · COPY.md G2 footer(앱) =
+              // "나도 내 귀인지도 만들기 / 결과 공유하기". Primary(위
+              // `_GuinjiDeepTeaser` CTA)는 이미 있으나 Ghost "결과 공유하기"
+              // 버튼이 화면에 전혀 없었다 — `guinji_map_relation_detail_
+              // screen.dart`의 `_handleShare()`와 동일한 `ShareService.
+              // shareResult` 경로로 추가한다.
+              OutlinedButton.icon(
+                onPressed: () => _handleShare(context),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: GmColors.line),
+                  foregroundColor: GmColors.fg,
+                  minimumSize: const Size.fromHeight(46),
+                  shape: const StadiumBorder(),
+                ),
+                icon: const Icon(Icons.ios_share_rounded, size: 16),
+                label: const Text(
+                  '결과 공유하기',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -241,6 +319,153 @@ class GuinjiGuestResultScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// SPEC §6 G2-5 "근거 박스" — H5(`guinji_node_sheet.dart`)의 "왜 이렇게
+/// 나왔나요" S1~S5 행 패턴을 그대로 이식한다(`guinjiReasons` 공용 데이터).
+class _GuinjiReasonBox extends StatelessWidget {
+  const _GuinjiReasonBox({required this.relationKey, required this.color});
+
+  final String relationKey;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final reasons = guinjiReasons[relationKey] ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const GmLabelMini('왜 이렇게 나왔나요'),
+        const SizedBox(height: 9),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GmColors.line),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Column(
+            children: [
+              for (var i = 0; i < reasons.length; i++)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  decoration: BoxDecoration(
+                    border: i > 0
+                        ? const Border(
+                            top: BorderSide(color: GmColors.hair),
+                          )
+                        : null,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: color.withValues(alpha: 0.53),
+                          ),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          reasons[i][0],
+                          style: TextStyle(
+                            fontFamily: GmText.mono,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          reasons[i][1],
+                          style: const TextStyle(
+                            fontFamily: GmText.ui,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            height: 1.5,
+                            color: GmColors.fg,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// SPEC §6 G2-7 "점선 안내 박스" — `guinji_map_guest_join_screen.dart`의
+/// `_GiDashedPointNotice`/`_GiDashedRectPainter`와 동일한 CustomPaint 점선
+/// 테두리 패턴(패키지 의존 없음)을 이 화면의 `GmColors` 팔레트로 재구현한다.
+/// [G1과 동일 원칙] "+20P" 대신 사실과 일치하는 COPY.md 웹 버전 문구로
+/// 플랫폼 구분 없이 통일한다.
+class _GiGuestDashedNotice extends StatelessWidget {
+  const _GiGuestDashedNotice({required this.hostName});
+
+  final String hostName;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: const _GmDashedRectPainter(color: GmColors.gold, radius: 14),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Text(
+          '참여가 완료돼 $hostName님의 지도에 당신의 별이 떴어요. 내 지도를 만들면 내 곁의 귀인도 볼 수 있어요.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: GmText.ui,
+            fontSize: 12.5,
+            height: 1.6,
+            color: GmColors.muted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GmDashedRectPainter extends CustomPainter {
+  const _GmDashedRectPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        const dashLen = 5.0, gapLen = 3.5;
+        final next = (distance + dashLen).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, next), paint);
+        distance += dashLen + gapLen;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GmDashedRectPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 /// [귀인지도 핸드오프 v4 — L5, 2026-12 광고형 재설계] `LpTeaser` 레이아웃을
