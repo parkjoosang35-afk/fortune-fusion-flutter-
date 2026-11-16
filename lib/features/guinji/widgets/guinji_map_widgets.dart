@@ -17,6 +17,7 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     this.back = false,
     this.title,
+    this.meta,
     this.onShare,
     this.onBack,
     this.trailing,
@@ -24,6 +25,11 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   final bool back;
   final String? title;
+
+  /// [SPEC §6 H2 "상단바 (← · 제목 · `STEP 1/1`)"] 제목 오른쪽에 붙는
+  /// 짧은 보조 라벨(예: `STEP 1/1`). 지정하지 않으면 기존 화면과 동일하게
+  /// 중앙 제목만 그린다 — 호출부 20여 곳은 하위 호환.
+  final String? meta;
   final VoidCallback? onShare;
   final VoidCallback? onBack;
 
@@ -98,16 +104,45 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           Expanded(
             child: Center(
-              child: Text(
-                title ?? '',
-                style: const TextStyle(
-                  fontFamily: GmText.display,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: GmColors.fg,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: meta == null
+                  ? Text(
+                      title ?? '',
+                      style: const TextStyle(
+                        fontFamily: GmText.display,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: GmColors.fg,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title ?? '',
+                            style: const TextStyle(
+                              fontFamily: GmText.display,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: GmColors.fg,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          meta!,
+                          style: const TextStyle(
+                            fontFamily: GmText.mono,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.6,
+                            color: GmColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
           SizedBox(
@@ -489,6 +524,111 @@ class GmRoseButton extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [SPEC §6 H2 "약관 박스"] 전체 동의 + 개별 항목(필수/선택) 공용 체크
+/// 행. 선택 시 금색 원 + 체크 아이콘, 미선택 시 `line` 테두리만. `보기`
+/// 링크는 [onViewDetail]이 있을 때만 그린다.
+class GmAgreeRow extends StatelessWidget {
+  const GmAgreeRow({
+    super.key,
+    required this.checked,
+    required this.label,
+    required this.onChanged,
+    this.badge,
+    this.emphasize = false,
+    this.onViewDetail,
+  });
+
+  final bool checked;
+  final String label;
+  final ValueChanged<bool> onChanged;
+
+  /// `[필수]` / `[선택]` 배지 텍스트(없으면 표시하지 않음 — 전체 동의 행용).
+  final String? badge;
+  final bool emphasize;
+  final VoidCallback? onViewDetail;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!checked),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: checked ? GmColors.gold : Colors.transparent,
+                border: Border.all(
+                  color: checked ? GmColors.gold : GmColors.line,
+                  width: 1.4,
+                ),
+              ),
+              child: checked
+                  ? const Icon(Icons.check, size: 13, color: GmColors.onFg)
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    if (badge != null)
+                      TextSpan(
+                        text: '$badge ',
+                        style: TextStyle(
+                          fontFamily: GmText.ui,
+                          fontSize: emphasize ? 13 : 12,
+                          fontWeight: FontWeight.w700,
+                          color: badge == '[필수]'
+                              ? GmColors.gold
+                              : GmColors.muted,
+                        ),
+                      ),
+                    TextSpan(
+                      text: label,
+                      style: TextStyle(
+                        fontFamily: GmText.ui,
+                        fontSize: emphasize ? 13.5 : 12,
+                        fontWeight: emphasize
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: GmColors.fg,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (onViewDetail != null)
+              GestureDetector(
+                onTap: onViewDetail,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Text(
+                    '보기',
+                    style: TextStyle(
+                      fontFamily: GmText.ui,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: GmColors.muted,
+                      decoration: TextDecoration.underline,
+                      decorationColor: GmColors.muted,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

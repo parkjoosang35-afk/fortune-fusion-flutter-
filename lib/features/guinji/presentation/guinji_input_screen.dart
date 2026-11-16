@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/env_config.dart';
 import '../../../core/router/app_navigator_key.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../guinji/domain/pending_guinji_join.dart';
@@ -24,13 +26,19 @@ void replayPendingGuinjiMapEntry() {
   });
 }
 
-/// I · Input — `/guinji-map/new` — "02 정보입력"(§05-1).
+/// H2 · Input — `/guinji-map/new` — [design_handoff_guinji_map_v5]
+/// `SPEC.md` §6 "H2 `/guinji-map/new` · `guinji_input_screen.dart`" +
+/// `COPY.md` "H2 내 정보 입력" 전면 재작성.
 ///
-/// [2026 디자인 핸드오프] 검정 테마 전면 재작성 + 캐릭터 미리보기 +
-/// 성별(신규) 입력 추가. "나의 정보" · 캐릭터 미리보기("{별명}님의
-/// 캐릭터 / {연령대} {성별} · 지도 가운데에 표시돼요", 입력이 바뀌면
-/// 즉시 교체) · 별명 · 성별 · 생년월일 · 양력/음력/음력(윤달) · 태어난
-/// 시간 + "시간 모름" 토글 · CTA "지도 만들기".
+/// [v5 핸드오프 전면 교체] 기존 구현에는 SPEC/COPY/QA_CHECKLIST.md가
+/// 요구하는 다음 요소가 없었다 — 상단바 `STEP 1/1` 메타, `MY CHARACTER`
+/// 캐릭터 카드(금 링 + 글로우 + 금 그라데이션), 각 필드의 `필수` 배지와
+/// COPY 그대로의 placeholder/힌트 문구, **약관 박스 전체**(전체 동의 +
+/// [필수] 서비스 이용약관 + [필수] 생년월일 정보 수집·이용 + [선택] 새
+/// 귀인 알림), CTA 3단계 상태 문구(`cta.missing`/`cta.agree`/`cta.ok`),
+/// 하단 고정 CTA(상단 `hair` 선 + `bgBottom`). 이번 작업에서 전부 추가해
+/// `QA_CHECKLIST.md` "H2 | 캐릭터 미리보기 즉시 교체 · 성별 필드 · 약관
+/// 4줄 · CTA 3단계 문구" 4항목을 모두 충족시킨다.
 ///
 /// [로그인 게이트] `createMap`은 백엔드에서 인증(`requireUser`)을
 /// 요구하므로, "다음" 제출 시점에 [AuthProvider.isLoggedIn]을 먼저
@@ -80,7 +88,7 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
       widget.initialDraft?.calendarIndex ?? 0; // 0=양력, 1=음력, 2=음력(윤달)
   late bool _timeUnknown = widget.initialDraft?.timeUnknown ?? false;
 
-  /// [신규] 성별 — 캐릭터 미리보기 전용(엔진 입력 아님).
+  /// 성별 — 캐릭터 미리보기 전용(엔진 입력 아님).
   /// [P4-hotfix 2026-10-13] 기본값을 하드코딩 female에서 사용자 프로필
   /// 성별로 시드한다 — 회원가입에서 남자를 골랐는데 지도 입력 화면이 항상
   /// '여성'으로 시작해 캐릭터가 여자로 바뀌어 보이던 버그.
@@ -93,6 +101,29 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
       if (g == 'M' || g == 'male') return GuinjiGender.male;
     } catch (_) {}
     return GuinjiGender.female;
+  }
+
+  /// [SPEC §6 H2 "약관 박스"] 전체 동의 + [필수] 서비스 이용약관 +
+  /// [필수] 생년월일 정보 수집·이용 + [선택] 새 귀인 알림 받기.
+  bool _agreeTerms = false;
+  bool _agreePrivacy = false;
+  bool _agreeNotify = false;
+
+  bool get _allRequiredAgreed => _agreeTerms && _agreePrivacy;
+  bool get _allAgreed => _allRequiredAgreed && _agreeNotify;
+
+  void _setAllAgreed(bool value) {
+    setState(() {
+      _agreeTerms = value;
+      _agreePrivacy = value;
+      _agreeNotify = value;
+    });
+  }
+
+  Future<void> _openPolicyLink(String path) async {
+    final uri = Uri.tryParse('${EnvConfig.adminApiBaseUrl}$path');
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   bool _submitting = false;
@@ -136,6 +167,23 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
       stableKey: stableKey,
     );
   }
+
+  /// [SPEC §6 H2 "CTA 상태 문구"] 필수값 입력 여부 → 약관 동의 여부 →
+  /// 완료 순으로 판정한다. `cta.missing` / `cta.agree` / `cta.ok`
+  /// (COPY.md 키 이름 그대로) 세 단계를 그대로 구현한다.
+  bool get _requiredFieldsFilled =>
+      _nicknameController.text.trim().isNotEmpty &&
+      _yearController.text.trim().length == 4 &&
+      _monthController.text.trim().isNotEmpty &&
+      _dayController.text.trim().isNotEmpty;
+
+  String get _ctaLabel {
+    if (!_requiredFieldsFilled) return '정보를 모두 입력해 주세요';
+    if (!_allRequiredAgreed) return '필수 약관에 동의해 주세요';
+    return '내 귀인지도 만들기';
+  }
+
+  bool get _ctaEnabled => _requiredFieldsFilled && _allRequiredAgreed;
 
   Future<void> _handleSubmit() async {
     final auth = context.read<AuthProvider>();
@@ -237,244 +285,455 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
 
     return Scaffold(
       backgroundColor: GmColors.bg,
-      appBar: GmTopBar(
+      // [SPEC §6 H2 "상단바 (← · 제목 · `STEP 1/1`)"]
+      appBar: const GmTopBar(
         back: true,
-        title: '정보 입력',
-        onBack: () => Navigator.of(context).maybePop(),
+        title: '내 정보 입력',
+        meta: 'STEP 1/1',
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '나의 정보',
-              style: TextStyle(
-                fontFamily: GmText.display,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-                color: GmColors.fg,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 캐릭터 미리보기
-            Row(
-              children: [
-                ClipOval(
-                  child: Image.asset(
-                    character.face,
-                    width: 52,
-                    height: 52,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        Container(width: 52, height: 52, color: GmColors.card),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── [SPEC §6 H2 "캐릭터 카드: 얼굴 62, 금 링 2.5 +
+                  // 글로우, 금 그라데이션 배경"] ──
+                  _CharacterPreviewCard(
+                    character: character,
+                    previewName: previewName,
+                    gender: _gender,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
+                  const SizedBox(height: 24),
+
+                  _RequiredFieldLabel('이름 (별명)'),
+                  const SizedBox(height: 6),
+                  GmFieldShell(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: TextField(
+                      controller: _nicknameController,
+                      maxLength: 24,
                       style: const TextStyle(
                         fontFamily: GmText.ui,
                         fontWeight: FontWeight.w600,
-                        fontSize: 13.5,
-                        height: 1.5,
-                        color: GmColors.muted,
+                        fontSize: 14,
+                        color: GmColors.fg,
                       ),
-                      children: [
-                        TextSpan(
-                          text: '$previewName님의 캐릭터\n',
-                          style: const TextStyle(
-                            color: GmColors.fg,
-                            fontWeight: FontWeight.w600,
+                      // [COPY.md H2 f.name] placeholder `지도에 표시될 이름`
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        counterText: '',
+                        hintText: '지도에 표시될 이름',
+                        hintStyle: TextStyle(color: GmColors.dim),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _RequiredFieldLabel('성별'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _GenderSegment(
+                        label: '여성',
+                        active: _gender == GuinjiGender.female,
+                        onTap: () =>
+                            setState(() => _gender = GuinjiGender.female),
+                      ),
+                      const SizedBox(width: 8),
+                      _GenderSegment(
+                        label: '남성',
+                        active: _gender == GuinjiGender.male,
+                        onTap: () =>
+                            setState(() => _gender = GuinjiGender.male),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  _RequiredFieldLabel('생년월일'),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        // SPEC §6 H2 "생년월일(3칸 1.6:1:1)"
+                        flex: 16,
+                        child: _NumberBox(
+                          controller: _yearController,
+                          placeholder: '년',
+                          maxLength: 4,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        flex: 10,
+                        child: _NumberBox(
+                          controller: _monthController,
+                          placeholder: '월',
+                          maxLength: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        flex: 10,
+                        child: _NumberBox(
+                          controller: _dayController,
+                          placeholder: '일',
+                          maxLength: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // [DESIGN_SPEC.md §6-② 필드 표 "달력" 행]
+                  const GmFieldLabel('달력'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (var i = 0; i < _calendarChips.length; i++)
+                        _CalendarChip(
+                          label: _calendarChips[i],
+                          active: _calendarIndex == i,
+                          onTap: () => setState(() => _calendarIndex = i),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  const GmFieldLabel('태어난 시간'),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _NumberBox(
+                          controller: _hourController,
+                          placeholder: '시',
+                          maxLength: 2,
+                          enabled: !_timeUnknown,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _NumberBox(
+                          controller: _minuteController,
+                          placeholder: '분',
+                          maxLength: 2,
+                          enabled: !_timeUnknown,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _timeUnknown = !_timeUnknown),
+                        child: Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              GmRadius.input,
+                            ),
+                            color: _timeUnknown
+                                ? GmColors.gold
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: _timeUnknown
+                                  ? GmColors.gold
+                                  : GmColors.line,
+                            ),
+                          ),
+                          // [COPY.md H2 f.time] 버튼 `모름` (선택 시 `✓ 모름`)
+                          child: Text(
+                            _timeUnknown ? '✓ 모름' : '모름',
+                            style: TextStyle(
+                              fontFamily: GmText.ui,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: _timeUnknown
+                                  ? GmColors.onFg
+                                  : GmColors.muted,
+                            ),
                           ),
                         ),
-                        TextSpan(
-                          text:
-                              '${character.band} ${_gender == GuinjiGender.female ? '여성' : '남성'} · 지도 가운데에 표시돼요',
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // [COPY.md H2 f.time.hint] — 항상 노출(모름 여부와 무관).
+                  const Text(
+                    '시간을 몰라도 관계는 볼 수 있어요. 알면 조금 더 정확해져요.',
+                    style: TextStyle(
+                      fontFamily: GmText.ui,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11.5,
+                      color: GmColors.muted,
+                      height: 1.5,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
 
-            const GmFieldLabel('별명'),
-            const SizedBox(height: 6),
-            GmFieldShell(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: TextField(
-                controller: _nicknameController,
-                maxLength: 24,
-                style: const TextStyle(
-                  fontFamily: GmText.ui,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: GmColors.fg,
-                ),
-                decoration: const InputDecoration(
-                  isDense: true,
-                  counterText: '',
-                  hintText: '어떻게 불릴까요',
-                  hintStyle: TextStyle(color: GmColors.dim),
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const GmFieldLabel('성별'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _GenderSegment(
-                  label: '여성',
-                  active: _gender == GuinjiGender.female,
-                  onTap: () => setState(() => _gender = GuinjiGender.female),
-                ),
-                const SizedBox(width: 8),
-                _GenderSegment(
-                  label: '남성',
-                  active: _gender == GuinjiGender.male,
-                  onTap: () => setState(() => _gender = GuinjiGender.male),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            const GmFieldLabel('생년월일'),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  flex: 7,
-                  child: _NumberBox(
-                    controller: _yearController,
-                    placeholder: '1998',
-                    maxLength: 4,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 5,
-                  child: _NumberBox(
-                    controller: _monthController,
-                    placeholder: '05',
-                    maxLength: 2,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 5,
-                  child: _NumberBox(
-                    controller: _dayController,
-                    placeholder: '14',
-                    maxLength: 2,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            const GmFieldLabel('양력/음력'),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var i = 0; i < _calendarChips.length; i++)
-                  _CalendarChip(
-                    label: _calendarChips[i],
-                    active: _calendarIndex == i,
-                    onTap: () => setState(() => _calendarIndex = i),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            const GmFieldLabel('태어난 시간'),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: _NumberBox(
-                    controller: _hourController,
-                    placeholder: '09',
-                    maxLength: 2,
-                    enabled: !_timeUnknown,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: _NumberBox(
-                    controller: _minuteController,
-                    placeholder: '20',
-                    maxLength: 2,
-                    enabled: !_timeUnknown,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () => setState(() => _timeUnknown = !_timeUnknown),
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: _timeUnknown ? GmColors.fg : Colors.transparent,
-                      border: Border.all(
-                        color: _timeUnknown ? GmColors.fg : GmColors.line,
+                  if (_formError != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _formError!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: GmColors.danger,
                       ),
                     ),
-                    child: Text(
-                      _timeUnknown ? '✓ 시간 모름' : '시간 모름',
-                      style: TextStyle(
-                        fontFamily: GmText.ui,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _timeUnknown ? GmColors.onFg : GmColors.muted,
-                      ),
-                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+                  // ── [SPEC §6 H2 "약관 박스"] ──
+                  _AgreementBox(
+                    allAgreed: _allAgreed,
+                    agreeTerms: _agreeTerms,
+                    agreePrivacy: _agreePrivacy,
+                    agreeNotify: _agreeNotify,
+                    onAllChanged: _setAllAgreed,
+                    onTermsChanged: (v) => setState(() => _agreeTerms = v),
+                    onPrivacyChanged: (v) => setState(() => _agreePrivacy = v),
+                    onNotifyChanged: (v) => setState(() => _agreeNotify = v),
+                    onOpenTerms: () => _openPolicyLink('/terms'),
+                    onOpenPrivacy: () => _openPolicyLink('/privacy-policy'),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            if (_timeUnknown) ...[
-              const SizedBox(height: 8),
-              const Text(
-                '태어난 시간을 몰라요. 3기둥으로 계산합니다(정확도 다소 낮아짐).',
-                style: TextStyle(
-                  fontFamily: GmText.ui,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11.5,
-                  color: GmColors.muted,
-                  height: 1.5,
+          ),
+
+          // ── [SPEC §6 H2 "하단 고정 CTA (상단 `hair` 선, 배경
+          // bgBottom)"] ──
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              color: GmColors.bgBottom,
+              border: Border(top: BorderSide(color: GmColors.hair)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                child: GmPrimaryButton(
+                  label: _ctaLabel,
+                  loading: _submitting,
+                  onPressed: (_submitting || !_ctaEnabled)
+                      ? null
+                      : _handleSubmit,
                 ),
               ),
-            ],
-
-            if (_formError != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _formError!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: GmColors.danger),
-              ),
-            ],
-
-            const SizedBox(height: 28),
-            GmPrimaryButton(
-              label: '지도 만들기',
-              loading: _submitting,
-              onPressed: _submitting ? null : _handleSubmit,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [SPEC §6 H2 "캐릭터 카드: 얼굴 62, 금 링 2.5 + 글로우, 금 그라데이션
+/// 배경"] + [COPY.md H2] `char.meta`="MY CHARACTER" ·
+/// `char.title`="{별명}님의 캐릭터" ·
+/// `char.sub`="{연령대} {여성/남성} · 성별과 나이에 맞춰 바뀌어요".
+class _CharacterPreviewCard extends StatelessWidget {
+  const _CharacterPreviewCard({
+    required this.character,
+    required this.previewName,
+    required this.gender,
+  });
+
+  final GuinjiCharacter character;
+  final String previewName;
+  final GuinjiGender gender;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(GmRadius.card),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            GmColors.gold.withValues(alpha: 0.16),
+            GmColors.card,
           ],
         ),
+        border: Border.all(color: GmColors.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [GmColors.goldTop, GmColors.gold],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: GmColors.goldShadow,
+                  blurRadius: 14,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                character.face,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    Container(color: GmColors.card),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const GmLabelMini('MY CHARACTER'),
+                const SizedBox(height: 4),
+                Text(
+                  '$previewName님의 캐릭터',
+                  style: const TextStyle(
+                    fontFamily: GmText.ui,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14.5,
+                    color: GmColors.fg,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${character.band} ${gender == GuinjiGender.female ? '여성' : '남성'} · 성별과 나이에 맞춰 바뀌어요',
+                  style: const TextStyle(
+                    fontFamily: GmText.ui,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11.5,
+                    color: GmColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [COPY.md H2] `f.name`/`f.gender`/`f.birth` 공통 — 라벨 뒤에 `필수`
+/// 배지를 붙인 [GmFieldLabel] 확장형.
+class _RequiredFieldLabel extends StatelessWidget {
+  const _RequiredFieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GmFieldLabel(text),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+          decoration: BoxDecoration(
+            color: GmColors.gold.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(GmRadius.chip),
+          ),
+          child: const Text(
+            '필수',
+            style: TextStyle(
+              fontFamily: GmText.ui,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              color: GmColors.gold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// ── [SPEC §6 H2 "약관 박스"] + [COPY.md H2 agree.*] ──
+/// `전체 동의하기` / `[필수] 서비스 이용약관 · 보기` /
+/// `[필수] 생년월일 정보 수집·이용 · 보기` / `[선택] 새 귀인 알림 받기 · 보기`.
+class _AgreementBox extends StatelessWidget {
+  const _AgreementBox({
+    required this.allAgreed,
+    required this.agreeTerms,
+    required this.agreePrivacy,
+    required this.agreeNotify,
+    required this.onAllChanged,
+    required this.onTermsChanged,
+    required this.onPrivacyChanged,
+    required this.onNotifyChanged,
+    required this.onOpenTerms,
+    required this.onOpenPrivacy,
+  });
+
+  final bool allAgreed;
+  final bool agreeTerms;
+  final bool agreePrivacy;
+  final bool agreeNotify;
+  final ValueChanged<bool> onAllChanged;
+  final ValueChanged<bool> onTermsChanged;
+  final ValueChanged<bool> onPrivacyChanged;
+  final ValueChanged<bool> onNotifyChanged;
+  final VoidCallback onOpenTerms;
+  final VoidCallback onOpenPrivacy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: GmColors.cardTint,
+        border: Border.all(color: GmColors.line),
+        borderRadius: BorderRadius.circular(GmRadius.card),
+      ),
+      child: Column(
+        children: [
+          GmAgreeRow(
+            checked: allAgreed,
+            label: '전체 동의하기',
+            emphasize: true,
+            onChanged: onAllChanged,
+          ),
+          const Divider(height: 1, color: GmColors.hair),
+          GmAgreeRow(
+            checked: agreeTerms,
+            badge: '[필수]',
+            label: '서비스 이용약관',
+            onChanged: onTermsChanged,
+            onViewDetail: onOpenTerms,
+          ),
+          GmAgreeRow(
+            checked: agreePrivacy,
+            badge: '[필수]',
+            label: '생년월일 정보 수집·이용',
+            onChanged: onPrivacyChanged,
+            onViewDetail: onOpenPrivacy,
+          ),
+          GmAgreeRow(
+            checked: agreeNotify,
+            badge: '[선택]',
+            label: '새 귀인 알림 받기',
+            onChanged: onNotifyChanged,
+          ),
+        ],
       ),
     );
   }
@@ -501,8 +760,8 @@ class _GenderSegment extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: active ? GmColors.fg : Colors.transparent,
-          border: Border.all(color: active ? GmColors.fg : GmColors.line),
+          color: active ? GmColors.gold : Colors.transparent,
+          border: Border.all(color: active ? GmColors.gold : GmColors.line),
         ),
         child: Text(
           label,
@@ -534,7 +793,7 @@ class _NumberBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Opacity(
-      opacity: enabled ? 1 : 0.35,
+      opacity: enabled ? 1 : 0.4,
       child: GmFieldShell(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: TextField(
@@ -579,9 +838,9 @@ class _CalendarChip extends StatelessWidget {
       onTap: onTap,
       child: GmChip(
         label: label,
-        background: active ? GmColors.fg : Colors.transparent,
+        background: active ? GmColors.gold : Colors.transparent,
         foreground: active ? GmColors.onFg : GmColors.muted,
-        borderColor: active ? GmColors.fg : GmColors.line,
+        borderColor: active ? GmColors.gold : GmColors.line,
       ),
     );
   }
