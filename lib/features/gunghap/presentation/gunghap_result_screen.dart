@@ -37,6 +37,7 @@ import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../application/gunghap_provider.dart';
 import '../domain/gunghap_data.dart';
+import '../gate/result_gate.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/cat_icon.dart';
@@ -54,7 +55,6 @@ class GunghapResultScreen extends StatefulWidget {
 
 class _GunghapResultScreenState extends State<GunghapResultScreen> {
   bool _loading = true;
-  bool _unlocking = false;
   // [궁합지도 Phase 4 §4 — 결과 재열람] 궁합스토리에서 과거 기록을 다시
   // 열람할 때, 그 사이 결과가 삭제됐을 수 있다(DELETE
   // /api/public/gunghap/results/{resultId} 이미 Phase 3에서 구현/배포됨).
@@ -118,44 +118,57 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
     }
   }
 
+  // [궁합지도 핸드오프 v4 §5 S19~S20/S33~S41 — 결제 게이트] 기존에는
+  // 버튼을 누르면 확인 절차 없이 바로 차감+생성이 동시에 일어났다. v4
+  // 디자인은 "결제 전 확인(S19)" 시트를 먼저 보여주고, 실제 차감/생성은
+  // [ResultGateController.pay]가 수행한다 — 로직(100 복주머니 고정,
+  // `GunghapProvider.unlock()` 단일 호출, 서버 멱등)은 전혀 바꾸지
+  // 않고 그 앞뒤에 확인/진행 UI만 덧붙인다([result_gate.dart] 상단
+  // 주석의 아키텍처 차이 설명 참고 — 서버에 job/stage 스트리밍이 없어
+  // v4 참고코드를 그대로 쓰지 않고 이 프로젝트의 실제 API에 맞게
+  // 재설계했다).
   Future<void> _unlock() async {
     final provider = context.read<GunghapProvider>();
     final pouch = context.read<LuckPouchProvider>();
-    setState(() => _unlocking = true);
-    final ok = await provider.unlock(widget.resultId);
-    if (!mounted) return;
-    setState(() => _unlocking = false);
+    final result = provider.result;
+    if (result == null) return;
 
-    if (!ok) {
-      if (provider.errorCode == 'INSUFFICIENT_BALANCE') {
-        AppToast.show(
+    final unlockCost = (result['unlockCost'] as num?)?.toInt() ?? 100;
+    final ownerName = result['ownerName'] as String? ?? '나';
+    final guestName = result['guestName'] as String? ?? '상대방';
+    final subName =
+        result['subName'] as String? ??
+        (result['majorId'] != null ? ghMajorById(result['majorId'] as String).shortName : '궁합');
+
+    final gate = ResultGateController(
+      provider: provider,
+      resultId: widget.resultId,
+      balance: pouch.balance,
+      price: unlockCost,
+      openReport: () {
+        // [v4 설계] 이미 이 화면(GunghapResultScreen)이 provider.result를
+        // watch하고 있으므로, pay() 성공 시 provider가 _result를
+        // unlocked:true로 갱신하는 즉시 이 화면이 자동으로 재빌드돼
+        // 상세 보고서 섹션을 보여준다 — 별도 네비게이션이 필요 없다.
+      },
+      openPouch: () {
+        Navigator.of(
           context,
-          '복주머니가 부족합니다. 복주머니를 모아 다시 시도해 주세요.',
-          isError: true,
-        );
-      } else if (provider.errorCode == 'NETWORK_ERROR') {
-        AppToast.show(
-          context,
-          provider.error ?? '서비스 연결이 원활하지 않습니다.',
-          isError: true,
-          onRetry: _unlock,
-        );
-      } else {
-        AppToast.show(
-          context,
-          provider.error ?? '잠금해제하지 못했습니다. 잠시 후 다시 시도해 주세요.',
-          isError: true,
-          onRetry: _unlock,
-        );
-      }
-      return;
-    }
+        ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: 2);
+      },
+    );
+
+    if (!gate.start()) return;
+    await showGHGateSheet(context, gate, me: ownerName, partner: guestName, sub: subName);
+    if (!mounted) return;
+
     // [재화 단일화 원칙] 서버 원장을 다시 조회해 앱 전역 잔액 표시를
     // 동기화한다(GunghapProvider는 결제를 직접 다루지 않음 — 파일 상단
-    // 주석/GunghapProvider.unlock() 문서 참고).
+    // 주석/GunghapProvider.unlock() 문서 참고). gate가 실제로 결제를
+    // 수행했을 때만 의미가 있지만, 매번 호출해도 변동이 없으면 그대로
+    // 유지되므로 안전하다.
     await pouch.load();
-    if (!mounted) return;
-    AppToast.show(context, '상세 보고서가 열렸어요.');
+    gate.dispose();
   }
 
   // [Phase 4 §5 — 결과 이미지 갤러리 저장] 귀인지도
@@ -245,7 +258,7 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
                   color: GHColors.bg2,
                   child: _ResultBody(
                     result: result,
-                    unlocking: _unlocking,
+                    unlocking: false,
                     onUnlock: _unlock,
                   ),
                 ),

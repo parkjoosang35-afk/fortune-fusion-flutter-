@@ -269,6 +269,16 @@ class GunghapRepository {
   /// 반환: {unlocked:true, alreadyUnlocked, amountCharged, balanceAfter?,
   /// detail: [8개, {categoryId, grade, relationshipFeature, strength,
   /// conflictRisk, improvement}]}
+  ///
+  /// [타임아웃 90초 — 버그 수정, result_gate.dart 설계 과정에서 발견]
+  /// 서버(`admin_web/.../unlock/route.ts`)는 캐시가 없는 최초 해금 시
+  /// 트랜잭션 밖에서 LLM을 호출하며, 그 주석에 "최대 35초×2회(최대
+  /// 70초) 걸릴 수 있다"고 명시돼 있다. 기존 15초 타임아웃은 이보다
+  /// 훨씬 짧아, 서버가 정상적으로 LLM 생성을 진행 중인데도 클라이언트가
+  /// 먼저 타임아웃으로 끊어 "결제 실패"로 잘못 표시될 수 있었다(서버는
+  /// 이미 100P를 차감하고 처리를 계속하므로 실제로는 결제 자체는
+  /// 성공한 상태 — UX상 사용자에게 혼란을 주는 거짓 실패였다). 서버의
+  /// 최악 소요시간(70초)에 여유를 더해 90초로 늘린다.
   Future<ApiResult<Map<String, dynamic>>> unlock(String resultId) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/gunghap/results/$resultId/unlock',
@@ -282,7 +292,7 @@ class GunghapRepository {
             uri,
             headers: {'Content-Type': 'application/json', ...authHeader},
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 401) {
         debugPrint('[GunghapRepository] [unlock] 401 -> 로그인 필요');
