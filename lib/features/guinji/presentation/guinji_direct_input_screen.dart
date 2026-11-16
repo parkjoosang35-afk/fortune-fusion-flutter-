@@ -38,9 +38,14 @@ import '../widgets/guinji_map_widgets.dart';
 /// `guinji_join`(+20P) 포인트가 지급되지 않는다 — 이 화면도 포인트 관련
 /// UI를 노출하지 않는다.
 class GuinjiDirectInputScreen extends StatefulWidget {
-  const GuinjiDirectInputScreen({super.key});
+  const GuinjiDirectInputScreen({super.key, this.initialName});
 
   static const routeName = '/guinji-map/m/add-direct';
+
+  /// [H4-a → H10 이름 미리 채움] SPEC §6 H4-a footer `cta.2`("생년월일을
+  /// 알아요 · 직접 입력")는 빈 자리 슬롯 이름(예: "엄마")을 이름 필드에
+  /// 미리 채워서 이 화면으로 이동해야 한다. null이면 기존처럼 빈 칸.
+  final String? initialName;
 
   @override
   State<GuinjiDirectInputScreen> createState() =>
@@ -48,7 +53,9 @@ class GuinjiDirectInputScreen extends StatefulWidget {
 }
 
 class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
-  final _nameController = TextEditingController();
+  late final _nameController = TextEditingController(
+    text: widget.initialName ?? '',
+  );
   final _yearController = TextEditingController();
   final _monthController = TextEditingController();
   final _dayController = TextEditingController();

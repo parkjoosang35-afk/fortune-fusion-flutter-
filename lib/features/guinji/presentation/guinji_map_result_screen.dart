@@ -15,7 +15,9 @@ import '../theme/guinji_map_theme.dart';
 import '../theme/guinji_type_spec.dart';
 import '../widgets/guinji_animated_graph.dart';
 import '../widgets/guinji_arrival_overlay.dart';
+import '../widgets/guinji_layout.dart' show GuinjiTpSlot;
 import '../widgets/guinji_map_widgets.dart';
+import 'guinji_h4_sheets.dart';
 import 'guinji_map_relation_detail_screen.dart';
 import 'guinji_node_sheet.dart';
 
@@ -286,8 +288,42 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
 
   // [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한 개념] 소유자가 초대
   // 링크 없이 지인 정보를 직접 입력해 즉시 등록하는 화면으로 이동한다.
-  void _openDirectAdd() {
-    Navigator.of(context).pushNamed('/guinji-map/m/add-direct');
+  // [SPEC §6 H4-a cta.2] 빈 자리 시트에서 넘어올 때는 슬롯 이름(예: "엄마")을
+  // 미리 채워서 이동한다 — [prefillName]이 null이면 기존처럼 빈 칸.
+  void _openDirectAdd({String? prefillName}) {
+    Navigator.of(
+      context,
+    ).pushNamed('/guinji-map/m/add-direct', arguments: prefillName);
+  }
+
+  /// [SPEC §5-5 인터랙션 표] 빈 자리 별을 탭하면 H4-a 시트를 띄운다.
+  /// footer: Primary(초대장 보내기 → H9) / Ghost(직접 입력, 이름 미리
+  /// 채움 → H10). 이전까지는 시트 없이 바로 H10으로 직행했다.
+  void _handleEmptySlotTap(GuinjiTpSlot slot) {
+    showGuinjiEmptySlotSheet(
+      context: context,
+      slot: slot,
+      filled: widget.people.length,
+      onInvite: _openShareSheet,
+      onDirect: (name) => _openDirectAdd(prefillName: name),
+    );
+  }
+
+  /// [SPEC §5-5 인터랙션 표] 바깥 인장(유형)을 탭하면: 인원이 있으면 기존
+  /// 필터 토글(강조), 인원이 0명이면 H4-b 유형 안내 시트를 띄운다.
+  /// 이전까지는 인원 0인 유형도 필터 토글만 수행해 의미가 없었다.
+  void _handleTypeTap(String key) {
+    final hasAny = widget.people.any((p) => p.relation == key);
+    if (hasAny) {
+      setState(() => _filter = _filter == key ? null : key);
+      return;
+    }
+    showGuinjiTypeInfoSheet(
+      context: context,
+      typeKey: key,
+      people: widget.people,
+      onPerson: _handleNodeTap,
+    );
   }
 
   @override
@@ -466,18 +502,22 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                   ),
 
                   // 지도(전체 폭) — 인터랙티브 애니메이션 노드 그래프.
+                  // [2026 디자인 핸드오프 v5] QA_CHECKLIST.md §2 H4 행
+                  // "줌 버튼 · 범례 칩 · 3명 배너 · 가장 강한 인연 없음" 요구에
+                  // 따라 "원래 크기" 리셋 버튼을 끈다(핀치 줌 제스처 자체는
+                  // SPEC에 금지 문구가 없어 유지 — 조작감 저하 없이 버튼만 제거).
                   GuinjiAnimatedRelationGraph(
                     centerTitle: '${widget.ownerName}님',
                     centerSubtitle: '나',
                     ownerFacePath: widget.ownerFacePath,
                     people: widget.people,
+                    showControls: false,
                     onSelect: _handleNodeTap,
                     // [v5 `onSeat`/`setFilter` 이식] 바깥 한자 인장을 탭하면
                     // 해당 유형 필터를 토글한다(상단 칩과 동일한 상태 공유).
-                    onTypeTap: (key) =>
-                        setState(() => _filter = _filter == key ? null : key),
-                    // [v5 `onSlot` 이식] 빈 자리 별을 탭하면 직접 추가 화면으로.
-                    onEmptySlotTap: (_) => _openDirectAdd(),
+                    onTypeTap: _handleTypeTap,
+                    // [SPEC §5-5] 빈 자리 별을 탭하면 H4-a 시트를 띄운다.
+                    onEmptySlotTap: _handleEmptySlotTap,
                     emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
                     filter: _filter,
                   ),
@@ -565,26 +605,14 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                       ),
                     ),
 
-                  // [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한
-                  // 관계유형만 칩으로 노출하고, 탭하면 지도에서 해당
-                  // 유형만 강조한다.
-                  if (widget.people.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                      child: _GmTypeFilterRow(
-                        people: widget.people,
-                        selected: _filter,
-                        onSelect: (key) => setState(
-                          () => _filter = _filter == key ? null : key,
-                        ),
-                      ),
-                    ),
-
-                  if (widget.people.isNotEmpty && widget.people.length < 3)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                      child: _GmFewMembersBanner(count: widget.people.length),
-                    ),
+                  // [2026 디자인 핸드오프 v5] QA_CHECKLIST.md §2 H4 행
+                  // "줌 버튼 · 범례 칩 · 3명 배너 · 가장 강한 인연 없음" 요구에
+                  // 따라, 헤더 아래에 있던 유형 필터 칩 행(`_GmTypeFilterRow`)과
+                  // 3명 미만 배너(`_GmFewMembersBanner`)를 제거했다. SPEC §6 H4
+                  // 구성(1~10번)에 이 두 섹션은 존재하지 않는다 — 유형 필터
+                  // 자체는 지도 바깥 인장(한자) 탭(§5-5 "바깥 인장 탭")으로
+                  // 이미 동일하게 동작하므로 기능 손실 없음. 두 위젯 클래스는
+                  // 더는 쓰이지 않아 삭제했다.
 
                   // 귀인 초대장 박스(적색 그라데이션 — v5 "請" 봉인 디자인).
                   Padding(
@@ -1131,83 +1159,6 @@ class _RecentRow extends StatelessWidget {
   }
 }
 
-/// [핸드오프 `CMain` 유형 필터 칩 이식] 실제 참여한 관계유형만 한 줄로
-/// 보여주고, 탭하면 지도에서 해당 유형만 강조(`GuinjiAnimatedRelationGraph.
-/// filter`)한다. 다시 탭하면 해제.
-class _GmTypeFilterRow extends StatelessWidget {
-  const _GmTypeFilterRow({
-    required this.people,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final List<GuinjiPerson> people;
-  final String? selected;
-  final void Function(String key) onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final counts = <String, int>{};
-    for (final p in people) {
-      counts[p.relation] = (counts[p.relation] ?? 0) + 1;
-    }
-    final keys = guinjiTypeOrder.where((t) => (counts[t] ?? 0) > 0).toList();
-    if (keys.isEmpty) return const SizedBox.shrink();
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final key in keys) ...[
-            _buildChip(key, counts[key]!),
-            const SizedBox(width: 6),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChip(String key, int count) {
-    final spec = guinjiTypeOf(key);
-    final on = selected == key;
-    return GestureDetector(
-      onTap: () => onSelect(key),
-      child: Container(
-        height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: on ? spec.color.withValues(alpha: 0.12) : Colors.transparent,
-          border: Border.all(color: on ? spec.color : Colors.transparent),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: spec.color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              '${spec.short} $count',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: on ? spec.color : GmColors.muted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// M화면 전용 — "나는 어떤 사람인지" 카드. [GuinjiOwnerSajuSummary](실계산
 /// 결과)를 받아 일간·신강중화신약·본성·성격을 보여준다. 관계 그래프(아직
 /// 지인이 없으면 텅 비어있는 상태)만 있던 화면에 "나 자신"에 대한 결과를
@@ -1356,74 +1307,4 @@ class _GmOwnerSajuCard extends StatelessWidget {
   }
 }
 
-/// [핸드오프 `CMain` 3명 미만 배너 1:1 이식] "N명만 더 모이면 축하
-/// 이벤트와 랭킹이 열려요" + 0/1/2 진행 막대(골드로 채워짐). 원본
-/// `{3 - members.length}명만 더 모이면...`, `{members.length}/3` 문구와
-/// `[0,1,2].map(i => i < members.length ? 채움 : 안채움)` 로직을 그대로
-/// 따른다.
-class _GmFewMembersBanner extends StatelessWidget {
-  const _GmFewMembersBanner({required this.count});
 
-  /// 현재 참여자 수(0~2 범위에서만 렌더됨 — 호출부에서 `< 3` 체크).
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final remain = 3 - count;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
-      decoration: BoxDecoration(
-        color: GmColors.gold.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: GmColors.gold.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  '$remain명만 더 모이면 축하 이벤트와 랭킹이 열려요',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.3,
-                    fontWeight: FontWeight.w500,
-                    color: GmColors.fg,
-                  ),
-                ),
-              ),
-              Text(
-                '$count/3',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: GmColors.gold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: List.generate(3, (i) {
-              final filled = i < count;
-              return Expanded(
-                child: Container(
-                  height: 4,
-                  margin: EdgeInsets.only(right: i < 2 ? 5 : 0),
-                  decoration: BoxDecoration(
-                    color: filled
-                        ? GmColors.gold
-                        : Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}

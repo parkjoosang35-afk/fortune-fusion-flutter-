@@ -410,7 +410,11 @@ class AppRouter {
       case '/guinji-map/m/add-direct':
         return _guinjiNamed(
           '/guinji-map/m/add-direct',
-          const GuinjiDirectInputScreen(),
+          GuinjiDirectInputScreen(
+            initialName: settings.arguments is String
+                ? settings.arguments as String
+                : null,
+          ),
         );
       case '/guinji-map/m/share':
         return _guinjiNamed(
