@@ -240,6 +240,8 @@ flutter:
     - assets/images/sintong_home_v2/
     - assets/images/sintong_home_v2/sections/
     - assets/images/sintong_home_v2/menu/
+    - assets/gunghap/art/web/sq/
+    - assets/gunghap/art/web/sub/
     - assets/images/intro/
     - assets/images/tarot/
     - assets/images/home/doryeong/

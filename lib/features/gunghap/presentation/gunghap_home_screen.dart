@@ -9,9 +9,22 @@
 // 실제 서버 응답(사람별 그룹화·점수·황금각 배치 완료)만 사용하며, 로컬
 // 하드코딩 데이터는 쓰지 않는다. [StarMap]은 삭제하지 않고 2인 전용
 // 화면(초대/결과)에서 계속 쓰인다 — 서로 대체 관계가 아니다(역할 분리).
+//
+// [v4 핸드오프 전면 재작성 — 00_DEV_MAPPING.md §5 S01] 아래 변경을
+// 반영한다.
+//  - 카테고리 타일(`_MajorTile`)을 가로형 아이콘+텍스트에서 명세대로
+//    "정사각 이미지(`sq/{id}.jpg`) + 흰 정보칸" 카드로 전면 교체.
+//  - 우상단 68×68 "궁합지도" 소개 버튼(introGrad 배경) 신규 추가 →
+//    탭 시 S07 소개 바텀시트([showGunghapIntroSheet])를 연다.
+//  - AppBar: 기존 "◈ 내 궁합"(→ GunghapStoryScreen) 진입 버튼은 실사용
+//    기능 손실을 막기 위해 그대로 유지한다. 명세(§5 S01-1)가 요구하는
+//    우측 ＋(→ S08 invite)는 CTA 영역에 이미 동일 기능의 "궁합 초대장
+//    보내기" 보조 버튼이 있어 AppBar에 중복 배치하지 않는다(보수적 결정
+//    — 기존 기능을 깨지 않는 방향).
 // ═══════════════════════════════════════════════════════════════
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
 import '../application/gunghap_provider.dart';
@@ -21,6 +34,7 @@ import '../theme/gh_typography.dart';
 import '../widgets/destiny_map.dart';
 import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
+import '../widgets/intro_sheet.dart';
 import '../widgets/relation_sheet.dart';
 import '../widgets/slot_sheet.dart';
 import '../widgets/cat_icon.dart';
@@ -137,39 +151,61 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
         children: [
           const SizedBox(height: 8),
           // hero badge + title
-          Column(
+          // [00_DEV_MAPPING §5 S01-2] 우상단 100px을 비우고 68×68
+          // "궁합지도" 소개 버튼을 겹쳐 올린다 → 탭 시 S07.
+          Stack(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: GHColors.lineSoft),
-                  color: GHColors.bg2.withValues(alpha: .6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              Padding(
+                padding: const EdgeInsets.only(right: 60),
+                child: Column(
                   children: [
                     Container(
-                      width: 6,
-                      height: 6,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: GHColors.gold,
-                        boxShadow: [
-                          BoxShadow(color: GHColors.gold.withValues(alpha: .8), blurRadius: 8),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: GHColors.lineSoft),
+                        color: GHColors.bg2.withValues(alpha: .6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: GHColors.gold,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: GHColors.gold.withValues(alpha: .8),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'DESTINY MAP · 因緣之圖',
+                            style: GHText.ui(size: 12, weight: FontWeight.w600, color: GHColors.gold),
+                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'DESTINY MAP · 因緣之圖',
-                      style: GHText.ui(size: 12, weight: FontWeight.w600, color: GHColors.gold),
-                    ),
+                    const SizedBox(height: 12),
+                    Text(headline, textAlign: TextAlign.center, style: GHText.display(size: 28)),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(headline, textAlign: TextAlign.center, style: GHText.display(size: 28)),
+              Positioned(
+                right: 0,
+                top: -2,
+                child: _IntroButton(
+                  onTap: () => showGunghapIntroSheet(
+                    context,
+                    onStart: () => _goMajor(context, method: 'direct'),
+                  ),
+                ),
+              ),
             ],
           ),
 
@@ -322,7 +358,7 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
-            childAspectRatio: 2.9,
+            childAspectRatio: 0.8,
             children: [
               for (final m in ghMajors)
                 _MajorTile(major: m, onTap: () => _goSub(context, m.id)),
@@ -448,6 +484,103 @@ class _GhShineSweepState extends State<_GhShineSweep> with SingleTickerProviderS
   }
 }
 
+/// [00_DEV_MAPPING §5 S01-2] 우상단 「궁합지도」 소개 버튼 — 68×68
+/// r18, introGrad 배경, introBtn 그림자. 미니 아이콘(점선 원 + 「나」 +
+/// 별 3개) 28 + 「궁합지도」 11/800. 탭 → S07([showGunghapIntroSheet]).
+class _IntroButton extends StatelessWidget {
+  const _IntroButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Semantics(
+      button: true,
+      label: '궁합지도 소개',
+      child: Container(
+        width: 68,
+        height: 68,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          gradient: GHGradients.intro,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: GHColors.introBorder),
+          boxShadow: GHShadow.introBtn,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CustomPaint(painter: _IntroGlyphPainter()),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '궁합지도',
+              style: GHText.ui(size: 11, weight: FontWeight.w800, color: GHColors.introText),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _IntroGlyphPainter extends CustomPainter {
+  const _IntroGlyphPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    // 점선 원.
+    const dashCount = 16;
+    final r = size.width / 2 - 2;
+    final dashPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .9
+      ..color = GHColors.introText.withValues(alpha: .55);
+    for (var i = 0; i < dashCount; i++) {
+      final a0 = i / dashCount * 2 * pi;
+      final a1 = a0 + (pi / dashCount) * .65;
+      canvas.drawLine(c + Offset.fromDirection(a0, r), c + Offset.fromDirection(a1, r), dashPaint);
+    }
+    // 중앙 「나」.
+    final tp = TextPainter(
+      text: TextSpan(
+        text: '나',
+        style: TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: GHColors.introText,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+    // 별 3개(지름 위 120도 간격).
+    for (var i = 0; i < 3; i++) {
+      final a = -pi / 2 + i * (2 * pi / 3);
+      _star(canvas, c + Offset.fromDirection(a, r * .62), 2.1, GHColors.introText);
+    }
+  }
+
+  void _star(Canvas canvas, Offset o, double rr, Color color) {
+    final path = Path();
+    for (var i = 0; i < 8; i++) {
+      final a = i * pi / 4 - pi / 2;
+      final rad = i.isEven ? rr * 2.2 : rr * .55;
+      final pt = Offset(o.dx + cos(a) * rad, o.dy + sin(a) * rad);
+      i == 0 ? path.moveTo(pt.dx, pt.dy) : path.lineTo(pt.dx, pt.dy);
+    }
+    canvas.drawPath(path..close(), Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_) => false;
+}
+
 class _GHMark extends StatelessWidget {
   const _GHMark();
   @override
@@ -487,6 +620,9 @@ class _GHMarkPainter extends CustomPainter {
   bool shouldRepaint(_) => false;
 }
 
+/// [00_DEV_MAPPING §5 S01-7] 「어떤 인연이 궁금하세요」 2열 카테고리
+/// 카드 — 정사각 이미지(`sq/{id}.jpg`) + 흰 정보칸(CatIcon 18 + 축약명
+/// 14.5/800 / 우측 「{n}가지」 11/700 muted). r18, imageCard 그림자.
 class _MajorTile extends StatelessWidget {
   const _MajorTile({required this.major, required this.onTap});
   final GHMajor major;
@@ -495,41 +631,44 @@ class _MajorTile extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: GHColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: GHColors.lineSoft),
+        borderRadius: BorderRadius.circular(GHRadius.imageCard),
+        boxShadow: GHShadow.imageCard,
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: GHColors.bg2.withValues(alpha: .7),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: GHColors.lineSoft),
+          AspectRatio(
+            aspectRatio: 1,
+            child: Image.asset(
+              ghArtSquare(major.id),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => ColoredBox(
+                color: GHColors.bg2.withValues(alpha: .7),
+                child: Center(child: CatIcon(kind: major.icon, size: 36, active: true)),
+              ),
             ),
-            alignment: Alignment.center,
-            child: CatIcon(kind: major.icon, size: 32, active: true),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+            child: Row(
               children: [
-                Text(
-                  major.shortName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GHText.cardTitle(size: 15),
+                CatIcon(kind: major.icon, size: 18, active: true),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    major.shortName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GHText.cardTitle(size: 14.5),
+                  ),
                 ),
-                const SizedBox(height: 2),
                 Text(
                   '${ghSubs[major.id]?.length ?? 0}가지',
-                  style: GHText.ui(size: 11, color: GHColors.gray),
+                  style: GHText.ui(size: 11, weight: FontWeight.w700, color: GHColors.gray),
                 ),
               ],
             ),
