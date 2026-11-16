@@ -663,6 +663,15 @@ class _LinkManagementSection extends StatelessWidget {
             ),
           ],
         ),
+        // [QA_CHECKLIST H9 대조 — SPEC §6 H9 `link.note`] "새 링크를
+        // 만들면 이전 링크는 더 이상 열리지 않아요" 안내 문구가 누락되어
+        // 있었다(재발급 전 확인 다이얼로그에만 비슷한 문구가 있었을 뿐,
+        // 이 패널 자체에는 없었음) — COPY.md H9 `link.note` 1:1 추가.
+        const SizedBox(height: 8),
+        const Text(
+          '새 링크를 만들면 이전 링크는 더 이상 열리지 않아요',
+          style: TextStyle(fontSize: 11.5, color: GmColors.dim, height: 1.5),
+        ),
       ],
     );
   }
