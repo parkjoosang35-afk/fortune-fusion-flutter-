@@ -1,6 +1,17 @@
 // lib/features/guinji/deep/guinji_deep_text.dart
 // [귀인지도 v2 리스킨 — 핸드오프 이식] 자세한 관계 풀이 문구 — 키 =
-// relationType (6종). 웹(admin_web)은 같은 내용의 deep-text.v1.json 사용.
+// relationType (6종). 원천 데이터는 핸드오프 web/deep-text.v1.json과
+// 동일 내용이지만, 실제로 "같은 내용을 쓰는 것"은 앱(G2/H8)뿐이다.
+// [2026-12 정정 — 귀인지도 v5 web/ JSON 검토] 웹 게스트 결과(W2,
+// admin_web `guinji-invite-interactive.tsx`의 `ResultCard`)는 이
+// 10장 데이터를 쓰지 않고, 별도의 결정론적 개인화 서술 생성기
+// `relation-narrative.ts`(`buildRelationNarrative`)를 쓴다 — "같은
+// 귀인 4명이 다 똑같다"는 사용자 피드백으로 신설된 체계다. SPEC.md §6
+// G2/W2와 QA_CHECKLIST.md는 "10장 미리보기(1장 맛보기+잠금 9개)"를
+// 앱/웹 공통으로 명시하지만, 대표 확인 결과(B안) 웹은 이 개인화
+// 서술로 동일한 목적(궁금증 유발 → 앱 유도)을 충분히 대체한다고
+// 보고 현재 구조를 유지하기로 했다 — 이 파일을 웹에 추가 이식하는
+// 작업은 하지 않는다.
 // 치환자: {n} = 상대 이름, {me} = 보는 사람 이름  ->  fill(s, n: , me: )
 // 장 구성 (자세한 결과 화면 순서):
 //  01 한눈에 보는 두 사람 = summary[3]   02 다섯 가지 힘 = S1~S5 막대   03 처음 만났을 때 = first[2]
