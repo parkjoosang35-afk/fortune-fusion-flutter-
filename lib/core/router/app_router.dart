@@ -94,6 +94,7 @@ import '../../features/guinji/presentation/guinji_direct_input_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
 import '../../features/guinji/presentation/guinji_host_welcome_screen.dart';
+import '../../features/guinji/presentation/guinji_invite_expired_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 import '../../features/gunghap/presentation/gunghap_guest_input_screen.dart';
 import '../../features/gunghap/presentation/gunghap_story_screen.dart';
@@ -542,6 +543,15 @@ class AppRouter {
             onLater: () => appNavigatorKey.currentState
                 ?.pushNamedAndRemoveUntil('/guinji-map', (route) => false),
           ),
+        );
+      // [귀인지도 v5 — W3 링크 만료·중단] SPEC §6 W3. 실제 프로덕션
+      // 흐름에서는 `guinji_map_guest_join_screen.dart`가 토큰 무효
+      // (`NOT_FOUND`/`REVOKED`) 응답을 받으면 `MaterialPageRoute`로 직접
+      // push한다 — 이 named route는 직접 URL 진입/QA 확인용 보조 경로.
+      case '/guinji-map/invite-expired':
+        return _guinjiNamed(
+          '/guinji-map/invite-expired',
+          const GuinjiInviteExpiredScreen(),
         );
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로
       // 두고, 새 4단계 플로우의 진입 화면(intro)으로 라우팅한다.

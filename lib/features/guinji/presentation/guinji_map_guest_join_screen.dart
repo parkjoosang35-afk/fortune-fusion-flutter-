@@ -12,6 +12,7 @@ import 'guinji_guest_result_screen.dart';
 import 'guinji_invitation_letter.dart';
 import 'guinji_invitation_story_hero.dart';
 import 'guinji_invitation_theme.dart';
+import 'guinji_invite_expired_screen.dart';
 import 'guinji_policy_webview.dart';
 
 /// 게스트 참여+입력 — `/g/:mapToken`
@@ -106,7 +107,20 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   Future<void> _loadHostProfile() async {
     final provider = context.read<GuinjiProvider>();
     final data = await provider.fetchHostProfile(widget.token);
-    if (!mounted || data == null) return;
+    if (!mounted) return;
+    // [귀인지도 v5 — W3 링크 만료 연결, SPEC §6 G1/W1 "동작: 링크 무효 → W3"]
+    // `profile` API가 반환할 수 있는 유일한 실패 코드는 `NOT_FOUND`(지도
+    // 삭제·비활성, `profile/route.ts` 참고 — 이 API는 비로그인 전용이라
+    // `REVOKED` 판정 로직 자체가 없다). 최초 진입 시점에 이미 토큰이 죽어
+    // 있다는 걸 알면, 폼을 보여주고 제출까지 기다렸다가 실패시키는 대신
+    // 곧바로 W3로 안내한다(게스트가 헛되이 이름·생년월일을 입력하는 것을
+    // 방지).
+    if (data == null) {
+      if (provider.errorCode == 'NOT_FOUND') {
+        _goToInviteExpired();
+      }
+      return;
+    }
     final characterJson = data['characterType'] as Map<String, dynamic>?;
     setState(() {
       _hostName = data['ownerName'] as String?;
@@ -114,6 +128,15 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
           ? null
           : GuinjiHostCharacterType.fromJson(characterJson);
     });
+  }
+
+  /// SPEC §6 W3 "링크 만료·중단" 화면으로 교체 진입(뒤로가기로 다시 죽은
+  /// 폼에 못 돌아오게 `pushReplacement` 사용).
+  void _goToInviteExpired() {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const GuinjiInviteExpiredScreen()),
+    );
   }
 
   void _handleScroll() {
@@ -195,6 +218,17 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
     setState(() => _submitting = false);
 
     if (result == null) {
+      // [귀인지도 v5 — W3 링크 만료 연결] 제출 시점에 비로소 토큰이 죽은
+      // 것으로 밝혀지는 경우(소유자가 방금 링크를 중단했거나, 최초 진입
+      // 이후 지도가 삭제된 경합 상황 등) — `join/route.ts`가 반환 가능한
+      // 두 코드(`NOT_FOUND`·`REVOKED`) 모두 W3로 안내한다. 그 외 입력
+      // 검증 실패(400) 등은 기존처럼 폼 내 에러 텍스트로 유지한다(사용자가
+      // 값을 고쳐서 바로 재시도할 수 있어야 하므로).
+      if (provider.errorCode == 'NOT_FOUND' ||
+          provider.errorCode == 'REVOKED') {
+        _goToInviteExpired();
+        return;
+      }
       setState(() => _formError = provider.error ?? '참여에 실패했습니다. 다시 시도해주세요.');
       return;
     }

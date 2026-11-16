@@ -665,12 +665,21 @@ class GuinjiProvider extends ChangeNotifier {
   /// (제출 전)에서 호출할 수 있다. 실패해도 조용히 무시 가능(반환 null이면
   /// 호출부가 일반화된 문구로 폴백).
   ///
+  /// [귀인지도 v5 — W3 링크 만료 연결] 실패 시 다른 메서드들과 동일하게
+  /// [errorCode]를 세팅한다 — 호출부(`guinji_map_guest_join_screen.dart`)가
+  /// `errorCode == 'NOT_FOUND'`를 확인해 SPEC §6 W3(링크 만료·중단, 토큰이
+  /// 애초에 유효하지 않은 경우)로 분기할 수 있게 하기 위함이다(이전에는
+  /// 호출부가 성공/실패만 알 수 있고 "왜" 실패했는지 구분할 방법이 없어
+  /// 조용히 폴백할 수밖에 없었다).
+  ///
   /// 반환: {ownerName, characterType: {...} | null}
   Future<Map<String, dynamic>?> fetchHostProfile(String token) async {
+    _errorCode = null;
     final result = await _repository.fetchHostProfile(token);
     if (!result.success) {
+      _errorCode = result.errorCode;
       debugPrint(
-        '[GuinjiProvider] [fetchHostProfile] 실패(무시 가능) -> ${result.errorMessage}',
+        '[GuinjiProvider] [fetchHostProfile] 실패(무시 가능) -> ${result.errorMessage} (code=$_errorCode)',
       );
       return null;
     }
