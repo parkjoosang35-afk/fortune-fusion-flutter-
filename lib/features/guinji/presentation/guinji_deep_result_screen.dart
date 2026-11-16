@@ -15,6 +15,7 @@ import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_animated_graph.dart' show parseGuinjiBirthLabel;
+import 'guinji_deep_letter_card.dart';
 
 /// 08 · 자세한 결과(Deep Result) — 핸드오프 `DeepResult`(1321~1436줄) 1:1
 /// 이식. "더 자세한 관계 보기" CTA가 결제(프리패스/광고)·인트로 애니메이션을
@@ -513,73 +514,25 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                                 ),
                               ),
 
-                              // 귀인의 한마디(편지).
-                              Container(
-                                margin: const EdgeInsets.only(top: 18),
-                                padding: const EdgeInsets.fromLTRB(
-                                  22,
-                                  26,
-                                  22,
-                                  26,
+                              // 귀인의 한마디(편지) — H8-a/H8-b: 직접쓰기
+                              // 300자·보내기·받는사람 미리보기 전체 구현.
+                              GuinjiDeepLetterCard(
+                                personId: person.id,
+                                personName: person.name,
+                                ownerName: ownerName,
+                                initialText: _fill(
+                                  pickLetter(
+                                    defaultLetter: deep.letter,
+                                    seedKey: person.id.toString(),
+                                  ),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: GmColors.card,
-                                  border: Border.all(color: GmColors.hair),
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        _FaceAvatar(
-                                          character: character,
-                                          initial: person.name.isNotEmpty
-                                              ? person.name.substring(0, 1)
-                                              : '?',
-                                          size: 44,
-                                          ringColor: color,
-                                          color: color,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '${person.name}님이 전하는 한마디',
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: GmColors.fg,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              const Text(
-                                                '관계의 결로 써 본 편지',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: GmColors.dim,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      '"${_fill(pickLetter(defaultLetter: deep.letter, seedKey: person.id.toString()))}"',
-                                      style: const TextStyle(
-                                        fontFamily: GmText.body,
-                                        fontSize: 16,
-                                        height: 1.9,
-                                        color: Color(0xE6F2F0EC),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                theirCharacter: character,
+                                myFacePath:
+                                    'assets/images/guinji/chars/f30_face.jpg',
+                                typeColor: color,
+                                typeHanja: meta.hanja,
+                                typeLabel: meta.label,
+                                score: person.score,
                               ),
 
                               const Padding(
