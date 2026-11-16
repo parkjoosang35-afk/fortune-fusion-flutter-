@@ -37,6 +37,7 @@ import '../application/gunghap_provider.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
+import '../widgets/gh_error_view.dart';
 import '../widgets/gh_screen.dart';
 import '../widgets/star_map.dart';
 import 'gunghap_calculating_screen.dart';
@@ -128,9 +129,20 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
         });
         return;
       }
-      // [긴급 검수 지시 §4] 그 외 실패(네트워크 오류, NOT_FOUND 포함)는
-      // 빈 입력폼만 보여준 채 방치하지 않고, 전용 오류 화면 + 재시도
-      // 버튼을 노출한다.
+      // [S31 잘못된 링크 — 00_DEV_MAPPING.md §5 598-625줄, 화면매핑표
+      // 67줄 "S31 잘못된 링크 | 21 | 공통 에러 | 토큰 무효"] 토큰 자체가
+      // 없거나 삭제된 경우(NOT_FOUND)는 재시도해도 결과가 같으므로
+      // 네트워크 오류([_inviteLoadFailed])와 구분되는 전용 안내를 보여준다.
+      if (code == 'NOT_FOUND') {
+        setState(() {
+          _loadingInvite = false;
+          _inviteLoadFailed = false;
+          _inviteStatus = 'invalid';
+        });
+        return;
+      }
+      // [긴급 검수 지시 §4] 그 외 실패(네트워크 오류 등)는 빈 입력폼만
+      // 보여준 채 방치하지 않고, 전용 오류 화면 + 재시도 버튼을 노출한다.
       setState(() {
         _loadingInvite = false;
         _inviteLoadFailed = true;
@@ -439,6 +451,23 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
                   Uri.parse(_kPlayStoreUrl),
                   mode: LaunchMode.externalApplication,
                 ),
+              ),
+            )
+          : _inviteStatus == 'invalid'
+          // [S31 잘못된 링크 — 00_DEV_MAPPING.md §5 598-625줄] mono
+          // 「ERR·LINK」· 제목「열 수 없는 초대장이에요」· 버튼 1개(→ 홈
+          // 이동) · 보조버튼 없음 · ←/하단바 없음(이 화면 자체가 웹
+          // 게스트 전용이라 애초에 둘 다 없음 — 명세 요구사항을 이미
+          // 충족한다).
+          ? GHErrorView(
+              topPadding: 56,
+              monoLabel: 'ERR · LINK',
+              title: '열 수 없는\n초대장이에요',
+              message: '링크 주소가 잘렸거나 잘못되었어요.\n초대한 분에게 링크를 다시 요청해 주세요.',
+              primaryLabel: '궁합지도 둘러보기',
+              onPrimary: () => launchUrl(
+                Uri.parse(_kPlayStoreUrl),
+                mode: LaunchMode.externalApplication,
               ),
             )
           : Column(

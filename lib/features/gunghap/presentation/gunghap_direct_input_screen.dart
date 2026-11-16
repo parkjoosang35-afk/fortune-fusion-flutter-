@@ -49,9 +49,17 @@ import '../domain/gunghap_data.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
+import '../widgets/gh_error_view.dart';
 import '../widgets/gh_screen.dart';
 import 'gunghap_calculating_screen.dart';
 import 'gunghap_result_screen.dart';
+
+/// [S30 계산 오류 — 00_DEV_MAPPING.md §5 "### S29 · S30 · S31 오류"
+/// (598-625줄)] 서버가 「상대방 생년월일을 다시 확인해 주세요(달력상
+/// 존재하지 않는 날짜일 수 있어요).」를 반환하는 경우(direct/route.ts의
+/// `calculateSaju` catch 분기, 전용 errorCode가 없어 메시지로 식별한다)를
+/// 가리키는 공용 마커. join/route.ts(게스트 경로)도 동일 문구를 쓴다.
+const _kCalcErrorMarker = '달력상 존재하지 않는';
 
 class GunghapDirectInputScreen extends StatefulWidget {
   const GunghapDirectInputScreen({super.key, this.majorId, this.subName});
@@ -236,6 +244,25 @@ class _GunghapDirectInputScreenState extends State<GunghapDirectInputScreen> {
             ),
           ),
           retryLabel: '프로필 완성하기',
+        );
+        return;
+      }
+      // [S30 계산 오류 — 서버(direct/route.ts)가 calculateSaju 실패 시
+      // 전용 errorCode 없이 이 문구로만 구분해 내려준다] 재시도해도 같은
+      // 입력값이면 또 실패할 것이므로, 토스트가 아니라 "출생 정보 다시
+      // 확인하기" 버튼이 있는 전용 안내 화면으로 보낸다(명세: AppBar←
+      // + 하단바 있음 — 이 화면이 이미 둘 다 가지고 있으므로 전용
+      // MaterialPageRoute로 push해도 동일한 chrome을 재사용한다).
+      final message = provider.error ?? '';
+      if (message.contains(_kCalcErrorMarker)) {
+        setState(() => _formError = message);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => _CalcErrorScreen(
+              message: message,
+              onFixInput: () => Navigator.of(context).pop(),
+            ),
+          ),
         );
         return;
       }
@@ -699,5 +726,37 @@ class _GhCheckboxBox extends StatelessWidget {
             ),
           )
         : null,
+  );
+}
+
+/// [S30 계산 오류 — 00_DEV_MAPPING.md §5 598-625줄] mono「ERR·ENGINE」·
+/// 제목「궁합을 계산하지 못했어요」· 주버튼「출생 정보 다시 확인하기」
+/// (→ 이 화면을 닫고 입력 폼으로 복귀) · 보조「이전 화면으로」(→ 입력
+/// 화면까지 완전히 벗어난다). AppBar←/bottomNav는 명세대로 모두 갖춘다.
+class _CalcErrorScreen extends StatelessWidget {
+  const _CalcErrorScreen({required this.message, required this.onFixInput});
+  final String message;
+  final VoidCallback onFixInput;
+
+  @override
+  Widget build(BuildContext context) => GHScreen(
+    bottomNav: const MainBottomNavBar(currentIndex: 0),
+    appBar: GHAppBar(
+      title: '궁합 확인 오류',
+      onBack: () => Navigator.of(context).pop(),
+    ),
+    child: GHErrorView(
+      monoLabel: 'ERR · ENGINE',
+      title: '궁합을 계산하지\n못했어요',
+      message: '출생 정보를 다시 한 번 확인해 주세요.\n음력 윤달 여부가 맞지 않으면 계산이 멈출 수 있어요.',
+      primaryLabel: '출생 정보 다시 확인하기',
+      onPrimary: onFixInput,
+      secondaryLabel: '이전 화면으로',
+      onSecondary: () {
+        // [이전 화면으로] 이 오류 화면과 입력 화면을 함께 벗어난다.
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
+      },
+    ),
   );
 }

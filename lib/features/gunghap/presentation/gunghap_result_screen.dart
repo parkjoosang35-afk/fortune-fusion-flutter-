@@ -66,6 +66,7 @@ import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/cat_icon.dart';
 import '../widgets/gh_button.dart';
+import '../widgets/gh_error_view.dart';
 import '../widgets/gh_score_ring.dart';
 import '../widgets/gh_screen.dart';
 import '../widgets/person_pair.dart';
@@ -347,16 +348,30 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
               )
             : result == null
             ? (_deletedNotFound
+                  // [S32 — 00_DEV_MAPPING.md §5 "S32 삭제된 결과", 650줄]
+                  // 이미 구현 확인됨(이번 리팩터링에서 메시지/버튼 유지).
                   ? _ErrorState(
                       message: '이미 삭제된 궁합 결과예요.\n궁합스토리 목록으로 돌아가 주세요.',
                       retryLabel: '목록으로 돌아가기',
                       onRetry: () => Navigator.of(context).pop(),
                     )
-                  : _ErrorState(
-                      onRetry: () {
+                  // [S29 서버 오류 — 00_DEV_MAPPING.md §5 "### S29 · S30 ·
+                  // S31 오류"(598-625줄)] mono「ERR·SERVER」+ 제목 「연결이
+                  // 잠시 흐려졌어요」+ 주버튼 「다시 시도하기」+ 보조
+                  // 「이전 화면으로」. 이 화면은 이미 AppBar(←)와 bottomNav
+                  // 를 가지고 있으므로(명세 "←/하단바 있음") 본문 콘텐츠만
+                  // 교체한다.
+                  : GHErrorView(
+                      monoLabel: 'ERR · SERVER',
+                      title: '연결이 잠시\n흐려졌어요',
+                      message: '입력한 정보는 그대로 남아 있어요.\n잠시 후 다시 시도해 주세요.',
+                      primaryLabel: '다시 시도하기',
+                      onPrimary: () {
                         setState(() => _loading = true);
                         _load();
                       },
+                      secondaryLabel: '이전 화면으로',
+                      onSecondary: () => Navigator.of(context).pop(),
                     ))
             // [Phase 4 §5] RepaintBoundary로 결과 콘텐츠 전체를 감싼다.
             // GHScreen.child는 이미 SingleChildScrollView 안에 배치되므로
