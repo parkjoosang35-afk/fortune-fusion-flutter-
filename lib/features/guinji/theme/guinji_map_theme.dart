@@ -30,13 +30,28 @@ class GmColors {
   static const gold = Color(0xFFF5CF6A); // TP.gold — 강조(랭킹·마일스톤·인장)
   static const goldTop = Color(0xFFFCE7B0); // 그라데이션 상단(밝은 금)
   static const goldShadow = Color(0x59F5CF6A); // TP.goldSh 35%
-  // 신규: 카카오/주요 CTA 버튼(TpBtn kind='gold') — 금색과는 별개 토큰
-  static const gjPrimary = Color(0xFFFEE500);
-  static const gjOnPrimary = Color(0xFF191600);
   static const mapLine = Color(0x38FFEBC8); // 지도 방사선
   static const mapWeb = Color(0x1AFFEBC8); // 같은 유형 이웃선
   static const danger = Color(0xFFEF7A55); // 삭제 · 공유 중단(= 충돌극복 색과 동일 계열)
   static const red = Color(0xFFC94A3B); // TP.red — 초대장 박스 포인트
+
+  // ── [2026 디자인 핸드오프 v5 — SPEC.md §2] ──────────────────────────
+  // ★ 모든 주요 CTA(Primary 버튼)는 이 카카오 노랑 하나만 사용한다.
+  // 기존 `gjPrimary`/`gjOnPrimary`(0곳 참조)를 SPEC 명칭으로 교체했다 —
+  // QA_CHECKLIST.md §1 "로즈골드·금색·흰색 버튼 0곳" 요구에 따라
+  // [GmPrimaryButton]/[GmRoseButton]/[gmPrimary]가 전부 이 색으로
+  // 통일된다(흰 알약·금 그라데이션 버튼은 전부 폐기).
+  static const primary = Color(0xFFFEE500);
+  static const onPrimary = Color(0xFF191600);
+  static const primaryShadow = Color(0x47FEE500); // rgba(254,229,0,.28)
+  static const disabledBg = Color(0x14FFEBC8); // rgba(255,235,200,.08) — 버튼 비활성
+  static const sheetDim = Color(0xAD06030E); // rgba(6,3,14,.68) — 바텀시트 딤
+
+  /// SPEC §2 `card` 원본값(반투명 하이라이트) — 배경 그라데이션 위에 얹는
+  /// "떠 있는" 카드용. 기존 [card](불투명 #1C1230)는 다이얼로그·바텀시트
+  /// 내부처럼 또렷한 표면이 필요한 26곳에서 이미 쓰이고 있어 그대로 두고,
+  /// 화면별 SPEC 재작업(H4/H6 등) 시 이 값을 새로 쓴다.
+  static const cardTint = Color(0x0DFFEBC8); // rgba(255,235,200,.05)
 
   // [2026-12 버그수정 — 귀인지도 공유 화면 공유옵션 대비 문제]
   // `fg`/`muted`는 다크 배경(`bg`/`card`/`sheet`) 전용 글자색으로 설계됐다.
@@ -51,11 +66,18 @@ class GmColors {
 }
 
 class GmText {
-  static const display = 'NotoSerifKR'; // 타이틀 · 이름(카드) · 점수 숫자 · 한자
-  // [폰트 전환 — 2026-11] GowunBatang -> Pretendard. 장문 풀이 본문 16/1.85
+  // ── [2026 디자인 핸드오프 v5 — SPEC.md §1] ──────────────────────────
+  // SPEC은 "신통방통 통합 폰트 1종"을 요구한다 — 위계는 글꼴을 바꾸는 게
+  // 아니라 굵기(FontWeight)/자간(letterSpacing)만으로 구현한다. SPEC의
+  // placeholder family명은 `kGjFont = 'SintongUnified'`(실제 적용할
+  // family가 아직 미정)이고, 프로젝트 전역에서 이미 Pretendard를 기본
+  // 폰트로 쓰고 있어(6개 굵기 전부 pubspec.yaml에 등록됨) 통합 폰트로
+  // Pretendard를 채택한다. display/body/ui/mono 4개 이름은 호출부
+  // 20여 곳이 그대로 참조하므로 이름은 유지하고 값만 전부 통일한다.
+  static const display = 'Pretendard'; // 타이틀 · 이름(카드) · 점수 숫자 · 한자
   static const body = 'Pretendard';
   static const ui = 'Pretendard'; // 버튼 · 라벨 · 노드 이름
-  static const mono = 'IBMPlexMono'; // S1~S5 배지 · 영문 메타 (대문자, 자간 0.3em)
+  static const mono = 'Pretendard'; // S1~S5 배지 · 영문 메타 (대문자, 자간 0.3em — gjMeta)
 
   static const mapTitle = TextStyle(
     fontFamily: display,
@@ -122,7 +144,7 @@ class GmText {
     fontFamily: ui,
     fontSize: 15,
     fontWeight: FontWeight.w600,
-    color: GmColors.onFg,
+    color: GmColors.onPrimary, // SPEC §2 — Primary 버튼은 카카오 노랑 위 잉크색
   );
   static const caption = TextStyle(
     fontFamily: ui,
@@ -132,27 +154,57 @@ class GmText {
   );
 }
 
+/// ── [2026 디자인 핸드오프 v5 — SPEC.md §2 "라운드"] ──────────────────────
+/// SPEC 표: 인장 4~6 · 칩 10~12 · 입력·버튼 14 · 카드 16~18 · 시트 상단 24 ·
+/// 아바타 원형. 기존 멤버명(pill/card/sheet/box/phoneSafeBottom)은
+/// `guinji_node_sheet.dart`(sheet 1곳)만 참조 중이라 이름은 그대로 두고
+/// 값만 SPEC 기준으로 갱신하며, SPEC 명칭(seal/chip/input/button)도
+/// 신규로 함께 추가해 앞으로의 화면별 작업에서 바로 쓸 수 있게 한다.
 class GmRadius {
-  static const pill = 999.0; // 모든 버튼 · 칩
-  static const card = 34.0; // 인물 캐릭터 카드
-  static const sheet = 28.0; // 바텀시트 상단
-  static const box = 16.0; // 일반 카드 · 링크 행
-  static const phoneSafeBottom = 34.0;
+  static const seal = 5.0; // 인장(4~6 평균)
+  static const chip = 11.0; // 칩(10~12 평균)
+  static const input = 14.0; // 입력창
+  static const button = 14.0; // 버튼(Primary/Ghost/Rose 공통)
+  static const card = 17.0; // 일반 카드(16~18 평균) — 캐릭터 카드도 동일 적용
+  static const sheet = 24.0; // 바텀시트 상단
+
+  // ── 구 멤버명(호환 유지, 값은 SPEC 기준 재매핑) ──
+  static const pill = button; // 기존 "완전 알약" 버튼 모양은 폐기 → button(14)
+  static const box = card; // 일반 카드 · 링크 행
+  static const phoneSafeBottom = 24.0;
 }
 
-/// 공통 버튼: 높이 52~54 · 흰 알약(primary) / 테두리(ghost)
+/// SPEC §2 초대장 박스 그라데이션(135°, #B8402F → #8A2A22(55%) → #5E1A1E),
+/// 테두리는 별도로 `rgba(245,207,106,.45)`(= GmColors.gold 45% 근사)를 쓴다.
+const gmInviteBoxGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFB8402F), Color(0xFF8A2A22), Color(0xFF5E1A1E)],
+  stops: [0, 0.55, 1],
+);
+
+/// 공통 버튼: 높이 54 · SPEC §2 Primary(카카오 노랑 단색) / Ghost(테두리)
+/// [2026 디자인 핸드오프 v5] 기존 "흰 알약(StadiumBorder)"은 QA_CHECKLIST.md
+/// §1 "로즈골드 · 금색 · 흰색 버튼 0곳" 요구에 따라 폐기하고, 라운드
+/// 14(GmRadius.button) + 카카오 노랑(GmColors.primary) 단색으로 교체한다.
 ButtonStyle gmPrimary() => ElevatedButton.styleFrom(
-  backgroundColor: GmColors.fg,
-  foregroundColor: GmColors.onFg,
+  backgroundColor: GmColors.primary,
+  foregroundColor: GmColors.onPrimary,
+  disabledBackgroundColor: GmColors.disabledBg,
+  disabledForegroundColor: GmColors.dim,
   elevation: 0,
   minimumSize: const Size.fromHeight(54),
-  shape: const StadiumBorder(),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(GmRadius.button),
+  ),
   textStyle: GmText.button,
 );
 ButtonStyle gmGhost() => OutlinedButton.styleFrom(
   foregroundColor: GmColors.fg,
   side: const BorderSide(color: GmColors.line),
   minimumSize: const Size.fromHeight(54),
-  shape: const StadiumBorder(),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(GmRadius.button),
+  ),
   textStyle: GmText.button,
 );

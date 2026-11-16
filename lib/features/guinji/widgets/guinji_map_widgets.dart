@@ -383,6 +383,9 @@ class GmFieldShell extends StatelessWidget {
   }
 }
 
+/// [2026 디자인 핸드오프 v5 — SPEC.md §2] 모든 주요 CTA(Primary 버튼)는
+/// 카카오 노랑(#FEE500) 단색 하나만 사용한다. 기존 흰색 배경은
+/// QA_CHECKLIST.md §1 "흰색 버튼 0곳" 요구에 따라 폐기했다.
 class GmPrimaryButton extends StatelessWidget {
   const GmPrimaryButton({
     super.key,
@@ -402,13 +405,14 @@ class GmPrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: GmColors.fg,
-          foregroundColor: GmColors.onFg,
-          disabledBackgroundColor: GmColors.fg.withValues(alpha: 0.4),
+          backgroundColor: GmColors.primary,
+          foregroundColor: GmColors.onPrimary,
+          disabledBackgroundColor: GmColors.disabledBg,
+          disabledForegroundColor: GmColors.dim,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(GmRadius.button),
           ),
         ),
         child: loading
@@ -417,12 +421,13 @@ class GmPrimaryButton extends StatelessWidget {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  color: GmColors.onFg,
+                  color: GmColors.onPrimary,
                 ),
               )
             : Text(
                 label,
                 style: const TextStyle(
+                  fontFamily: GmText.ui,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -432,6 +437,10 @@ class GmPrimaryButton extends StatelessWidget {
   }
 }
 
+/// [2026 디자인 핸드오프 v5 — SPEC.md §2] 기존 "금 그라데이션" 보조 CTA도
+/// QA_CHECKLIST.md §1 "로즈골드 · 금색 버튼 0곳" 요구에 따라 Primary와
+/// 동일한 카카오 노랑 단색으로 통일한다(위젯 이름은 호출부 20여 곳 호환을
+/// 위해 유지, 시각적으로는 [GmPrimaryButton]과 동일해짐).
 class GmRoseButton extends StatelessWidget {
   const GmRoseButton({
     super.key,
@@ -450,18 +459,16 @@ class GmRoseButton extends StatelessWidget {
       width: double.infinity,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [GmColors.goldTop, GmColors.gold],
-          ),
-          borderRadius: BorderRadius.circular(16),
+          color: GmColors.primary,
+          borderRadius: BorderRadius.circular(GmRadius.button),
         ),
         child: TextButton(
           onPressed: onPressed,
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            foregroundColor: GmColors.onFg,
+            foregroundColor: GmColors.onPrimary,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(GmRadius.button),
             ),
           ),
           child: Row(
@@ -470,14 +477,15 @@ class GmRoseButton extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
+                  fontFamily: GmText.ui,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: GmColors.onFg,
+                  color: GmColors.onPrimary,
                 ),
               ),
               if (icon != null) ...[
                 const SizedBox(width: 6),
-                Icon(icon, size: 16, color: GmColors.onFg),
+                Icon(icon, size: 16, color: GmColors.onPrimary),
               ],
             ],
           ),

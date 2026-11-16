@@ -79,15 +79,15 @@ class GuinjiColors {
   static const ohaengSu = Color(0xFF8DBFD6); // 水
 }
 
-/// 타이포 폰트 패밀리 — [귀인지도 v2 리스킨] 핸드오프 `GmText`의
-/// display=NotoSerifKR / body=GowunBatang / ui=Pretendard / mono=IBMPlexMono
-/// 4체계에 맞춰 재매핑한다(§02 디자인 토큰).
+/// 타이포 폰트 패밀리 — [2026 디자인 핸드오프 v5 — SPEC.md §1] "신통방통
+/// 통합 폰트 1종" 요구에 따라 `GmText`의 display/body/ui/mono 4개 이름이
+/// 전부 Pretendard 하나로 통일됐다(위계는 굵기/자간으로만 구현). 이름
+/// 체계는 기존 호출부 호환을 위해 그대로 유지한다.
 class GuinjiFonts {
   GuinjiFonts._();
 
-  static const display = GmText.display; // 'NotoSerifKR' — 타이틀·이름·점수·한자
-  // [폰트 전환 — 2026-11] GmText.body 자체가 Pretendard로 전환됨(장문 풀이 본문).
-  static const body = GmText.body;
+  static const display = GmText.display; // 'Pretendard' — 타이틀·이름·점수·한자
+  static const body = GmText.body; // 'Pretendard' — 장문 풀이 본문
   static const ui = GmText.ui; // 'Pretendard' — 버튼·라벨·노드 이름
-  static const mono = GmText.mono; // 'IBMPlexMono' — S1~S5 배지·영문 메타
+  static const mono = GmText.mono; // 'Pretendard' — S1~S5 배지·영문 메타
 }
