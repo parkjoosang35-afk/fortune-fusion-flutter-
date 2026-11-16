@@ -651,12 +651,31 @@ class _ResultBody extends StatelessWidget {
             const _RefundNoticeBanner(),
             const SizedBox(height: 14),
           ],
-          for (final c in categories) ...[
-            _DetailCard(
-              categoryId: c['categoryId'] as String?,
-              detail: detailByCategory[c['categoryId']],
+          // [S22 — 00_DEV_MAPPING.md §5 S22(548-562줄)] 선택 세부(서버가
+          // majorId 기준으로 categories를 1개로 이미 필터링해 내려준
+          // 경우)는 v4 6장(I~VI) 구조로 보여준다. 레거시 8개 분야 동시
+          // 결과(majorId=null)는 기존 `_DetailCard` 루프를 그대로
+          // 유지한다(§6 "기존 기능을 임의로 줄이지 않는다").
+          if (majorId != null && categories.length == 1) ...[
+            _DetailReportV4(
+              subDisplay: subDisplay,
+              ownerName: ownerName,
+              guestName: guestName,
+              major: major,
+              detail: detailByCategory[categories.first['categoryId']],
+              ownerSaju: ownerSaju,
+              memberSaju: memberSaju,
+              relationTypeDesc: relationTypeDesc,
+              heroArt: heroArt,
             ),
-            const SizedBox(height: 14),
+          ] else ...[
+            for (final c in categories) ...[
+              _DetailCard(
+                categoryId: c['categoryId'] as String?,
+                detail: detailByCategory[c['categoryId']],
+              ),
+              const SizedBox(height: 14),
+            ],
           ],
         ],
         const SizedBox(height: 18),
@@ -1356,6 +1375,477 @@ class _DetailSection extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(body, style: GHText.reportBody()),
+      ],
+    ),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// [S22 상세 보고서 — 00_DEV_MAPPING.md §5 S22(548-562줄) + 화면 매핑
+// 표(70-95줄, "S22 상세 보고서 | 17 | 〃(해금 섹션)") + 02_DATA_
+// APPENDIX.md §2(54종 3축 제목)] v4 명세의 6장(I~VI) 구조를 "선택 세부
+// 전용"(majorId가 있고 categories가 1개인 경우)에만 적용한다.
+//
+// [서버 7개 레거시 필드 → 6장 매핑 — 이번 턴 설계 결정] 서버
+// (`gunghap_repository.dart` 270-271줄 주석)는 detail에 정확히
+// {relationshipFeature, strength, conflictRisk, communicationStyle,
+// growthPotential, cautionPoint, improvement} 7개 텍스트 필드만 내려준다
+// — v4가 상정한 "장별 전용 생성 텍스트"는 서버에 없다(§12-2 원칙대로
+// 가짜 데이터를 지어내지 않고, 있는 필드를 사실 그대로 재배치한다):
+//   · I  한눈에        → relationshipFeature(관계 특징 총평) 인용 + 3축
+//                        바로가기(II~IV 섹션으로 스크롤)
+//   · II 3축 ①(axes[0]) → strength(잘 맞는 부분)
+//   · III 3축 ②(axes[1]) → conflictRisk(갈등 가능성)
+//   · IV 3축 ③(axes[2]) → communicationStyle(대화와 교감의 방식)
+//   · V  사주 근거      → ElementBars(owner/member, 서버 owner/member
+//                        필드 — person_pair.dart 재사용, 없으면 생략)
+//   · VI 조언과 좋은 시기 → growthPotential(지금 하면 좋은 것) +
+//                        cautionPoint(잠시 피할 것) + improvement(흐름이
+//                        열리는 때)
+// 필드가 null이면 해당 장을 통째로 생략한다(레거시 결과 호환).
+//
+// ☰(→S49 목차 시트)과 2px 읽기 진행바는 이번 구현 범위에서 제외한다
+// (별도 후속 작업 — 장 6개 구현이 우선순위가 더 높다고 판단).
+// ═══════════════════════════════════════════════════════════════
+class _DetailReportV4 extends StatelessWidget {
+  const _DetailReportV4({
+    required this.subDisplay,
+    required this.ownerName,
+    required this.guestName,
+    required this.major,
+    required this.detail,
+    required this.ownerSaju,
+    required this.memberSaju,
+    required this.relationTypeDesc,
+    required this.heroArt,
+  });
+  final String subDisplay;
+  final String ownerName;
+  final String guestName;
+  final GHMajor major;
+  final Map? detail;
+  final GhPersonSaju? ownerSaju;
+  final GhPersonSaju? memberSaju;
+  final String? relationTypeDesc;
+  final String heroArt;
+
+  @override
+  Widget build(BuildContext context) {
+    if (detail == null) {
+      return GHCard(
+        child: Text(
+          '$subDisplay 상세 데이터를 불러오지 못했습니다.',
+          style: GHText.ui(size: 13, color: GHColors.gray),
+        ),
+      );
+    }
+    final d = detail!;
+    final relationshipFeature = d['relationshipFeature'] as String?;
+    final strength = d['strength'] as String?;
+    final conflictRisk = d['conflictRisk'] as String?;
+    final communicationStyle = d['communicationStyle'] as String?;
+    final growthPotential = d['growthPotential'] as String?;
+    final cautionPoint = d['cautionPoint'] as String?;
+    final improvement = d['improvement'] as String?;
+    final sections = ghReportSections(subDisplay); // I~VI 전체(제목만)
+    final axisBodies = [strength, conflictRisk, communicationStyle];
+    final chapterIIKey = GlobalKey();
+    final chapterIIIKey = GlobalKey();
+    final chapterIVKey = GlobalKey();
+    final axisKeys = [chapterIIKey, chapterIIIKey, chapterIVKey];
+
+    void jumpTo(GlobalKey key) {
+      final ctx = key.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── 표지 ──
+        _ReportCover(
+          subDisplay: subDisplay,
+          hanja: major.hanja,
+          majorName: major.name,
+          ownerName: ownerName,
+          guestName: guestName,
+          heroArt: heroArt,
+          axes: sections.length > 4
+              ? [sections[1].title, sections[2].title, sections[3].title]
+              : const [],
+        ),
+        const SizedBox(height: 20),
+        // ── I 한눈에 ──
+        if (relationshipFeature != null) ...[
+          _ReportChapter(
+            no: 'I',
+            title: sections.isNotEmpty ? sections[0].title : '$subDisplay 한눈에',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: GHColors.accent.withValues(alpha: .08),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '"$relationshipFeature"',
+                    style: GHText.body(
+                      size: 15.5,
+                      weight: FontWeight.w700,
+                      color: GHColors.fg,
+                    ).copyWith(height: 1.6),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const _FactTag(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    for (var i = 0; i < 3 && i < sections.length - 1; i++) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      Expanded(
+                        child: _AxisShortcut(
+                          no: sections[i + 1].no,
+                          title: sections[i + 1].title,
+                          onTap: () => jumpTo(axisKeys[i]),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+        // ── II / III / IV 3축 ──
+        for (var i = 0; i < 3 && i < sections.length - 1; i++)
+          if (axisBodies[i] != null) ...[
+            const SizedBox(height: 18),
+            _ReportChapter(
+              key: axisKeys[i],
+              no: sections[i + 1].no,
+              title: sections[i + 1].title,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(axisBodies[i]!, style: GHText.reportBody()),
+                  const SizedBox(height: 12),
+                  const _FactTag(),
+                ],
+              ),
+            ),
+          ],
+        // ── V 사주 근거 ──
+        if (ownerSaju != null && memberSaju != null) ...[
+          const SizedBox(height: 18),
+          _ReportChapter(
+            no: 'V',
+            title: '이 풀이의 사주 근거',
+            child: ElementBars(owner: ownerSaju, member: memberSaju),
+          ),
+        ],
+        // ── VI 조언과 좋은 시기 ──
+        if (growthPotential != null || cautionPoint != null) ...[
+          const SizedBox(height: 18),
+          _ReportChapter(
+            no: 'VI',
+            title: '${ghSubShort(subDisplay)} 조언과 좋은 시기',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (growthPotential != null)
+                      Expanded(
+                        child: _AdviceBox(
+                          glyph: '✦',
+                          color: GHColors.mint,
+                          label: '지금 하면 좋은 것',
+                          body: growthPotential,
+                        ),
+                      ),
+                    if (growthPotential != null && cautionPoint != null)
+                      const SizedBox(width: 10),
+                    if (cautionPoint != null)
+                      Expanded(
+                        child: _AdviceBox(
+                          glyph: '◇',
+                          color: GHColors.rose,
+                          label: '잠시 피할 것',
+                          body: cautionPoint,
+                        ),
+                      ),
+                  ],
+                ),
+                if (improvement != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: GHColors.fieldBg,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '흐름이 열리는 때',
+                          style: GHText.ui(
+                            size: 12.5,
+                            weight: FontWeight.w700,
+                            color: GHColors.violetText,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(improvement, style: GHText.reportBody()),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// [S22 표지] 00_DEV_MAPPING.md 550줄: 「✦ 상세 보고서」 · mono 「{한자} ·
+/// {분야}」 · reportCover 「{세부명}」 · 「{나} ✦ {상대}」 · 이미지 220 r18 ·
+/// 「이 보고서가 답하는 질문」(fieldBg 박스, 3축).
+class _ReportCover extends StatelessWidget {
+  const _ReportCover({
+    required this.subDisplay,
+    required this.hanja,
+    required this.majorName,
+    required this.ownerName,
+    required this.guestName,
+    required this.heroArt,
+    required this.axes,
+  });
+  final String subDisplay;
+  final String hanja;
+  final String majorName;
+  final String ownerName;
+  final String guestName;
+  final String heroArt;
+  final List<String> axes;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: GHColors.card,
+      borderRadius: BorderRadius.circular(GHRadius.hero),
+      border: Border.all(color: GHColors.line, width: GHBorder.width),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Center(child: GHChip(label: '✦ 상세 보고서', active: true)),
+        const SizedBox(height: 14),
+        Center(child: GHMono('$hanja · $majorName', color: GHColors.gray)),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            subDisplay,
+            textAlign: TextAlign.center,
+            style: GHText.reportCover(size: 26),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            '$ownerName ✦ $guestName',
+            style: GHText.ui(size: 15, weight: FontWeight.w700, color: GHColors.fg),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: SizedBox(
+            height: 220,
+            width: double.infinity,
+            child: Image.asset(
+              heroArt,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => ColoredBox(
+                color: GHColors.bg2.withValues(alpha: .7),
+                child: const Center(
+                  child: Icon(Icons.image_outlined, color: GHColors.gray),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (axes.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: GHColors.fieldBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '이 보고서가 답하는 질문',
+                  style: GHText.ui(size: 12.5, weight: FontWeight.w700, color: GHColors.fg),
+                ),
+                const SizedBox(height: 8),
+                for (var i = 0; i < axes.length; i++)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: i == axes.length - 1 ? 0 : 6),
+                    child: Text(
+                      '${i + 1}. ${axes[i]}',
+                      style: GHText.ui(size: 12.5, color: GHColors.gray),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+/// [S22 장 헤더] 「번호(Noto Serif 900 13 accent 70%) + sectionTitle」 +
+/// 1.5px line 구분선. 번호를 로마 숫자 텍스트 그대로 쓴다(디자인 숫자
+/// 배지 대신 텍스트로 단순화 — 과한 신규 장식 요소를 피함).
+class _ReportChapter extends StatelessWidget {
+  const _ReportChapter({
+    super.key,
+    required this.no,
+    required this.title,
+    required this.child,
+  });
+  final String no;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            no,
+            style: GHText.hanja(size: 15, color: GHColors.accent.withValues(alpha: .7)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(title, style: GHText.reportSection())),
+        ],
+      ),
+      const SizedBox(height: 4),
+      const Divider(color: GHColors.lineSoft, thickness: GHBorder.width, height: 17),
+      const SizedBox(height: 10),
+      child,
+    ],
+  );
+}
+
+/// [S22] FACT 태그 — mono 「FACT」 + 1.5px lineSoft 칩.
+class _FactTag extends StatelessWidget {
+  const _FactTag();
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(color: GHColors.lineSoft, width: GHBorder.width),
+    ),
+    child: GHMono('FACT', color: GHColors.gray),
+  );
+}
+
+/// [S22 I장] 3축 바로가기 1열(II~IV로 스크롤).
+class _AxisShortcut extends StatelessWidget {
+  const _AxisShortcut({required this.no, required this.title, required this.onTap});
+  final String no;
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: GHColors.fieldBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(no, style: GHText.hanja(size: 13, color: GHColors.accent)),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GHText.ui(size: 11, weight: FontWeight.w600, color: GHColors.fg),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// [S22 VI장] 2열(✦ mint 지금 하면 좋은 것 / ◇ rose 잠시 피할 것).
+class _AdviceBox extends StatelessWidget {
+  const _AdviceBox({
+    required this.glyph,
+    required this.color,
+    required this.label,
+    required this.body,
+  });
+  final String glyph;
+  final Color color;
+  final String label;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .08),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: color.withValues(alpha: .3)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(glyph, style: TextStyle(fontSize: 12, color: color)),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                label,
+                style: GHText.ui(size: 12.5, weight: FontWeight.w700, color: color),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(body, style: GHText.body(size: 13, color: GHColors.fg).copyWith(height: 1.55)),
       ],
     ),
   );

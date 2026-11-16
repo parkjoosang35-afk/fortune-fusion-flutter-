@@ -56,6 +56,7 @@ import '../domain/gunghap_data.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
+import '../widgets/gh_screen.dart' show GHMono;
 
 sealed class Gate {
   const Gate();
@@ -329,18 +330,12 @@ class _GateSheet extends StatelessWidget {
         );
         actions = [const GHButton(label: '보고서를 그리는 중…', onPressed: null)];
       case GDone(:final refunded):
-        body = Column(
-          children: [
-            _info(
-              '✓',
-              GHColors.mint,
-              '상세 보고서가 완성됐어요',
-              refunded
-                  ? '해석 생성이 원활하지 않아 복주머니는 자동으로 돌려드렸어요.\n참고용 해석을 바로 확인할 수 있어요.'
-                  : '내 궁합에 저장돼 언제든 다시 볼 수 있어요.',
-            ),
-          ],
-        );
+        // [S21 해금 완료 — 00_DEV_MAPPING.md §5 S21 명세 반영] 복주머니
+        // 92 + 펄스 링 2 · mono「UNLOCKED · 開」· display「별의 지도가 /
+        // 모두 펼쳐졌어요」· 사용한/남은 복주머니 표. 과금/환불 로직
+        // (ResultGateController.pay/GDone 자체)은 전혀 건드리지 않고
+        // 이 case의 UI만 명세대로 보강한다.
+        body = _UnlockedDoneBody(refunded: refunded, balance: gate.balance, price: gate.price);
         actions = [
           GHButton(
             label: '상세 보고서 펼치기',
@@ -348,6 +343,11 @@ class _GateSheet extends StatelessWidget {
               Navigator.pop(context);
               gate.openReport();
             },
+          ),
+          GHButton(
+            label: '결과 화면으로 돌아가기',
+            variant: GHButtonVariant.text,
+            onPressed: close,
           ),
         ];
       case GPayError(:final message):
@@ -556,6 +556,165 @@ class _GateSheet extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// [S21 해금 완료 전용 본문] 00_DEV_MAPPING.md §5 S21:
+/// 「복주머니 92 + 펄스 링 2 · mono UNLOCKED · 開 · display 별의 지도가 /
+/// 모두 펼쳐졌어요 · 13.5 상세 보고서는 내 궁합에 저장돼요. 언제든 다시
+/// 꺼내 볼 수 있어요. · 표: 사용한 복주머니 [100]개 / 남은 복주머니
+/// [M−100]개」. [refunded]면 기존 `_info` 환불 안내 문구를 그대로
+/// 이어서 보여준다(과금/환불 로직 자체는 변경하지 않음).
+class _UnlockedDoneBody extends StatelessWidget {
+  const _UnlockedDoneBody({
+    required this.refunded,
+    required this.balance,
+    required this.price,
+  });
+  final bool refunded;
+  final int balance;
+  final int price;
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = balance - price;
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        const _PulsingPouchIcon(),
+        const SizedBox(height: 16),
+        GHMono('UNLOCKED · 開', color: GHColors.mint),
+        const SizedBox(height: 10),
+        Text(
+          '별의 지도가\n모두 펼쳐졌어요',
+          textAlign: TextAlign.center,
+          style: GHText.display(size: 24, color: GHColors.fg).copyWith(height: 1.3),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          refunded
+              ? '해석 생성이 원활하지 않아 복주머니는 자동으로 돌려드렸어요.\n참고용 해석을 바로 확인할 수 있어요.'
+              : '상세 보고서는 내 궁합에 저장돼요.\n언제든 다시 꺼내 볼 수 있어요.',
+          textAlign: TextAlign.center,
+          style: GHText.body(size: 13.5, color: GHColors.muted).copyWith(height: 1.65),
+        ),
+        if (!refunded) ...[
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: GHColors.line, width: GHBorder.width),
+            ),
+            child: Column(
+              children: [
+                _pouchRow('사용한 복주머니', price, top: false),
+                _pouchRow('남은 복주머니', remaining),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _pouchRow(String label, int value, {bool top = true}) => Container(
+    constraints: const BoxConstraints(minHeight: 44),
+    decoration: BoxDecoration(
+      border: top ? const Border(top: BorderSide(color: GHColors.lineSoft, width: GHBorder.width)) : null,
+    ),
+    child: Row(
+      children: [
+        Expanded(child: Text(label, style: GHText.body(size: 13.5, color: GHColors.muted))),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: GHColors.fieldBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '$value',
+            style: GHText.body(size: 14, weight: FontWeight.w800, color: GHColors.accent),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text('개', style: GHText.body(size: 13, color: GHColors.muted)),
+      ],
+    ),
+  );
+}
+
+/// [S21] 복주머니 아이콘 92 + 펄스 링 2개. 전용 SVG/PNG 에셋이 없으므로
+/// (home/widgets/welcome_reward_pouch.dart가 쓰는 CustomPainter 포치와
+/// 동일한 전략) 이모지 기반 아이콘 + 원형 펄스 애니메이션으로 재현한다.
+class _PulsingPouchIcon extends StatefulWidget {
+  const _PulsingPouchIcon();
+  @override
+  State<_PulsingPouchIcon> createState() => _PulsingPouchIconState();
+}
+
+class _PulsingPouchIconState extends State<_PulsingPouchIcon> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 92.0;
+    return SizedBox(
+      width: size * 1.6,
+      height: size * 1.6,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              for (final delay in [0.0, 0.5])
+                Builder(
+                  builder: (_) {
+                    final t = (_c.value + delay) % 1.0;
+                    return Opacity(
+                      opacity: (1 - t) * 0.5,
+                      child: Transform.scale(
+                        scale: 1 + t * 0.5,
+                        child: Container(
+                          width: size,
+                          height: size,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: GHColors.accent, width: GHBorder.width),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              Container(
+                width: size,
+                height: size,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: GHGradients.primary,
+                  boxShadow: GHShadow.scoreRing,
+                ),
+                child: const Text('🧧', style: TextStyle(fontSize: 42)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
 /// [spin=true] 회전 연출 — v4 원본 주석("RotationTransition 1회전/2.4s")을
