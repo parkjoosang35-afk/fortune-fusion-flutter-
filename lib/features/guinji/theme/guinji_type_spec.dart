@@ -95,13 +95,27 @@ const guinjiTypes = <String, GuinjiTypeSpec>{
     '조율',
     '剋',
     Color(0xFFB59CF0),
-    [9, 7],
+    // [귀인지도 v5 — web/ JSON 대조 수정] SPEC.md §3 "점선 [5,4]×0.55"
+    // (소비처 `guinji_animated_graph.dart`가 이 원값에 ×.55를 곱해
+    // 그린다). 기존 값 [9,7]은 참조하지 말라고 README에 명시된 구버전
+    // `design_files/guinji-data.js`(`dash: '9 7'`)에서 잘못 이식된
+    // 값이었다 — `web/guinji-types.v1.json`(note: "SPEC.md §3 기준")도
+    // [5,4]로 SPEC과 일치함을 재확인했다.
+    [5, 4],
     '서로 극하는 기운으로 긴장과 조율이 공존하는 관계',
   ),
-  'CHUNG': GuinjiTypeSpec('CHUNG', '충돌극복', '극복', '沖', Color(0xFFEF7A55), [
-    2,
-    7,
-  ], '일지가 충하여 부딪히지만 그만큼 성장을 만드는 관계'),
+  'CHUNG': GuinjiTypeSpec(
+    'CHUNG',
+    '충돌극복',
+    '극복',
+    '沖',
+    Color(0xFFEF7A55),
+    // SPEC.md §3 "점선 [1.1,3.9]×0.55" — 위 SANG_GEUK과 동일한 이유로
+    // 구버전 `guinji-data.js`(`dash: '2 7'`)에서 잘못 이식된 [2,7]을
+    // 교정한다.
+    [1.1, 3.9],
+    '일지가 충하여 부딪히지만 그만큼 성장을 만드는 관계',
+  ),
 };
 
 /// 알 수 없는 값(레거시 12종 등)이 와도 크래시 없이 폴백.
