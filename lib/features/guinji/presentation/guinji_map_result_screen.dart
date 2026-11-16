@@ -142,12 +142,23 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
 
   /// 결과 카드 "왜 그런지 보기" — 오버레이를 닫고 곧바로 관계상세 화면으로
   /// push한다(핸드오프 `CArrivalScreen`의 "왜 그런지 보기" 버튼 동작과
-  /// 동일 — 노드 바텀시트를 거치지 않고 바로 상세로 이동).
+  /// 동일 — 노드 바텀시트를 거치지 않고 바로 상세로 이동. SPEC §6
+  /// `TpPersonSheet` → H5 / `PaySheet` → H6 매핑 기준으로는 H6).
   void _openArrivalRelation(GuinjiPerson person) {
     _dismissArrivalOverlay();
     Navigator.of(
       context,
     ).push(guinjiPageRoute(GuinjiMapRelationDetailScreen(person: person)));
+  }
+
+  /// [2026-12 보강 — SPEC §5-6 AT+2.2 "H5 자동 오픈"] 공식 소스
+  /// `design_files/guinji-temple.jsx` 635줄 `setSel(arriver.id)` 1:1 —
+  /// 사용자가 노드를 직접 탭한 것과 동일하게 H5(`GuinjiNodeSheet`)를
+  /// 자동으로 연다(위의 "왜 그런지 보기"가 여는 H6 결제 시트와는 다른
+  /// 목적지). 오버레이를 먼저 닫아 바텀시트와 겹치지 않게 한다.
+  void _autoOpenNodeSheetFromArrival(GuinjiPerson person) {
+    _dismissArrivalOverlay();
+    _handleNodeTap(person);
   }
 
   void _maybeShowMilestoneCelebration() {
@@ -346,6 +357,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
               arrivals: _pendingArrivals,
               onOpenRelation: _openArrivalRelation,
               onClose: _dismissArrivalOverlay,
+              onAutoOpenNode: _autoOpenNodeSheetFromArrival,
             ),
           ),
       ],

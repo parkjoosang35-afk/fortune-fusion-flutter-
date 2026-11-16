@@ -60,6 +60,29 @@ class ArrivalTiming {
   ); // 결과 카드 + 점수 카운트업 1.1s · 선은 흰 1px로 복귀
   static const between = Duration(milliseconds: 4700);
   static const maxSequential = 3; // 그 이상은 한 번에 페이드 인
+
+  // [2026-12 보강 — SPEC §5-6 공식 소스 대조] `design_files/guinji-temple.jsx`
+  // (SPEC §0 "도착 연출" 공식 매핑: `TpMap arriveId`)와 대조한 결과, 이
+  // 애니메이션 전체(`guinji_arrival_overlay.dart`)가 실제로는 별도의
+  // `prototype/guinji-arrival.jsx`를 1:1 이식한 것으로 확인되었다. 유성·
+  // 충격파·인장·선 연결의 세부 ms 값은 두 소스가 비슷한 흐름이라
+  // 그대로 유지하되(이미 검증된 애니메이션 재작업 위험 대비 실익이
+  // 낮음), QA_CHECKLIST.md "도착 연출" 행이 명시하는 두 단계가 완전히
+  // 누락되어 있어 이번에 추가한다:
+  // "토스트 → 유성 → 충격파·흔들림 → 인장 → **NEW** → **H5 자동**"
+  //
+  // AT+0.5 — 인장 직후 노란 "NEW" 뱃지, 5초 노출(`guinji-temple.jsx`
+  // 363~366줄 `tp-fade .4s … ${AT+.5}s`). 로컬 경과시간 기준으로는
+  // `impact(_kHit=900) + 500ms`에 등장한다.
+  static const newBadgeDelay = Duration(milliseconds: 500);
+  static const newBadgeShow = Duration(seconds: 5);
+
+  // AT+2.2 — H5(귀인 상세 시트) 자동 오픈(`guinji-temple.jsx` 635줄
+  // `setTimeout(() => setSel(arriver.id), (AT+2.2)*1000)`). 로컬
+  // 경과시간 기준으로는 `impact(_kHit=900) + 2200ms`에 발동한다. 다수
+  // 도착 시에는 마지막 순차 도착자에게만 적용한다(앞사람 결과를 보여
+  // 주는 도중 오버레이가 갑자기 닫히지 않도록).
+  static const autoOpenDelay = Duration(milliseconds: 2200);
 }
 
 /// 07 풀이 인트로 (결제 직후) — 최소 4.4초, '풀이 읽기'는 사용자가 눌러야 이동 (자동 이동 금지).

@@ -145,6 +145,7 @@ class GuinjiArrivalOverlay extends StatefulWidget {
     required this.arrivals,
     required this.onOpenRelation,
     required this.onClose,
+    required this.onAutoOpenNode,
     this.ownerFacePath = 'assets/images/guinji/chars/f30_face.jpg',
   });
 
@@ -152,12 +153,22 @@ class GuinjiArrivalOverlay extends StatefulWidget {
   /// 그 이상은 핸드오프 명세대로 "한 번에 페이드 인").
   final List<GuinjiPerson> arrivals;
 
-  /// 마지막 도착자의 결과 카드 "왜 그런지 보기"를 누르면 호출된다.
+  /// 마지막 도착자의 결과 카드 "왜 그런지 보기"를 누르면 호출된다
+  /// (SPEC §6 H6 결제 시트로 이동).
   final ValueChanged<GuinjiPerson> onOpenRelation;
 
   /// 배경을 탭하거나 자동 종료 시점에 호출 — 호출부는 이 콜백에서
   /// 오버레이를 Stack에서 제거해야 한다.
   final VoidCallback onClose;
+
+  /// [2026-12 보강 — SPEC §5-6 AT+2.2 "H5 자동 오픈"] 공식 소스
+  /// `design_files/guinji-temple.jsx` 635줄 `setTimeout(() =>
+  /// setSel(arriver.id), (AT+2.2)*1000)` 1:1 — 마지막 순차 도착자 기준
+  /// 2.2초 뒤 자동으로 호출된다. [onOpenRelation](H6 결제 시트)과 달리
+  /// 노드를 탭했을 때와 동일하게 H5(`GuinjiNodeSheet`)를 열어야 한다 —
+  /// 이 위젯 자신은 오버레이를 닫지 않으므로 호출부가 먼저 닫을지
+  /// 여부를 결정한다.
+  final ValueChanged<GuinjiPerson> onAutoOpenNode;
 
   /// [핸드오프 `GJ.charFor(me)`] "나"(소유자) 얼굴 — 이 위젯 호출 지점에는
   /// 실제 소유자 생년월일이 전달되지 않으므로(엔진/모델 변경 금지 원칙),
@@ -178,6 +189,28 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
   bool _restRevealed = false;
   bool _reduceMotion = false;
   bool _dependenciesReady = false;
+
+  /// [2026-12 보강 — SPEC §5-6 AT+2.2 "H5 자동 오픈"] 한 번만 발동하도록
+  /// 막는 가드. 마지막 순차 도착자 기준으로만 체크한다(여럿이 순차
+  /// 재생 중일 때 중간 사람 결과를 보다가 갑자기 다음 사람으로 넘어가
+  /// 버리는 혼란을 막기 위함).
+  bool _autoOpenTriggered = false;
+
+  /// `design_files/guinji-temple.jsx` 635줄 `setTimeout(() =>
+  /// setSel(arriver.id), (AT+2.2)*1000)` 1:1 — 마지막 도착자의 로컬
+  /// 경과시간이 `impact(_kHit) + 2.2s`를 넘으면 [GuinjiNodeSheet](H5)을
+  /// 자동으로 열어 달라고 호출부에 알린다. 사용자가 이미 "왜 그런지
+  /// 보기"를 눌러 오버레이가 사라졌다면(= 이 State가 dispose됨) 더 이상
+  /// 호출되지 않는다.
+  void _maybeTriggerAutoOpen() {
+    if (_autoOpenTriggered || _sequential.isEmpty) return;
+    final lastIndex = _sequential.length - 1;
+    final e = _localElapsed(lastIndex);
+    if (e >= _kHit + ArrivalTiming.autoOpenDelay.inMilliseconds) {
+      _autoOpenTriggered = true;
+      widget.onAutoOpenNode(_sequential[lastIndex]);
+    }
+  }
 
   int get _totalSequentialMs {
     if (_sequential.isEmpty) return 0;
@@ -244,6 +277,7 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
       } else {
         setState(() => _elapsedMs = ms);
       }
+      _maybeTriggerAutoOpen();
     });
   }
 
@@ -256,10 +290,16 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
       HapticFeedback.mediumImpact();
       if (_reduceMotion) {
         // 동작 줄이기: 비행/충격 연출 없이 바로 결과만 노출(페이드만).
+        // SPEC §5-6의 "AT+2.2 H5 자동 오픈"은 시각 연출이 아니라 기능
+        // 동작이므로 동작 줄이기와 무관하게 그대로 수행한다 — 프레임이
+        // 그려진 뒤(위젯 트리 완성 후) 1회 확인한다.
         setState(() {
           _elapsedMs = _totalSequentialMs + 1;
           _restRevealed = true;
         });
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _maybeTriggerAutoOpen(),
+        );
       } else {
         _ticker.start();
       }
@@ -1038,6 +1078,33 @@ class _ArrivalFlight extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   fontSize: 17,
                   color: GmColors.onFg,
+                ),
+              ),
+            ),
+          ),
+        // [2026-12 보강 — SPEC §5-6 AT+0.5] 노란 "NEW" 뱃지, 5초 노출
+        // (`guinji-temple.jsx` 363~366줄 1:1 — 좌표만 이 위젯의 얼굴
+        // 좌표계로 변환). 로컬 경과시간 기준 `impact(_kHit)+500ms`부터
+        // 5초간 보인다.
+        if (e >= _kHit + 500 && e < _kHit + 500 + 5000)
+          Positioned(
+            left: slot.dx - 17,
+            top: slot.dy - _kFaceRadius - 22,
+            child: Container(
+              width: 34,
+              height: 15,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: GmColors.primary,
+                borderRadius: BorderRadius.circular(7.5),
+              ),
+              child: const Text(
+                'NEW',
+                style: TextStyle(
+                  fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 8.5,
+                  color: Color(0xFF191600),
                 ),
               ),
             ),
