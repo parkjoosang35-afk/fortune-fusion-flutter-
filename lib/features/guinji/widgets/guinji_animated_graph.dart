@@ -441,21 +441,14 @@ class _GuinjiAnimatedRelationGraphState
             ),
           ),
           Positioned.fill(child: gestureWrapped),
+          // [SPEC §6 H4 "0명이면 말풍선 `empty.coach`(노랑, 지도 16% 지점,
+          // 위아래 흔들림)"] 이전까지는 평범한 회색 텍스트였다 — 색(노랑)·
+          // 위치(지도 16% 지점)·형태(말풍선)·애니메이션(위아래 흔들림) 네
+          // 가지 모두 SPEC을 위반해 [_GmEmptyCoachBubble]로 전면 교체한다.
           if (widget.people.isEmpty && widget.emptyHint != null)
             Align(
-              alignment: const Alignment(0, 0.78),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  widget.emptyHint!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    color: GmColors.dim,
-                    height: 1.5,
-                  ),
-                ),
-              ),
+              alignment: const Alignment(0, -0.68), // 지도 높이의 약 16% 지점
+              child: _GmEmptyCoachBubble(text: widget.emptyHint!),
             ),
           if (widget.interactive && widget.showControls && _scale > 1.0)
             Positioned(
@@ -475,6 +468,100 @@ class _GuinjiAnimatedRelationGraphState
 
     return widget.interactive ? PinchZoomDisabled(child: container) : container;
   }
+}
+
+/// [SPEC §6 H4 "0명이면 말풍선 `empty.coach`(노랑, 지도 16% 지점, 위아래
+/// 흔들림)"] 지도가 비어 있을 때 보여 주는 말풍선 코치마크. 꼬리(삼각형)가
+/// 달린 노란 알약 모양 + 상시 위아래 흔들림 애니메이션으로 구현한다.
+class _GmEmptyCoachBubble extends StatefulWidget {
+  const _GmEmptyCoachBubble({required this.text});
+  final String text;
+
+  @override
+  State<_GmEmptyCoachBubble> createState() => _GmEmptyCoachBubbleState();
+}
+
+class _GmEmptyCoachBubbleState extends State<_GmEmptyCoachBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bob;
+
+  @override
+  void initState() {
+    super.initState();
+    _bob = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _bob,
+      builder: (context, child) {
+        final dy = -4 + 8 * Curves.easeInOut.transform(_bob.value);
+        return Transform.translate(offset: Offset(0, dy), child: child);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: GmColors.gold,
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: GmColors.gold.withValues(alpha: 0.4),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              widget.text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: GmText.ui,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: GmColors.onPrimary,
+              ),
+            ),
+          ),
+          CustomPaint(
+            size: const Size(14, 7),
+            painter: _GmBubbleTailPainter(color: GmColors.gold),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GmBubbleTailPainter extends CustomPainter {
+  const _GmBubbleTailPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GmBubbleTailPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// [v5 §05-2 "⌖ 원래 크기" 버튼 1:1 이식] 확대 중(scale > 1)에만 나타나는
@@ -615,9 +702,27 @@ class GuinjiTempleMapPainter extends CustomPainter {
 
   double _entranceForNode(int index, int total) {
     if (total == 0) return entrance;
+    // [SPEC §5-4 진입 애니메이션 순서] "0.9s~: 선 shoot" — 인장 stamp(아래
+    // [_legendEntranceFor])가 먼저 끝난 뒤에 선이 중심에서 뻗어나가도록,
+    // 전체 등장 타임라인(0→1)의 앞쪽 30%는 비워 두고 그 이후 구간에서만
+    // 진행한다(비워두는 비율만큼 shifted로 재정규화해 entrance=1일 때
+    // 모든 노드가 확실히 완전히 등장하도록 보장).
+    const beginAt = 0.3;
+    final shifted = ((entrance - beginAt) / (1 - beginAt)).clamp(0.0, 1.0);
     final stagger = total <= 1 ? 0.0 : (index / total) * 0.4;
-    final local = ((entrance - stagger) / (1 - 0.4)).clamp(0.0, 1.0);
+    final local = ((shifted - stagger) / (1 - 0.4)).clamp(0.0, 1.0);
     return Curves.easeOutCubic.transform(local);
+  }
+
+  /// [SPEC §5-4 "0.6s~: 인장 stamp (scale 2.2→1, 0.08s 간격)"] 바깥 유형
+  /// 한자 인장이 등장할 때 확대 축소되며 "쿵" 찍히는 효과. 전체 등장
+  /// 타임라인의 초반 40% 구간 안에서, 유형 순서(k)에 따라 조금씩 늦게
+  /// 시작한다 — 나(§_paintOwnerBack) 등장 직후 · 선이 뻗기 전에 끝난다.
+  double _legendEntranceFor(int k) {
+    const windowEnd = 0.4;
+    final stagger = k * 0.045;
+    final raw = ((entrance - stagger) / windowEnd).clamp(0.0, 1.0);
+    return raw;
   }
 
   @override
@@ -831,9 +936,19 @@ class GuinjiTempleMapPainter extends CustomPainter {
       final (lx, ly) = tpTypeLegendPos(k);
       final groupOpacity = filter != null && !on ? .3 : 1.0;
 
+      // [SPEC §5-4 "0.6s~: 인장 stamp (scale 2.2→1, 0.08s 간격)"] 1회성
+      // 등장 애니메이션 — 각 인장이 2.2배로 컸다가 1배로 "쿵" 줄어든다.
+      final legendT = _legendEntranceFor(k);
+      final stampScale = legendT >= 1
+          ? 1.0
+          : (2.2 - 1.2 * Curves.easeOutBack.transform(legendT))
+                .clamp(1.0, 2.2);
+      final stampAlpha = legendT.clamp(0.0, 1.0);
+
       canvas.save();
       canvas.translate(lx, ly);
       canvas.rotate(-4 * math.pi / 180);
+      canvas.scale(stampScale);
       final rrect = RRect.fromRectAndRadius(
         const Rect.fromLTWH(-12, -12, 24, 24),
         const Radius.circular(6),
@@ -861,7 +976,7 @@ class GuinjiTempleMapPainter extends CustomPainter {
         spec.hanja,
         13,
         (on ? GmColors.onFg : spec.color).withValues(
-          alpha: (lit ? 1.0 : .5) * groupOpacity,
+          alpha: (lit ? 1.0 : .5) * groupOpacity * stampAlpha,
         ),
         weight: FontWeight.w900,
         fontFamily: GmText.display,
@@ -871,7 +986,7 @@ class GuinjiTempleMapPainter extends CustomPainter {
         canvas.drawCircle(
           Offset(bx, by),
           7,
-          Paint()..color = spec.color.withValues(alpha: groupOpacity),
+          Paint()..color = spec.color.withValues(alpha: groupOpacity * stampAlpha),
         );
         canvas.drawCircle(
           Offset(bx, by),
@@ -879,14 +994,14 @@ class GuinjiTempleMapPainter extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5
-            ..color = const Color(0xFF120A22).withValues(alpha: groupOpacity),
+            ..color = const Color(0xFF120A22).withValues(alpha: groupOpacity * stampAlpha),
         );
         _paintTextCentered(
           canvas,
           Offset(bx, by + .5),
           '${counts[t] ?? 0}',
           8,
-          GmColors.onFg.withValues(alpha: groupOpacity),
+          GmColors.onFg.withValues(alpha: groupOpacity * stampAlpha),
           weight: FontWeight.w800,
         );
       }
@@ -896,7 +1011,7 @@ class GuinjiTempleMapPainter extends CustomPainter {
         spec.short,
         9.5,
         (on ? spec.color : GmColors.muted).withValues(
-          alpha: (lit ? 1.0 : .45) * groupOpacity,
+          alpha: (lit ? 1.0 : .45) * groupOpacity * stampAlpha,
         ),
         weight: FontWeight.w700,
       );
@@ -1205,8 +1320,14 @@ class GuinjiTempleMapPainter extends CustomPainter {
   // 얼굴은 [_paintOwnerFront]에서 맨 위에 그린다.
   void _paintOwnerBack(Canvas canvas, double cx, double cy) {
     const r = tpOwnerRadius;
-    final burstT = (elapsedSeconds % 1.2) / 1.2;
-    if (burstT < 0.98) {
+    // [SPEC §5-4 "0.2s: 나 pop + 금 burst 링(scale 5까지, 1.2s)"] 진입
+    // 시 단 1회만 재생되는 금 테두리 확산 효과. 이전에는
+    // `elapsedSeconds % 1.2`로 영구 반복되어 "진입 애니메이션 순서"(1회성
+    // 연출이어야 함) QA 항목을 위반했다 — 1회성인 [entrance](0→1, 노드
+    // 개수가 바뀔 때만 재생)를 그대로 진행도로 써서 등장 시 한 번만
+    // 확산되고 끝나게 한다.
+    if (entrance < 0.999) {
+      final burstT = entrance.clamp(0.0, 1.0);
       canvas.drawCircle(
         Offset(cx, cy),
         (r + 2) + burstT * (r + 2) * 4,
@@ -1220,6 +1341,16 @@ class GuinjiTempleMapPainter extends CustomPainter {
 
   void _paintOwnerFront(Canvas canvas, double cx, double cy) {
     const r = tpOwnerRadius;
+    // [SPEC §5-4 "0.2s: 나 pop (scale .4→1, overshoot)"] 등장 시 1회
+    // 튕기듯 커지는 효과 — elasticOut 커브로 0.4배에서 1배를 살짝 넘겼다가
+    // 안착한다. entrance가 1에 도달하면(재생 종료) 항상 1.0으로 고정.
+    final popScale = entrance >= 0.999
+        ? 1.0
+        : (0.4 + 0.6 * Curves.elasticOut.transform(entrance)).clamp(0.0, 1.3);
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.scale(popScale);
+    canvas.translate(-cx, -cy);
     final pulseT = (elapsedSeconds % 3.2) / 3.2;
     canvas.drawCircle(
       Offset(cx, cy),
@@ -1266,6 +1397,7 @@ class GuinjiTempleMapPainter extends CustomPainter {
       GmColors.onFg,
       weight: FontWeight.w800,
     );
+    canvas.restore();
   }
 
   // ── 그리기 헬퍼 ──────────────────────────────────────────────

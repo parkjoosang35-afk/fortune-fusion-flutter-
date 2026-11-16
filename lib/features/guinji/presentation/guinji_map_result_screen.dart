@@ -518,7 +518,10 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     onTypeTap: _handleTypeTap,
                     // [SPEC §5-5] 빈 자리 별을 탭하면 H4-a 시트를 띄운다.
                     onEmptySlotTap: _handleEmptySlotTap,
-                    emptyHint: '링크를 받은 지인이 생년월일을 입력하면\n이곳에 한 명씩 연결돼요',
+                    // [COPY.md "empty.coach"] 고정 문구. 말풍선 스타일(노랑·
+                    // 지도 16% 지점·위아래 흔들림)은 그래프 위젯 내부
+                    // [_GmEmptyCoachBubble]에서 처리한다.
+                    emptyHint: '빈 자리를 눌러 보세요',
                     filter: _filter,
                   ),
 
@@ -1138,6 +1141,34 @@ class _RecentRow extends StatelessWidget {
                       color: spec.color,
                     ),
                   ),
+                  // [COPY.md "badge.unlocked" = "풀이 열림"] QA_CHECKLIST.md
+                  // H4 행 "최근 3명 + 풀이 열림 뱃지" 요구 — person.unlocked가
+                  // true(서버 `/maps/me` members[].unlocked)일 때만 노출한다.
+                  if (person.unlocked) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: GmColors.gold.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: GmColors.gold.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: const Text(
+                        '✓ 풀이 열림',
+                        style: TextStyle(
+                          fontFamily: GmText.ui,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: GmColors.gold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
