@@ -48,6 +48,8 @@
 // 배치한다(S24가 구현되면 그때 원래 의도대로 공유 화면으로 이동 예정 —
 // 저장 로직 자체는 1바이트도 바뀌지 않았다).
 // ═══════════════════════════════════════════════════════════════
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -628,13 +630,20 @@ class _ResultBody extends StatelessWidget {
           const SizedBox(height: 10),
         ],
         const SizedBox(height: 10),
-        // ── §5 항목 10: 미해금 시 프리미엄 티저 카드 ──
+        // ── §5 항목 10 + S18(보고서 잠금, 〃 미해금 섹션) ── 00_DEV_MAPPING.md
+        // 화면 매핑 표 72줄 "S18 보고서 잠금 | 16 | 〃(미해금 섹션)"에 따라
+        // S18은 별도 화면/파일이 아니라 이 화면의 미해금 상태 섹션으로
+        // 구현한다(S18_report_lock.png의 독자적 AppBar는 디자인 목업
+        // 관행상 섹션을 단독 프레임으로 보여준 것으로 해석 — 개발 문서
+        // 표의 명시적 지시를 우선한다). §5 S18 전문(494-500줄) 5개 요소를
+        // 모두 포함한 `_ReportLockSection`으로 교체한다.
         if (!unlocked) ...[
-          _PremiumTeaserCard(
+          _ReportLockSection(
             subDisplay: subDisplay,
             unlockCost: unlockCost,
             unlocking: unlocking,
             onTap: unlocking ? null : onUnlock,
+            previewText: relationTypeDesc,
           ),
         ] else ...[
           GHSectionHead(
@@ -857,103 +866,297 @@ class _GlowSummaryCard extends StatelessWidget {
   );
 }
 
-/// [v4 S17 §5 항목 10 — 프리미엄 티저 카드] 135° 핑크 14%→보라 12%
-/// 그라데이션 배경 + ❖ 아이콘 박스 + mono 「PREMIUM REPORT」 + 장 칩
-/// (II~VI). 탭하면 기존 `onUnlock`(결제 게이트, 절대 변경 금지)을
-/// 그대로 호출한다 — 이 위젯은 순수 시각 레이어만 담당한다.
-class _PremiumTeaserCard extends StatelessWidget {
-  const _PremiumTeaserCard({
+/// [v4 S18 보고서 잠금 — 구조표 16, 00_DEV_MAPPING.md §5 494-500줄]
+/// 화면 매핑 표(72줄)가 "S18 | 16 | 〃(미해금 섹션)"으로 명시하므로 별도
+/// 화면/파일을 만들지 않고 `_ResultBody`의 미해금 분기 안에서 S18 전체
+/// 5개 요소를 렌더링한다(S18_report_lock.png의 독자적 AppBar는 디자인
+/// 목업이 섹션을 단독 프레임으로 보여준 관행으로 해석):
+///   1. 모드전환칩(○ 무료 결과 → ✦ 상세 보고서) + 헤드라인
+///   2. 미리보기 잠금 카드(「I 핵심 요약」+본문 2줄 노출+블러+자물쇠)
+///   3. WHAT YOU GET(ghReportSections 전체 I~VI, I만 "미리보기" 태그)
+///   4. PricePanel(compact) — result_gate.dart의 `_PricePanel`은 private라
+///      재사용할 수 없으므로(그 파일은 절대 변경 금지) 동일 시각 언어로
+///      이 파일 안에 압축 버전을 새로 만든다.
+///   5. Footer는 이미 GunghapResultScreen.footer(공유+구매)가 담당하므로
+///      이 섹션 내부에는 넣지 않는다(중복 CTA 방지) — 탭하면 기존
+///      `onUnlock`(결제 게이트, 절대 변경 금지)을 그대로 호출한다.
+class _ReportLockSection extends StatelessWidget {
+  const _ReportLockSection({
     required this.subDisplay,
     required this.unlockCost,
     required this.unlocking,
     required this.onTap,
+    required this.previewText,
   });
   final String subDisplay;
   final int unlockCost;
   final bool unlocking;
   final VoidCallback? onTap;
+  // [§5 S18 항목 2 — 미리보기 카드 본문] 서버가 이미 내려주는
+  // relationTypeDesc(핵심 요약 카드에 쓰는 것과 동일한 실제 텍스트)를
+  // 재사용한다 — 전용 "I장 미리보기" 필드가 서버에 없으므로(§12-2
+  // 원칙대로 가짜 문장을 지어내지 않음) 이미 있는 실제 데이터로 대체.
+  final String? previewText;
 
   @override
   Widget build(BuildContext context) {
-    final chapters = ghReportSections(subDisplay).skip(1).toList(); // II~VI
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              GHColors.accent.withValues(alpha: .14),
-              GHColors.violet.withValues(alpha: .12),
+    final sections = ghReportSections(subDisplay); // I~VI 전체
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── 1. 모드전환칩 + 헤드라인 ──
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const GHChip(label: '○ 무료 결과', active: false),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('→', style: TextStyle(color: GHColors.gray, fontSize: 13)),
+              ),
+              const GHChip(label: '✦ 상세 보고서', active: true),
             ],
           ),
-          borderRadius: BorderRadius.circular(GHRadius.card),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          '두 사람의 별의 지도를\n더 깊이 펼쳐 볼까요',
+          textAlign: TextAlign.center,
+          style: GHText.title(size: 22, color: GHColors.fg).copyWith(height: 1.38),
+        ),
+        const SizedBox(height: 20),
+        // ── 2. 미리보기 잠금 카드(r22, 1.5px line, 블러+자물쇠) ──
+        _LockedPreviewCard(sectionTitle: sections.first.title, previewText: previewText),
+        const SizedBox(height: 20),
+        // ── 3. WHAT YOU GET(I~VI 전체 목록, I 우측 "미리보기") ──
+        GHMono('WHAT YOU GET', color: GHColors.accent),
+        const SizedBox(height: 6),
+        Text('상세 보고서에 담기는 내용', style: GHText.cardTitle(size: 16)),
+        const SizedBox(height: 12),
+        for (final s in sections) ...[
+          _WhatYouGetRow(section: s, isPreview: s == sections.first),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 8),
+        // ── 4. PricePanel(compact) ──
+        _CompactPricePanel(unlockCost: unlockCost),
+        const SizedBox(height: 18),
+        // CTA — Footer(공유+구매)가 이미 하단에 고정돼 있으므로, 본문
+        // 안에서도 한 번 더 누를 수 있게 동일 동작의 보조 버튼을 둔다
+        // (S18 명세의 "Footer Primary" 요구를 본문에서도 보강).
+        GHButton(
+          label: unlocking ? '잠금해제하는 중…' : '❖ 상세 궁합 보고서 확인하기',
+          onPressed: unlocking ? null : onTap,
+          trailing: GHPricePill(unlockCost),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          '한 번 열면 내 궁합에서 언제든 다시 볼 수 있어요',
+          textAlign: TextAlign.center,
+          style: GHText.ui(size: 12, color: GHColors.gray),
+        ),
+      ],
+    );
+  }
+}
+
+/// [S18 항목 2] 「I 핵심 요약」 소제목 + 본문 2줄 노출 + 아래쪽 블러
+/// (sigma 5, 55% 흰 그라데이션 덮개) + 중앙 자물쇠 원(52) + 안내 문구.
+class _LockedPreviewCard extends StatelessWidget {
+  const _LockedPreviewCard({required this.sectionTitle, required this.previewText});
+  final String sectionTitle;
+  final String? previewText;
+
+  @override
+  Widget build(BuildContext context) {
+    final body = previewText ?? '두 사람의 사주를 바탕으로 한 상세 해석이 이어집니다.';
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        decoration: BoxDecoration(
+          color: GHColors.card,
           border: Border.all(color: GHColors.line, width: GHBorder.width),
         ),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('I', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: GHColors.accent)),
+                    const SizedBox(width: 6),
+                    Text(sectionTitle, style: GHText.cardTitle(size: 15)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // [블러 영역] 본문 텍스트를 그린 뒤 그 위에
+                // ImageFiltered(blur 5)로 흐리게 처리 — 이 프로젝트
+                // 다른 화면(splash_screen.dart 등)이 이미 쓰는 패턴.
+                ImageFiltered(
+                  imageFilter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Text(
+                    body,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: GHText.reportBody(),
+                  ),
+                ),
+                const SizedBox(height: 64),
+              ],
+            ),
+            // 그라데이션 덮개(아래쪽일수록 흰색 불투명도 ↑, 55%)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 92,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        GHColors.card.withValues(alpha: 0),
+                        GHColors.card.withValues(alpha: .55),
+                        GHColors.card,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 10,
+              child: Column(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: GHGradients.primary,
+                      boxShadow: [BoxShadow(color: GHColors.glowShadow, blurRadius: 16)],
+                    ),
+                    child: const Icon(Icons.lock_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '이어지는 내용은 상세 보고서에서',
+                    style: GHText.ui(size: 12, weight: FontWeight.w600, color: GHColors.gray),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [S18 항목 3] WHAT YOU GET 한 줄 — 번호(accent) · 제목(14.5/700) ·
+/// 설명(12) · I장만 우측에 "미리보기"(mint) 태그를 덧붙인다.
+class _WhatYouGetRow extends StatelessWidget {
+  const _WhatYouGetRow({required this.section, required this.isPreview});
+  final GHReportSection section;
+  final bool isPreview;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(
+        width: 24,
+        child: Text(
+          section.no,
+          style: GHText.hanja(size: 13, color: GHColors.accent),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: GHGradients.primary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Text('❖', style: TextStyle(fontSize: 20, color: Colors.white)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GHMono('PREMIUM REPORT', color: GHColors.accent),
-                      const SizedBox(height: 4),
-                      Text('$subDisplay 상세 보고서', style: GHText.cardTitle(size: 16)),
-                    ],
+                Flexible(
+                  child: Text(
+                    section.title,
+                    style: GHText.ui(size: 14.5, weight: FontWeight.w700, color: GHColors.fg),
                   ),
                 ),
-                const Text('›', style: TextStyle(fontSize: 20, color: GHColors.gray)),
+                if (isPreview) ...[
+                  const SizedBox(width: 6),
+                  Text('미리보기', style: GHText.ui(size: 11, weight: FontWeight.w700, color: GHColors.mint)),
+                ],
               ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              '선택한 세부 궁합에 맞춘 깊은 풀이',
-              style: GHText.ui(size: 13, color: GHColors.gray),
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final ch in chapters)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: GHColors.card,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: GHColors.lineSoft),
-                    ),
-                    child: Text(
-                      '${ch.no}. ${ch.title}',
-                      style: GHText.ui(size: 11, weight: FontWeight.w600, color: GHColors.gray),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GHButton(
-              label: unlocking ? '잠금해제하는 중…' : '상세 보고서 잠금해제하기',
-              onPressed: unlocking ? null : onTap,
-              trailing: GHPricePill(unlockCost),
-            ),
+            const SizedBox(height: 2),
+            Text(section.desc, style: GHText.ui(size: 12, color: GHColors.gray)),
           ],
         ),
+      ),
+    ],
+  );
+}
+
+/// [S18 항목 4 — PricePanel(compact)] `result_gate.dart`의 `_PricePanel`
+/// (private, 절대 변경 금지인 그 파일 소속이라 외부 재사용 불가)과 같은
+/// 시각 언어를 쓰되 한 줄로 압축한 버전. 보유 잔액 표시를 위해
+/// [LuckPouchProvider]를 watch한다.
+class _CompactPricePanel extends StatelessWidget {
+  const _CompactPricePanel({required this.unlockCost});
+  final int unlockCost;
+
+  @override
+  Widget build(BuildContext context) {
+    final balance = context.watch<LuckPouchProvider>().balance;
+    final short = balance < unlockCost;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: GHColors.line, width: GHBorder.width),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: GHColors.fieldBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Text('❖', style: TextStyle(color: GHColors.violet, fontSize: 16)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('상세 보고서 1회 열람', style: GHText.ui(size: 13, weight: FontWeight.w700, color: GHColors.fg)),
+                const SizedBox(height: 2),
+                Text(
+                  '보유 복주머니 $balance개',
+                  style: GHText.ui(size: 11.5, color: short ? GHColors.rose : GHColors.gray),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '복주머니 $unlockCost개',
+            style: GHText.ui(size: 14, weight: FontWeight.w800, color: GHColors.accent),
+          ),
+        ],
       ),
     );
   }
