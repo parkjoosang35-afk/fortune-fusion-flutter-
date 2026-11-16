@@ -39,6 +39,7 @@ import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
 import '../widgets/star_map.dart';
+import 'gunghap_calculating_screen.dart';
 import 'gunghap_guest_result_screen.dart';
 import 'gunghap_result_screen.dart';
 
@@ -209,7 +210,13 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     });
 
     final provider = context.read<GunghapProvider>();
-    final result = await provider.joinAnonymous(
+    // [S15 명세 — 00_DEV_MAPPING.md §5] 제출 직후 공용 "분석 로딩" 화면을
+    // 끼워넣는다. `joinAnonymous(...)`가 반환하는 Future는 아직
+    // await하지 않고 그대로 [GunghapCalculatingScreen]에 넘겨, 그 화면이
+    // 최소 표시 시간(4.3s)을 채운 뒤 [_handleJoinResult]로 결과를 돌려주게
+    // 한다 — 기존 `joinAnonymous` 호출 로직·파라미터는 전혀 변경하지
+    // 않았다.
+    final future = provider.joinAnonymous(
       token: widget.token,
       name: name,
       birthDate: birthDate,
@@ -222,9 +229,29 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     );
 
     if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GunghapCalculatingScreen(
+          future: future,
+          aName: _ownerName,
+          bName: name,
+          onResult: _handleJoinResult,
+        ),
+      ),
+    );
+  }
+
+  /// [S15] [GunghapCalculatingScreen]이 최소 표시 시간을 채운 뒤 호출하는
+  /// 콜백 — 기존 `_handleSubmit`에 있던 성공/실패 분기 로직을 그대로
+  /// 옮겨 왔다(로직 변경 없음, 호출 시점만 로딩 화면 뒤로 이동).
+  void _handleJoinResult(Map<String, dynamic>? result) {
+    final provider = context.read<GunghapProvider>();
+    if (!mounted) return;
     setState(() => _submitting = false);
 
     if (result == null) {
+      // 로딩 화면(최상단 라우트)을 닫고 입력 폼으로 돌아간 뒤 오류를 안내한다.
+      Navigator.of(context).pop();
       // [긴급 검수 지시 §4] 연결 실패(NETWORK_ERROR)는 전용 문구로 구분해
       // 보여준다 — 이 화면은 비회원 전용 입력 폼이라 원문 입력값이 그대로
       // 유지되므로("다시 시도" = 같은 버튼 재클릭) 별도 재시도 버튼 없이도
@@ -238,6 +265,7 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
       return;
     }
 
+    // 로딩 화면(최상단 라우트)을 결과 화면으로 교체한다.
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GunghapGuestResultScreen(result: result),

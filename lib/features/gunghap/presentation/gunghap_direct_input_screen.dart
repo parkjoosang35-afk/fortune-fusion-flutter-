@@ -50,6 +50,7 @@ import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
+import 'gunghap_calculating_screen.dart';
 import 'gunghap_result_screen.dart';
 
 class GunghapDirectInputScreen extends StatefulWidget {
@@ -176,7 +177,12 @@ class _GunghapDirectInputScreenState extends State<GunghapDirectInputScreen> {
     });
 
     final provider = context.read<GunghapProvider>();
-    final result = await provider.createDirect(
+    // [S15 명세 — 00_DEV_MAPPING.md §5] 제출 직후 공용 "분석 로딩" 화면을
+    // 끼워넣는다. `createDirect(...)`가 반환하는 Future는 아직 await하지
+    // 않고 그대로 [GunghapCalculatingScreen]에 넘겨, 그 화면이 최소 표시
+    // 시간(4.3s)을 채운 뒤 [_handleDirectResult]로 결과를 돌려주게 한다
+    // — 기존 `createDirect` 호출 로직·파라미터는 전혀 변경하지 않았다.
+    final future = provider.createDirect(
       user: user,
       requestKey: _requestKey!,
       partnerName: name,
@@ -190,9 +196,29 @@ class _GunghapDirectInputScreenState extends State<GunghapDirectInputScreen> {
     );
 
     if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GunghapCalculatingScreen(
+          future: future,
+          aName: user.nickname,
+          bName: name,
+          onResult: _handleDirectResult,
+        ),
+      ),
+    );
+  }
+
+  /// [S15] [GunghapCalculatingScreen]이 최소 표시 시간을 채운 뒤 호출하는
+  /// 콜백 — 기존 `_handleSubmit`에 있던 성공/실패 분기 로직을 그대로
+  /// 옮겨 왔다(로직 변경 없음, 호출 시점만 로딩 화면 뒤로 이동).
+  void _handleDirectResult(Map<String, dynamic>? result) {
+    final provider = context.read<GunghapProvider>();
+    if (!mounted) return;
     setState(() => _submitting = false);
 
     if (result == null) {
+      // 로딩 화면(최상단 라우트)을 닫고 입력 폼으로 돌아간 뒤 오류를 안내한다.
+      Navigator.of(context).pop();
       // [v4 핸드오프 반영 — S10 삭제 결정] 궁합지도 플로우 안에 내 정보
       // 입력 화면을 따로 두지 않고, 기존 마이페이지 수정 화면으로
       // 안내한다(위 gunghap_invite_screen.dart와 동일한 원칙).
@@ -242,18 +268,18 @@ class _GunghapDirectInputScreenState extends State<GunghapDirectInputScreen> {
 
     final resultId = result['resultId'] as String?;
     if (resultId == null) {
+      Navigator.of(context).pop();
       AppToast.show(context, '결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.', isError: true);
       return;
     }
 
-    if (!mounted) return;
-    // [실제 결과 화면으로 이동] 새로 계산/생성하지 않고, 방금 만든
-    // resultId로 기존 `GunghapResultScreen`(소유자 전용 조회)에 진입한다
-    // — 이 화면이 다시 `fetchResult(resultId)`를 호출해 데이터를
-    // 가져오므로 추가 네트워크 트래픽이 1회 더 발생하지만, 캐시 없이도
-    // "소유자 본인 조회" 권한 검증을 동일 경로로 통일할 수 있어
-    // 일관성을 지킨다(회귀 위험 최소화 — 새로운 결과 렌더링 로직을
-    // 만들지 않는다).
+    // [실제 결과 화면으로 이동] 로딩 화면(최상단 라우트)을 결과 화면으로
+    // 교체한다 — 새로 계산/생성하지 않고, 방금 만든 resultId로 기존
+    // `GunghapResultScreen`(소유자 전용 조회)에 진입한다 — 이 화면이
+    // 다시 `fetchResult(resultId)`를 호출해 데이터를 가져오므로 추가
+    // 네트워크 트래픽이 1회 더 발생하지만, 캐시 없이도 "소유자 본인
+    // 조회" 권한 검증을 동일 경로로 통일할 수 있어 일관성을 지킨다
+    // (회귀 위험 최소화 — 새로운 결과 렌더링 로직을 만들지 않는다).
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GunghapResultScreen(resultId: resultId),
