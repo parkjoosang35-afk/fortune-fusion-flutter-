@@ -1,12 +1,24 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: gh_typography.dart
-// [궁합지도 전면 리디자인 — 2026-11 2차 핸드오프] `00_DEV_MAPPING.md`
-// §2-5(서체) 반영. 서체 체계(Pretendard·Noto Serif KR·IBM Plex Mono)는
-// 기존과 동일(§2-5와 이미 일치) — 색상은 gh_tokens.dart 교체로 자동
-// 반영된다. 이번 변경은 §2-5 크기표에 정의된 신규 역할(homeTitle·
-// sheetTitle·resultTitle·reportCover·appBar·chip·navLabel)을 추가한다.
-// 기존 역할(display/title/reportSection/cardTitle/reportBody/button/
-// ui/caption/mono)은 이름과 시그니처를 유지해 하위 호환을 지킨다.
+// [궁합지도 전면 리디자인 v4] design_handoff_gunghap_map_v4
+// `00_DEV_MAPPING.md` §2-5(서체) + `flutter_starter/lib/gunghap/
+// theme/gh_typography.dart`(v3 참고 구현) 포팅.
+//
+// [서체 전략] v4 참고 코드는 google_fonts 패키지(GoogleFonts.notoSerifKr/
+// ibmPlexMono)를 쓰지만, 이 프로젝트는 앱 전역에서 Pretendard·
+// NotoSerifKR·IBMPlexMono를 pubspec.yaml 로컬 에셋 폰트로 등록해
+// 쓰는 체계를 유지한다(§2-5: "UI 전반은 Pretendard, 한자는 Noto Serif KR
+// fallback, 영문·숫자 메타는 IBM Plex Mono"). 그래서 모든 스타일의
+// 기본 fontFamily는 Pretendard이고, 한자 글리프가 섞일 수 있는 자리는
+// fontFamilyFallback으로 NotoSerifKR을 추가해 글자가 깨지지 않도록
+// 한다(이전에는 display/title이 통째로 NotoSerifKR을 기본 폰트로 썼던
+// 오류가 있어 이번에 Pretendard 기본 + fallback 방식으로 바로잡았다).
+//
+// [하위 호환] 기존 역할(display/title/reportSection/cardTitle/
+// reportBody/button/ui/caption/mono)은 이름과 시그니처를 유지한다
+// (전역 72~1회 호출부가 있어 이름을 바꾸면 컴파일이 깨진다). v4가 추가한
+// 신규 역할(homeTitle/sheetTitle/resultTitle/reportCover/appBar/chip/
+// navLabel/hanja/body/sectionTitle)도 함께 제공한다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import 'gh_tokens.dart';
@@ -17,11 +29,14 @@ abstract final class GHText {
   static const _body = 'Pretendard';
   static const _mono = 'IBMPlexMono';
   static const _ui = 'Pretendard';
+  // §2-5: "Pretendard에 한자 글리프 없음 → fontFamilyFallback".
+  static const _hanjaFallback = [_serif];
 
   // ── §2-5 homeTitle: 25/900/1.3, -0.035em — S01 헤더 ──
   static TextStyle homeTitle({double size = 25, Color color = GHColors.fg}) =>
       TextStyle(
         fontFamily: _body,
+        fontFamilyFallback: _hanjaFallback,
         fontSize: size,
         fontWeight: FontWeight.w900,
         height: 1.3,
@@ -30,9 +45,12 @@ abstract final class GHText {
       );
 
   /// display: 24/700/1.32, -0.025em — 화면 제목 (GHTitle 본문)
+  /// [수정 — v4] 기본 폰트를 NotoSerifKR → Pretendard로 교체(§2-5:
+  /// "제목 포함 UI 전반은 Pretendard"). 한자는 fallback으로 처리.
   static TextStyle display({double size = 28, Color color = GHColors.ivory}) =>
       TextStyle(
-        fontFamily: _serif,
+        fontFamily: _body,
+        fontFamilyFallback: _hanjaFallback,
         fontSize: size,
         fontWeight: FontWeight.w900,
         height: 1.3,
@@ -42,7 +60,8 @@ abstract final class GHText {
 
   static TextStyle title({double size = 24, Color color = GHColors.ivory}) =>
       TextStyle(
-        fontFamily: _serif,
+        fontFamily: _body,
+        fontFamilyFallback: _hanjaFallback,
         fontSize: size,
         fontWeight: FontWeight.w700,
         height: 1.35,
@@ -93,12 +112,14 @@ abstract final class GHText {
     letterSpacing: -0.38,
   );
 
+  // [수정 — v4] §2-5 cardTitle: 14.5~16 / 800 / 1.3 (기존 w700 → w800).
   static TextStyle cardTitle({double size = 15.5, Color color = GHColors.ivory}) =>
       TextStyle(
         fontFamily: _body,
+        fontFamilyFallback: _hanjaFallback,
         fontSize: size,
-        fontWeight: FontWeight.w700,
-        height: 1.4,
+        fontWeight: FontWeight.w800,
+        height: 1.3,
         color: color,
       );
 
@@ -169,5 +190,29 @@ abstract final class GHText {
     fontSize: 11.5,
     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
     color: color ?? (active ? GHColors.accent : GHColors.muted),
+  );
+
+  // ── §2-5 sectionTitle: 19/700, accent, -0.02em — 보고서 장(v4 신규명)
+  // reportSection()과 동일(하위호환 별칭).
+  static TextStyle sectionTitle() => reportSection();
+
+  /// §2-5 body: 13.5~14/400~600/1.6 — 일반 본문(v4 신규, ui()의 별칭).
+  static TextStyle body({
+    double size = 14,
+    FontWeight weight = FontWeight.w400,
+    Color color = GHColors.fg,
+  }) => ui(size: size, weight: weight, color: color, height: 1.6);
+
+  /// 한자 단독 표기 — 일간 · 인장 · 장 번호(v4 신규).
+  static TextStyle hanja({
+    double size = 22,
+    Color color = GHColors.fg,
+    FontWeight weight = FontWeight.w900,
+  }) => TextStyle(
+    fontFamily: _serif,
+    fontFamilyFallback: const [_body],
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
   );
 }
