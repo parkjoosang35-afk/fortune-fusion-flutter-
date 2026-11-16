@@ -347,6 +347,37 @@ class _GHCardState extends State<GHCard> {
   }
 }
 
+/// [S14/S16 명세 §3-2] 「웹 · 비로그인」 화면 공용 상단 잠금 URL 바
+/// (44, r12, fieldBg) — 「🔒 sintong.app/map/r/{code}」. GHAppBar·하단바
+/// 없이 이 바 하나로 대체한다(S14 `_GhUrlBar`를 공용화해 S16도 재사용).
+class GHUrlBar extends StatelessWidget {
+  const GHUrlBar({super.key, this.path = 'sintong.app/map/r'});
+  final String path;
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 44,
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: GHColors.fieldBg,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    alignment: Alignment.centerLeft,
+    child: Row(
+      children: [
+        const Icon(Icons.lock, size: 13, color: GHColors.gray),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            path,
+            overflow: TextOverflow.ellipsis,
+            style: GHText.ui(size: 12.5, color: GHColors.gray),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class GHSectionHead extends StatelessWidget {
   const GHSectionHead({super.key, this.mono, required this.title, this.trailing});
   final String? mono;

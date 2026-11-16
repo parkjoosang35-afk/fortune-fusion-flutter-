@@ -335,7 +335,7 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _GhUrlBar(),
+          const GHUrlBar(),
           const SizedBox(height: 18),
           _buildBody(),
         ],
@@ -957,34 +957,6 @@ class _GhBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-/// [S14 명세] 상단 잠금 URL 바(44, r12, fieldBg) — 「🔒 sintong.app/map/r/{code}」.
-class _GhUrlBar extends StatelessWidget {
-  const _GhUrlBar();
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 44,
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    decoration: BoxDecoration(
-      color: GHColors.fieldBg,
-      borderRadius: BorderRadius.circular(12),
-    ),
-    alignment: Alignment.centerLeft,
-    child: Row(
-      children: [
-        const Icon(Icons.lock, size: 13, color: GHColors.gray),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            'sintong.app/map/r',
-            overflow: TextOverflow.ellipsis,
-            style: GHText.ui(size: 12.5, color: GHColors.gray),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 /// [S14 명세] 「궁합지도」 로고 행(↗ 아이콘 + mono 타이틀).

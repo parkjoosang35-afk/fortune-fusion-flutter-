@@ -18,15 +18,15 @@
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 
-import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../domain/gunghap_data.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/cat_icon.dart';
 import '../widgets/gh_button.dart';
+import '../widgets/gh_score_ring.dart';
 import '../widgets/gh_screen.dart';
-import '../widgets/star_map.dart';
+import '../widgets/person_pair.dart';
 import 'gunghap_home_screen.dart';
 
 class GunghapGuestResultScreen extends StatelessWidget {
@@ -45,8 +45,14 @@ class GunghapGuestResultScreen extends StatelessWidget {
     final guestName = result['guestName'] as String? ?? '나';
     final relationTypeLabel = result['relationTypeLabel'] as String?;
     final relationTypeDesc = result['relationTypeDesc'] as String?;
-    final grade = result['grade'] as String?;
     final chemistryScore = result['chemistryScore'];
+    final score = chemistryScore is num ? chemistryScore.toInt() : null;
+    final band = score != null ? GHBand.of(score) : null;
+    // [v4 S16] 게스트 결과 전용 PersonPair/ElementBars — `owner`/`member`
+    // 신규 필드(하위호환 추가, 이번 핸드오프에서 admin_web 3개 라우트에
+    // 함께 추가됨)가 없는 구버전 응답이면 두 위젯 모두 조용히 생략된다.
+    final ownerSaju = GhPersonSaju.fromMap(result['owner']);
+    final memberSaju = GhPersonSaju.fromMap(result['member']);
     final categoriesRaw = result['categories'];
     final categories = categoriesRaw is List
         ? categoriesRaw.whereType<Map>().toList()
@@ -60,12 +66,14 @@ class GunghapGuestResultScreen extends StatelessWidget {
         ? '${ghMajorById(majorId).shortName} 궁합 등급'
         : '8개 분야 궁합 등급';
 
+    // [v4 S16 명세 §3-2] 「웹 · 비로그인」 화면(S14/S16 공통) — GHAppBar와
+    // 하단바(MainBottomNavBar)를 쓰지 않고, 화면 맨 위에 자체 URL 잠금
+    // 바([GHUrlBar])만 둔다. 뒤로가기는 OS/브라우저 제스처에 맡긴다.
     return ResultTextScaleOverlay(
       child: GHScreen(
-        bottomNav: const MainBottomNavBar(currentIndex: 0),
-        appBar: const GHAppBar(title: '우리 둘의 궁합'),
+        appBar: null,
         footer: GHButton(
-          label: '나도 궁합지도 만들기',
+          label: '✦ 나도 궁합지도 만들기',
           onPressed: () => Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const GunghapHomeScreen()),
             (route) => false,
@@ -74,26 +82,50 @@ class GunghapGuestResultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const GHSteps(step: 4, labels: ['분야', '나', '상대', '분석']),
+            const GHUrlBar(),
+            const SizedBox(height: 18),
+            // [v4 S16] 「○ 무료 결과」 칩 — S17의 GHTier(유료)와 대비되는
+            // 무료 결과 전용 표시. 아직 공용 GHTier 컴포넌트가 없어
+            // 가장 가까운 기존 부품인 [GHChip](비활성 스타일)으로 대체한다.
+            Center(
+              child: GHChip(label: '○ 무료 결과', active: false),
+            ),
+            const SizedBox(height: 14),
             GHTitle(
-              mono: 'STEP 04 · RESULT',
-              title: '$ownerName님과 $guestName님의\n궁합 결과예요',
+              title: '$ownerName님과의 인연을\n살펴보았습니다',
               center: true,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: AspectRatio(
-                aspectRatio: 4 / 3,
-                child: StarMap(aName: ownerName, bName: guestName, draw: true),
+            if (score != null && band != null)
+              Center(
+                child: GHScoreRing(score: score, sub: band.label),
               ),
+            const SizedBox(height: 22),
+            PersonPair(
+              ownerName: ownerName,
+              memberName: guestName,
+              owner: ownerSaju,
+              member: memberSaju,
             ),
-            const SizedBox(height: 10),
-            _SummaryCard(
-              relationTypeLabel: relationTypeLabel,
-              relationTypeDesc: relationTypeDesc,
-              grade: grade,
-              chemistryScore: chemistryScore,
-            ),
+            if (ownerSaju != null && memberSaju != null)
+              const SizedBox(height: 22),
+            if (relationTypeDesc != null) ...[
+              _GlowSummaryCard(
+                relationTypeLabel: relationTypeLabel,
+                relationTypeDesc: relationTypeDesc,
+              ),
+              const SizedBox(height: 18),
+            ],
+            if (ownerSaju != null && memberSaju != null) ...[
+              _ElementHarmonyCard(
+                ownerName: ownerName,
+                memberName: guestName,
+                owner: ownerSaju,
+                member: memberSaju,
+              ),
+              const SizedBox(height: 18),
+            ],
+            // [v4 S16] 점선 민트 박스 — 게스트 본인 생년월일 비공개 안내.
+            _DashedMintNotice(ownerName: ownerName),
             const SizedBox(height: 22),
             GHSectionHead(mono: 'FREE RESULT', title: sectionTitle),
             for (final c in categories) ...[
@@ -104,18 +136,20 @@ class GunghapGuestResultScreen extends StatelessWidget {
               const SizedBox(height: 10),
             ],
             const SizedBox(height: 6),
+            // [v4 S16] fieldBg 해금 안내 박스(기존 lineSoft 테두리 박스를
+            // fieldBg 배경 채움으로 교체 — 명세 「◇ fieldBg 박스」).
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
+                color: GHColors.fieldBg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: GHColors.lineSoft),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '✦',
-                    style: TextStyle(fontSize: 13, color: GHColors.gold),
+                    '◇',
+                    style: TextStyle(fontSize: 13, color: GHColors.violetText),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -132,6 +166,9 @@ class GunghapGuestResultScreen extends StatelessWidget {
                 ],
               ),
             ),
+            // [v4 S16 §12-6] 「내 정보 삭제」 텍스트 버튼은 게스트 전용
+            // 삭제 API가 현재 admin_web에 없어 명세 §12 표 6번
+            // ("API 없으면 숨김") 규칙에 따라 생략한다.
           ],
         ),
       ),
@@ -139,17 +176,64 @@ class GunghapGuestResultScreen extends StatelessWidget {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
+/// [v4 S16] 핵심 요약 카드(glow) — mono 「SUMMARY · 핵심 요약」 +
+/// 18/700 한 줄 요약(`relationTypeDesc`, 보기 기준으로 명세의 "나무가
+/// 불을 키우듯, 서로를 밝혀 주는 인연" 같은 한 문단 해석에 대응).
+/// 서버가 이미 내려주는 기존 필드를 그대로 쓰므로 추가 API 확장이
+/// 필요 없다(§4 공용 데이터 표의 `result.summary{headline}`과 달리,
+/// 이 화면은 `relationTypeDesc`를 그 역할로 재사용).
+class _GlowSummaryCard extends StatelessWidget {
+  const _GlowSummaryCard({
     required this.relationTypeLabel,
     required this.relationTypeDesc,
-    required this.grade,
-    required this.chemistryScore,
   });
   final String? relationTypeLabel;
-  final String? relationTypeDesc;
-  final String? grade;
-  final dynamic chemistryScore;
+  final String relationTypeDesc;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+    decoration: BoxDecoration(
+      color: GHColors.card,
+      borderRadius: BorderRadius.circular(GHRadius.card),
+      border: Border.all(color: GHColors.line, width: GHBorder.width),
+      boxShadow: [BoxShadow(color: GHColors.glowShadow, blurRadius: 22, offset: const Offset(0, 8))],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        GHMono('SUMMARY · 핵심 요약', color: GHColors.accent),
+        const SizedBox(height: 10),
+        Text(
+          relationTypeDesc,
+          textAlign: TextAlign.center,
+          style: GHText.title(size: 18).copyWith(height: 1.4),
+        ),
+        if (relationTypeLabel != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            relationTypeLabel!,
+            textAlign: TextAlign.center,
+            style: GHText.ui(size: 12.5, color: GHColors.gray),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+/// [v4 S16] 「☯ 오행 조화」 카드 — [ElementBars] 포함.
+class _ElementHarmonyCard extends StatelessWidget {
+  const _ElementHarmonyCard({
+    required this.ownerName,
+    required this.memberName,
+    required this.owner,
+    required this.member,
+  });
+  final String ownerName;
+  final String memberName;
+  final GhPersonSaju owner;
+  final GhPersonSaju member;
 
   @override
   Widget build(BuildContext context) => GHCard(
@@ -158,53 +242,77 @@ class _SummaryCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            if (grade != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: GHColors.gold.withValues(alpha: .14),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: GHColors.gold),
-                ),
-                child: Text(
-                  grade!,
-                  style: GHText.ui(
-                    size: 13,
-                    weight: FontWeight.w800,
-                    color: GHColors.gold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-            ],
-            if (chemistryScore != null)
-              Text(
-                '$chemistryScore점',
-                style: GHText.ui(
-                  size: 13,
-                  weight: FontWeight.w700,
-                  color: GHColors.ivory,
-                ),
-              ),
+            const Text('☯', style: TextStyle(fontSize: 14, color: GHColors.violetText)),
+            const SizedBox(width: 6),
+            Text('오행 조화', style: GHText.cardTitle(size: 14.5, color: GHColors.violetText)),
           ],
         ),
-        if (relationTypeLabel != null) ...[
-          const SizedBox(height: 10),
-          Text(relationTypeLabel!, style: GHText.cardTitle(size: 16)),
-        ],
-        if (relationTypeDesc != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            relationTypeDesc!,
-            style: GHText.ui(size: 13, height: 1.6, color: GHColors.gray),
-          ),
-        ],
+        const SizedBox(height: 14),
+        ElementBars(owner: owner, member: member),
       ],
     ),
   );
+}
+
+/// [v4 S16] 점선 민트 박스 — 「✓ {초대자}님에게도 같은 결과가 전달됐어요.
+/// 내 생년월일은 공개하지 않았어요.」 게스트 본인 정보 비공개 안내.
+/// 패키지 의존 없이 `CustomPaint`로 점선 테두리를 직접 그린다.
+class _DashedMintNotice extends StatelessWidget {
+  const _DashedMintNotice({required this.ownerName});
+  final String ownerName;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    painter: _DashedRectPainter(color: GHColors.mint, radius: 14),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('✓', style: TextStyle(fontSize: 13, color: GHColors.mint, fontWeight: FontWeight.w800)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$ownerName님에게도 같은 결과가 전달됐어요.\n내 생년월일은 공개하지 않았어요.',
+              style: GHText.ui(size: 12, height: 1.6, color: GHColors.muted),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _DashedRectPainter extends CustomPainter {
+  const _DashedRectPainter({required this.color, required this.radius});
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = GHBorder.width;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        const dashLen = 5.0, gapLen = 3.5;
+        final next = (distance + dashLen).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, next), paint);
+        distance += dashLen + gapLen;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRectPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 class _CategoryGradeRow extends StatelessWidget {
