@@ -2,6 +2,11 @@
 // FILE: gunghap_sub_screen.dart
 // [궁합지도 Star Map 디자인 적용] gh-screens-a.jsx ScreenSub
 // (03 세부 카테고리) 포팅본.
+//
+// [v4 핸드오프 반영 — S09] 00_DEV_MAPPING.md §5 S09 명세 기준 재작성:
+// 기존 텍스트 전용 카드(번호+텍스트+체크원)를 2열 그리드
+// (이미지 4:5 + 체크원 + 흰 정보칸) 구조로 전면 교체.
+// 세부 수 홀수면 마지막 카드는 2열 전체 폭 + 1:1 이미지로 특수 처리.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
@@ -114,16 +119,32 @@ class _GunghapSubScreenState extends State<GunghapSubScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          for (final (i, s) in subs.indexed) ...[
-            _SubCard(
-              index: i,
-              sub: s,
-              selected: _selectedSub == s.name,
-              onTap: () => setState(() => _selectedSub = s.name),
-            ),
-            const SizedBox(height: 10),
-          ],
-          const SizedBox(height: 6),
+          // [v4 S09] 2열 그리드 + 세부 수 홀수면 마지막 카드만 전체 폭.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 10.0;
+              final colWidth = (constraints.maxWidth - gap) / 2;
+              final isOdd = subs.length.isOdd;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  for (final (i, s) in subs.indexed)
+                    SizedBox(
+                      width: (isOdd && i == subs.length - 1) ? constraints.maxWidth : colWidth,
+                      child: _SubCard(
+                        majorId: _majorId,
+                        sub: s,
+                        fullWidth: isOdd && i == subs.length - 1,
+                        selected: _selectedSub == s.name,
+                        onTap: () => setState(() => _selectedSub = s.name),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
@@ -141,75 +162,128 @@ class _GunghapSubScreenState extends State<GunghapSubScreen> {
   }
 }
 
-class _SubCard extends StatelessWidget {
+/// [v4 핸드오프 S09] 2열 카드: 상단 이미지(4:5, 홀수 마지막 카드는 1:1)
+/// + 우상 체크원 + 하단 흰 정보칸(이름/설명).
+/// 선택 시 2px accent + 3px 핑크18% 링 + translateY -2 + 이미지 scale 1.06.
+class _SubCard extends StatefulWidget {
   const _SubCard({
-    required this.index,
+    required this.majorId,
     required this.sub,
+    required this.fullWidth,
     required this.selected,
     required this.onTap,
   });
-  final int index;
+  final String majorId;
   final GHSub sub;
+  final bool fullWidth;
   final bool selected;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GHCard(
-    onTap: onTap,
-    selected: selected,
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    borderRadius: GHRadius.cardSm,
-    minHeight: 72,
-    child: Row(
-      children: [
-        SizedBox(
-          width: 18,
-          child: Text(
-            (index + 1).toString().padLeft(2, '0'),
-            style: GHText.mono(size: 10, color: selected ? GHColors.gold : GHColors.gray),
+  State<_SubCard> createState() => _SubCardState();
+}
+
+class _SubCardState extends State<_SubCard> {
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.selected;
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, selected ? -2 : 0, 0),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: GHColors.card,
+          borderRadius: BorderRadius.circular(GHRadius.imageCard),
+          border: Border.all(
+            color: selected ? GHColors.accent : GHColors.lineSoft,
+            width: selected ? 2 : 1.5,
           ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                sub.name,
-                style: GHText.cardTitle(size: 15.5, color: selected ? GHColors.gold : GHColors.ivory),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                sub.desc,
-                style: GHText.ui(size: 12.5, height: 1.45, color: GHColors.gray),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: selected ? GHColors.gold : GHColors.gray.withValues(alpha: .35),
-            ),
-          ),
-          alignment: Alignment.center,
-          child: selected
-              ? Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: GHColors.gold,
-                    boxShadow: [BoxShadow(color: GHColors.glowShadow, blurRadius: 8)],
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: GHColors.accent.withValues(alpha: .18),
+                    blurRadius: 0,
+                    spreadRadius: 3,
                   ),
-                )
-              : null,
+                  ...GHShadow.imageCard,
+                ]
+              : GHShadow.imageCard,
         ),
-      ],
-    ),
-  );
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: widget.fullWidth ? 1 : 4 / 5,
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 1000),
+                    curve: Curves.easeOut,
+                    scale: selected ? 1.06 : 1.0,
+                    child: Image.asset(
+                      ghArtSub(widget.majorId, widget.sub.name),
+                      fit: BoxFit.cover,
+                      alignment: Alignment(0, ghArtAlign(widget.majorId, widget.sub.name)),
+                      errorBuilder: (_, _, _) => ColoredBox(
+                        color: GHColors.bg2.withValues(alpha: .7),
+                        child: const Center(child: Icon(Icons.image_outlined, color: GHColors.gray)),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: selected ? GHColors.accent : Colors.white.withValues(alpha: .35),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: selected ? 0 : .7),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: selected
+                        ? const Text(
+                            '✓',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                          )
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 11, 10, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.sub.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GHText.cardTitle(size: 14.5, color: selected ? GHColors.accent : GHColors.ivory),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.sub.desc,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GHText.ui(size: 11.5, height: 1.4, color: GHColors.gray),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

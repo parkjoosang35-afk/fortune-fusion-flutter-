@@ -2,11 +2,15 @@
 // FILE: gunghap_major_screen.dart
 // [궁합지도 Star Map 디자인 적용] gh-screens-a.jsx ScreenMajor
 // (02 대분류 선택) 포팅본.
+//
+// [v4 핸드오프 반영 — S08] 00_DEV_MAPPING.md §5 S08 명세 기준 재작성:
+// 기존 텍스트 전용 카드(GHCard+50x50아이콘박스)를
+// 정사각 이미지 cover + 그라데이션 + 좌상 흰배지 + 우상 체크원 +
+// 하단 흰 텍스트(이름/설명) 구조로 전면 교체.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
 import '../theme/gh_tokens.dart';
-import '../theme/gh_typography.dart';
 import '../widgets/gh_screen.dart';
 import '../widgets/cat_icon.dart';
 import '../domain/gunghap_data.dart';
@@ -91,7 +95,7 @@ class _GunghapMajorScreenState extends State<GunghapMajorScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 150 / 156,
+            childAspectRatio: 165 / 168,
             children: [
               for (final m in ghMajors)
                 _MajorCard(
@@ -107,6 +111,9 @@ class _GunghapMajorScreenState extends State<GunghapMajorScreen> {
   }
 }
 
+/// [v4 핸드오프 S08] 정사각 이미지 카드: 이미지 cover + 하단 그라데이션
+/// + 좌상 흰 아이콘배지 + 우상 체크원 + 하단 흰 텍스트(이름/설명).
+/// 선택 시 2px accent 보더 + 3px 핑크18% 링 + 그림자.
 class _MajorCard extends StatelessWidget {
   const _MajorCard({required this.major, required this.selected, required this.onTap});
   final GHMajor major;
@@ -114,67 +121,129 @@ class _MajorCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GHCard(
+  Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
-    selected: selected,
-    padding: const EdgeInsets.all(14),
-    borderRadius: GHRadius.card,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: selected
-                    ? GHColors.gold.withValues(alpha: .12)
-                    : GHColors.bg2.withValues(alpha: .6),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: selected ? GHColors.gold.withValues(alpha: .5) : GHColors.lineSoft,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: GHColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: selected ? GHColors.accent : Colors.transparent,
+          width: 2,
+        ),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: GHColors.accent.withValues(alpha: .18),
+                  blurRadius: 0,
+                  spreadRadius: 3,
                 ),
+                ...GHShadow.card,
+              ]
+            : GHShadow.card,
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            ghArtSquare(major.id),
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => ColoredBox(
+              color: GHColors.bg2.withValues(alpha: .7),
+              child: Center(child: CatIcon(kind: major.icon, size: 36, active: true)),
+            ),
+          ),
+          // 하단 그라데이션(텍스트 가독성 확보).
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  const Color(0xFF140C24).withValues(alpha: .72),
+                ],
+                stops: const [0.45, 1.0],
+              ),
+            ),
+          ),
+          // 좌상단 흰 아이콘 배지.
+          Positioned(
+            left: 10,
+            top: 10,
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: CatIcon(kind: major.icon, size: 36, active: selected),
+              child: CatIcon(kind: major.icon, size: 28, active: true),
             ),
-            Container(
-              width: 22,
-              height: 22,
+          ),
+          // 우상단 체크원.
+          Positioned(
+            right: 10,
+            top: 10,
+            child: Container(
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: selected ? GHColors.gold : Colors.transparent,
+                color: selected ? GHColors.accent : Colors.white.withValues(alpha: .25),
                 border: Border.all(
-                  color: selected ? GHColors.gold : GHColors.gray.withValues(alpha: .35),
+                  color: Colors.white.withValues(alpha: selected ? 0 : .7),
                 ),
               ),
               alignment: Alignment.center,
               child: selected
-                  ? const Text('✓', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: GHColors.ink))
+                  ? const Text(
+                      '✓',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                    )
                   : null,
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          major.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GHText.cardTitle(size: 15.5, color: selected ? GHColors.gold : GHColors.ivory),
-        ),
-        const SizedBox(height: 5),
-        Expanded(
-          child: Text(
-            major.desc,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: GHText.ui(size: 12, height: 1.5, color: GHColors.gray),
           ),
-        ),
-      ],
+          // 하단 텍스트.
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  major.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  major.desc,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.4,
+                    color: Colors.white.withValues(alpha: .88),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
