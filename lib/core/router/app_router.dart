@@ -93,6 +93,7 @@ import '../../features/guinji/presentation/guinji_map_result_screen.dart';
 import '../../features/guinji/presentation/guinji_direct_input_screen.dart';
 import '../../features/guinji/presentation/guinji_map_share_screen.dart';
 import '../../features/guinji/presentation/guinji_guest_result_screen.dart';
+import '../../features/guinji/presentation/guinji_host_welcome_screen.dart';
 import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 import '../../features/gunghap/presentation/gunghap_guest_input_screen.dart';
 import '../../features/gunghap/presentation/gunghap_story_screen.dart';
@@ -522,6 +523,24 @@ class AppRouter {
             hostName: '지민',
             relationKey: 'CHEON_GWII',
             score: 92,
+          ),
+        );
+      // [귀인지도 v5 — G3 새 호스트 환영] SPEC §6 G3. 실제 프로덕션
+      // 흐름에서는 `guinji_guest_result_screen.dart`의 `onCreateOwnMap`
+      // 기본값이 `MaterialPageRoute`로 직접 push한다(바로 위
+      // `/guinji-map/guest/result`가 그러하듯, 결과 화면 계열은 전역
+      // 하단바를 붙이지 않는 온보딩성 흐름이기 때문). 이 named route는
+      // 직접 URL 진입/QA 확인용 보조 경로로만 유지한다(더미 데이터).
+      case '/guinji-map/host-welcome':
+        return _guinjiNamed(
+          '/guinji-map/host-welcome',
+          GuinjiHostWelcomeScreen(
+            guestName: '나',
+            hostName: '지민',
+            onCreateMap: () =>
+                appNavigatorKey.currentState?.pushNamed('/guinji-map/new'),
+            onLater: () => appNavigatorKey.currentState
+                ?.pushNamedAndRemoveUntil('/guinji-map', (route) => false),
           ),
         );
       // [오늘의 운세 표준 플로우] 기존 진입점(홈 카드/전체보기 등)은 그대로

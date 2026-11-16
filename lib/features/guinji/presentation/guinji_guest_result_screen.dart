@@ -11,6 +11,7 @@ import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_animated_graph.dart';
 import '../widgets/guinji_map_widgets.dart';
+import 'guinji_host_welcome_screen.dart';
 
 /// Y · Guest Result — 바이럴 링크로 들어온 게스트가 자신의 사주를 입력한 뒤,
 /// 호스트와의 관계 판정 결과를 확인하는 화면.
@@ -276,9 +277,34 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                   hostName: hostName,
                   meName: centerName,
                   relationKey: relationKey,
+                  // [귀인지도 v5 — G3 연결] SPEC §6 G2 "동작: 나도 내 귀인지도
+                  // 만들기 → G3". 기본값은 더 이상 H1(`/guinji-map`)로
+                  // 바로 가지 않고, 먼저 G3(새 호스트 환영,
+                  // [GuinjiHostWelcomeScreen])를 보여준다 — 이 화면은
+                  // 순수 표시 위젯(상태를 저장하지 않음)이므로 "게스트가
+                  // 자기 지도 만들기를 누른 시점"마다 매번 보여줘도
+                  // 자동 전환 금지 원칙에 위배되지 않는다(사용자가 직접
+                  // 누른 버튼의 즉시 결과일 뿐). G3 내부에서 다시
+                  // "내 귀인지도 만들기"→H2(`/guinji-map/new`),
+                  // "나중에 할게요"→H1(`/guinji-map`)로 분기한다.
                   onCreateOwnMap:
                       onCreateOwnMap ??
-                      () => Navigator.of(context).pushNamed('/guinji-map'),
+                      () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => GuinjiHostWelcomeScreen(
+                            guestName: centerName,
+                            hostName: hostName,
+                            onCreateMap: () => Navigator.of(context)
+                                .pushNamed('/guinji-map/new'),
+                            onLater: () => Navigator.of(
+                              context,
+                            ).pushNamedAndRemoveUntil(
+                              '/guinji-map',
+                              (route) => false,
+                            ),
+                          ),
+                        ),
+                      ),
                 ),
               ),
               // [귀인지도 v5 — G2/W2 QA 대조 보강, G1과 동일 원칙] SPEC §6
