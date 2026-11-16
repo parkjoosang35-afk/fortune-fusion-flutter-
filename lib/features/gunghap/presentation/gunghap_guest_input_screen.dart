@@ -12,19 +12,39 @@
 // [윤달 UI] guinji_input_screen.dart의 3단계 패턴(양력/음력/음력(윤달))을
 // 그대로 따른다 — 백엔드 `g/[token]/join`이 isLeapMonth를 지원하기 때문에
 // (guinji_map_guest_join_screen.dart의 2단계 패턴과는 다름, §6 투두 내역 참고).
+//
+// [v4 핸드오프 반영 — S14] 00_DEV_MAPPING.md §5 S14 명세·§3-2 표(「웹·
+// 비로그인」 분류: 상단 URL 바 · 하단바 없음) 기준으로 시각 레이어를
+// 교체했다. 변경 지점:
+//   - 하단바(MainBottomNavBar)·GHAppBar 제거 → 상단 잠금 URL 바 +
+//     「궁합지도」 로고 + 초대자 소개 배지 + StarMap(두 별)으로 교체.
+//   - 동의 박스 문구를 [필수]/[선택] 라벨로 명확히 분리하고, [선택]
+//     항목(생년월일 공개)을 신설했다 — 단, 서버 `g/[token]/join`
+//     API(gunghap_repository.dart)는 이 선택 동의 필드를 받지 않으므로
+//     (요청 바디 스키마 참고) 현재는 클라이언트 전용 안내용 체크박스로만
+//     동작한다(서버 계약을 변경하지 않는 "로직 유지" 원칙).
+//   - 「신통방통 앱 설치하기」 보조 버튼, 개인정보 안내 시트(§5 S14,
+//     02_DATA_APPENDIX.md §5) 추가.
+// 폼 필드 구성·검증·제출 로직([_handleSubmit], [joinAnonymous] 호출)은
+// 이번 리디자인에서 전혀 손대지 않았다 — 오직 시각 레이어만 교체했다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/router/main_bottom_nav_bar.dart';
 import '../application/gunghap_provider.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
+import '../widgets/star_map.dart';
 import 'gunghap_guest_result_screen.dart';
 import 'gunghap_result_screen.dart';
+
+/// [S14 명세] 「신통방통 앱 설치하기」 보조 버튼 타깃.
+const _kPlayStoreUrl =
+    'https://play.google.com/store/apps/details?id=com.fortunefusion.fortune';
 
 class GunghapGuestInputScreen extends StatefulWidget {
   const GunghapGuestInputScreen({super.key, required this.token});
@@ -50,6 +70,13 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
   String? _gender; // 'male' | 'female'
   bool _agreePolicy = false;
   bool _agreeAge14 = false;
+  // [S14 명세] 「[선택] {초대자} 님에게 내 생년월일 공개」 — 현재 백엔드
+  // `POST /g/{token}/join`(gunghap_repository.dart) 요청 바디에는 대응
+  // 필드가 없어(요청 스키마 참고) 아직 서버로 전송되지 않는다. UI 동의
+  // 문구만 명세대로 우선 노출해 두고, 서버 필드가 추가되면 그대로
+  // `joinAnonymous(...)` 호출부에 값을 실어 보내면 된다 — 로직 변경은
+  // 이번 작업 범위 밖(시각 레이어만 교체).
+  bool _agreeDiscloseBirth = false;
   bool _submitting = false;
   bool _loadingInvite = true;
   String? _formError;
@@ -265,20 +292,33 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
         _inviteStatus != 'pending';
 
     return GHScreen(
-      bottomNav: const MainBottomNavBar(currentIndex: 0),
-      appBar: GHAppBar(
-        title: '궁합 초대 참여',
-        onBack: () => Navigator.of(context).maybePop(),
-      ),
+      // [S14 명세 — §3-2] 「웹 · 비로그인」 화면: 하단바 없음, 상단은
+      // 자체 URL 바(44, r12, fieldBg)로 대체한다. GHAppBar 대신 child
+      // 맨 위에 [_GhUrlBar]를 넣고, 뒤로가기는 OS/브라우저 제스처에
+      // 맡긴다(앱 경유 진입 시에는 [_GhUrlBar]에 ← 를 별도로 두지 않고
+      // 상단 URL 자물쇠 표시로 통일 — 모든 플랫폼에서 동일한 웹 경험).
+      appBar: null,
       footer: isBlockedStatus
           ? null
           : GHButton(
-              label: _submitting ? '제출하는 중…' : '내 궁합 확인하기',
+              label: _submitting ? '제출하는 중…' : '나의 정보 입력하고 궁합 확인하기',
               onPressed: (_canSubmit && !_submitting) ? _handleSubmit : null,
             ),
-      child: _loadingInvite
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _GhUrlBar(),
+          const SizedBox(height: 18),
+          _buildBody(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return _loadingInvite
           ? const Padding(
-              padding: EdgeInsets.only(top: 80),
+              padding: EdgeInsets.only(top: 60),
               child: Center(
                 child: CircularProgressIndicator(color: GHColors.gold),
               ),
@@ -344,16 +384,34 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const GHSteps(step: 3, labels: ['분야', '나', '상대', '분석']),
-                GHTitle(
-                  mono: 'STEP 03 · YOUR STAR',
-                  title: (_ownerName != null && _ownerName!.isNotEmpty)
-                      ? '$_ownerName님이\n궁합을 물어봤어요'
-                      : '궁합지도에\n초대받았어요',
-                  sub:
-                      '당신의 생년월일만 입력하면 바로 궁합을 확인할 수 있어요.\n'
-                      '회원가입은 필요하지 않아요.',
+                // [S14 명세] 「궁합지도」 로고 · 초대자 소개 배지 · 타이틀 ·
+                // StarMap(두 별 — 상대는 "?", 나는 아직 비어있는 자리).
+                const _GhLogoRow(),
+                const SizedBox(height: 18),
+                if (_ownerName != null && _ownerName!.isNotEmpty) ...[
+                  _GhOwnerBadge(ownerName: _ownerName!),
+                  const SizedBox(height: 14),
+                ],
+                Text(
+                  '나와 당신의 궁합이\n궁금하지 않으세요?',
+                  style: GHText.display(size: 24),
                 ),
+                const SizedBox(height: 10),
+                Text(
+                  '초대장을 보낸 사람과의 궁합을 확인해 보세요.\n'
+                  '나의 출생 정보를 입력하면 두 사람의 궁합을 확인할 수 있습니다.',
+                  style: GHText.ui(size: 13, height: 1.6, color: GHColors.gray),
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  height: 170,
+                  child: StarMap(
+                    aName: _ownerName ?? '초대자',
+                    bName: '나',
+                    big: false,
+                  ),
+                ),
+                const SizedBox(height: 22),
                 _GhFieldLabel('이름 · 닉네임'),
                 const SizedBox(height: 8),
                 _GhTextField(
@@ -481,20 +539,47 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                // [S14 명세] 동의 박스(필수 1 + 선택 2) — 1.5px 테두리,
+                // 미동의 제출 시 rose 테두리로 바뀐다. 「[필수]」/「[선택]」
+                // 배지로 명확히 구분한다(기존 두 체크박스만 있던 구성에서
+                // 명세대로 보정).
                 _GhConsentCard(
+                  hasError: _formError != null && (!_agreePolicy || !_agreeAge14),
                   children: [
                     _GhConsentRow(
                       value: _agreePolicy,
                       onChanged: (v) => setState(() => _agreePolicy = v),
                       label: '개인정보 수집 · 이용에 동의합니다',
+                      badge: '필수',
+                      moreLabel: '보기',
+                      onMore: _showPrivacySheet,
                     ),
                     const Divider(height: 1, color: GHColors.lineSoft),
                     _GhConsentRow(
                       value: _agreeAge14,
                       onChanged: (v) => setState(() => _agreeAge14 = v),
                       label: '만 14세 이상입니다',
+                      badge: '필수',
+                    ),
+                    const Divider(height: 1, color: GHColors.lineSoft),
+                    _GhConsentRow(
+                      value: _agreeDiscloseBirth,
+                      onChanged: (v) => setState(() => _agreeDiscloseBirth = v),
+                      label: (_ownerName != null && _ownerName!.isNotEmpty)
+                          ? '$_ownerName님에게 내 생년월일 공개'
+                          : '초대한 사람에게 내 생년월일 공개',
+                      badge: '선택',
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    '동의하지 않아도 궁합 결과는 함께 볼 수 있어요. '
+                    '입력한 정보는 궁합 결과를 만드는 데만 쓰여요.',
+                    style: GHText.ui(size: 12, color: GHColors.gray, height: 1.5),
+                  ),
                 ),
 
                 if (_formError != null) ...[
@@ -505,15 +590,30 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
                     style: const TextStyle(fontSize: 12, color: GHColors.rose),
                   ),
                 ],
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    '입력한 정보는 초대한 사람에게만 공유돼요.',
-                    style: GHText.ui(size: 11, color: GHColors.gray),
+                const SizedBox(height: 20),
+                // [S14 명세] 「신통방통 앱 설치하기」 보조 버튼.
+                GHButton(
+                  label: '신통방통 앱 설치하기',
+                  variant: GHButtonVariant.secondary,
+                  onPressed: () => launchUrl(
+                    Uri.parse(_kPlayStoreUrl),
+                    mode: LaunchMode.externalApplication,
                   ),
                 ),
+                const SizedBox(height: 24),
               ],
-            ),
+            );
+  }
+
+  /// [S14 명세] 동의 체크박스 「보기」 → 개인정보 안내 시트
+  /// (`02_DATA_APPENDIX.md` §5: 수집 항목/이용 목적/공개 범위/보관 기간/삭제).
+  void _showPrivacySheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: GHColors.scrim,
+      builder: (_) => _GhPrivacySheet(ownerName: _ownerName),
     );
   }
 }
@@ -739,14 +839,20 @@ class _GhCheckboxBox extends StatelessWidget {
 }
 
 class _GhConsentCard extends StatelessWidget {
-  const _GhConsentCard({required this.children});
+  const _GhConsentCard({required this.children, this.hasError = false});
   final List<Widget> children;
+  // [S14 명세] 동의 박스(1.5px, 오류 시 rose) — 필수 동의 누락 상태로
+  // 제출 시도했을 때만 테두리를 rose로 바꿔 알려준다.
+  final bool hasError;
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
       color: GHColors.card,
       borderRadius: BorderRadius.circular(GHRadius.cardSm),
-      border: Border.all(color: GHColors.lineSoft),
+      border: Border.all(
+        color: hasError ? GHColors.rose : GHColors.lineSoft,
+        width: 1.5,
+      ),
     ),
     child: Column(children: children),
   );
@@ -757,10 +863,17 @@ class _GhConsentRow extends StatelessWidget {
     required this.value,
     required this.onChanged,
     required this.label,
+    this.badge,
+    this.moreLabel,
+    this.onMore,
   });
   final bool value;
   final ValueChanged<bool> onChanged;
   final String label;
+  // [S14 명세] 「[필수]」 핑크 12% 배경 / 「[선택]」 lineSoft 테두리 배지.
+  final String? badge;
+  final String? moreLabel;
+  final VoidCallback? onMore;
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: () => onChanged(!value),
@@ -770,9 +883,212 @@ class _GhConsentRow extends StatelessWidget {
         children: [
           _GhCheckboxBox(value: value),
           const SizedBox(width: 10),
+          if (badge != null) ...[
+            _GhBadge(badge!),
+            const SizedBox(width: 8),
+          ],
           Expanded(child: Text(label, style: GHText.ui(size: 13))),
+          if (moreLabel != null)
+            GestureDetector(
+              onTap: onMore,
+              child: Text(
+                moreLabel!,
+                style: GHText.ui(size: 11, color: GHColors.gray).copyWith(
+                  decoration: TextDecoration.underline,
+                  decorationColor: GHColors.gray,
+                ),
+              ),
+            ),
         ],
       ),
     ),
   );
+}
+
+/// [S14 명세] 「[필수]」 핑크 12% 배경 · 「[선택]」 lineSoft 테두리 작은 배지.
+class _GhBadge extends StatelessWidget {
+  const _GhBadge(this.label);
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    final isRequired = label == '필수';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isRequired ? GHColors.accent.withValues(alpha: .12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        border: isRequired ? null : Border.all(color: GHColors.lineSoft),
+      ),
+      child: Text(
+        label,
+        style: GHText.ui(
+          size: 10,
+          weight: FontWeight.w700,
+          color: isRequired ? GHColors.accent : GHColors.gray,
+        ),
+      ),
+    );
+  }
+}
+
+/// [S14 명세] 상단 잠금 URL 바(44, r12, fieldBg) — 「🔒 sintong.app/map/r/{code}」.
+class _GhUrlBar extends StatelessWidget {
+  const _GhUrlBar();
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 44,
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: GHColors.fieldBg,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    alignment: Alignment.centerLeft,
+    child: Row(
+      children: [
+        const Icon(Icons.lock, size: 13, color: GHColors.gray),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'sintong.app/map/r',
+            overflow: TextOverflow.ellipsis,
+            style: GHText.ui(size: 12.5, color: GHColors.gray),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// [S14 명세] 「궁합지도」 로고 행(↗ 아이콘 + mono 타이틀).
+class _GhLogoRow extends StatelessWidget {
+  const _GhLogoRow();
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: GHGradients.primary,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: const Text('↗', style: TextStyle(color: Colors.white, fontSize: 14)),
+      ),
+      const SizedBox(width: 8),
+      Text(
+        '궁합지도',
+        style: GHText.ui(size: 14.5, weight: FontWeight.w800, color: GHColors.fg),
+      ),
+    ],
+  );
+}
+
+/// [S14 명세] 「{초대자} 님이 보낸 초대장」 핑크 배지.
+class _GhOwnerBadge extends StatelessWidget {
+  const _GhOwnerBadge({required this.ownerName});
+  final String ownerName;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: GHColors.accent.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: ownerName,
+            style: GHText.ui(size: 12.5, weight: FontWeight.w800, color: GHColors.accent),
+          ),
+          TextSpan(
+            text: ' 님이 보낸 초대장',
+            style: GHText.ui(size: 12.5, weight: FontWeight.w700, color: GHColors.accent),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// [S14 명세] 개인정보 안내 시트 — `02_DATA_APPENDIX.md` §5 5항목(수집
+/// 항목 · 이용 목적 · 공개 범위 · 보관 기간 · 삭제) · Footer 「확인했어요」.
+class _GhPrivacySheet extends StatelessWidget {
+  const _GhPrivacySheet({this.ownerName});
+  final String? ownerName;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (ownerName != null && ownerName!.isNotEmpty) ? ownerName! : '초대자';
+    final rows = <(String, String)>[
+      ('수집 항목', '생년월일 · 양력/음력 · 윤달 여부 · 출생 시간(선택) · 성별 · 닉네임(선택)'),
+      ('이용 목적', '$name님과의 궁합 결과 생성'),
+      (
+        '공개 범위',
+        '$name님에게는 궁합 결과만 보여요. 생년월일과 출생 정보는 아래 선택 '
+            '동의 시에만 공개돼요.',
+      ),
+      ('보관 기간', '신통방통 개인정보 처리방침에 따름 · 확정 후 표기'),
+      ('삭제', '결과 화면의 「내 정보 삭제」에서 언제든지 지울 수 있어요'),
+    ];
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .8),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: GHGradients.sheet,
+            border: Border.all(color: GHColors.line),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(GHRadius.sheet)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 10, bottom: 10),
+                decoration: BoxDecoration(
+                  color: GHColors.gray.withValues(alpha: .35),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('개인정보 안내', style: GHText.sheetTitle(size: 18)),
+                      const SizedBox(height: 16),
+                      for (final (label, value) in rows) ...[
+                        Text(
+                          label,
+                          style: GHText.ui(size: 12, weight: FontWeight.w700, color: GHColors.gold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          value,
+                          style: GHText.ui(size: 13, height: 1.6, color: GHColors.fg),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 10, 20, 16 + MediaQuery.of(context).padding.bottom),
+                child: GHButton(
+                  label: '확인했어요',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
