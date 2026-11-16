@@ -43,6 +43,7 @@ import 'package:provider/provider.dart';
 import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../saju_renewal/screens/birth_input_screen.dart';
 import '../application/gunghap_provider.dart';
 import '../domain/gunghap_data.dart';
 import '../theme/gh_tokens.dart';
@@ -192,6 +193,26 @@ class _GunghapDirectInputScreenState extends State<GunghapDirectInputScreen> {
     setState(() => _submitting = false);
 
     if (result == null) {
+      // [v4 핸드오프 반영 — S10 삭제 결정] 궁합지도 플로우 안에 내 정보
+      // 입력 화면을 따로 두지 않고, 기존 마이페이지 수정 화면으로
+      // 안내한다(위 gunghap_invite_screen.dart와 동일한 원칙).
+      if (provider.errorCode == 'PROFILE_INCOMPLETE') {
+        setState(() {
+          _formError = provider.error ?? '내 사주 정보가 없어 궁합을 계산할 수 없어요. 프로필을 먼저 완성해 주세요.';
+        });
+        AppToast.show(
+          context,
+          provider.error ?? '내 사주 정보가 없어 궁합을 계산할 수 없어요. 프로필을 먼저 완성해 주세요.',
+          isError: true,
+          onRetry: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const BirthInputScreen(isEditMode: true),
+            ),
+          ),
+          retryLabel: '프로필 완성하기',
+        );
+        return;
+      }
       final isNetworkError = provider.errorCode == 'NETWORK_ERROR';
       // [네트워크 오류 안내] 재시도 시 동일 requestKey를 유지한다(위
       // `_requestKey ??=` 로직이 이미 null이 아니므로 재발급하지 않음) —
@@ -259,7 +280,7 @@ class _GunghapDirectInputScreenState extends State<GunghapDirectInputScreen> {
           const GHSteps(step: 2, total: 3, labels: ['분야', '상대', '분석']),
           GHTitle(
             mono: 'DIRECT · PARTNER INFO',
-            title: '상대방 정보를\n직접 입력해요',
+            title: '궁합을 확인할 상대방의\n정보를 입력해 주세요',
             sub: major == null
                 ? '초대장 없이 바로 두 사람의 궁합을 확인할 수 있어요.'
                 : '${major.name}${widget.subName != null ? ' · ${widget.subName}' : ''}\n'

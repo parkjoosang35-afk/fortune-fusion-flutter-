@@ -4,13 +4,24 @@
 // 패턴을 그대로 재사용한다(§6 "기존 귀인지도 엔진의 검증된 기능을 분석하여
 // 재사용한다" 원칙) — 새로운 공유 메커니즘을 발명하지 않는다. 차이점은 오직
 // 링크 경로(`/gh/{token}` vs `/g/{token}`)와 안내 문구뿐이다.
+//
+// [v4 핸드오프 반영 — S13] 00_DEV_MAPPING.md §5 S13 "Footer 3분할: 카카오톡 ·
+// 문자 · 링크 복사"를 지원하기 위해 [GunghapShareTarget]을 추가했다.
+// guinji_map_share_screen.dart의 GuinjiShareTarget(sms/kakao/more) 분기
+// 패턴을 그대로 이식했다(웹에서 sms: 스킴이 net::ERR_UNKNOWN_URL_SCHEME로
+// 깨지는 문제를 이미 그쪽에서 해결해 둔 로직을 재사용).
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_share/kakao_flutter_sdk_share.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/env_config.dart';
 import '../../../core/util/safe_share.dart';
+import '../../../core/widgets/app_toast.dart';
+
+/// [v4 핸드오프 S13] 공유 Footer 3분할 버튼이 가리키는 대상.
+enum GunghapShareTarget { kakao, sms, more }
 
 /// 궁합지도 초대 링크. 서버 랜딩페이지(`/gh/{token}`, admin_web 측)가 초대
 /// 내용을 보여주고 앱으로 열기를 지원한다는 전제(귀인지도 `/g/{token}`과
@@ -36,6 +47,9 @@ Future<void> shareGunghapInvite(
   String? token, {
   String? ownerName,
   String? topicLabel,
+  // [v4 핸드오프 S13] 기본값 kakao — 기존 호출부(카카오톡 버튼/자동 공유)는
+  // 동작을 전혀 바꾸지 않는다. S13 Footer의 문자/더보기 버튼만 새 값을 넘긴다.
+  GunghapShareTarget target = GunghapShareTarget.kakao,
 }) async {
   if (token == null || token.isEmpty) return;
   final link = buildGunghapInviteLink(token);
@@ -45,7 +59,35 @@ Future<void> shareGunghapInvite(
       : '${ownerName ?? '친구'}님이 "$topicLabel" 궁합지도에 당신을 초대했어요!\n'
             '링크를 열고 생년월일만 입력하면 두 사람의 $topicLabel 궁합을 바로 볼 수 있어요.\n$link';
 
-  if (!kIsWeb) {
+  Future<void> copyAndToast(String toastMessage) async {
+    await Clipboard.setData(ClipboardData(text: message));
+    if (!context.mounted) return;
+    AppToast.show(context, toastMessage);
+  }
+
+  // [v4 핸드오프 S13 — 문자 버튼] guinji_map_share_screen.dart와 동일하게,
+  // 웹에서는 `sms:` 스킴이 새 탭에서 처리되지 못해 오류 화면이 뜨는 문제를
+  // 피하려고 네이티브에서만 시도하고 웹은 바로 클립보드 폴백으로 넘어간다.
+  if (target == GunghapShareTarget.sms) {
+    if (!kIsWeb) {
+      final smsUri = Uri(
+        scheme: 'sms',
+        path: '',
+        queryParameters: {'body': message},
+      );
+      try {
+        if (await launchUrl(smsUri, mode: LaunchMode.externalApplication)) {
+          return;
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('[GunghapShare] sms 실행 실패: $e');
+      }
+    }
+    await copyAndToast('문자 앱을 열 수 없어 메시지를 복사했어요.');
+    return;
+  }
+
+  if (target == GunghapShareTarget.kakao && !kIsWeb) {
     try {
       final available = await ShareClient.instance
           .isKakaoTalkSharingAvailable();
@@ -78,6 +120,34 @@ Future<void> shareGunghapInvite(
     subject: '궁합지도 초대 · 신통방통',
     copiedMessage: '초대 메시지를 복사했어요. 카카오톡 등 원하는 앱에 붙여넣어 전달해 주세요.',
     failedMessage: '공유 시트를 열 수 없어 링크를 복사했어요.',
+  );
+}
+
+/// [v4 핸드오프 S13] 「⧉ 메시지 복사」/「⧉ 링크 복사」 전용 — 공유 시트를
+/// 거치지 않고 바로 클립보드에 넣는다.
+Future<void> copyGunghapInviteLink(
+  BuildContext context,
+  String? token, {
+  bool fullMessage = false,
+  String? ownerName,
+  String? topicLabel,
+}) async {
+  if (token == null || token.isEmpty) return;
+  final link = buildGunghapInviteLink(token);
+  final text = fullMessage
+      ? (topicLabel == null
+            ? '${ownerName ?? '친구'}님이 궁합지도 초대장을 보냈어요.\n'
+                  '"나와 당신의 궁합이 궁금하지 않으세요?"\n'
+                  '생년월일만 입력하면 바로 확인할 수 있어요.\n$link'
+            : '${ownerName ?? '친구'}님이 "$topicLabel" 궁합지도 초대장을 보냈어요.\n'
+                  '"나와 당신의 궁합이 궁금하지 않으세요?"\n'
+                  '생년월일만 입력하면 바로 확인할 수 있어요.\n$link')
+      : link;
+  await Clipboard.setData(ClipboardData(text: text));
+  if (!context.mounted) return;
+  AppToast.show(
+    context,
+    fullMessage ? '초대 메시지를 복사했어요.' : '링크를 복사했어요.',
   );
 }
 

@@ -169,6 +169,11 @@ class GunghapProvider extends ChangeNotifier {
     if (jeontongInput == null) {
       _isLoading = false;
       _error = '생년월일 정보가 없어 사주를 계산할 수 없습니다. 마이페이지에서 프로필을 먼저 완성해 주세요.';
+      // [v4 핸드오프 반영 — S10 삭제 결정] 궁합지도 안에 "내 정보 입력"
+      // 화면을 별도로 두지 않는 대신(회원가입 시 1회 수집 원칙·어뷰징
+      // 방지), 프로필 미완성 예외 상황에서는 화면이 이 코드를 보고
+      // 기존 `BirthInputScreen(isEditMode:true)`로 안내할 수 있게 한다.
+      _errorCode = 'PROFILE_INCOMPLETE';
       notifyListeners();
       return false;
     }
@@ -410,6 +415,9 @@ class GunghapProvider extends ChangeNotifier {
     if (jeontongInput == null) {
       _isCreatingDirect = false;
       _error = '생년월일 정보가 없어 사주를 계산할 수 없습니다. 마이페이지에서 프로필을 먼저 완성해 주세요.';
+      // [v4 핸드오프 반영 — S10 삭제 결정] 위 createInviteForUser와 동일한
+      // 이유로 전용 에러코드를 노출한다.
+      _errorCode = 'PROFILE_INCOMPLETE';
       notifyListeners();
       return null;
     }
