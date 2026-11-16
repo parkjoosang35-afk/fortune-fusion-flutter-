@@ -714,8 +714,15 @@ class _ScoreCard extends StatelessWidget {
 }
 
 /// M화면에서 노드를 탭했을 때 이 함수를 호출해 [GuinjiNodeSheet]을
-/// 바텀시트로 띄운다. [절대 원칙] 시그니처는 변경하지 않는다 — M화면의
-/// `_handleNodeTap()`이 이 정확한 파라미터로 호출한다.
+/// 바텀시트로 띄운다. [절대 원칙] 기존 필수 파라미터는 변경하지 않는다 —
+/// M화면의 `_handleNodeTap()`이 이 파라미터들로 호출한다.
+///
+/// [SPEC §6 H5 + QA_CHECKLIST.md "해금 분기(결제 완료 박스 + 버튼 문구)"]
+/// [unlocked]는 선택 파라미터로 신규 추가했다(기본값 false로 기존 호출부
+/// 호환 유지). 이전까지는 이 헬퍼가 `unlocked`를 아예 받지 않아
+/// [GuinjiNodeSheet]에 항상 기본값(false)이 전달됐다 — 이미 결제로 해금한
+/// 관계를 다시 열어도 시트에 결제완료 박스가 뜨지 않고 버튼도 항상
+/// "더 자세한 관계 보기"(미해금 문구)로 보여 QA 요구를 위반했다.
 Future<void> showGuinjiNodeSheet({
   required BuildContext context,
   required String name,
@@ -726,6 +733,7 @@ Future<void> showGuinjiNodeSheet({
   required List<(String label, String value)> evidenceRows,
   VoidCallback? onShare,
   VoidCallback? onSeeMore,
+  bool unlocked = false,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -741,6 +749,7 @@ Future<void> showGuinjiNodeSheet({
       evidenceRows: evidenceRows,
       onShare: onShare,
       onSeeMore: onSeeMore,
+      unlocked: unlocked,
     ),
   );
 }

@@ -256,6 +256,10 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
         ('오행', '${ohaengMeta?.label ?? ''} ${ohaengMeta?.name ?? ''}'.trim()),
         if (person.note.isNotEmpty) ('판정 근거', person.note),
       ],
+      // [SPEC §6 H5 "해금 분기"] 서버 `/maps/me` members[].unlocked를
+      // 그대로 전달 — 결제완료 사용자는 시트에 성공 박스 + "✓ 열어 둔
+      // 풀이 바로 보기" 버튼이 보이게 한다(QA_CHECKLIST.md H5 행).
+      unlocked: person.unlocked,
       onShare: () {
         Navigator.of(context).maybePop();
         Navigator.of(context).pushNamed('/guinji-map/m/share');
