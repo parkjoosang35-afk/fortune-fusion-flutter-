@@ -273,9 +273,12 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     );
   }
 
-  /// [2026-11 궁합 주제 반영 지시서 — Section 3] completed/cancelled/
-  /// expired 3가지 "입력폼을 보여줄 수 없는" 상태를 위한 공용 안내
-  /// 카드. pending(정상)은 이 메서드를 호출하지 않는다.
+  /// [S26·S27·S28 — 00_DEV_MAPPING.md §5(594-599줄) "초대 링크 상태(웹)"]
+  /// completed/cancelled/expired 3가지 "입력폼을 보여줄 수 없는" 상태를
+  /// 위한 공용 안내 카드. pending(정상)은 이 메서드를 호출하지 않는다.
+  /// 공통 명세: 흐린 StarMap 240(45%) · 제목 21/700 2줄 · 설명 13.5 ·
+  /// Footer Primary 1개 · 하단바 없음(이 화면은 애초에 GHScreen에
+  /// bottomNav를 전달하지 않으므로 이미 충족).
   Widget _buildStatusCard({
     required String emoji,
     required String title,
@@ -283,27 +286,34 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
     Widget? action,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(top: 60),
+      padding: const EdgeInsets.only(top: 30),
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 40)),
-          const SizedBox(height: 16),
+          Opacity(
+            opacity: .45,
+            child: SizedBox(
+              height: 240,
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: StarMap(draw: false, labels: false),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(emoji, style: const TextStyle(fontSize: 36)),
+          const SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: GHText.ui(
-              size: 16,
-              weight: FontWeight.w700,
-              color: GHColors.ink,
-            ),
+            style: GHText.title(size: 21, color: GHColors.fg).copyWith(height: 1.35),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: GHText.ui(size: 13, height: 1.6, color: GHColors.gray),
+            style: GHText.ui(size: 13.5, height: 1.6, color: GHColors.gray),
           ),
-          if (action != null) ...[const SizedBox(height: 20), action],
+          if (action != null) ...[const SizedBox(height: 22), action],
         ],
       ),
     );
@@ -377,15 +387,15 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
           : _inviteStatus == 'completed'
           ? _buildStatusCard(
               emoji: '✅',
-              title: '이미 참여를 완료한 초대예요',
+              title: '이미 이어진\n초대장이에요',
               message:
                   (_ownerName != null && _ownerName!.isNotEmpty)
-                      ? '$_ownerName님과의 궁합 결과는\n이미 완성되어 있어요.'
-                      : '이 초대는 이미 응답이 완료되어 있어요.',
+                      ? '$_ownerName님과의 궁합 결과가\n이미 만들어졌어요.'
+                      : '이 초대장으로 궁합 결과가\n이미 만들어졌어요.',
               action: _resultId == null
                   ? null
                   : GHButton(
-                      label: '결과 보기',
+                      label: '결과 다시 보기',
                       expand: false,
                       onPressed: () {
                         Navigator.of(context).pushReplacement(
@@ -400,14 +410,36 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
           : _inviteStatus == 'cancelled'
           ? _buildStatusCard(
               emoji: '🚫',
-              title: '초대한 사람이 링크를 중단했어요',
-              message: '이 초대 링크는 더 이상 사용할 수 없어요.',
+              title: '초대한 분이\n초대장을 거두었어요',
+              message:
+                  (_ownerName != null && _ownerName!.isNotEmpty)
+                      ? '$_ownerName님이 이 링크를 중단했어요.\n새 초대장을 요청해 주세요.'
+                      : '초대한 분이 이 링크를 중단했어요.\n새 초대장을 요청해 주세요.',
+              action: GHButton(
+                label: '나도 궁합 보러 가기',
+                expand: false,
+                onPressed: () => launchUrl(
+                  Uri.parse(_kPlayStoreUrl),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
             )
           : _inviteStatus == 'expired'
           ? _buildStatusCard(
               emoji: '⌛',
-              title: '초대 링크가 만료됐어요',
-              message: '발급 후 7일이 지나 더 이상 사용할 수 없어요.\n초대한 사람에게 새 링크를 요청해 주세요.',
+              title: '초대장의 별빛이\n사라졌어요',
+              message:
+                  (_ownerName != null && _ownerName!.isNotEmpty)
+                      ? '유효기간 7일이 지났어요.\n$_ownerName님에게 새 초대장을 요청해 주세요.'
+                      : '유효기간 7일이 지났어요.\n초대한 분에게 새 초대장을 요청해 주세요.',
+              action: GHButton(
+                label: '나도 궁합 보러 가기',
+                expand: false,
+                onPressed: () => launchUrl(
+                  Uri.parse(_kPlayStoreUrl),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

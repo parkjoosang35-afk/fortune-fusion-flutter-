@@ -12,6 +12,21 @@
 // null이다(로그인 사용자 본인이 곧 owner라 별도 저장 안 함) — "상대방
 // 이름"은 resultType과 무관하게 항상 `guestName` 필드를 사용한다
 // (`gunghap_repository.dart` [GunghapRepository.fetchMyResults] 문서 참고).
+//
+// [S25/S46/S47/S48 — 00_DEV_MAPPING.md §5 S25(578-590줄) + §12-4(846줄)]
+// v4 명세는 "최근/저장/초대받은" 3탭 세그먼트 + S48(초대받은 대기 행)을
+// 요구하지만, §12-4가 스스로 "미지원 시 「최근」 단일"을 권장 대안으로
+// 명시한다 — 이 프로젝트 서버(`my-results` API, `GunghapInvite` 스키마)를
+// 직접 확인한 결과 (a) 결과 항목에 "저장" 여부 플래그가 없고(모든 결과가
+// 동일하게 영구 보관되며 별도 상태 필드가 없음), (b) 초대는 익명 토큰
+// 링크 기반이라 "누가 나를 초대했는지"를 조회하는 API 자체가 없다(게스트
+// 참여자를 식별해 저장하지 않는 것이 §2① "초대 발송자가 상대방 정보를
+// 미리 알 필요 없는 구조" 설계의 핵심). 따라서 가짜 데이터를 만들지
+// 않고 §12-4 권장대로 세그먼트 없이 "최근" 단일 목록으로 구현한다(S48
+// 초대받은 탭도 동일 사유로 미구현).
+//
+// 반면 S46(편집 모드)·S47(삭제 확인 바텀시트)은 서버 API(`DELETE
+// /gunghap/results/{resultId}`)가 이미 존재하므로 명세대로 구현한다.
 // ═══════════════════════════════════════════════════════════════
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -25,6 +40,7 @@ import '../theme/gh_typography.dart';
 import '../widgets/cat_icon.dart';
 import '../widgets/gh_button.dart';
 import '../widgets/gh_screen.dart';
+import '../widgets/star_map.dart';
 import 'gunghap_result_screen.dart';
 
 class GunghapStoryScreen extends StatefulWidget {
@@ -35,6 +51,10 @@ class GunghapStoryScreen extends StatefulWidget {
 }
 
 class _GunghapStoryScreenState extends State<GunghapStoryScreen> {
+  // [S46 편집 모드] AppBar 우측 토글(편집/완료) — 켜면 행마다 우측
+  // 44×44 rose ✕ 버튼이 나타나고, 행 탭(결과열람)은 비활성화된다.
+  bool _editMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -74,35 +94,28 @@ class _GunghapStoryScreenState extends State<GunghapStoryScreen> {
     if (mounted) _load();
   }
 
+  // [S47 삭제 확인 — 00_DEV_MAPPING.md §5 S47] 「이 궁합 기록을 지울까요」
+  // 17/700 + 「{A} ✦ {B} · {세부}」 + 「지운 기록은 되돌릴 수 없어요.」 ·
+  // Footer 2열 Secondary 「취소」 / 「지우기」(rose 배경). `my-results`
+  // 응답에 majorId/subName이 없으므로(route.ts 확인) 「세부」 자리는 실제
+  // 내려오는 `relationTypeLabel`로 대체한다(가짜 데이터 금지 원칙).
+  // "구매 시" 상세 보고서 경고 문구는 이 목록 응답에 unlocked 필드가
+  // 없어 판단 불가능하므로 생략한다.
   Future<void> _confirmDelete(Map<String, dynamic> item) async {
     final resultId = item['resultId'] as String?;
     if (resultId == null) return;
+    final ownerName = item['ownerName'] as String? ?? '나';
     final guestName = item['guestName'] as String? ?? '상대방';
+    final relationTypeLabel = item['relationTypeLabel'] as String?;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: GHColors.cardSolid,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        scrollable: true,
-        title: Text(
-          '$guestName님과의 궁합을 삭제할까요',
-          style: GHText.cardTitle(size: 17, color: GHColors.ivory),
-        ),
-        content: Text(
-          '삭제하면 이 궁합 결과를 다시 볼 수 없어요.',
-          style: GHText.ui(size: 13.5, height: 1.55, color: GHColors.gray),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text('취소', style: GHText.ui(size: 14, color: GHColors.ivory)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text('삭제', style: GHText.ui(size: 14, color: GHColors.rose)),
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => _DeleteConfirmSheet(
+        ownerName: ownerName,
+        guestName: guestName,
+        subLabel: relationTypeLabel,
       ),
     );
     if (confirmed != true) return;
@@ -137,9 +150,30 @@ class _GunghapStoryScreenState extends State<GunghapStoryScreen> {
 
     return GHScreen(
       bottomNav: const MainBottomNavBar(currentIndex: 3),
+      // [S25 — 00_DEV_MAPPING.md 579줄 "AppBar 「내 궁합」 + 우
+      // 「편집」/「완료」(14/600)"] 타이틀을 기존 "궁합스토리"에서
+      // 명세의 "내 궁합"으로 변경하고, 우측에 편집/완료 토글 버튼을
+      // 추가한다(목록이 비어있으면 편집할 것이 없으므로 숨긴다).
       appBar: GHAppBar(
-        title: '궁합스토리',
+        title: '내 궁합',
         onBack: () => Navigator.of(context).maybePop(),
+        actions: [
+          if (provider.myResults.isNotEmpty)
+            GestureDetector(
+              onTap: () => setState(() => _editMode = !_editMode),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  _editMode ? '완료' : '편집',
+                  style: GHText.ui(
+                    size: 14,
+                    weight: FontWeight.w600,
+                    color: GHColors.accent,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       child: _buildBody(provider),
     );
@@ -170,14 +204,24 @@ class _GunghapStoryScreenState extends State<GunghapStoryScreen> {
     }
 
     if (provider.myResults.isEmpty) {
+      // [S25 빈 상태 — 00_DEV_MAPPING.md 583줄 "StarMap 50% + 「아직
+      // 이어진 별이 없어요」 + md 「궁합 분석 시작하기」"] 기존 ✦
+      // 글자 + 문구에서 StarMap 배경(50% 투명도) + 명세 문구 + 홈으로
+      // 이동하는 md 버튼으로 보강한다.
       return Padding(
-        padding: const EdgeInsets.only(top: 60),
+        padding: const EdgeInsets.only(top: 40),
         child: Column(
           children: [
-            const Text('✦', style: TextStyle(fontSize: 28, color: GHColors.gold)),
-            const SizedBox(height: 14),
+            Opacity(
+              opacity: .5,
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: StarMap(draw: false, labels: false),
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
-              '아직 저장된 궁합 결과가 없어요',
+              '아직 이어진 별이 없어요',
               style: GHText.cardTitle(size: 16, color: GHColors.ivory),
             ),
             const SizedBox(height: 8),
@@ -186,46 +230,152 @@ class _GunghapStoryScreenState extends State<GunghapStoryScreen> {
               textAlign: TextAlign.center,
               style: GHText.ui(size: 13, color: GHColors.gray),
             ),
+            const SizedBox(height: 18),
+            GHButton(
+              label: '궁합 분석 시작하기',
+              size: GHButtonSizeT.md,
+              expand: false,
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
           ],
         ),
       );
     }
 
-    return RefreshIndicator(
-      color: GHColors.gold,
-      backgroundColor: GHColors.cardSolid,
-      onRefresh: _load,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 4, bottom: 8),
-        itemCount: provider.myResults.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
-        itemBuilder: (context, i) {
-          final item = provider.myResults[i];
-          final resultId = item['resultId'] as String? ?? '';
-          final isDeleting = provider.deletingResultId == resultId;
-          return _StoryRow(
-            item: item,
-            deleting: isDeleting,
-            onTap: isDeleting ? null : () => _openResult(resultId),
-            onDelete: isDeleting ? null : () => _confirmDelete(item),
-          );
-        },
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            color: GHColors.gold,
+            backgroundColor: GHColors.cardSolid,
+            onRefresh: _load,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              itemCount: provider.myResults.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                final item = provider.myResults[i];
+                final resultId = item['resultId'] as String? ?? '';
+                final isDeleting = provider.deletingResultId == resultId;
+                return _StoryRow(
+                  item: item,
+                  deleting: isDeleting,
+                  editMode: _editMode,
+                  onTap: (isDeleting || _editMode) ? null : () => _openResult(resultId),
+                  onDelete: isDeleting ? null : () => _confirmDelete(item),
+                );
+              },
+            ),
+          ),
+        ),
+        // [S25 캐션 — 00_DEV_MAPPING.md 584줄 §12-7] "저장" 탭/90일 보관
+        // 정책은 §12-7에서 "정책 확정 전 숨김"을 권장하므로(이
+        // 프로젝트 서버가 보관기간/영구저장 여부를 구분하지 않음) 표시하지
+        // 않는다(사실과 다른 문구를 보여주지 않기 위함).
+      ],
     );
   }
+}
+
+/// [S47 삭제 확인 시트] 「이 궁합 기록을 지울까요」 17/700 +
+/// 「{A} ✦ {B} · {세부}」 + 「지운 기록은 되돌릴 수 없어요.」 · Footer 2열
+/// Secondary 「취소」 / 「지우기」(rose 배경).
+class _DeleteConfirmSheet extends StatelessWidget {
+  const _DeleteConfirmSheet({
+    required this.ownerName,
+    required this.guestName,
+    required this.subLabel,
+  });
+  final String ownerName;
+  final String guestName;
+  final String? subLabel;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Container(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: const BoxDecoration(
+        gradient: GHGradients.sheet,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(GHRadius.sheet)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: GHColors.lineSoft,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            '이 궁합 기록을 지울까요',
+            textAlign: TextAlign.center,
+            style: GHText.cardTitle(size: 17, color: GHColors.fg),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subLabel != null ? '$ownerName ✦ $guestName · $subLabel' : '$ownerName ✦ $guestName',
+            textAlign: TextAlign.center,
+            style: GHText.ui(size: 13.5, color: GHColors.gray),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '지운 기록은 되돌릴 수 없어요.',
+            textAlign: TextAlign.center,
+            style: GHText.ui(size: 12.5, color: GHColors.rose),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: GHButton(
+                  label: '취소',
+                  variant: GHButtonVariant.secondary,
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DangerButton(
+                  label: '지우기',
+                  onPressed: () => Navigator.of(context).pop(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _StoryRow extends StatelessWidget {
   const _StoryRow({
     required this.item,
     required this.deleting,
+    required this.editMode,
     required this.onTap,
     required this.onDelete,
   });
 
   final Map<String, dynamic> item;
   final bool deleting;
+  // [S46 편집 모드] true면 행 탭을 비활성화하고 우측에 44×44 rose
+  // ✕ 버튼을 노출한다(00_DEV_MAPPING.md 587줄).
+  final bool editMode;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
@@ -342,28 +492,45 @@ class _StoryRow extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(width: 4),
-              deleting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: GHColors.gray,
-                      ),
-                    )
-                  : InkResponse(
-                      onTap: onDelete,
-                      radius: 20,
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(
-                          Icons.delete_outline,
-                          size: 20,
-                          color: GHColors.gray,
+              if (editMode) ...[
+                const SizedBox(width: 8),
+                deleting
+                    ? const SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: GHColors.rose,
+                            ),
+                          ),
+                        ),
+                      )
+                    : InkResponse(
+                        onTap: onDelete,
+                        radius: 24,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: GHColors.rose.withValues(alpha: .1),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: GHColors.rose.withValues(alpha: .45),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 20,
+                            color: GHColors.rose,
+                          ),
                         ),
                       ),
-                    ),
+              ],
             ],
           ),
         ),
@@ -378,4 +545,28 @@ class _StoryRow extends StatelessWidget {
     final local = parsed.toLocal();
     return DateFormat('yyyy.MM.dd').format(local);
   }
+}
+
+/// [S47 Footer 「지우기」] `GHButtonVariant`에 rose(경고) 배경 버튼이 없으므로
+/// (기존 열거형을 건드리지 않기 위해) 동일한 시각 언어(GHRadius.button ·
+/// GHButton.button 텍스트 스타일 · 44 높이 터치 영역)로 로컬 전용 위젯을
+/// 둔다 — 이 파일 밖에서는 쓰이지 않는 S47 전용 1회성 버튼.
+class _DangerButton extends StatelessWidget {
+  const _DangerButton({required this.label, required this.onPressed});
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onPressed,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: GHButtonSize.lg),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: GHColors.rose,
+        borderRadius: BorderRadius.circular(GHRadius.button),
+      ),
+      child: Text(label, style: GHText.button(size: 15.5, color: Colors.white)),
+    ),
+  );
 }
