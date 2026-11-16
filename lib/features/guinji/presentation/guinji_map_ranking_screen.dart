@@ -244,8 +244,15 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
                           ).pushNamed('/guinji-map/m/share'),
                       onShare: sorted.length >= 3
                           ? () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => GuinjiResultCardScreen(
+                              // [QA 대조 — SPEC §6 H12 "→ 바텀시트"] H12가
+                              // 투명 Scaffold + 하단카드 구조로 전환됨에
+                              // 따라, 다른 바텀시트 화면(H9/H10)과 동일하게
+                              // guinjiPageRoute(불투명 다크 배경)로 push
+                              // 해야 전환 중 흰 배경이 비치지 않는다 —
+                              // 기존 MaterialPageRoute는 이 화면이
+                              // 전체화면이던 시절의 호출 방식이었다.
+                              guinjiPageRoute(
+                                GuinjiResultCardScreen(
                                   people: widget.people,
                                   ownerName: widget.ownerName,
                                 ),

@@ -20,8 +20,8 @@ import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../share/guinji_share_kakao.dart' show guinjiResultTemplate;
 import '../theme/guinji_theme.dart';
+import '../theme/guinji_map_theme.dart';
 import '../../../core/sound/sintong_sound_service.dart';
-import '../widgets/guinji_bg_atmosphere.dart';
 
 /// 귀인지도(Guinji Map) — 10. 결과 카드(Result Card) 화면.
 ///
@@ -331,6 +331,12 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     }
   }
 
+  // [QA 대조 — SPEC §6 H12 "guinji_result_card_screen.dart → 바텀시트"]
+  // design_files/guinji-share.jsx `AppShareSheet(mode='result')` 1:1
+  // 이식. 기존 구현은 전체화면(뒤로가기 화살표 + 'RESULT·SHARE CARD'
+  // 모노라벨 상단바)이라 SPEC "구성: 1. 제목22+✕ / 서브14"와
+  // 불일치했다 — H9/H10과 동일한 투명 Scaffold + 하단정렬 카드 패턴의
+  // 바텀시트로 전환한다.
   @override
   Widget build(BuildContext context) {
     final people = widget.people;
@@ -369,108 +375,231 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
 
     return ResultTextScaleOverlay(
       child: Scaffold(
-        backgroundColor: GuinjiColors.backgroundDeep,
-        body: Stack(
-          children: [
-            const Positioned.fill(child: GuinjiBgAtmosphere()),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _IconButton(
-                          icon: Icons.arrow_back,
-                          onPressed: () => Navigator.of(context).maybePop(),
-                        ),
-                        const _MonoLabel('RESULT · SHARE CARD'),
-                        _IconButton(
-                          icon: Icons.more_horiz,
-                          onPressed: () =>
-                              AppToast.show(context, '곧 만나볼 수 있어요! 준비 중이에요 🙏'),
-                        ),
-                      ],
+        backgroundColor: Colors.transparent,
+        body: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: GmColors.sheet,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(GmRadius.sheet),
                     ),
-                    Expanded(
-                      child: Center(
-                        child: RepaintBoundary(
-                          key: _cardKey,
-                          child: _TheCard(
-                            ownerName: widget.ownerName,
-                            total: total,
-                            categoryCounts: categoryCounts,
-                            dominantMeta: dominantMeta,
-                          ),
-                        ),
+                    border: Border(
+                      top: BorderSide(
+                        color: GmColors.gold.withValues(alpha: 0.4),
+                        width: 1.5,
                       ),
                     ),
-                    Row(
-                      children: [
-                        Expanded(
-                          // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면
-                          // 공통 "이미지로 저장" + download_rounded로 통일.
-                          child: _GhostButton(
-                            label: _capturing ? '준비하는 중' : '이미지로 저장',
-                            icon: _capturing ? null : Icons.download_rounded,
-                            onPressed: _capturing ? () {} : _saveImage,
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                color: GmColors.line,
+                                borderRadius: BorderRadius.circular(9999),
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _PrimaryButton(
-                            label: _capturing ? '준비하는 중' : '공유하기',
-                            onPressed: _capturing
-                                ? () {}
-                                : _showShareOptions,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  '결과 공유하기',
+                                  style: TextStyle(
+                                    fontFamily: GmText.display,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.4,
+                                    color: GmColors.fg,
+                                  ),
+                                ),
+                              ),
+                              _ResultSheetCloseButton(
+                                onTap: () => Navigator.of(context).maybePop(),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          const Text(
+                            '이름과 얼굴 없이, 관계 유형별 인원만 공유돼요',
+                            style: TextStyle(
+                              fontFamily: GmText.ui,
+                              fontSize: 14,
+                              color: GmColors.muted,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Center(
+                            child: RepaintBoundary(
+                              key: _cardKey,
+                              child: _TheCard(
+                                ownerName: widget.ownerName,
+                                total: total,
+                                categoryCounts: categoryCounts,
+                                dominantMeta: dominantMeta,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          // [SPEC §6 H12 "3. Primary `카카오톡으로 지도
+                          // 자랑하기` 58"] design_files/guinji-share.jsx
+                          // `AppShareSheet` 원문의 카카오 버튼을 1:1
+                          // 이식 — 기존에는 이 버튼이 맨 아래(4번째)에
+                          // 있었으나 SPEC은 Primary를 Ghost 2분할보다
+                          // 먼저 배치한다.
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _kakaoSharing || _capturing
+                                  ? null
+                                  : _handleKakaoShare,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: GmColors.primary,
+                                foregroundColor: GmColors.onPrimary,
+                                disabledBackgroundColor: GmColors.disabledBg,
+                                disabledForegroundColor: GmColors.dim,
+                                elevation: 0,
+                                minimumSize: const Size.fromHeight(58),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    GmRadius.button,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                _kakaoSharing ? '카카오톡 여는 중' : '카카오톡으로 지도 자랑하기',
+                                style: const TextStyle(
+                                  fontFamily: GmText.ui,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // [SPEC §6 H12 "4. 2분할 Ghost 50: `이미지로
+                          // 저장` / `··· 공유하기`"] COPY.md H12 `btn`
+                          // 키의 두 번째·세 번째 라벨을 그대로 쓴다 —
+                          // 기존 구현은 이미지로 저장(Ghost)+공유하기
+                          // (Primary 색상)로 섞여 있어 SPEC의 "Ghost
+                          // 2분할" 요구와 불일치했다.
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: OutlinedButton(
+                                    onPressed: _capturing ? null : _saveImage,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: GmColors.fg,
+                                      side: const BorderSide(
+                                        color: GmColors.line,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          GmRadius.button,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _capturing ? '준비하는 중' : '이미지로 저장',
+                                      style: const TextStyle(
+                                        fontFamily: GmText.ui,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: OutlinedButton(
+                                    onPressed: _capturing
+                                        ? null
+                                        : _showShareOptions,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: GmColors.fg,
+                                      side: const BorderSide(
+                                        color: GmColors.line,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          GmRadius.button,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _capturing ? '준비하는 중' : '···  공유하기',
+                                      style: const TextStyle(
+                                        fontFamily: GmText.ui,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    // [L2 와이어링 — 대표 승인: 전용 버튼으로 분리] 카카오
-                    // 전용 "카드형 공유" 버튼. 위 "공유하기"(OS 공유
-                    // 시트/서버 링크, 모든 앱 대상 범용)와는 별개로, 이
-                    // 버튼만 카카오톡에 [guinjiResultTemplate] 카드를
-                    // 직접 꽂아 보낸다.
-                    _KakaoShareButton(
-                      label: _kakaoSharing ? '카카오톡 여는 중' : '카카오톡으로 지도 자랑하기',
-                      onPressed: _kakaoSharing || _capturing
-                          ? () {}
-                          : _handleKakaoShare,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _IconButton extends StatelessWidget {
-  const _IconButton({required this.icon, required this.onPressed});
+/// [QA 대조 — SPEC §6 H12 "제목22 + ✕"] H9(`_GmSheetIconButton`)과 동일한
+/// 반투명 원형 닫기 버튼 스타일.
+class _ResultSheetCloseButton extends StatelessWidget {
+  const _ResultSheetCloseButton({required this.onTap});
 
-  final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: GuinjiColors.surfaceCard,
-      shape: const CircleBorder(
-        side: BorderSide(color: GuinjiColors.surfaceCardBorder),
-      ),
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 36,
-          height: 36,
-          child: Icon(icon, size: 18, color: GuinjiColors.textPrimary),
+    return Tooltip(
+      message: '닫기',
+      child: Material(
+        color: GmColors.fg.withValues(alpha: 0.06),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: const SizedBox(
+            width: 34,
+            height: 34,
+            child: Icon(Icons.close, size: 17, color: GmColors.fg),
+          ),
         ),
       ),
     );
@@ -681,144 +810,9 @@ class _TheCard extends StatelessWidget {
   }
 }
 
-class _GhostButton extends StatelessWidget {
-  const _GhostButton({required this.label, required this.onPressed, this.icon});
-
-  final String label;
-  final VoidCallback onPressed;
-  // [REQ-08 - 신통방통_저장기능_정상화_개발지시서_v1.0] 기기 저장 버튼은
-  // 전 화면 공통 download_rounded 아이콘을 쌄 수 있도록 선택적 파라미터로 추가
-  // (기존 공유하기로 쓰는 "공유하기" 버튼은 아이콘 없이 그대로 유지).
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: GuinjiColors.surfaceCard,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: GuinjiColors.surfaceCardBorder),
-          ),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 16, color: GuinjiColors.textPrimary),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: GuinjiFonts.body,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: GuinjiColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: GuinjiColors.lavender,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: const [
-              BoxShadow(color: GuinjiColors.glowShadow, blurRadius: 16),
-            ],
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: GuinjiFonts.body,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: GuinjiColors.ink,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// [귀인지도 핸드오프 v4 — L2 "카카오 결과 공유 피드" 전용 버튼, 2026-12]
-/// 위 [_PrimaryButton](범용 "공유하기", 지도 라벤더 색)과는 시각적으로
-/// 구분되도록 카카오 공식 브랜드 컬러(배경 `#FEE500`, 글자 `#3A1D1D`)를
-/// 그대로 쓴다 — `guinji_map_share_screen.dart`의 `_ShareOption`(카카오
-/// 전용 bg/텍스트 색 분기)과 동일한 색상 토큰을 재사용해 다른 화면의
-/// 카카오 버튼과 일관된 룩앤필을 유지한다.
-class _KakaoShareButton extends StatelessWidget {
-  const _KakaoShareButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  static const _kakaoBg = Color(0xFFFEE500);
-  static const _kakaoInk = Color(0xFF3A1D1D);
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: Material(
-        color: _kakaoBg,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 13),
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.chat_bubble_rounded,
-                  size: 16,
-                  color: _kakaoInk,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontFamily: GuinjiFonts.body,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: _kakaoInk,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// [QA 대조 — SPEC §6 H12] 기존 `_GhostButton`/`_PrimaryButton`/
+// `_KakaoShareButton`(좌측 아이콘+알약 Material 스타일)은 헤더/버튼
+// 구성을 SPEC 바텀시트 구조로 전환하며 모두 인라인 ElevatedButton/
+// OutlinedButton으로 대체되어 더 이상 쓰이지 않으므로 제거했다
+// (카카오 전용 색상·동작은 위 `_handleKakaoShare` + 인라인 버튼에서
+// 그대로 유지됨 — 동작 변경 없음).
