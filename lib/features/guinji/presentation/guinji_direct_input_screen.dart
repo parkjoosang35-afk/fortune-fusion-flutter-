@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/router/app_navigator_key.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../application/guinji_provider.dart';
+import '../domain/guinji_relation_meta.dart';
+import '../navigation/guinji_page_route.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
+import 'guinji_map_relation_detail_screen.dart';
+import 'guinji_node_sheet.dart';
 
 /// [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한 개념] 지도 소유자가
 /// 초대 링크 없이 지인의 정보를 직접 입력해 즉시 관계를 확인한다.
@@ -167,11 +172,65 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
     }
 
     if (!mounted) return;
+
+    // [SPEC §6 H10 "POST /members/direct → 시트 닫힘 → 토스트 toast.done →
+    // 0.9s 뒤 H5 자동 오픈" + COPY.md toast.done "{이름}님이 지도에 떴어요 ·
+    // {유형} {점수}"] addMemberDirect() 내부에서 이미 loadMyMap()을 호출해
+    // 서버가 createdAt asc로 재조회한 최신 members가 provider.people에
+    // 반영돼 있다 — 방금 등록한 멤버는 항상 그 목록의 마지막 원소다.
+    final people = provider.people;
+    final newPerson = people.isNotEmpty ? people.last : null;
+    final toastMessage = newPerson != null
+        ? '$name님이 지도에 떴어요 · ${guinjiRelationMetaOf(newPerson.relation).label} ${newPerson.score}'
+        : '$name님을 지도에 등록했어요.';
+
     // [성공] 새 멤버가 반영된 M(내 지도) 화면으로 돌아간다 — 결과는
     // provider.people에 이미 포함돼 있으므로 별도 결과 화면 없이 바로
     // 이전 화면으로 복귀한다.
-    AppToast.show(context, '$name님을 지도에 등록했어요.');
+    AppToast.show(context, toastMessage);
     Navigator.of(context).maybePop();
+
+    // [H5 자동 오픈] 이 화면(바텀시트)은 곧 pop되어 dispose되므로, 0.9초
+    // 지연 콜백에서는 이 State의 context 대신 전역 [appNavigatorKey]의
+    // 루트 context를 사용한다(M화면의 _handleNodeTap()과 동일한 방식으로
+    // showGuinjiNodeSheet를 호출 — 함수 시그니처 변경 없음).
+    if (newPerson != null) {
+      Future.delayed(const Duration(milliseconds: 900), () {
+        final rootContext = appNavigatorKey.currentContext;
+        if (rootContext == null) return;
+        final meta = guinjiRelationMetaOf(newPerson.relation);
+        final ohaengMeta = guinjiOhaengTypes[newPerson.ohaeng];
+        showGuinjiNodeSheet(
+          context: rootContext,
+          name: newPerson.name,
+          birthLabel: newPerson.birth,
+          relationKey: newPerson.relation,
+          score: newPerson.score,
+          narratorText:
+              '${newPerson.name}님은 ${meta.description}. 곁에 두면 결이 자연스레 풀리는 관계예요.',
+          evidenceRows: [
+            (
+              '오행',
+              '${ohaengMeta?.label ?? ''} ${ohaengMeta?.name ?? ''}'.trim(),
+            ),
+            if (newPerson.note.isNotEmpty) ('판정 근거', newPerson.note),
+          ],
+          unlocked: newPerson.unlocked,
+          onShare: () {
+            Navigator.of(rootContext).maybePop();
+            Navigator.of(rootContext).pushNamed('/guinji-map/m/share');
+          },
+          onSeeMore: () {
+            Navigator.of(rootContext).maybePop();
+            Navigator.of(rootContext).push(
+              guinjiPageRoute(
+                GuinjiMapRelationDetailScreen(person: newPerson),
+              ),
+            );
+          },
+        );
+      });
+    }
   }
 
   @override
