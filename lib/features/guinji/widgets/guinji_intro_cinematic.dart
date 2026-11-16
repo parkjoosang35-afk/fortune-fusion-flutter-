@@ -66,7 +66,6 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
   int _loop = 0;
   double _offsetMs = 0; // 건너뛰기 오프셋(첫 루프에만 적용)
   bool _warping = false;
-  int _counter = 12841;
 
   late final AnimationController _ctaBreath = AnimationController(
     vsync: this,
@@ -76,8 +75,6 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
     vsync: this,
     duration: const Duration(milliseconds: 2800),
   )..repeat();
-
-  Timer? _counterTimer;
 
   static const _arrive0 = 2200;
   static const _gap = 620;
@@ -91,10 +88,6 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick)..start();
-    _counterTimer = Timer.periodic(const Duration(milliseconds: 1400), (_) {
-      if (!mounted) return;
-      setState(() => _counter += 1 + math.Random().nextInt(3));
-    });
   }
 
   void _onTick(Duration elapsed) {
@@ -114,7 +107,6 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
     _ticker.dispose();
     _ctaBreath.dispose();
     _ctaSheen.dispose();
-    _counterTimer?.cancel();
     super.dispose();
   }
 
@@ -375,11 +367,7 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
                   children: [
                     Opacity(
                       opacity: (tt > _titleAt || !_firstLoop) ? 1 : 0,
-                      child: _IntroTitle(
-                        tt: tt,
-                        firstLoop: _firstLoop,
-                        counter: _counter,
-                      ),
+                      child: _IntroTitle(tt: tt, firstLoop: _firstLoop),
                     ),
                     SizedBox(height: 22 * scale),
                     Padding(
@@ -401,6 +389,32 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+          ),
+
+          // [SPEC §6 H1 "좌상 ← (40, top 58)" · 동작 "신통방통 홈으로 pop"]
+          // 이전까지는 뒤로가기 버튼이 전혀 없어 QA_CHECKLIST.md
+          // "H1 … ← 뒤로" 항목을 위반했다.
+          Positioned(
+            left: 16,
+            top: 58 * scale,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0x0FFFEBC8),
+                  border: Border.all(color: GmColors.line),
+                ),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: GmColors.fg,
+                  size: 20,
                 ),
               ),
             ),
@@ -1065,14 +1079,9 @@ class _DustDotState extends State<_DustDot>
 }
 
 class _IntroTitle extends StatelessWidget {
-  const _IntroTitle({
-    required this.tt,
-    required this.firstLoop,
-    required this.counter,
-  });
+  const _IntroTitle({required this.tt, required this.firstLoop});
   final int tt;
   final bool firstLoop;
-  final int counter;
 
   static const _line1 = '내 곁의 귀인을';
   static const _line2 = '한 장의 지도로';
@@ -1110,39 +1119,22 @@ class _IntroTitle extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Text.rich(
-          TextSpan(
-            style: const TextStyle(
-              fontFamily: GmText.ui,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: Color(0x99F2F0EC),
-            ),
-            children: [
-              const TextSpan(text: '생년월일로 읽는 여섯 가지 인연 · 지금 '),
-              TextSpan(
-                text: '${_formatCounter(counter)}명',
-                style: const TextStyle(
-                  color: GmColors.fg,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-              const TextSpan(text: '이 지도를 만들었어요'),
-            ],
+        // [QA_CHECKLIST.md "H1 … 'N명이 만들었어요' 문구 없음" 준수]
+        // 기존에는 실시간 증가하는 가짜 카운터("N명이 지도를
+        // 만들었어요")를 보여줬다 — 검수표가 명시적으로 금지하는 항목이라
+        // COPY.md H1 `sub` 문구("생년월일로 읽는 여섯 가지 인연")만
+        // 그대로 노출한다.
+        const Text(
+          '생년월일로 읽는 여섯 가지 인연',
+          style: TextStyle(
+            fontFamily: GmText.ui,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            color: Color(0x99F2F0EC),
           ),
         ),
       ],
     );
-  }
-
-  static String _formatCounter(int n) {
-    final s = n.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return buf.toString();
   }
 }
 
