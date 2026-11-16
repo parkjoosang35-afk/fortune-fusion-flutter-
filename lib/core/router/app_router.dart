@@ -376,13 +376,29 @@ class AppRouter {
         // (guinji_map_guest_join_screen.dart)은 이 라우트를 타지 않고 직접
         // MaterialPageRoute로 push하므로 기본값(관계 계산 문구)이 그대로
         // 유지된다 — 회귀 없음.
+        //
+        // [SPEC §6 H3 + COPY.md "H3 계산 중" title "{별명}님의 지도를 /
+        // 펼치고 있어요"] 고정 문자열 "내 지도를"이 아니라, 방금
+        // createMapWithInput이 저장한 [GuinjiProvider.mapName](= H2에서
+        // 입력한 별명)을 그대로 끼워 넣는다. 아직 로드 전이라 null이면
+        // COPY의 변수 설명대로 "내"로 폴백한다(시각적 공백 방지).
         return _guinjiNamed(
           '/guinji-map/calc',
-          GuinjiCalculatingScreen(
-            title: '내 지도를\n펼치고 있어요',
-            subtitle: '사주 여덟 글자를 읽는 중',
-            onComplete: () => appNavigatorKey.currentState
-                ?.pushReplacementNamed('/guinji-map/m'),
+          Builder(
+            builder: (context) {
+              final gp = context.watch<GuinjiProvider>();
+              final nickname = gp.mapName?.trim();
+              final who = (nickname == null || nickname.isEmpty)
+                  ? '내'
+                  : '$nickname님의';
+              return GuinjiCalculatingScreen(
+                title: '$who 지도를\n펼치고 있어요',
+                subtitle: '사주 여덟 글자를 읽는 중',
+                facePath: gp.ownerFacePath,
+                onComplete: () => appNavigatorKey.currentState
+                    ?.pushReplacementNamed('/guinji-map/m'),
+              );
+            },
           ),
         );
       case '/guinji-map/m':

@@ -26,6 +26,7 @@ class GuinjiCalculatingScreen extends StatefulWidget {
     this.onComplete,
     this.title = '두 분의 관계를\n정성껏 살펴보고 있어요',
     this.subtitle = '사주 여덟 글자를 읽는 중',
+    this.facePath,
   });
 
   static const routeName = '/guinji-map/calc';
@@ -38,6 +39,13 @@ class GuinjiCalculatingScreen extends StatefulWidget {
 
   /// 로딩 화면 서브텍스트(진행률 N%가 뒤에 자동으로 붙는다).
   final String subtitle;
+
+  /// [SPEC §6 H3 "가운데 내 얼굴 80"] 호스트 흐름(app_router.dart
+  /// `/guinji-map/calc`)은 H2에서 방금 계산된
+  /// [GuinjiProvider.ownerFacePath]를 넘겨 실제 "내" 얼굴을 보여준다.
+  /// null이면(게스트 2인 관계 계산 등 기존 호출부) 기존 폴백 얼굴(f30)을
+  /// 그대로 쓴다 — 하위 호환.
+  final String? facePath;
 
   @override
   State<GuinjiCalculatingScreen> createState() =>
@@ -104,7 +112,7 @@ class _GuinjiCalculatingScreenState extends State<GuinjiCalculatingScreen>
                   ),
                   ClipOval(
                     child: Image.asset(
-                      const GuinjiCharacter('f30', '').face,
+                      widget.facePath ?? const GuinjiCharacter('f30', '').face,
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
