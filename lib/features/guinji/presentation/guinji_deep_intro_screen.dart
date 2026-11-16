@@ -124,9 +124,9 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            // DEEP READING 라벨.
+            // DEEP READING 라벨. [SPEC §6 H7 "메타 top 76"]
             Positioned(
-              top: 24,
+              top: 76,
               left: 0,
               right: 0,
               child: Text(
@@ -235,7 +235,7 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontFamily: GmText.display,
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: FontWeight.w800,
                       height: 1.35,
                       letterSpacing: -0.4,
