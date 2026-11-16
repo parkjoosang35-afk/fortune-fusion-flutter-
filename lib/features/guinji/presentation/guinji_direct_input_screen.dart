@@ -233,43 +233,153 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
     }
   }
 
+  // [v5 QA 대조 — SPEC §6 H10 "바텀시트" 구성: 제목22+✕ / 서브 / 이름 /
+  // 성별 / 생년월일3칸 / 달력3세그 / 안내 / footer Primary] 폼 본문은
+  // 기존 위젯을 그대로 재사용하고, 헤더만 GmTopBar(전체화면 바)에서
+  // "제목22+✕" 한 줄 + 핸들바로 교체한다. H9(guinji_map_share_screen.dart)
+  // 와 동일하게 footer(Primary 버튼)는 하단 고정(바텀시트 바깥 스크롤
+  // 영향 없음)으로 분리한다.
   @override
   Widget build(BuildContext context) {
+    // [SPEC "바텀시트"] 전체화면 PageRouteBuilder(opaque:true, app_router.dart
+    // `_guinjiNamed`)는 그대로 두되, 내부를 투명 Scaffold + 하단 정렬 카드로
+    // 그려 시각적으로 바텀시트처럼 보이게 한다 — H9와 동일한 패턴.
     return Scaffold(
-      backgroundColor: GmColors.bg,
-      appBar: GmTopBar(
-        back: true,
-        title: '지인 직접 추가',
-        onBack: () => Navigator.of(context).maybePop(),
+      backgroundColor: Colors.transparent,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).maybePop(),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                width: double.infinity,
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.92,
+                ),
+                decoration: BoxDecoration(
+                  color: GmColors.bg,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: GmColors.gold.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  decoration: BoxDecoration(
+                                    color: GmColors.line,
+                                    borderRadius: BorderRadius.circular(9999),
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      '지인 정보 직접 입력',
+                                      style: TextStyle(
+                                        fontFamily: GmText.display,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.4,
+                                        color: GmColors.fg,
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        Navigator.of(context).maybePop(),
+                                    child: Container(
+                                      width: 34,
+                                      height: 34,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: GmColors.line,
+                                        ),
+                                        color: const Color(0x800A0716),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Text(
+                                        '✕',
+                                        style: TextStyle(
+                                          color: GmColors.fg,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '초대 링크 없이 지인의 정보를 바로 입력하면\n곧바로 관계를 확인할 수 있어요.',
+                                style: TextStyle(
+                                  fontFamily: GmText.ui,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  height: 1.5,
+                                  color: GmColors.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              _buildFormFields(),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+                        decoration: const BoxDecoration(
+                          border: Border(top: BorderSide(color: GmColors.hair)),
+                        ),
+                        child: GmPrimaryButton(
+                          label: _submitting ? '등록하는 중…' : '관계 확인하기',
+                          loading: _submitting,
+                          onPressed: (_canSubmit && !_submitting)
+                              ? _handleSubmit
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '지인 정보 직접 입력',
-              style: TextStyle(
-                fontFamily: GmText.display,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-                color: GmColors.fg,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '초대 링크 없이 지인의 정보를 바로 입력하면\n곧바로 관계를 확인할 수 있어요.',
-              style: TextStyle(
-                fontFamily: GmText.ui,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                height: 1.5,
-                color: GmColors.muted,
-              ),
-            ),
-            const SizedBox(height: 24),
+    );
+  }
 
+  Widget _buildFormFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
             const GmFieldLabel('지인의 이름 · 별칭'),
             const SizedBox(height: 6),
             GmFieldShell(
@@ -457,24 +567,15 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
               ),
             ),
 
-            if (_formError != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _formError!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: GmColors.danger),
-              ),
-            ],
-
-            const SizedBox(height: 28),
-            GmPrimaryButton(
-              label: _submitting ? '등록하는 중…' : '관계 확인하기',
-              loading: _submitting,
-              onPressed: (_canSubmit && !_submitting) ? _handleSubmit : null,
-            ),
-          ],
-        ),
-      ),
+        if (_formError != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _formError!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: GmColors.danger),
+          ),
+        ],
+      ],
     );
   }
 }
