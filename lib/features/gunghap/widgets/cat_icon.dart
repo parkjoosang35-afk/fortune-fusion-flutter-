@@ -1,181 +1,199 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: cat_icon.dart
-// [궁합지도 Star Map 디자인 적용] gh-ui.jsx `<CatIcon>` 포팅본 —
-// 대분류 8종을 별자리(점+선) 스타일 아이콘으로 표현한다.
-// 원본 viewBox 0 0 40 40 기준 좌표를 그대로 사용.
+// [궁합지도 전면 리디자인 v4] design_handoff_gunghap_map_v4
+// `00_DEV_MAPPING.md` §2-4 + `flutter_starter/lib/gunghap/widgets/
+// cat_icon.dart`(v3 참고 구현) 완전 포팅 — 대분류 8종을 별자리(점+선)
+// 스타일 아이콘으로 표현한다. viewBox 40×40 · stroke 1.7 · 선 = c1 ·
+// 점 = c2 · 4각 별 = c1(linked 둘째 별은 c2).
+//
+// [신규] `white` 파라미터 — DestinyBurst의 분야 네모(선택 시 c1 배경 +
+// 흰 아이콘)에서 사용한다. 기존 호출부(`CatIcon(kind:, size:, active:)`)는
+// `white` 생략 시 기본값 false로 그대로 호환된다.
 // ═══════════════════════════════════════════════════════════════
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/gh_tokens.dart';
 
+const _iconColors = <String, (Color, Color)>{
+  'heart': (Color(0xFFFF4D8D), Color(0xFFFF9A8B)),
+  'ring': (Color(0xFFF59E0B), Color(0xFFFB7185)),
+  'linked': (Color(0xFFEC4899), Color(0xFF8B5CF6)),
+  'moons': (Color(0xFF6366F1), Color(0xFF22D3EE)),
+  'gem': (Color(0xFFF59E0B), Color(0xFFEAB308)),
+  'rise': (Color(0xFF0EA5E9), Color(0xFF6366F1)),
+  'friends': (Color(0xFF10B981), Color(0xFF22D3EE)),
+  'family': (Color(0xFFF97316), Color(0xFFEC4899)),
+};
+
 class CatIcon extends StatelessWidget {
-  const CatIcon({super.key, required this.kind, this.size = 40, this.active = false});
+  const CatIcon({
+    super.key,
+    required this.kind,
+    this.size = 40,
+    this.active = false,
+    this.white = false,
+  });
   final String kind;
   final double size;
   final bool active;
 
+  /// 분야 네모(CatIconPainter 사용처) 선택 상태 — true면 아이콘 전체를
+  /// 흰색으로 그린다(배경이 이미 c1로 채워진 경우에만 사용).
+  final bool white;
+
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: size,
-    height: size,
-    child: CustomPaint(
-      painter: _CatIconPainter(kind: kind, active: active),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final c1 = (_iconColors[kind] ?? (GHColors.accent, GHColors.violet)).$1;
+    return Container(
+      decoration: active && !white
+          ? BoxDecoration(
+              boxShadow: [
+                BoxShadow(color: c1.withValues(alpha: .4), blurRadius: 6, offset: const Offset(0, 2)),
+              ],
+              shape: BoxShape.circle,
+            )
+          : null,
+      child: CustomPaint(size: Size.square(size), painter: CatIconPainter(kind, white: white)),
+    );
+  }
 }
 
-class _CatIconPainter extends CustomPainter {
-  _CatIconPainter({required this.kind, required this.active});
+class CatIconPainter extends CustomPainter {
+  CatIconPainter(this.kind, {this.white = false});
   final String kind;
-  final bool active;
+  final bool white;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final k = size.width / 40;
+    final (c1raw, c2raw) = _iconColors[kind] ?? (GHColors.accent, GHColors.violet);
+    final c1 = white ? Colors.white : c1raw;
+    final c2 = white ? Colors.white : c2raw;
     canvas.save();
-    canvas.scale(k);
-    final lineColor = active ? GHColors.gold : GHColors.ivory.withValues(alpha: .55);
-    final strokePaint = Paint()
+    canvas.scale(size.width / 40);
+    final st = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.15
+      ..strokeWidth = 1.7
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = lineColor;
-    const gold = GHColors.gold;
-    const violet = GHColors.violet;
-
-    void dot(double x, double y, [double r = 1.6, Color c = GHColors.ivory]) {
-      canvas.drawCircle(Offset(x, y), r, Paint()..color = c);
-    }
-
-    void loop(List<Offset> pts) {
-      final path = Path()..moveTo(pts.first.dx, pts.first.dy);
-      for (final p in pts.skip(1)) {
-        path.lineTo(p.dx, p.dy);
+      ..color = c1;
+    Paint stA(double a) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.7
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = c1.withValues(alpha: a);
+    void dot(double x, double y, [double r = 1.6, Color? c]) =>
+        canvas.drawCircle(Offset(x, y), r, Paint()..color = c ?? c2);
+    void star(double x, double y, double r, Color c) {
+      final p = Path();
+      for (var i = 0; i < 8; i++) {
+        final a = i * pi / 4 - pi / 2;
+        final rr = i.isEven ? r * 2.2 : r * .55;
+        final pt = Offset(x + cos(a) * rr, y + sin(a) * rr);
+        i == 0 ? p.moveTo(pt.dx, pt.dy) : p.lineTo(pt.dx, pt.dy);
       }
-      path.close();
-      canvas.drawPath(path, strokePaint);
+      canvas.drawPath(p..close(), Paint()..color = c);
     }
 
-    void star(double x, double y, double r, Color color) {
-      final o = Offset(x, y);
-      final length = r * 2.6, w = r * .42;
-      final path = Path()
-        ..moveTo(o.dx, o.dy - length)
-        ..lineTo(o.dx + w, o.dy - w)
-        ..lineTo(o.dx + length, o.dy)
-        ..lineTo(o.dx + w, o.dy + w)
-        ..lineTo(o.dx, o.dy + length)
-        ..lineTo(o.dx - w, o.dy + w)
-        ..lineTo(o.dx - length, o.dy)
-        ..lineTo(o.dx - w, o.dy - w)
-        ..close();
-      canvas.drawPath(path, Paint()..color = color.withValues(alpha: .9));
-      canvas.drawCircle(o, r * .62, Paint()..color = const Color(0xFFFFF8EA));
-    }
-
-    void dashedLine(Offset a, Offset b) {
-      final dashPaint = Paint()
-        ..strokeWidth = 1.15
-        ..color = lineColor;
-      final len = (b - a).distance;
-      if (len == 0) return;
-      final dir = (b - a) / len;
-      var d = 0.0;
-      while (d < len) {
-        final end = (d + 1.5).clamp(0, len);
-        canvas.drawLine(a + dir * d, a + dir * end.toDouble(), dashPaint);
-        d += 4.0;
+    Path poly(List<List<double>> pts, {bool close = false}) {
+      final p = Path()..moveTo(pts[0][0], pts[0][1]);
+      for (final q in pts.skip(1)) {
+        p.lineTo(q[0], q[1]);
       }
+      if (close) p.close();
+      return p;
     }
 
     switch (kind) {
       case 'heart':
-        loop(const [
-          Offset(20, 32), Offset(9, 21), Offset(8, 13), Offset(13, 8),
-          Offset(20, 13), Offset(27, 8), Offset(32, 13), Offset(31, 21),
-        ]);
-        for (final p in const [
-          Offset(9, 21), Offset(8, 13), Offset(13, 8), Offset(27, 8),
-          Offset(32, 13), Offset(31, 21), Offset(20, 32),
+        final pts = [
+          [20.0, 32.0], [9.0, 21.0], [8.0, 13.0], [13.0, 8.0],
+          [20.0, 13.0], [27.0, 8.0], [32.0, 13.0], [31.0, 21.0],
+        ];
+        canvas.drawPath(poly(pts, close: true), st);
+        for (final q in [
+          [9.0, 21.0], [8.0, 13.0], [13.0, 8.0], [27.0, 8.0],
+          [32.0, 13.0], [31.0, 21.0], [20.0, 32.0],
         ]) {
-          dot(p.dx, p.dy, 1.3);
+          dot(q[0], q[1], 1.3);
         }
-        star(20, 14, 2.2, gold);
+        star(20, 14, 2.2, c1);
       case 'ring':
-        canvas.drawCircle(const Offset(20, 25), 8.5, strokePaint);
-        canvas.drawCircle(
-          const Offset(20, 25),
-          6.2,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.15
-            ..color = lineColor.withValues(alpha: .4),
-        );
-        star(20, 13, 2.4, gold);
+        canvas.drawCircle(const Offset(20, 25), 8.5, st);
+        canvas.drawCircle(const Offset(20, 25), 6.2, stA(.4));
+        star(20, 13, 2.4, c1);
         dot(31, 8, 1);
-        dot(9, 10, 0.9);
+        dot(9, 10, .9);
       case 'linked':
-        canvas.drawLine(const Offset(11, 27), const Offset(29, 13), strokePaint);
+        canvas.drawLine(const Offset(11, 27), const Offset(29, 13), st);
         dot(17, 22.3, 1);
         dot(23, 17.6, 1);
-        star(11, 27, 2.4, gold);
-        star(29, 13, 2.4, violet);
+        star(11, 27, 2.4, c1);
+        star(29, 13, 2.4, c2);
       case 'moons':
-        canvas.drawCircle(const Offset(15, 20), 8, strokePaint);
-        canvas.drawCircle(const Offset(25, 20), 8, strokePaint);
-        dot(15, 20, 2.2, gold);
-        dot(25, 20, 2.2, violet);
+        canvas.drawCircle(const Offset(15, 20), 8, st);
+        canvas.drawCircle(const Offset(25, 20), 8, st);
+        canvas.drawCircle(const Offset(15, 20), 2.2, Paint()..color = c1);
+        canvas.drawCircle(const Offset(25, 20), 2.2, Paint()..color = c2);
       case 'gem':
-        loop(const [
-          Offset(12, 17), Offset(16, 11), Offset(24, 11), Offset(28, 17), Offset(20, 30),
-        ]);
-        canvas.drawLine(const Offset(12, 17), const Offset(28, 17), strokePaint);
-        star(30, 9, 2, gold);
+        canvas.drawPath(
+          poly([
+            [12, 17], [16, 11], [24, 11], [28, 17], [20, 30],
+          ], close: true),
+          st,
+        );
+        canvas.drawLine(const Offset(12, 17), const Offset(28, 17), st);
+        canvas.drawPath(
+          poly([
+            [16, 11], [18, 17], [20, 30], [22, 17], [24, 11],
+          ]),
+          stA(.45),
+        );
+        star(30, 9, 2, c1);
       case 'rise':
-        final path = Path()
-          ..moveTo(8, 31)
-          ..lineTo(15, 24)
-          ..lineTo(21, 26)
-          ..lineTo(30, 12);
-        canvas.drawPath(path, strokePaint);
+        canvas.drawPath(
+          poly([
+            [8, 31], [15, 24], [21, 26], [30, 12],
+          ]),
+          st,
+        );
         dot(8, 31, 1.3);
         dot(15, 24, 1.3);
         dot(21, 26, 1.3);
-        star(30, 12, 2.6, gold);
-        canvas.drawLine(
-          const Offset(30, 12),
-          const Offset(33, 7),
-          Paint()
-            ..strokeWidth = 1.15
-            ..color = lineColor.withValues(alpha: .4),
-        );
+        star(30, 12, 2.6, c1);
+        canvas.drawLine(const Offset(30, 12), const Offset(33, 7), stA(.4));
       case 'friends':
-        dashedLine(const Offset(12, 22), const Offset(20, 10));
-        dashedLine(const Offset(20, 10), const Offset(28, 22));
-        star(12, 23, 2.4, gold);
-        star(28, 23, 2.4, gold);
+        final arc = Path()
+          ..moveTo(12, 22)
+          ..quadraticBezierTo(20, 10, 28, 22);
+        for (final m in arc.computeMetrics()) {
+          for (double d = 0; d < m.length; d += 4) {
+            canvas.drawPath(m.extractPath(d, min(d + 1.5, m.length)), st);
+          }
+        }
+        star(12, 23, 2.4, c1);
+        star(28, 23, 2.4, c1);
         dot(20, 31, 1);
       case 'family':
-        loop(const [
-          Offset(20, 9), Offset(30, 17), Offset(26, 30), Offset(14, 30), Offset(10, 17),
-        ]);
-        canvas.drawLine(
-          const Offset(20, 9),
-          const Offset(20, 21),
-          Paint()
-            ..strokeWidth = 1.15
-            ..color = lineColor.withValues(alpha: .45),
+        canvas.drawPath(
+          poly([
+            [20, 9], [30, 17], [26, 30], [14, 30], [10, 17],
+          ], close: true),
+          st,
         );
-        for (final p in const [Offset(30, 17), Offset(26, 30), Offset(14, 30), Offset(10, 17)]) {
-          dot(p.dx, p.dy, 1.5);
+        canvas.drawLine(const Offset(20, 9), const Offset(20, 21), stA(.45));
+        for (final q in [
+          [30.0, 17.0], [26.0, 30.0], [14.0, 30.0], [10.0, 17.0],
+        ]) {
+          dot(q[0], q[1], 1.5);
         }
-        star(20, 9, 2.2, gold);
-        dot(20, 21, 1.8, violet);
+        star(20, 9, 2.2, c1);
+        dot(20, 21, 1.8, c2);
     }
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _CatIconPainter oldDelegate) =>
-      oldDelegate.kind != kind || oldDelegate.active != active;
+  bool shouldRepaint(covariant CatIconPainter oldDelegate) =>
+      oldDelegate.kind != kind || oldDelegate.white != white;
 }

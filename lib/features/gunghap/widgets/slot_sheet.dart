@@ -17,7 +17,6 @@ import 'package:flutter/material.dart';
 import '../domain/gunghap_data.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
-import 'destiny_map.dart' show GhSlot;
 import 'gh_button.dart';
 
 /// 빈 자리(인연 슬롯) 탭 시 열리는 안내창.
@@ -28,7 +27,7 @@ import 'gh_button.dart';
 /// 이동시킨다.
 Future<void> showSlotSheet(
   BuildContext context,
-  GhSlot slot, {
+  Slot slot, {
   required int filledCount,
   required VoidCallback onInvite,
   required VoidCallback onDirect,
@@ -55,7 +54,7 @@ class _SlotSheet extends StatelessWidget {
     required this.onDirect,
   });
 
-  final GhSlot slot;
+  final Slot slot;
   final int filledCount;
   final VoidCallback onInvite, onDirect;
 
@@ -147,7 +146,7 @@ class _SlotSheet extends StatelessWidget {
                                     style: GHText.cardTitle(size: 14.5, color: GHColors.gold),
                                   ),
                                   const SizedBox(height: 2),
-                                  Text(slot.recommend, style: GHText.caption()),
+                                  Text(slot.subs.join(' · '), style: GHText.caption()),
                                 ],
                               ),
                             ),

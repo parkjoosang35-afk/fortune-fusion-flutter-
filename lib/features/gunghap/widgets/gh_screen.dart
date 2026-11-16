@@ -20,6 +20,7 @@ class GHScreen extends StatelessWidget {
     this.bottomNav,
     this.padded = true,
     this.controller,
+    this.onWillPop,
   });
   final PreferredSizeWidget? appBar;
   final Widget child;
@@ -28,9 +29,13 @@ class GHScreen extends StatelessWidget {
   final bool padded;
   final ScrollController? controller;
 
+  /// v4 §3 — S15 로딩 → S42 확인 시트 등 뒤로가기/Android 백버튼 가로채기.
+  /// `true`를 반환하면 실제로 pop을 수행한다(이 위젯이 Navigator.pop을 호출).
+  final Future<bool> Function()? onWillPop;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final body = Scaffold(
       backgroundColor: GHColors.bg2,
       resizeToAvoidBottomInset: true,
       body: Stack(
@@ -58,6 +63,17 @@ class GHScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (onWillPop == null) return body;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (await onWillPop!() && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: body,
     );
   }
 }

@@ -137,18 +137,18 @@ class _StarMapPainter extends CustomPainter {
       70,
       Paint()
         ..shader = ui.Gradient.radial(const Offset(163, 112), 70, [
-          GHColors.ivory.withValues(alpha: .35),
-          GHColors.gold.withValues(alpha: .08),
+          Colors.white,
+          GHColors.gold.withValues(alpha: .10),
           GHColors.gold.withValues(alpha: 0),
         ], const [0, .6, 1]),
     );
     // dotted branches
     final bp = Paint()
       ..strokeWidth = .6
-      ..color = GHColors.ivory.withValues(alpha: .22);
+      ..color = GHColors.violet.withValues(alpha: .35);
     for (final br in _branches) {
       _dashed(canvas, br[0], br[1], bp);
-      canvas.drawCircle(br[1], 1.1, Paint()..color = GHColors.ivory.withValues(alpha: .6));
+      canvas.drawCircle(br[1], 1.1, Paint()..color = GHColors.violet.withValues(alpha: .6));
     }
     // main path (draw-on)
     final lp = Paint()
@@ -162,7 +162,7 @@ class _StarMapPainter extends CustomPainter {
       canvas.drawLine(_path[i], Offset.lerp(_path[i], _path[i + 1], t)!, lp);
     }
     for (final p in _path.sublist(1, _path.length - 1)) {
-      _star(canvas, p, 1.6, const Color(0xFFE8DCC4), glow: false);
+      _star(canvas, p, 1.6, GHColors.goldLight, glow: false);
     }
     final r = big ? 6.6 : 5.2;
     _star(canvas, _a, r, GHColors.gold);
@@ -200,7 +200,7 @@ class _StarMapPainter extends CustomPainter {
       ..lineTo(o.dx - w, o.dy - w)
       ..close();
     c.drawPath(path, Paint()..color = color.withValues(alpha: .9));
-    c.drawCircle(o, r * .62, Paint()..color = const Color(0xFFFFF8EA));
+    c.drawCircle(o, r * .62, Paint()..color = Colors.white);
   }
 
   void _dashed(Canvas c, Offset a, Offset b, Paint p) {
@@ -229,7 +229,7 @@ class _StarMapPainter extends CustomPainter {
         Rect.fromCenter(center: at, width: tp.width + 22, height: 19),
         const Radius.circular(9.5),
       );
-      c.drawRRect(rect, Paint()..color = const Color(0xD910172D));
+      c.drawRRect(rect, Paint()..color = Colors.white.withValues(alpha: .92));
       c.drawRRect(
         rect,
         Paint()

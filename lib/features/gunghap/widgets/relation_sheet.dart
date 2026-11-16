@@ -1,19 +1,20 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: relation_sheet.dart
-// [궁합지도 「인연지도」 디자인 핸드오프 2차 반영] design_handoff_gunghap_map
-// (1).zip `MAP_HOME_SPEC.md` §4 "오행 관계도" + `flutter_starter/lib/
-// gunghap/map/relation_sheet.dart` 참고 구현을 이 프로젝트의 실제 서버
-// 데이터에 맞춰 이식했다.
+// [궁합지도 핸드오프 v4 반영] design_handoff_gunghap_map_v4
+// `00_DEV_MAPPING.md` §5 S05(RelationSheet) + `flutter_starter/lib/
+// gunghap/map/relation_sheet.dart` UI 레이아웃을 이 프로젝트의 실제
+// 서버 데이터(비동기 fetch 구조)에 맞춰 이식했다.
 //
-// [FACT 재사용 — 하드코딩 금지] 참고 구현의 `ghRelationFromWood`(나=木
-// 고정 하드코딩 테이블)는 쓰지 않는다 — 대신
+// [FACT 재사용 — 하드코딩 금지] v4 참고 구현은 `Relation` 객체를
+// 호출부가 미리 계산해 전달하는 구조지만, 이 프로젝트는 시트가 열릴 때
 // `GunghapProvider.fetchRelation(resultId)`(`GET /gunghap/relation/
-// {resultId}`)를 호출해 서버가 실제 두 사람의 일간 오행으로 계산한
-// `elementRelation()` 결과를 그대로 받아 표시한다(admin_web
+// {resultId}`)를 직접 호출해 서버가 실제 두 사람의 일간 오행으로 계산한
+// `elementRelation()` 결과를 받아와 표시한다(admin_web
 // `relation/[resultId]/route.ts` 참고 — 비화/상생out/상생in/상극out/
-// 상극in 5종 템플릿 중 서버가 고른 1개).
+// 상극in 5종 템플릿 중 서버가 고른 1개). 이 비동기 fetch 구조는 절대
+// 유지한다 — v4 Relation 모델은 UI 레이아웃 참고용으로만 사용했다.
 //
-// 구성 (위→아래)
+// 구성 (위→아래, v4 §5 S05 8개 유지)
 //  1. 헤더: RELATION · {분야 한자} / "나 ✦ {이름}" · 분야 칩 · ✕
 //  2. 점수 카드: 링 게이지(40~100 → 0~100%) · "{세부} 점수" · "{밴드} 사이"
 //  3. 오행 관계도: [나] — 生/比/剋 + 화살표 + 한자 — [상대] · 하단 칩
@@ -30,14 +31,6 @@ import '../domain/gunghap_map_models.dart';
 import '../theme/gh_tokens.dart';
 import '../theme/gh_typography.dart';
 import 'gh_button.dart';
-
-({String label, Color color}) ghScoreBand(int s) => s >= 85
-    ? (label: '아주 잘 맞는', color: const Color(0xFFF0D9A8))
-    : s >= 70
-    ? (label: '잘 맞는', color: GHColors.gold)
-    : s >= 55
-    ? (label: '맞춰 가는', color: GHColors.gray)
-    : (label: '노력이 필요한', color: GHColors.violet);
 
 /// 별 탭 시 열리는 RelationSheet. [provider]로 `GET /gunghap/relation/
 /// {resultId}`를 호출해 오행 관계 FACT를 조회한 뒤 보여준다.
@@ -122,7 +115,7 @@ class _RelationSheetState extends State<_RelationSheet> {
       child: Container(
         decoration: BoxDecoration(
           gradient: GHGradients.sheet,
-          border: Border.all(color: GHColors.line),
+          border: const Border(top: BorderSide(color: GHColors.line, width: GHBorder.width)),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(GHRadius.sheet)),
         ),
         child: Column(
@@ -133,7 +126,7 @@ class _RelationSheetState extends State<_RelationSheet> {
               height: 4,
               margin: const EdgeInsets.only(top: 10, bottom: 4),
               decoration: BoxDecoration(
-                color: GHColors.gray.withValues(alpha: .35),
+                color: GHColors.lineSoft,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -166,7 +159,7 @@ class _RelationSheetState extends State<_RelationSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(_error!, textAlign: TextAlign.center, style: GHText.ui(color: GHColors.gray)),
+          Text(_error!, textAlign: TextAlign.center, style: GHText.body(color: GHColors.muted)),
           const SizedBox(height: 16),
           GHButton(
             label: '닫기',
@@ -191,16 +184,17 @@ class _RelationSheetState extends State<_RelationSheet> {
     final good = (_relationData!['good'] as List?)?.whereType<String>().toList() ?? const [];
     final care = (_relationData!['care'] as List?)?.whereType<String>().toList() ?? const [];
 
-    final band = ghScoreBand(p.score);
+    final band = GHBand.of(p.score);
     final relColor = relShort == '生'
-        ? GHColors.gold
+        ? GHElement.relGen
         : relShort == '比'
-        ? GHColors.ivory
-        : GHColors.violetText;
+        ? GHElement.relSame
+        : GHElement.relKe;
     final pct = (p.score.clamp(40, 100) - 40) / 60;
     final meElement = widget.provider.mapMe?.element ?? '木';
     final meStem = widget.provider.mapMe?.stem ?? '甲';
     final subLabel = p.history.isNotEmpty ? p.history.first.sub : widget.majorName;
+    final anyPaid = p.history.any((h) => h.paid);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
@@ -209,56 +203,73 @@ class _RelationSheetState extends State<_RelationSheet> {
         children: [
           // 1. header
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('RELATION · ${widget.majorHanja}', style: GHText.mono(color: GHColors.gold)),
+                    Text('RELATION · ${widget.majorHanja}', style: GHText.mono()),
                     const SizedBox(height: 6),
-                    Text(
-                      '나 ✦ ${p.name}',
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          const TextSpan(text: '나 '),
+                          TextSpan(
+                            text: '✦',
+                            style: TextStyle(color: GHColors.accent, fontSize: 21 * .75),
+                          ),
+                          TextSpan(text: ' ${p.name}'),
+                        ],
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GHText.display(size: 21),
+                      style: GHText.sheetTitle(),
                     ),
                   ],
                 ),
               ),
-              _chip(widget.majorName),
+              _chip(widget.majorName, filled: false),
               const SizedBox(width: 6),
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Text('✕', style: TextStyle(color: GHColors.ivory)),
-              ),
+              _iconBtn('✕', () => Navigator.of(context).pop()),
             ],
           ),
           const SizedBox(height: 14),
           // 2. score card
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: band.color.withValues(alpha: .4)),
+              border: Border.all(color: band.c1.withValues(alpha: .4), width: GHBorder.width),
               gradient: LinearGradient(
-                colors: [band.color.withValues(alpha: .12), GHColors.bg2.withValues(alpha: .6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [band.c1.withValues(alpha: .12), GHColors.fieldBg.withValues(alpha: .6)],
               ),
             ),
             child: Row(
               children: [
-                SizedBox(
-                  width: 64,
-                  height: 64,
+                SizedBox.square(
+                  dimension: 64,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      CircularProgressIndicator(
-                        value: pct,
-                        strokeWidth: 4,
-                        color: band.color,
-                        backgroundColor: GHColors.gray.withValues(alpha: .15),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: pct),
+                        duration: const Duration(milliseconds: 800),
+                        curve: Curves.easeOutCubic,
+                        builder: (_, v, _) => SizedBox.square(
+                          dimension: 60,
+                          child: CircularProgressIndicator(
+                            value: v,
+                            strokeWidth: 4,
+                            strokeCap: StrokeCap.round,
+                            color: band.c1,
+                            backgroundColor: band.c1.withValues(alpha: .15),
+                          ),
+                        ),
                       ),
-                      Text('${p.score}', style: GHText.display(size: 21)),
+                      Text('${p.score}', style: GHText.sheetTitle(size: 21)),
                     ],
                   ),
                 ),
@@ -268,7 +279,12 @@ class _RelationSheetState extends State<_RelationSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('$subLabel 점수', style: GHText.caption()),
-                      Text('${band.label} 사이', style: GHText.cardTitle(size: 17, color: band.color)),
+                      const SizedBox(height: 2),
+                      Text(
+                        band.label,
+                        style: GHText.body(size: 17, weight: FontWeight.w700, color: band.c1),
+                      ),
+                      const SizedBox(height: 2),
                       Text('점수가 높을수록 지도에서 나와 가까워요', style: GHText.caption()),
                     ],
                   ),
@@ -282,91 +298,115 @@ class _RelationSheetState extends State<_RelationSheet> {
             padding: const EdgeInsets.fromLTRB(10, 18, 10, 16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: GHColors.divider),
-              color: GHColors.bg2.withValues(alpha: .55),
+              border: Border.all(color: GHColors.line, width: GHBorder.width),
+              gradient: RadialGradient(
+                colors: [relColor.withValues(alpha: .08), Colors.white],
+              ),
             ),
             child: Column(
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _node('$meStem$meElement', '나', _elementColor(meElement))),
+                    Expanded(child: _node('$meStem$meElement', '나', meElement)),
                     SizedBox(
                       width: 92,
                       child: Column(
                         children: [
-                          Text(relShort, style: GHText.display(size: 20, color: relColor)),
-                          Text(relArrow, style: TextStyle(fontSize: 18, color: relColor)),
-                          Text(relHanja, style: GHText.title(size: 11, color: relColor)),
+                          Text(relShort, style: GHText.hanja(size: 20, color: relColor)),
+                          Text(
+                            relArrow,
+                            style: TextStyle(fontSize: 18, color: relColor, height: 1.2),
+                          ),
+                          Text(
+                            relHanja,
+                            style: GHText.hanja(size: 11, color: relColor, weight: FontWeight.w700),
+                          ),
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: _node('${p.stem}${p.element}', p.name, _elementColor(p.element)),
-                    ),
+                    Expanded(child: _node('${p.stem}${p.element}', p.name, p.element)),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _chip('$relKo · $relLabel', color: relColor),
+                _chip('$relKo · $relLabel', filled: true, color: relColor),
               ],
             ),
           ),
           const SizedBox(height: 16),
           // 4. interpretation
-          Text('두 사람의 관계', style: GHText.mono()),
+          Text(
+            '두 사람의 관계',
+            style: GHText.caption(color: GHColors.accent).copyWith(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 8),
-          Text(body, style: GHText.reportBody().copyWith(fontSize: 15, height: 1.85)),
+          Text(body, style: GHText.body(size: 15).copyWith(height: 1.85)),
           const SizedBox(height: 14),
           // 5. good / care
-          Row(
-            children: [
-              Expanded(child: _list('✦ 관계의 강점', good, GHColors.mint)),
-              const SizedBox(width: 8),
-              Expanded(child: _list('◇ 살펴볼 부분', care, GHColors.rose)),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _list('✦ 관계의 강점', good, GHColors.mint)),
+                const SizedBox(width: 8),
+                Expanded(child: _list('◇ 살펴볼 부분', care, GHColors.rose)),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           // 6. history
-          Text('${p.name} 님과 본 궁합 · ${p.history.length}', style: GHText.mono()),
+          Text(
+            '${p.name} 님과 본 궁합 · ${p.history.length}'
+            '${p.history.length > 1 ? ' · 최신 1건만 지도에 반영' : ''}',
+            style: GHText.caption(color: GHColors.accent).copyWith(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: GHColors.lineSoft),
+              border: Border.all(color: GHColors.lineSoft, width: GHBorder.width),
             ),
             child: Column(
               children: [
-                for (final h in p.history)
+                for (var i = 0; i < p.history.length; i++)
                   InkWell(
                     onTap: () {
                       Navigator.of(context).pop();
-                      widget.onOpenResult(h.resultId);
+                      widget.onOpenResult(p.history[i].resultId);
                     },
-                    child: SizedBox(
+                    child: Container(
                       height: 48,
+                      decoration: BoxDecoration(
+                        border: i == 0
+                            ? null
+                            : const Border(top: BorderSide(color: GHColors.lineSoft, width: GHBorder.width)),
+                      ),
                       child: Row(
                         children: [
-                          Expanded(
+                          Flexible(
                             child: Text(
-                              h.sub,
+                              p.history[i].sub,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GHText.cardTitle(size: 14),
+                              style: GHText.body(size: 14, weight: FontWeight.w700),
                             ),
                           ),
-                          if (h.paid)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Text('REPORT', style: GHText.mono(color: GHColors.mint, size: 8.5)),
-                            ),
+                          if (i == 0 && p.history.length > 1) _mini('지도 반영', GHColors.accent),
+                          if (p.history[i].paid) _mini('REPORT', GHColors.mint),
+                          const Spacer(),
                           Text(
-                            '${h.score}',
-                            style: GHText.display(size: 14, color: ghScoreBand(h.score).color),
+                            '${p.history[i].score}',
+                            style: GHText.body(
+                              size: 14,
+                              weight: FontWeight.w900,
+                              color: GHBand.of(p.history[i].score).c1,
+                            ),
                           ),
                           const SizedBox(width: 10),
-                          Text(_formatDate(h.date), style: GHText.mono(size: 9.5)),
-                          const Text('  ›', style: TextStyle(color: GHColors.gray)),
+                          Text(_formatDate(p.history[i].date), style: GHText.mono(size: 9.5)),
+                          const Text('  ›', style: TextStyle(color: GHColors.muted)),
                         ],
                       ),
                     ),
@@ -375,9 +415,11 @@ class _RelationSheetState extends State<_RelationSheet> {
             ),
           ),
           const SizedBox(height: 12),
+          // 7. 근거
           Text(
-            '거리는 궁합 점수(40~100), 선은 두 사람의 일간 오행 관계(FACT)로 정해져요. 저장된 점수는 다시 열어도 바뀌지 않아요.',
-            style: GHText.caption(),
+            '거리는 궁합 점수(40~100), 선은 두 사람의 일간 오행 관계(FACT)로 정해져요. 저장된 점수는 다시 열어도 바뀌지 않아요.'
+            '${anyPaid ? '' : ' 상세 보고서에서 고른 궁합만 더 깊이 볼 수 있어요.'}',
+            style: GHText.caption().copyWith(fontSize: 11.5),
           ),
         ],
       ),
@@ -415,55 +457,96 @@ class _RelationSheetState extends State<_RelationSheet> {
     );
   }
 
-  Color _elementColor(String element) => Color(ghElementColorValue[element] ?? 0xFFE2C07F);
-
   String _formatDate(DateTime? d) {
     if (d == null) return '';
     return DateFormat('yy.MM.dd').format(d.toLocal());
   }
 
-  Widget _chip(String t, {Color color = GHColors.gold}) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: color.withValues(alpha: .6)),
+  Widget _iconBtn(String g, VoidCallback onTap) => InkResponse(
+    onTap: onTap,
+    child: Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: .7),
+        border: Border.all(color: GHColors.lineSoft, width: GHBorder.width),
+      ),
+      child: Text(g, style: const TextStyle(fontSize: 16, color: GHColors.fg)),
     ),
-    child: Text(t, style: GHText.ui(size: 12.5, weight: FontWeight.w700, color: color)),
   );
 
-  Widget _node(String hj, String name, Color color) => Column(
-    children: [
-      Container(
-        width: 64,
-        height: 64,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: color.withValues(alpha: .55)),
-          gradient: RadialGradient(
-            colors: [color.withValues(alpha: .15), GHColors.bg2.withValues(alpha: .8)],
-          ),
-        ),
-        child: Text(hj, style: GHText.display(size: 22, color: color)),
+  Widget _chip(String t, {required bool filled, Color color = GHColors.accent}) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(999),
+      color: filled ? color : color.withValues(alpha: .12),
+      border: filled ? null : Border.all(color: color, width: 1),
+    ),
+    child: Text(
+      t,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: GHText.body(
+        size: filled ? 12.5 : 12,
+        weight: FontWeight.w700,
+        color: filled ? Colors.white : color,
       ),
-      const SizedBox(height: 8),
-      Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GHText.cardTitle(size: 14.5)),
-    ],
+    ),
   );
+
+  Widget _mini(String t, Color c) => Container(
+    margin: const EdgeInsets.only(left: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: c.withValues(alpha: .6)),
+    ),
+    child: Text(t, style: GHText.mono(size: 8.5, color: c).copyWith(letterSpacing: 1)),
+  );
+
+  Widget _node(String hj, String name, String element) {
+    final c = GHElement.of(element);
+    const koName = {'木': '목', '火': '화', '土': '토', '金': '금', '水': '수'};
+    return Column(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: c.withValues(alpha: .12),
+            border: Border.all(color: c, width: 1.5),
+          ),
+          child: Text(hj, style: GHText.hanja(size: 20, color: c)),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GHText.body(size: 14.5, weight: FontWeight.w800),
+        ),
+        Text('${koName[element] ?? ''} 기운', style: GHText.caption()),
+      ],
+    );
+  }
 
   Widget _list(String t, List<String> items, Color c) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: GHColors.card,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: GHColors.lineSoft),
+      border: Border.all(color: GHColors.lineSoft, width: GHBorder.width),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(t, style: GHText.ui(size: 12, weight: FontWeight.w700, color: c)),
+        Text(t, style: GHText.body(size: 12.5, weight: FontWeight.w700, color: c)),
         const SizedBox(height: 6),
-        for (final x in items) Text(x, style: GHText.ui(size: 13)),
+        for (final x in items) Text(x, style: GHText.body(size: 13).copyWith(height: 1.6)),
       ],
     ),
   );

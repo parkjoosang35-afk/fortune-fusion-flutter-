@@ -73,7 +73,7 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
     );
   }
 
-  void _onTapSlot(GhSlot slot) {
+  void _onTapSlot(Slot slot) {
     final provider = context.read<GunghapProvider>();
     showSlotSheet(
       context,
@@ -242,11 +242,14 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
                   )
                 else
                   Center(
-                    child: DestinyMap(
+                    child: DestinyBurst(
                       people: people,
-                      filterMajor: _filterMajor,
-                      onTapPerson: _onTapPerson,
-                      onTapSlot: _onTapSlot,
+                      slots: ghVisibleSlots(people),
+                      me: provider.mapMe ?? const MapMe(stem: null, element: null),
+                      focusMajor: _filterMajor,
+                      onSelect: _onTapPerson,
+                      onSlot: _onTapSlot,
+                      onFocus: (m) => setState(() => _filterMajor = m),
                     ),
                   ),
               ],

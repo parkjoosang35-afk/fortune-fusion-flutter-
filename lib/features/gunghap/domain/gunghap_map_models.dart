@@ -36,10 +36,20 @@ int ghOrbitOf(int score) {
 
 /// [MAP_HOME_SPEC.md §8] 연속값 거리 공식 — `r = 46 + 105 × (100 − score) / 60`
 /// (100점 → 46, 40점 → 151). viewBox 360 단위 기준.
+///
+/// [하위 호환] 과거 [DestinyMap](viewBox 360×360, 궤도 공전 방식)이
+/// 쓰던 공식이다. 신규 [DestinyBurst](viewBox 360×512, 정지 배치)는
+/// 아래 [ghBurstRadius]를 대신 쓴다 — 두 공식은 캔버스 크기와 연출이
+/// 달라 서로 대체 관계가 아니다.
 double ghScoreToRadius(int score) {
   final clamped = score.clamp(ghScoreMin, ghScoreMax);
   return 46.0 + 105.0 * (100 - clamped) / 60.0;
 }
+
+/// [00_DEV_MAPPING.md §6-2] DestinyBurst 전용 거리 공식 —
+/// `r = 88 + 40 × (100 − clamp(score,40,100)) / 60`(100점 → 88, 40점 → 128).
+/// viewBox 360×512, 중심 C(180,250) 기준.
+double ghBurstRadius(int score) => 88 + 40 * (100 - score.clamp(ghScoreMin, ghScoreMax)) / 60;
 
 /// `GET /gunghap/map` 응답의 history[] 항목 — "{이름} 님과 본 궁합" 목록.
 class MapPersonHistory {
@@ -77,7 +87,7 @@ class MapPerson {
     required this.element,
     required this.stem,
     required this.score,
-    required this.angleDeg,
+    this.angleDeg,
     required this.majorId,
     required this.resultId,
     required this.history,
@@ -96,8 +106,12 @@ class MapPerson {
   /// 저장 후 불변 — 가장 최근 분석의 엔진 점수.
   final int score;
 
-  /// 등록순서 기반 황금각 고정 좌표(서버가 계산해 내려줌).
-  final double angleDeg;
+  /// [v4 §12-5 반영] 서버는 등록순서 기반 황금각 고정 좌표를 계속
+  /// 내려주지만, 신규 [DestinyBurst]는 분야순 → 점수 내림차순 정렬 후
+  /// 균등분할·정지 배치를 쓰므로 이 값을 사용하지 않는다(과거
+  /// [DestinyMap] 궤도 공전 방식에서만 쓰던 값) — nullable로 바꿔
+  /// 서버가 계속 내려줘도 무시할 수 있게 한다.
+  final double? angleDeg;
 
   final String? majorId;
 
@@ -116,7 +130,7 @@ class MapPerson {
       element: json['element'] as String? ?? '土',
       stem: json['stem'] as String? ?? '戊',
       score: (json['score'] as num?)?.round() ?? ghScoreMin,
-      angleDeg: (json['angleDeg'] as num?)?.toDouble() ?? 0,
+      angleDeg: (json['angleDeg'] as num?)?.toDouble(),
       majorId: json['majorId'] as String?,
       resultId: json['resultId'] as String? ?? '',
       history: historyRaw is List

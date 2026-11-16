@@ -54,45 +54,40 @@ class _GHButtonState extends State<GHButton> {
     Color fg;
     if (disabled) {
       deco = BoxDecoration(
-        color: GHColors.gray.withValues(alpha: .12),
+        color: GHColors.muted.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(GHRadius.button),
-        border: Border.all(color: GHColors.lineSoft),
+        border: Border.all(color: GHColors.lineSoft, width: GHBorder.width),
       );
-      fg = GHColors.gray.withValues(alpha: .5);
+      fg = GHColors.muted.withValues(alpha: .5);
     } else {
       switch (widget.variant) {
         case GHButtonVariant.primary:
           deco = BoxDecoration(
-            gradient: ghGoldGradient,
+            gradient: GHGradients.primary,
             borderRadius: BorderRadius.circular(GHRadius.button),
-            boxShadow: widget.size == GHButtonSizeT.xl
-                ? GHShadow.xl
-                : GHShadow.primary,
-            border: widget.size == GHButtonSizeT.xl
-                ? Border.all(color: const Color(0x40FFECBE))
-                : null,
+            boxShadow: GHShadow.primary,
           );
-          fg = GHColors.ink;
+          fg = GHColors.onAccent;
         case GHButtonVariant.secondary:
           deco = BoxDecoration(
             color: GHColors.card,
             borderRadius: BorderRadius.circular(GHRadius.button),
-            border: Border.all(color: GHColors.divider),
+            border: Border.all(color: GHColors.line, width: GHBorder.width),
           );
-          fg = GHColors.ivory;
+          fg = GHColors.fg;
         case GHButtonVariant.ghost:
           deco = BoxDecoration(
             borderRadius: BorderRadius.circular(GHRadius.button),
-            border: Border.all(color: GHColors.lineSoft),
+            border: Border.all(color: GHColors.lineSoft, width: GHBorder.width),
           );
-          fg = GHColors.gray;
+          fg = GHColors.muted;
         case GHButtonVariant.violet:
           deco = BoxDecoration(
             color: GHColors.violet.withValues(alpha: .16),
             borderRadius: BorderRadius.circular(GHRadius.button),
             border: Border.all(color: GHColors.violet.withValues(alpha: .45)),
           );
-          fg = GHColors.violetTextLight;
+          fg = GHColors.violetText;
         case GHButtonVariant.kakao:
           deco = BoxDecoration(
             color: GHColors.kakao,
@@ -101,7 +96,7 @@ class _GHButtonState extends State<GHButton> {
           fg = GHColors.kakaoText;
         case GHButtonVariant.text:
           deco = const BoxDecoration();
-          fg = GHColors.gray;
+          fg = GHColors.muted;
       }
     }
     final h = widget.variant == GHButtonVariant.text ? 40.0 : _h;
@@ -162,12 +157,12 @@ class GHPricePill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
     decoration: BoxDecoration(
-      color: GHColors.ink.withValues(alpha: .14),
+      color: GHColors.onAccent.withValues(alpha: .14),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
       '❖ $required',
-      style: GHText.ui(size: 12, weight: FontWeight.w700, color: GHColors.ink),
+      style: GHText.body(size: 12, weight: FontWeight.w700, color: GHColors.onAccent),
     ),
   );
 }

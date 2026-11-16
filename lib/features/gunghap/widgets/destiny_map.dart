@@ -1,188 +1,216 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: destiny_map.dart
-// [궁합지도 「인연지도」 디자인 핸드오프 2차 반영] design_handoff_gunghap_map
-// (1).zip `MAP_HOME_SPEC.md` + `flutter_starter/lib/gunghap/map/
-// destiny_map.dart` 참고 구현을 이 프로젝트의 실제 서버 데이터 모델
-// (`gunghap_map_models.dart`의 [MapPerson])에 맞춰 이식했다.
+// [궁합지도 전면 리디자인 v4] design_handoff_gunghap_map_v4
+// `00_DEV_MAPPING.md` §6(DestinyBurst) + `flutter_starter/lib/gunghap/
+// map/destiny_map.dart`(v3 참고 구현) 완전 포팅.
 //
-// [기존 StarMap(2인 전용)과의 역할 분리] `widgets/star_map.dart`는
-// "두 사람" 전용 연출(초대/결과 화면)로 계속 쓰이고, 이 [DestinyMap]은
-// "나 + 궁합을 본 모든 사람"을 보여주는 메인 홈 전용 위젯이다 — 서로
-// 대체 관계가 아니다.
+// [과거 DestinyMap(궤도 공전 방식)에서 DestinyBurst(정지 배치 방식)로
+// 전면 교체] 이전 구현은 viewBox 360×360에 "분야별 궤도 공전" 연출을
+// 썼지만, v4 디자인은 viewBox 360×512(중심 C=180,250)에 "분야순→점수
+// 내림차순 정렬 후 (n+빈자리) 칸 균등 분할·정지" 배치로 완전히
+// 바뀌었다(§6-2~6-4). 공개 위젯 이름을 [DestinyBurst]로 바꾸고,
+// 기존 [GhSlot]/[ghSlots] 로컬 정의는 제거해 `gunghap_data.dart`의
+// v4 [Slot]/[ghSlots]/[ghVisibleSlots]를 그대로 쓴다(단일 출처 원칙).
 //
-// [점수 → 거리 — 연속값, MAP_HOME_SPEC.md §8]
-// "§1–2 의 궤도 구간 표기는 §8 연속 거리로 대체" — 디자인 문서 최신
-// 확정에 따라 6단계 이산 궤도가 아니라 연속 공식
-// `r = 46 + 105 × (100 − score) / 60`([ghScoreToRadius])로 별의 거리를
-// 계산한다. 궤도선 6개는 시각적 눈금(90/82/74/66/58/40)으로만 남긴다.
-//
-// [빈 자리 별 8개] MAP_HOME_SPEC.md §9. 실제 서버에 "슬롯-인물 매핑"
-// 데이터가 없으므로(이번 단계 범위 — 신규 DB 컬럼 추가 없이 구현),
-// 실제 별이 늘어날 때마다 **뒤에서부터** 슬롯을 하나씩 숨기는 단순
-// 규칙으로 "인연 수 + 슬롯 = 항상 8" 원칙을 근사 구현한다(디자인 문서
-// "아니면 뒤에서부터 하나씩 사라짐" 폴백 규칙 그대로).
+// 규칙 요약(§6)
+//  · 캔버스 360×512(비율 고정, 폭 100% · 최대 430) · 중심 C(180,250)=「나」
+//  · 거리 r = ghBurstRadius(score) = 88 + 40×(100−clamp(score,40,100))/60
+//    (100점 88 · 40점 128) · n>8 & score≥75 & 홀수 i → +16(지그재그)
+//  · 좌표 x = cosθ·r·0.88, y = sinθ·r·1.32 (C 기준 상대 오프셋)
+//  · 각도 = 정렬(분야순→점수 내림차순) 후 (n+빈자리) 칸 균등분할·정지
+//    (공전 없음 — 과거 DestinyMap과의 핵심 차이)
+//  · 노드 크기 NR = clamp(15−(max(2,n)−2)·0.45, 8, 15) · 이름 FS = max(7.5, NR·0.82)
+//  · 레이어 9개(§6-5): 성운 → 코어 → 연결선 → 파동 → 「나」링 → 빈자리 →
+//    인연노드 → 「나」 → 분야 네모 8
 import 'dart:math';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../domain/gunghap_map_models.dart';
+import '../domain/gunghap_data.dart' show Slot, ghMajorById;
+import '../domain/gunghap_map_models.dart' show MapPerson, MapMe, ghBurstRadius;
 import '../theme/gh_tokens.dart';
+import 'cat_icon.dart';
 
-/// [MAP_HOME_SPEC.md §9] 빈 자리 별(인연 슬롯) 8개 고정 명세.
-///
-/// [2026-11 디자인 원본 각도 반영 — 겹침 버그 수정] 기존에는 슬롯 id를
-/// 해시해 각도를 구했는데, 해시값이 서로 가까운 슬롯끼리 지도 위에서
-/// 겹쳐 보이는 문제가 있었다(사용자 스크린샷 실증 — "엄마"/"연인"
-/// 근접). 원본 `gh-home-map2.jsx`의 `GH_SLOTS[].a` 고정값을 그대로
-/// 가져와 지도 전체에 고르게 분산시킨다.
-class GhSlot {
-  const GhSlot(this.id, this.label, this.majorId, this.recommend, this.virtualScore, this.angleDeg);
-  final String id;
-  final String label;
-  final String majorId;
-  final String recommend;
-  final int virtualScore;
-  final double angleDeg;
+const _cx = 180.0, _cy = 250.0, _sx = 0.88, _sy = 1.32, _sealR = 176.0, _slotR = 104.0;
+const _canvas = Size(360, 512);
+
+class BurstNode {
+  BurstNode(this.person, this.offset, this.order);
+  final MapPerson person;
+  final Offset offset;
+
+  /// 점수 순위(등장 지연 계산용) — 0이 가장 높은 점수.
+  final int order;
 }
 
-const List<GhSlot> ghSlots = [
-  GhSlot('lover', '연인', 'love', '연애 · 썸 · 애정표현', 80, 300),
-  GhSlot('mom', '엄마', 'family', '어머니·자녀 · 가족 생활', 88, 210),
-  GhSlot('bestfriend', '절친', 'friend', '절친 · 여행 · 취미', 76, 120),
-  GhSlot('colleague', '동료', 'business', '직장 동료 · 업무', 64, 30),
-  GhSlot('spouse', '배우자', 'marriage', '부부 · 결혼 · 생활', 92, 345),
-  GhSlot('dad', '아빠', 'family', '아버지·자녀', 70, 165),
-  GhSlot('sibling', '형제·자매', 'family', '형제·자매', 58, 75),
-  GhSlot('crush', '썸', 'love', '썸 · 짝사랑', 52, 255),
-];
+class BurstSlot {
+  BurstSlot(this.slot, this.offset, this.index);
+  final Slot slot;
+  final Offset offset;
+  final int index;
+}
 
-Color _ghElementColor(String element) =>
-    Color(ghElementColorValue[element] ?? 0xFFE2C07F);
+/// §6-2~6-4 배치 계산(순수 함수 — 테스트 가능).
+({List<BurstNode> nodes, List<BurstSlot> slots, double nr, double fs}) ghBurstLayout(
+  List<MapPerson> people,
+  List<Slot> slots,
+) {
+  int catIdx(String? id) => id == null ? -1 : GHCategory.order.indexOf(id);
+  final seq = [...people]
+    ..sort((a, b) {
+      final c = catIdx(a.majorId).compareTo(catIdx(b.majorId));
+      return c != 0 ? c : b.score.compareTo(a.score);
+    });
+  final n = seq.length, total = n + slots.length;
+  final base = -90 - (total > 1 ? 180 / total : 0) + 12;
+  final pIdx = [for (var i = 0; i < n; i++) (i * total / max(1, n)).round()];
+  final sIdx = [for (var i = 0; i < total; i++) if (!pIdx.contains(i)) i];
 
-class DestinyMap extends StatefulWidget {
-  const DestinyMap({
+  Offset at(double deg, double r) {
+    final a = deg * pi / 180;
+    return Offset(cos(a) * r * _sx, sin(a) * r * _sy);
+  }
+
+  final byScore = [...seq]..sort((a, b) => b.score.compareTo(a.score));
+  final nodes = <BurstNode>[
+    for (var i = 0; i < n; i++)
+      BurstNode(
+        seq[i],
+        at(
+          base + pIdx[i] * 360 / max(1, total),
+          ghBurstRadius(seq[i].score) + (n > 8 && seq[i].score >= 75 && i.isOdd ? 16 : 0),
+        ),
+        byScore.indexOf(seq[i]),
+      ),
+  ];
+  final sl = <BurstSlot>[
+    for (var i = 0; i < slots.length; i++)
+      BurstSlot(
+        slots[i],
+        at(base + (i < sIdx.length ? sIdx[i] : i) * 360 / max(1, total), _slotR),
+        i,
+      ),
+  ];
+  final nr = (15 - (max(2, n) - 2) * 0.45).clamp(8.0, 15.0).toDouble();
+  return (nodes: nodes, slots: sl, nr: nr, fs: max(7.5, nr * .82));
+}
+
+class DestinyBurst extends StatefulWidget {
+  const DestinyBurst({
     super.key,
     required this.people,
-    this.filterMajor,
-    this.selectedPersonKey,
-    required this.onTapPerson,
-    this.onTapSlot,
-    this.vivid = true,
-    this.showSlots = true,
+    required this.slots,
+    required this.me,
+    this.focusMajor,
+    this.selectedKey,
+    required this.onSelect,
+    required this.onSlot,
+    required this.onFocus,
+    this.paused = false,
   });
 
   final List<MapPerson> people;
-  final String? filterMajor; // null = 전체
-  final String? selectedPersonKey;
-  final ValueChanged<MapPerson> onTapPerson;
-  final ValueChanged<GhSlot>? onTapSlot;
-  final bool vivid;
-  final bool showSlots;
+
+  /// 호출부가 `ghVisibleSlots(people)`로 미리 계산해 전달한다.
+  final List<Slot> slots;
+  final MapMe me;
+
+  /// 분야 네모 하이라이트(null = 전체).
+  final String? focusMajor;
+  final String? selectedKey;
+
+  /// 인연 노드 탭 → RelationSheet(S05).
+  final ValueChanged<MapPerson> onSelect;
+
+  /// 빈 자리 탭 → SlotSheet(S03).
+  final ValueChanged<Slot> onSlot;
+
+  /// 분야 네모 탭(토글 — 이미 선택된 분야를 다시 탭하면 null).
+  final ValueChanged<String?> onFocus;
+
+  /// 시트가 열려 있거나 앱이 백그라운드일 때 루프 애니메이션 정지.
+  final bool paused;
 
   @override
-  State<DestinyMap> createState() => _DestinyMapState();
+  State<DestinyBurst> createState() => _DestinyBurstState();
 }
 
-class _DestinyMapState extends State<DestinyMap> with TickerProviderStateMixin {
-  late final AnimationController _intro =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))
-        ..forward();
-  late final AnimationController _clock =
-      AnimationController(vsync: this, duration: const Duration(hours: 1))..repeat();
-
-  double get _speed => widget.vivid ? .55 : 1.0;
-
-  double _orbitAngle(int orbit) {
-    final period = (70 + orbit * 26) * _speed; // seconds / revolution
-    final secs = _clock.lastElapsedDuration?.inMilliseconds ?? 0;
-    return (secs / 1000.0) / period * 2 * pi;
-  }
+class _DestinyBurstState extends State<DestinyBurst> with TickerProviderStateMixin {
+  // 등장(0→4.5s), 상시 루프(파동 10s · 성운 부유 · 할로 2.4s · 링 맥동 3s).
+  late final AnimationController _intro = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 4500),
+  )..forward();
+  late final AnimationController _loop = AnimationController(vsync: this, duration: GHMotion.ripple)
+    ..repeat();
 
   @override
-  void didUpdateWidget(DestinyMap old) {
+  void didUpdateWidget(covariant DestinyBurst old) {
     super.didUpdateWidget(old);
-    if (widget.selectedPersonKey != null) {
-      _clock.stop();
-    } else if (!_clock.isAnimating) {
-      _clock.repeat();
+    if (widget.paused) {
+      _loop.stop();
+    } else if (!_loop.isAnimating) {
+      _loop.repeat();
     }
   }
 
   @override
   void dispose() {
     _intro.dispose();
-    _clock.dispose();
+    _loop.dispose();
     super.dispose();
-  }
-
-  /// [MAP_HOME_SPEC.md §9] 뒤에서부터 하나씩 숨기는 단순 규칙 —
-  /// 실제 인물 수만큼 슬롯 목록 뒤쪽을 제거한다.
-  List<GhSlot> get _visibleSlots {
-    if (!widget.showSlots) return const [];
-    final remain = ghSlots.length - widget.people.length;
-    if (remain <= 0) return const [];
-    return ghSlots.sublist(0, remain);
-  }
-
-  Offset _personPos(MapPerson p, double k) {
-    final a = p.angleDeg * pi / 180 + _orbitAngle(p.orbit);
-    final r = ghScoreToRadius(p.score);
-    return Offset(180 + cos(a) * r, 180 + sin(a) * r) * k;
-  }
-
-  Offset _slotPos(GhSlot s, int idx, double k) {
-    // 슬롯은 공전하지 않는다 — 디자인 원본 고정 각도(`GhSlot.angleDeg`)를
-    // 그대로 사용해 지도 전체에 고르게 분산시킨다.
-    final a = s.angleDeg * pi / 180;
-    final r = ghScoreToRadius(s.virtualScore);
-    return Offset(180 + cos(a) * r, 180 + sin(a) * r) * k;
   }
 
   @override
   Widget build(BuildContext context) {
+    final lay = ghBurstLayout(widget.people, widget.slots);
+    final counts = {
+      for (final k in GHCategory.order)
+        k: widget.people.where((p) => (p.majorId ?? 'love') == k).length,
+    };
     return LayoutBuilder(
       builder: (ctx, c) {
-        final size = min(c.maxWidth, 430.0);
-        final k = size / 360;
-        final slots = _visibleSlots;
+        final w = min(c.maxWidth, 430.0), s = w / _canvas.width;
+        Offset toLocal(Offset o) => Offset((_cx + o.dx) * s, (_cy + o.dy) * s);
         return SizedBox(
-          width: size,
-          height: size,
-          child: AnimatedBuilder(
-            animation: Listenable.merge([_intro, _clock]),
-            builder: (_, __) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapUp: (d) {
-                for (final p in widget.people) {
-                  if ((_personPos(p, k) - d.localPosition).distance < 16 * k) {
-                    widget.onTapPerson(p);
-                    return;
-                  }
+          width: w,
+          height: _canvas.height * s,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (d) {
+              final p = d.localPosition;
+              for (final n in lay.nodes) {
+                if ((toLocal(n.offset) - p).distance <= 24 * s) {
+                  widget.onSelect(n.person);
+                  return;
                 }
-                if (widget.onTapSlot == null) return;
-                for (var i = 0; i < slots.length; i++) {
-                  if ((_slotPos(slots[i], i, k) - d.localPosition).distance < 16 * k) {
-                    widget.onTapSlot!(slots[i]);
-                    return;
-                  }
+              }
+              for (final sl in lay.slots) {
+                if ((toLocal(sl.offset) - p).distance <= 20 * s) {
+                  widget.onSlot(sl.slot);
+                  return;
                 }
-              },
-              child: CustomPaint(
-                painter: _DestinyPainter(
-                  people: widget.people,
-                  slots: slots,
-                  k: k,
-                  intro: _intro.value,
-                  personPosOf: (p) => _personPos(p, k),
-                  slotPosOf: (s, i) => _slotPos(s, i, k),
-                  filter: widget.filterMajor,
-                  selectedPersonKey: widget.selectedPersonKey,
-                  ringTurn:
-                      (_clock.lastElapsedDuration?.inMilliseconds ?? 0) /
-                      1000 /
-                      (260 * _speed),
-                  elapsedSeconds:
-                      (_clock.lastElapsedDuration?.inMilliseconds ?? 0) / 1000,
-                  vivid: widget.vivid,
+              }
+              for (var i = 0; i < 8; i++) {
+                final k = GHCategory.order[i];
+                final a = (-90 + i * 45) * pi / 180;
+                final o = Offset(cos(a) * (_sealR - 22), sin(a) * _sealR * _sy);
+                if ((toLocal(o) - p).distance <= 22 * s) {
+                  widget.onFocus(widget.focusMajor == k ? null : k);
+                  return;
+                }
+              }
+            },
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_intro, _loop]),
+              builder: (_, _) => CustomPaint(
+                size: Size(w, _canvas.height * s),
+                painter: _BurstPainter(
+                  lay: lay,
+                  counts: counts,
+                  focus: widget.focusMajor,
+                  selected: widget.selectedKey,
+                  intro: _intro.value * 4.5,
+                  loop: _loop.value,
+                  scale: s,
                 ),
               ),
             ),
@@ -193,305 +221,295 @@ class _DestinyMapState extends State<DestinyMap> with TickerProviderStateMixin {
   }
 }
 
-/// [MAP_HOME_SPEC.md §2 「배경」 — 성운 + 별가루 70개(트윙클)]
-/// 원본 `gh-ui.jsx`의 `ghField(n, w, h, seed)` 결정적 의사난수 생성기를
-/// 그대로 포팅했다 — 매 리빌드마다 같은 좌표가 나오도록 선형합동
-/// 생성기(LCG)를 동일하게 사용한다.
-class _GhDustSpec {
-  const _GhDustSpec(this.x, this.y, this.r, this.o, this.twinkle);
-  final double x, y, r, o, twinkle;
-}
-
-List<_GhDustSpec> _ghField(int n, double w, double h, int seed) {
-  var s = seed;
-  double rnd() {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  }
-
-  return List.generate(n, (_) {
-    final x = rnd() * w;
-    final y = rnd() * h;
-    final r = 0.4 + rnd() * 0.9;
-    final o = 0.25 + rnd() * 0.6;
-    final t = 2 + rnd() * 4;
-    return _GhDustSpec(x, y, r, o, t);
-  });
-}
-
-/// [MAP_HOME_SPEC.md §2 「배경」 — vivid: 유성 3개] 원본 `SkyFX`의 유성
-/// 좌표/지연/지속시간 고정값을 그대로 포팅.
-class _GhShootingSpec {
-  const _GhShootingSpec(this.topFrac, this.leftFrac, this.delay, this.dur);
-  final double topFrac, leftFrac, delay, dur;
-}
-
-const List<_GhShootingSpec> _ghShootingStars = [
-  _GhShootingSpec(.06, .88, 1.2, 7),
-  _GhShootingSpec(.22, 1.04, 4.6, 9),
-  _GhShootingSpec(.02, .60, 7.8, 11),
-];
-
-class _DestinyPainter extends CustomPainter {
-  _DestinyPainter({
-    required this.people,
-    required this.slots,
-    required this.k,
+class _BurstPainter extends CustomPainter {
+  _BurstPainter({
+    required this.lay,
+    required this.counts,
+    this.focus,
+    this.selected,
     required this.intro,
-    required this.personPosOf,
-    required this.slotPosOf,
-    required this.ringTurn,
-    required this.elapsedSeconds,
-    required this.vivid,
-    this.filter,
-    this.selectedPersonKey,
+    required this.loop,
+    required this.scale,
   });
+  final ({List<BurstNode> nodes, List<BurstSlot> slots, double nr, double fs}) lay;
+  final Map<String, int> counts;
+  final String? focus, selected;
 
-  final List<MapPerson> people;
-  final List<GhSlot> slots;
-  final double k, intro, ringTurn, elapsedSeconds;
-  final bool vivid;
-  final Offset Function(MapPerson) personPosOf;
-  final Offset Function(GhSlot, int) slotPosOf;
-  final String? filter, selectedPersonKey;
+  /// 마운트 이후 경과 초(0~4.5).
+  final double intro;
 
-  static const _ringScoreCuts = [90, 82, 74, 66, 58, 40];
-  static final List<_GhDustSpec> _dust = _ghField(70, 360, 360, 7);
+  /// 0~1(10초 1주기).
+  final double loop;
+  final double scale;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = Offset(180, 180) * k;
+  double _t(double start, double dur, [Curve curve = Curves.easeOut]) =>
+      curve.transform(((intro - start) / dur).clamp(0.0, 1.0));
+  Color _cat(String? id) =>
+      (GHCategory.colors[id ?? 'love'] ?? GHCategory.colors['love']!).$1;
 
-    // [MAP_HOME_SPEC.md §2] 성운(nebula) — 중심부 바이올렛 글로우.
-    canvas.drawCircle(
-      c,
-      178 * k,
-      Paint()
-        ..shader = ui.Gradient.radial(c, 178 * k, [
-          GHColors.violet.withValues(alpha: .22),
-          GHColors.violet.withValues(alpha: 0),
-        ]),
-    );
-
-    // [MAP_HOME_SPEC.md §2] 별가루 70개 — 트윙클(깜빡임).
-    final dustSpeedScale = vivid ? .7 : 1.0;
-    for (var i = 0; i < _dust.length; i++) {
-      final d = _dust[i];
-      final period = d.twinkle * dustSpeedScale;
-      final phase = (elapsedSeconds / period + i * .11) % 1.0;
-      // ease-in-out 느낌의 사인파로 opacity .2~1 사이를 오간다.
-      final twinkle = 0.2 + 0.8 * (0.5 - 0.5 * cos(phase * 2 * pi));
-      canvas.drawCircle(
-        Offset(d.x, d.y) * k,
-        d.r * .9 * k,
-        Paint()..color = GHColors.ivory.withValues(alpha: (d.o * twinkle).clamp(0.0, 1.0)),
-      );
-    }
-
-    // [MAP_HOME_SPEC.md §2] vivid 모드 전용 — 유성 3개(사선으로 흐름).
-    if (vivid) {
-      for (final s in _ghShootingStars) {
-        final cycle = s.dur;
-        final t = ((elapsedSeconds - s.delay) % cycle + cycle) % cycle;
-        final prog = t / cycle;
-        // 0~6%: fade in, 6~22%: 이동하며 fade out, 나머지: 숨김.
-        double opacity;
-        if (prog < 0.06) {
-          opacity = prog / 0.06;
-        } else if (prog < 0.22) {
-          opacity = 1 - (prog - 0.06) / (0.22 - 0.06);
-        } else {
-          opacity = 0;
-        }
-        if (opacity <= 0) continue;
-        final travel = (prog.clamp(0.0, 0.22) / 0.22);
-        final startX = s.leftFrac * size.width;
-        final startY = s.topFrac * size.height;
-        final dx = -260 * k * travel;
-        final dy = 160 * k * travel;
-        final p1 = Offset(startX + dx, startY + dy);
-        final angle = -32 * pi / 180;
-        final p2 = p1 + Offset(cos(angle), sin(angle)) * 90 * k;
-        canvas.drawLine(
-          p1,
-          p2,
-          Paint()
-            ..strokeWidth = 1.4 * k
-            ..strokeCap = StrokeCap.round
-            ..shader = ui.Gradient.linear(p1, p2, [
-              GHColors.ivory.withValues(alpha: .95 * opacity),
-              GHColors.gold.withValues(alpha: .0),
-            ]),
-        );
-      }
-    }
-
-    // 바깥 링: 12지지 + 눈금 72개 — 회전.
-    canvas.save();
-    canvas.translate(c.dx, c.dy);
-    canvas.rotate(ringTurn * 2 * pi);
-    canvas.drawCircle(
-      Offset.zero,
-      172 * k,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = .6 * k
-        ..color = GHColors.gold.withValues(alpha: .22),
-    );
-    for (var i = 0; i < 72; i++) {
-      final a = i / 72 * 2 * pi;
-      final r1 = (i % 6 == 0 ? 164 : 168) * k;
-      canvas.drawLine(
-        Offset(cos(a) * r1, sin(a) * r1),
-        Offset(cos(a) * 172 * k, sin(a) * 172 * k),
-        Paint()
-          ..strokeWidth = .5 * k
-          ..color = GHColors.gold.withValues(alpha: .3),
-      );
-    }
-    canvas.restore();
-
-    // [MAP_HOME_SPEC.md §8] 점수 구간 눈금 6개 — 연속 거리 공식 기반 반지름.
-    for (var t = 0; t < _ringScoreCuts.length; t++) {
-      final prog = ((intro * 1.6) - t * .12).clamp(0.0, 1.0);
-      final r = ghScoreToRadius(_ringScoreCuts[t]) * k;
-      final paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = .6 * k
-        ..color = (t == 0 ? const Color(0xFFF0D9A8) : GHColors.ivory)
-            .withValues(alpha: t == 0 ? .3 : .1 + (5 - t) * .012);
-      canvas.drawArc(Rect.fromCircle(center: c, radius: r), -pi / 2, 2 * pi * prog, false, paint);
-      final tp = TextPainter(
+  void _text(
+    Canvas c,
+    String s,
+    Offset at,
+    double size,
+    Color color, {
+    FontWeight w = FontWeight.w800,
+    bool outline = true,
+  }) {
+    final style = TextStyle(fontFamily: 'Pretendard', fontSize: size, fontWeight: w, color: color, height: 1);
+    if (outline) {
+      final tpO = TextPainter(
         text: TextSpan(
-          text: '${_ringScoreCuts[t]}',
-          style: TextStyle(
-            fontFamily: 'IBMPlexMono',
-            fontSize: 6 * k,
-            fontWeight: FontWeight.w700,
-            color: GHColors.gold.withValues(alpha: .75 - t * .08),
+          text: s,
+          style: style.copyWith(
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3
+              ..strokeJoin = StrokeJoin.round
+              ..color = Colors.white,
           ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, c + Offset(r - tp.width - 2 * k, -3 * k - tp.height));
+      tpO.paint(c, at - Offset(tpO.width / 2, tpO.height / 2));
     }
+    final tp = TextPainter(text: TextSpan(text: s, style: style), textDirection: TextDirection.ltr)
+      ..layout();
+    tp.paint(c, at - Offset(tp.width / 2, tp.height / 2));
+  }
 
-    // 빈 자리 별(인연 슬롯) — 점선 원 + '+', 공전하지 않음.
-    for (var i = 0; i < slots.length; i++) {
-      final s = slots[i];
-      final o = slotPosOf(s, i);
-      _dashedCircle(canvas, o, 7 * k, GHColors.gray.withValues(alpha: .45));
-      _text(canvas, '+', o, 9 * k, GHColors.gray.withValues(alpha: .7), w900: true);
-      _text(canvas, s.label, o + Offset(0, 15 * k), 9.5 * k, GHColors.gray.withValues(alpha: .75));
-    }
-
-    // 연결선 + 실제 별.
-    for (final p in people) {
-      final o = personPosOf(p);
-      final dim = filter != null && p.majorId != filter;
-      final sel = p.personKey == selectedPersonKey;
-      final col = _ghElementColor(p.element);
-      final alpha = dim ? .18 : 1.0;
-      canvas.drawLine(
-        c,
-        o,
-        Paint()
-          ..strokeWidth = (sel ? 1.4 : .6) * k
-          ..shader = ui.Gradient.linear(c, o, [
-            GHColors.gold.withValues(alpha: .9 * alpha),
-            col.withValues(alpha: .9 * alpha),
-          ]),
-      );
-      final r = (p.orbit <= 1 ? 4.4 : p.orbit <= 3 ? 3.6 : 3.2) * k;
-      canvas.drawCircle(
-        o,
-        r * 4.2,
-        Paint()
-          ..shader = ui.Gradient.radial(o, r * 4.2, [
-            col.withValues(alpha: .6 * alpha),
-            col.withValues(alpha: 0),
-          ]),
-      );
-      _star(canvas, o, r, col.withValues(alpha: .95 * alpha));
-      _text(canvas, p.stem, o + Offset(0, -9 * k), 6.5 * k, col.withValues(alpha: alpha), w900: true);
-      _text(
-        canvas,
-        p.name,
-        o + Offset(0, 15 * k),
-        10 * k,
-        (sel ? col : GHColors.ivory).withValues(alpha: alpha),
-      );
-      _text(
-        canvas,
-        '${p.score}',
-        o + Offset(0, 24 * k),
-        7 * k,
-        const Color(0xFFF0D9A8).withValues(alpha: alpha),
-        mono: true,
-      );
-    }
-
-    // 나(중심).
-    canvas.drawCircle(c, 17 * k, Paint()..color = const Color(0xBF10172D));
-    canvas.drawCircle(
-      c,
-      17 * k,
+  void _avatar(Canvas c, Offset o, double r, Color fill, Color ring, String ch, {bool me = false}) {
+    c.drawCircle(
+      o,
+      r + 3.2,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = .8 * k
-        ..color = GHColors.gold.withValues(alpha: .7),
+        ..strokeWidth = 1.6
+        ..color = ring.withValues(alpha: .95),
     );
-    _star(canvas, c, 5.6 * k, GHColors.gold);
-  }
-
-  void _dashedCircle(Canvas cv, Offset o, double r, Color color) {
-    const dashCount = 16;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = color;
-    for (var i = 0; i < dashCount; i++) {
-      final a0 = i / dashCount * 2 * pi;
-      final a1 = a0 + (pi / dashCount) * .7;
-      final p1 = o + Offset(cos(a0), sin(a0)) * r;
-      final p2 = o + Offset(cos(a1), sin(a1)) * r;
-      cv.drawLine(p1, p2, paint);
-    }
-  }
-
-  void _star(Canvas cv, Offset o, double r, Color color) {
-    final l = r * 2.5, w = r * .4;
-    final path = Path()
-      ..moveTo(o.dx, o.dy - l)
-      ..lineTo(o.dx + w, o.dy - w)
-      ..lineTo(o.dx + l, o.dy)
-      ..lineTo(o.dx + w, o.dy + w)
-      ..lineTo(o.dx, o.dy + l)
-      ..lineTo(o.dx - w, o.dy + w)
-      ..lineTo(o.dx - l, o.dy)
-      ..lineTo(o.dx - w, o.dy - w)
-      ..close();
-    cv.drawPath(path, Paint()..color = color);
-    cv.drawCircle(o, r * .6, Paint()..color = const Color(0xFFFFF8EA).withValues(alpha: color.a));
-  }
-
-  void _text(Canvas cv, String s, Offset at, double fs, Color color, {bool w900 = false, bool mono = false}) {
-    final tp = TextPainter(
-      text: TextSpan(
-        text: s,
-        style: TextStyle(
-          fontFamily: mono ? 'IBMPlexMono' : (w900 ? 'NotoSerifKR' : 'Pretendard'),
-          fontSize: fs,
-          fontWeight: w900 ? FontWeight.w900 : FontWeight.w700,
-          color: color,
-          shadows: const [Shadow(color: Color(0xD910172D), blurRadius: 3)],
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(cv, at - Offset(tp.width / 2, tp.height / 2));
+    c.drawCircle(
+      o,
+      r,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white.withValues(alpha: .95), fill, fill.withValues(alpha: .75)],
+          stops: const [0, .28, 1],
+        ).createShader(Rect.fromCircle(center: o, radius: r)),
+    );
+    c.drawCircle(o, r, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.6..color = Colors.white);
+    _text(c, ch, o, r * (me ? .78 : .82), Colors.white, outline: false);
   }
 
   @override
-  bool shouldRepaint(covariant _DestinyPainter old) => true;
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(scale);
+    const c = Offset(_cx, _cy);
+
+    // 1. 성운(10~12s 부유).
+    final f1 = sin(loop * 2 * pi), f2 = sin(loop * 2 * pi + 2);
+    void neb(Offset o, double r, Color col, double op) => canvas.drawCircle(
+      o,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [col.withValues(alpha: op), col.withValues(alpha: 0)],
+        ).createShader(Rect.fromCircle(center: o, radius: r)),
+    );
+    neb(Offset(70 + f1 * 10, 140 - f1 * 8), 170, const Color(0xFFFFB3CF), .55);
+    neb(Offset(300 + f2 * 10, 350 - f2 * 8), 180, const Color(0xFFC4B5FD), .55);
+    neb(c, 150, const Color(0xFFFFE7A3), .6);
+
+    // 2. 코어.
+    canvas.drawCircle(
+      c,
+      70,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Colors.white, Color(0xE6FFE1EC), Color(0x00FFD1E1)],
+          stops: [0, .35, 1],
+        ).createShader(Rect.fromCircle(center: c, radius: 70)),
+    );
+
+    // 4. 연결선(lineDraw).
+    for (final n in lay.nodes) {
+      final d = 1.25 + n.order * .16 - .1, k = _t(d, .7);
+      if (k <= 0) continue;
+      final dim = focus != null && focus != (n.person.majorId ?? 'love');
+      final sel = selected == n.person.personKey;
+      canvas.drawLine(
+        c,
+        c + n.offset * k,
+        Paint()
+          ..strokeWidth = sel ? 1.6 : .8
+          ..strokeCap = StrokeCap.round
+          ..color = _cat(n.person.majorId).withValues(alpha: (sel ? .9 : .35) * (dim ? .12 : 1)),
+      );
+    }
+
+    // 3. 파동(6겹 · 10s · r34 기준 scale .25→5.2, opacity 0→.22(10%)→0).
+    for (var k = 0; k < 6; k++) {
+      final ph = (loop + k / 6) % 1.0;
+      final sc = .25 + (5.2 - .25) * Curves.easeOut.transform(ph);
+      final op = ph < .1 ? ph / .1 * .22 : .22 * (1 - (ph - .1) / .9);
+      canvas.drawCircle(
+        c,
+        34 * sc,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = .8
+          ..color = (k.isOdd ? const Color(0xFFC4B5FD) : const Color(0xFFFF9EC0)).withValues(alpha: op),
+      );
+    }
+
+    // 5. 「나」 링 r40(ringIn .35s + 맥동 3s).
+    final ringK = _t(.35, 1, const Cubic(.3, 1.4, .5, 1));
+    if (ringK > 0) {
+      final pulse = 1 + .04 * sin(loop * 2 * pi * (10 / 3));
+      canvas.drawCircle(
+        c,
+        40 * ringK * pulse,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.5
+          ..color = GHColors.meInk.withValues(alpha: .9),
+      );
+      canvas.drawCircle(
+        c,
+        40 * ringK,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = const Color(0xE6B794F6),
+      );
+    }
+
+    // 6. 빈 자리.
+    for (final s in lay.slots) {
+      final k = _t(1.2 + s.index * .1, .6);
+      if (k <= 0) continue;
+      final o = c + s.offset;
+      final halo = .55 + .45 * (.5 + .5 * sin(loop * 2 * pi * (10 / 2.2) + s.index * .7));
+      canvas.drawCircle(o, 13, Paint()..color = Colors.white.withValues(alpha: k));
+      _dashedCircle(
+        canvas,
+        o,
+        13,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = GHColors.accent.withValues(alpha: .8 * halo * k),
+      );
+      _text(canvas, '+', o, 13, GHColors.accent.withValues(alpha: k), w: FontWeight.w700, outline: false);
+      _text(canvas, s.slot.label, o + const Offset(0, 25), 9.5, GHColors.muted.withValues(alpha: k), w: FontWeight.w700);
+    }
+
+    // 7. 인연 노드(flyIn 1.25s + 순위×.16s, .9s).
+    for (final n in lay.nodes) {
+      final k = _t(1.25 + n.order * .16, .9, GHMotion.flyCurve);
+      if (k <= 0) continue;
+      final o = c + n.offset * k;
+      final p = n.person;
+      final cat = _cat(p.majorId);
+      final dim = focus != null && focus != (p.majorId ?? 'love');
+      final sel = selected == p.personKey;
+      canvas.saveLayer(null, Paint()..color = Colors.white.withValues(alpha: (dim ? .25 : 1) * min(1, k * 1.4)));
+      canvas.translate(o.dx, o.dy);
+      canvas.scale(.15 + .85 * k);
+      canvas.translate(-o.dx, -o.dy);
+      if (sel) {
+        canvas.drawCircle(
+          o,
+          lay.nr + 8,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.4
+            ..color = cat.withValues(alpha: 1 - (loop * 5.5) % 1),
+        );
+      }
+      _avatar(canvas, o, lay.nr, GHElement.of(p.element), cat, p.name.characters.first);
+      final lo = o + Offset(0, lay.nr + 12);
+      _text(canvas, p.name, lo, lay.fs, GHColors.fg);
+      final badge = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: lo + const Offset(0, 11), width: 17, height: 9.5),
+        const Radius.circular(4.75),
+      );
+      canvas.drawRRect(badge, Paint()..color = cat);
+      _text(canvas, '${p.score}', badge.center, 7.5, Colors.white, w: FontWeight.w900, outline: false);
+      canvas.restore();
+    }
+
+    // 8. 「나」(ringIn .1s).
+    final meK = _t(.1, .9, const Cubic(.3, 1.4, .5, 1));
+    if (meK > 0) {
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.scale(meK);
+      canvas.translate(-c.dx, -c.dy);
+      final halo = .55 + .45 * (.5 + .5 * sin(loop * 2 * pi * (10 / 2.4)));
+      canvas.drawCircle(c, 30, Paint()..color = GHColors.meInk.withValues(alpha: .25 * halo));
+      _avatar(canvas, c, 21, const Color(0xFFFF6FA8), GHColors.meInk, '나', me: true);
+      final b = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: c + const Offset(0, 33.5), width: 22, height: 13),
+        const Radius.circular(6.5),
+      );
+      canvas.drawRRect(b, Paint()..color = GHColors.meInk);
+      _text(canvas, '나', b.center, 8.5, Colors.white, w: FontWeight.w900, outline: false);
+      canvas.restore();
+    }
+
+    // 9. 분야 네모 8(sealIn .6s + i×.07s) · 선택 시 c1 채움 + 흰 아이콘.
+    for (var i = 0; i < 8; i++) {
+      final k = _t(.6 + i * .07, .6, const Cubic(.3, 1.5, .5, 1));
+      if (k <= 0) continue;
+      final id = GHCategory.order[i];
+      final col = GHCategory.colors[id]!.$1;
+      final on = focus == id;
+      final cnt = counts[id] ?? 0;
+      final a = (-90 + i * 45) * pi / 180;
+      final o = c + Offset(cos(a) * (_sealR - 22), sin(a) * _sealR * _sy);
+      canvas.save();
+      canvas.translate(o.dx, o.dy);
+      canvas.scale(.4 + .6 * k);
+      canvas.translate(-o.dx, -o.dy);
+      final r = RRect.fromRectAndRadius(Rect.fromCenter(center: o, width: 28, height: 28), const Radius.circular(8));
+      canvas.drawRRect(
+        r.shift(const Offset(0, 2)),
+        Paint()
+          ..color = col.withValues(alpha: .25)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5),
+      );
+      canvas.drawRRect(r, Paint()..color = on ? col : Colors.white);
+      canvas.drawRRect(r, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.5..color = col);
+      canvas.save();
+      canvas.translate(o.dx - 10, o.dy - 10);
+      CatIconPainter(ghMajorById(id).icon, white: on).paint(canvas, const Size(20, 20));
+      canvas.restore();
+      if (cnt > 0) {
+        final bc = o + const Offset(13, -13);
+        canvas.drawCircle(bc, 6, Paint()..color = col);
+        canvas.drawCircle(bc, 6, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.4..color = Colors.white);
+        _text(canvas, '$cnt', bc, 7, Colors.white, w: FontWeight.w900, outline: false);
+      }
+      _text(canvas, ghMajorById(id).short, o + const Offset(0, 26), 9, on ? col : GHColors.muted);
+      canvas.restore();
+    }
+
+    canvas.restore();
+  }
+
+  void _dashedCircle(Canvas c, Offset o, double r, Paint p) {
+    const dash = 3.0, gap = 3.0;
+    final circ = 2 * pi * r;
+    final n = (circ / (dash + gap)).floor();
+    for (var i = 0; i < n; i++) {
+      final a0 = i * (dash + gap) / r;
+      c.drawArc(Rect.fromCircle(center: o, radius: r), a0, dash / r, false, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BurstPainter o) => true;
 }
