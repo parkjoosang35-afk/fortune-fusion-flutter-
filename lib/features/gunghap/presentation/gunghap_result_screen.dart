@@ -59,7 +59,6 @@ import '../../../core/util/save_filename.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../luckpouch/application/luck_pouch_provider.dart';
-import '../../share/application/share_service.dart';
 import '../application/gunghap_provider.dart';
 import '../domain/gunghap_data.dart';
 import '../gate/result_gate.dart';
@@ -72,6 +71,7 @@ import '../widgets/gh_screen.dart';
 import '../widgets/person_pair.dart';
 import '../widgets/star_map.dart';
 import 'gunghap_home_screen.dart';
+import 'gunghap_share_card_screen.dart';
 
 class GunghapResultScreen extends StatefulWidget {
   const GunghapResultScreen({super.key, required this.resultId});
@@ -96,7 +96,6 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
   // 동일한 키를 재사용한다(별도 캡처 레이어를 새로 만들지 않음).
   final _originalResultKey = GlobalKey();
   bool _savingImage = false;
-  bool _sharing = false;
   // [S17 신규 — "✦ 상세 보고서 다시 보기"] 해금 후 Footer 버튼이 눌리면
   // 이미 화면에 그려진 DETAIL REPORT 섹션으로 스크롤만 이동한다(이
   // 프로젝트는 상세 보고서를 별도 화면으로 분리하지 않고 같은 화면에
@@ -230,39 +229,36 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
     }
   }
 
-  // [S17 신규 — Footer "공유" 버튼] 00_DEV_MAPPING.md §5 S17 항목 12
-  // "Footer: Secondary 92 「공유」". S24(공유 카드 전용 화면)가 아직
-  // 구현되지 않아, 이미 검증된 공용 `ShareService.shareImageDirectly`
-  // (5개 결과 화면이 쓰는 패턴 — 웹은 자동으로 "결과페이지 링크로
-  // 공유해주세요" 안내, 앱은 OS 공유 시트로 PNG 전달)를 그대로 호출한다.
-  // 캡처는 저장 버튼과 동일한 `_originalResultKey` 레이어를 재사용하므로
-  // 새 RepaintBoundary를 추가하지 않는다.
-  Future<void> _shareResult() async {
-    if (_sharing) return;
-    setState(() => _sharing = true);
-    try {
-      final result = context.read<GunghapProvider>().result;
-      final ownerName = result?['ownerName'] as String? ?? '나';
-      final guestName = result?['guestName'] as String? ?? '상대방';
-      final subName =
-          result?['subName'] as String? ??
-          (result?['majorId'] != null
-              ? ghMajorById(result?['majorId'] as String?).name
-              : '궁합');
-      final bytes = await captureOriginalResult(_originalResultKey);
-      if (!mounted) return;
-      await ShareService.shareImageDirectly(
-        context,
-        '$ownerName님과 $guestName님의 $subName 결과',
-        bytes,
-      );
-    } catch (_) {
-      if (mounted) {
-        AppToast.show(context, '결과 이미지를 준비하지 못했어요. 다시 시도해주세요.', isError: true);
-      }
-    } finally {
-      if (mounted) setState(() => _sharing = false);
-    }
+  // [S24 완성 — Footer "공유" 버튼] 00_DEV_MAPPING.md §5 S17 항목 12
+  // "Footer: Secondary 92 「공유」" → S17 임시 구현(공용 ShareService.
+  // shareImageDirectly 직접 호출)은 S24(공유 카드 전용 화면)가 구현된
+  // 지금 더 이상 쓰이지 않는다. 결과 데이터는 이미 이 화면이 provider
+  // 에서 들고 있으므로, 전용 카드 데이터만 뽑아 S24로 push한다 — 결과
+  // 조회/과금 로직은 전혀 건드리지 않는다.
+  void _shareResult() {
+    final result = context.read<GunghapProvider>().result;
+    if (result == null) return;
+    final ownerName = result['ownerName'] as String? ?? '나';
+    final guestName = result['guestName'] as String? ?? '상대방';
+    final majorId = result['majorId'] as String?;
+    final major = ghMajorById(majorId);
+    final subName = result['subName'] as String?;
+    final chemistryScore = result['chemistryScore'];
+    final score = chemistryScore is num ? chemistryScore.toInt() : null;
+    final relationTypeDesc = result['relationTypeDesc'] as String?;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GunghapShareCardScreen(
+          resultId: widget.resultId,
+          ownerName: ownerName,
+          guestName: guestName,
+          major: major,
+          subDisplay: subName ?? major.name,
+          score: score,
+          relationTypeDesc: relationTypeDesc,
+        ),
+      ),
+    );
   }
 
   void _openMapHighlight() {
@@ -312,9 +308,9 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
                   SizedBox(
                     width: 92,
                     child: GHButton(
-                      label: _sharing ? '…' : '공유',
+                      label: '공유',
                       variant: GHButtonVariant.secondary,
-                      onPressed: _sharing ? null : _shareResult,
+                      onPressed: _shareResult,
                     ),
                   ),
                   const SizedBox(width: 10),
