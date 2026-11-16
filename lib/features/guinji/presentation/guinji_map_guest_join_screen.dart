@@ -74,7 +74,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   final _minuteController = TextEditingController();
   final _scrollController = ScrollController();
 
-  int _calendarIndex = 0; // 0=양력, 1=음력
+  int _calendarIndex = 0; // 0=양력, 1=음력, 2=음력(윤달)
   bool _timeUnknown = false;
   String? _gender; // 'female' | 'male'
   bool _agreePolicy = false;
@@ -92,7 +92,9 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   String? _hostName;
   GuinjiHostCharacterType? _hostCharacterType;
 
-  static const _calendarChips = ['양력', '음력'];
+  // [COPY.md "f.gender / birth / cal" — 양력 / 음력 / 윤달] H2(guinji_input_
+  // screen.dart)의 3종 칩과 동일하게 맞춘다(위 [_handleSubmit] 주석 참고).
+  static const _calendarChips = ['양력', '음력', '음력(윤달)'];
 
   @override
   void initState() {
@@ -177,6 +179,11 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
       token: widget.token,
       name: name,
       birthDate: birthDate,
+      // [2026-11 추가 — COPY.md "양력/음력/윤달"] 윤달은 H2(guinji_input_
+      // screen.dart)와 동일하게 서버 계산상 '음력'과 동일하게 취급한다(백엔드
+      // `join/route.ts`가 윤달 전용 필드를 받지 않음 — `calendarType`은
+      // 'solar'|'lunar' 2종뿐). 사용자에게는 입력 단계의 선택지 차이일 뿐,
+      // 계산 결과에 윤달 여부가 반영되지 않는다는 제약은 H2와 동일하다.
       calendarType: _calendarIndex == 0 ? 'solar' : 'lunar',
       birthTime: birthTime,
       gender: _gender!,
@@ -496,7 +503,8 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
         const SizedBox(height: 8),
         _GiTextField(
           controller: _nameController,
-          hint: '어떻게 불릴까요',
+          // [COPY.md "f.name" 반영] "{호스트}님 지도에 표시될 이름".
+          hint: '${_hostName ?? '친구'}님 지도에 표시될 이름',
           maxLength: 24,
           onChanged: (_) => setState(() {}),
         ),
@@ -643,6 +651,38 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
               label: '만 14세 이상입니다',
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        // [2026-11 추가 — COPY.md "point" 반영, 역할분담 결정 B] SPEC 원문은
+        // "앱: +20P 금박스 / 웹: 점선박스+앱에서 열기"를 요구하지만, 실제
+        // 백엔드(admin_web `g/[token]/join/route.ts` 설계 결정 1)는 이
+        // 화면이 호출하는 [joinAnonymous](익명 참여) 경로에서는 앱/웹
+        // 구분 없이 포인트를 절대 지급하지 않는다(동일인 반복 제출로 소유자
+        // 포인트를 무한 farming하는 악용 방지). "+20P" 문구를 그대로 쓰면
+        // 실제로 받지 못하는 포인트를 받는다고 사용자를 속이게 되므로,
+        // 사용자 결정에 따라 COPY.md "point(웹)" 문구로 플랫폼 구분 없이
+        // 통일한다 — 사실과 일치하는 안내만 남긴다.
+        //
+        // [kIsWeb 분기를 쓰지 않는 이유] 이 Dart 파일은 네이티브 앱이든
+        // Flutter 웹 빌드(`sintong.kr/app/`)든 항상 SPEC의 "G1(앱)" 화면
+        // 역할만 한다 — SPEC이 말하는 진짜 "W1(웹)"은 완전히 별개인
+        // admin_web Next.js 페이지(`g/[token]/guinji-invite-interactive.tsx`)
+        // 다. 즉 이 화면 안에서 "신통방통 앱에서 열기" 버튼은 이미 앱 안에
+        // 있으므로 의미가 없어 넣지 않는다.
+        const _GiDashedPointNotice(),
+        const SizedBox(height: 10),
+        // [2026-11 추가 — COPY.md "privacy" 반영] "{호스트}님에게는 이름과
+        // 관계 결과만 보여요. 생년월일은 공개되지 않아요." 안내 문구.
+        Text(
+          '${_hostName ?? '친구'}님에게는 이름과 관계 결과만 보여요. '
+          '생년월일은 공개되지 않아요.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: GiFonts.ui,
+            fontSize: 11.5,
+            height: 1.5,
+            color: GiColors.mutedFaint,
+          ),
         ),
         const SizedBox(height: 10),
         // [2026-11 회원약관 보기 수정 — 신규] 개인정보처리방침과는 별개로,
@@ -878,6 +918,68 @@ class _TopBarBackButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// [2026-11 추가 — COPY.md "point(웹)" 반영, 역할분담 결정 B] 점선 테두리
+/// 포인트 안내 박스. `gunghap_guest_result_screen.dart`의
+/// `_DashedMintNotice`/`_DashedRectPainter`와 동일한 패키지-불필요
+/// `CustomPaint` 점선 패턴을 재사용한다(색만 민트→금색으로 교체).
+class _GiDashedPointNotice extends StatelessWidget {
+  const _GiDashedPointNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: const _GiDashedRectPainter(color: GiColors.glow, radius: 14),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: const Text(
+          '참여하면 포인트는 쌓이지 않아요.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: GiFonts.ui,
+            fontFamilyFallback: [GiFonts.body],
+            fontSize: 12.5,
+            height: 1.6,
+            color: GiColors.muted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GiDashedRectPainter extends CustomPainter {
+  const _GiDashedRectPainter({required this.color, required this.radius});
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        const dashLen = 5.0, gapLen = 3.5;
+        final next = (distance + dashLen).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, next), paint);
+        distance += dashLen + gapLen;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GiDashedRectPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 /// [2026-10 추가] "🙋 나는 OOO님에게 어떤 사람일까?" 설명 카드 —
