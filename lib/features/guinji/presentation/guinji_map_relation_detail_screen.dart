@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/util/original_result_capture.dart';
 
+import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
 import '../../../core/web_ads/web_ad_config.dart';
@@ -57,6 +58,9 @@ class GuinjiMapRelationDetailScreen extends StatefulWidget {
 
 class _GuinjiMapRelationDetailScreenState
     extends State<GuinjiMapRelationDetailScreen> {
+  // [QA_CHECKLIST H6] admin_web prisma/seed_guinji_point_policies.ts의
+  // guinji_unlock_special.amount 고정값(50) — 위 import 주석 참고.
+  static const int _specialUnlockPouchPrice = 50;
   // [해금 상태 영속화 — 2026-09 버그수정] 서버가 이미 해금된 것으로
   // 응답한 멤버(`person.unlocked`)라면 화면 진입 즉시 해금 상태로 시작한다.
   // 기존에는 항상 false로 시작해 앱을 나갔다 들어오면 다시 잠긴 것처럼
@@ -162,10 +166,26 @@ class _GuinjiMapRelationDetailScreenState
         );
       }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(provider.error ?? '해금에 실패했습니다.')));
+      // [QA_CHECKLIST H6 "실패 시 시트 유지 + 토스트 toast.retry"] 화면
+      // 자체(=이 전체화면이 핸드오프의 "결제 시트" 역할을 대신한다 — 위
+      // 클래스 docstring 참고)는 그대로 유지한 채 토스트만 띄운다. 서버가
+      // 구체적 사유(복주머니 부족 등)를 내려주면 그 문구를 우선 쓰고,
+      // 그 외(네트워크 오류 등)에는 COPY.md `toast.retry` 문구를 그대로 쓴다.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.error ?? '잠시 후 다시 시도해 주세요')),
+      );
     }
+  }
+
+  /// [QA_CHECKLIST H6 "복주머니 부족 비활성 + 충전 링크"] SPEC §6 H6-4:
+  /// "카드 비활성 .5 + 우측 정렬 링크 `opt.pouch.charge` → 기존 복주머니
+  /// 충전 화면". gunghap_result_screen.dart의 openPouch 패턴과 동일하게
+  /// 하단바 "복주머니" 탭(PouchBoxTabScreen)으로 이동시킨다 — 현재
+  /// AppShell._tabs 순서는 [홈(0) · 복주머니(1) · 마이(2)]이므로 인덱스 1.
+  void _openPouchCharge() {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: 1);
   }
 
   // [관계 결과 원본 캡처] 공유 링크가 재구성 화면이 아니라 이 화면 그대로
@@ -495,8 +515,8 @@ class _GuinjiMapRelationDetailScreenState
 
               // 스페셜 해설 잠금/해금 — 06 결제 시트 3택(프리패스/복주머니/광고).
               if (!_specialUnlocked)
-                Consumer<ResultAccessProvider>(
-                  builder: (context, resultAccess, _) {
+                Consumer2<ResultAccessProvider, LuckPouchProvider>(
+                  builder: (context, resultAccess, luckPouch, _) {
                     final quote = resultAccess.quote;
                     return _SpecialLockedCard(
                       unlocking: _unlocking,
@@ -504,9 +524,20 @@ class _GuinjiMapRelationDetailScreenState
                       freePassHasLegacyUnlimited:
                           quote?.freePassHasLegacyUnlimited ?? false,
                       freePassAvailable: quote?.freePassAvailable ?? false,
+                      // [QA_CHECKLIST H6 "복주머니 부족 비활성 + 충전 링크"]
+                      // 서버 PointPolicy('guinji_unlock_special').amount는
+                      // 조회 API가 없어(해금 시에만 트랜잭션으로 차감) 클라가
+                      // 직접 받을 수 없다 — admin_web
+                      // prisma/seed_guinji_point_policies.ts에 등록된 고정값
+                      // 50을 그대로 사용한다(구계열 guinji_relation_detail_
+                      // screen.dart도 동일하게 "복주머니 50P로 열기"로
+                      // 하드코딩되어 있던 전례와 일치).
+                      pouchBalance: luckPouch.balance,
+                      pouchPrice: _specialUnlockPouchPrice,
                       onUnlockFreePass: () => _handleUnlock('freepass'),
                       onUnlockAd: () => _handleUnlock('ad'),
                       onUnlockPouch: () => _handleUnlock('point'),
+                      onChargePouch: _openPouchCharge,
                     );
                   },
                 )
@@ -702,9 +733,12 @@ class _SpecialLockedCard extends StatefulWidget {
     required this.onUnlockFreePass,
     required this.onUnlockAd,
     required this.onUnlockPouch,
+    required this.onChargePouch,
     required this.freePassRemaining,
     required this.freePassHasLegacyUnlimited,
     required this.freePassAvailable,
+    required this.pouchBalance,
+    required this.pouchPrice,
     this.unlocking = false,
   });
 
@@ -712,11 +746,24 @@ class _SpecialLockedCard extends StatefulWidget {
   final VoidCallback onUnlockAd;
   final VoidCallback onUnlockPouch;
 
+  /// [QA_CHECKLIST H6 "복주머니 부족 비활성 + 충전 링크"] SPEC §6 H6-4
+  /// `opt.pouch.charge`("복주머니 충전하기 ›") 탭 콜백 — 기존 복주머니
+  /// 충전 화면(하단바 "복주머니" 탭)으로 이동한다.
+  final VoidCallback onChargePouch;
+
   /// [ResultAccessProvider.quote] 공용 조회 결과 — 프리패스는 콘텐츠와
   /// 무관한 전역 자산이라 귀인지도 전용 조회 API를 새로 만들지 않는다.
   final int freePassRemaining;
   final bool freePassHasLegacyUnlimited;
   final bool freePassAvailable;
+
+  /// [LuckPouchProvider.balance] 전역 복주머니 잔액.
+  final int pouchBalance;
+
+  /// 스페셜 해설 해금 가격(고정 50P, admin_web PointPolicy
+  /// 'guinji_unlock_special'와 동일 — 위 state 클래스 주석 참고).
+  final int pouchPrice;
+
   final bool unlocking;
 
   @override
@@ -746,6 +793,11 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
     }
     return '보유 ${widget.freePassRemaining}회';
   }
+
+  /// [QA_CHECKLIST H6 "복주머니 부족 비활성"] 서버가 최종 판정하지만
+  /// (§8.3 서버 재검증), 버튼 활성/비활성은 이 값으로 미리 표시한다 —
+  /// ResultAccessQuote.pouchSufficient와 동일한 패턴.
+  bool get _pouchSufficient => widget.pouchBalance >= widget.pouchPrice;
 
   @override
   void didUpdateWidget(covariant _SpecialLockedCard oldWidget) {
@@ -852,15 +904,40 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
             // 해금되는 방식(별도 확정 버튼 없음)이라 `_PayPick` 선택
             // 상태에는 포함하지 않는다. 가격 숫자는 [2026-12 사용자 지시]에
             // 따라 계속 숨긴 채 "복주머니로 바로 열어요" 문구만 노출한다.
+            // [QA_CHECKLIST H6 "복주머니 부족 비활성 + 충전 링크" 수정]
+            // 잔액이 부족하면 카드를 비활성(터치 불가)하고 서브 문구를
+            // "부족해요"로 바꾼 뒤, 카드 아래 우측 정렬 `opt.pouch.charge`
+            // 링크(금색·밑줄)를 노출한다 — SPEC §6 H6 구성 4번 1:1 반영.
             _PayOptionTile(
               icon: const _IcoPouch(),
               title: '복주머니로 보기',
-              sub: '복주머니로 바로 열어요',
+              sub: _pouchSufficient ? '복주머니로 바로 열어요' : '복주머니가 부족해요',
               right: '',
               selected: false,
-              disabled: false,
+              disabled: !_pouchSufficient,
               onTap: widget.onUnlockPouch,
             ),
+            if (!_pouchSufficient)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, right: 2),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: widget.onChargePouch,
+                    child: const Text(
+                      '복주머니 충전하기 ›',
+                      style: TextStyle(
+                        fontFamily: MyPageFonts.ui,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: MyPageColors.gold,
+                        decoration: TextDecoration.underline,
+                        decorationColor: MyPageColors.gold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 8),
             // ③ ☾ 광고 보고 무료로 보기.
             _PayOptionTile(
