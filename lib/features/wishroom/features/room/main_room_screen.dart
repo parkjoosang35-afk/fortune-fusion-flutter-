@@ -9,7 +9,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../application/wishroom_provider.dart';
@@ -52,14 +52,6 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   AnimationController? _holdCtrl;
   bool _holdEarly = false; // 3초 전에 손을 뗐을 때 잠깐 보여주는 안내(app3 setEarly(true) 1:1).
   Timer? _holdEarlyTimer;
-  Timer? _cooldownTicker;
-  int _cooldownRemain = 0;
-  // [전수검수 2026-10-12 — MAJOR] 서버가 쿨다운 중에도 cooldownUntil을
-  // 응답에 항상 담아주지 않는다. COOLDOWN 오류(retryAfter)로 받은 만료
-  // 시각을 로컬로 보관해, 서버 값이 없을 때 티커가 이 값으로 카운트다운을
-  // 유지하게 한다(기존엔 즉시 0으로 리셋돼 데드코드였음).
-  DateTime? _cooldownDeadline;
-  int _cooldownTotal = 30;
   bool _rekindling = false;
   double _rekindleBrightness = 1;
   double _rekindleBoost = 0;
@@ -75,8 +67,6 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   // 저장하지 않는다.
   bool _webPaused = false;
   bool _wishOpen = false; // 소원 전문 펼침
-  bool _armed = false; // 쿨타임 완료 후 탭 대기(버튼 맥동)
-  int _prevCooldown = 0;
   // devote() 0.0/0.7/1.1 단계에서 주입하는 1회성 FX 오버레이(WrBurst/WrPetalRain/WrButterflies 등).
   final List<_FxEntry> _fx = [];
   // devote() 1.7(RITUAL.done) · 2.3(말씀카드) · rekindle() 2.1(n일만에 다시밝아졌어요) 캡션.
@@ -125,7 +115,6 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     // shared_preferences 비동기 로딩으로 대체(GuidePrefs). FirstVisitChip은 이 값이
     // 준비된 뒤에야 올바른 표시 여부를 결정할 수 있다.
     GuidePrefs.I.load().then((_) { if (mounted) setState(() => _firstVisitReady = true); });
-    _startCooldownTicker();
     _speechTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) setState(() => _speechIdx++);
     });
@@ -135,7 +124,6 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _devotion.dispose();
-    _cooldownTicker?.cancel();
     _speechTimer?.cancel();
     _holdCtrl?.dispose();
     _holdEarlyTimer?.cancel();
@@ -153,35 +141,49 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     }
   }
 
-  void _startCooldownTicker() {
-    _cooldownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-      final room = context.read<WishRoomProvider>().room;
-      if (room?.cooldownUntil == null) {
-        // [전수검수 2026-10-12] 서버 값이 없어도 로컬 deadline(COOLDOWN
-        // 오류 시 세움)이 살아있으면 그 값으로 카운트다운을 유지한다 —
-        // 기존엔 여기서 즉시 0으로 리셋돼 "몇 초 후" 안내가 사라졌다.
-        if (_cooldownDeadline != null) {
-          final local = _cooldownDeadline!.difference(DateTime.now()).inSeconds;
-          final nextLocal = local > 0 ? local : 0;
-          if (nextLocal == 0) _cooldownDeadline = null;
-          if (mounted) setState(() => _cooldownRemain = nextLocal);
-          return;
-        }
-        if (_cooldownRemain != 0 && mounted) setState(() => _cooldownRemain = 0);
-        return;
+  /// [v5 S1] 정성 버튼 누름 시작 — app3/home.jsx `down(e)` 1:1. 오늘 이미
+  /// 기도했거나(prayedToday) 연출 중이면 무시. holdMs(기본 3000ms, 서버
+  /// WrCatalog.I.devotionRule['holdMs'])에 걸쳐 0→1로 진행시키고, 끝까지
+  /// 채워지면(AnimationStatus.completed) 자동으로 _onDevote(heldMs: holdMs)를
+  /// 호출한다.
+  void _onHoldDown(WishRoom room) {
+    if (room.devotionsToday >= 1 || _devotion.busy || _rekindling) return;
+    _holdEarlyTimer?.cancel();
+    setState(() => _holdEarly = false);
+    final holdMs = (WrCatalog.I.devotionRule['holdMs'] as num?)?.toInt() ?? 3000;
+    _holdCtrl?.dispose();
+    final ctrl = AnimationController(vsync: this, duration: Duration(milliseconds: holdMs));
+    _holdCtrl = ctrl;
+    HapticFeedback.lightImpact();
+    // 링게이지(_bottomDock deg)·방 boost·말풍선 문구가 매 프레임 진행률을
+    // 반영해야 하므로 틱마다 setState (app3 tick()의 setProg(p) 1:1).
+    ctrl.addListener(() { if (mounted) setState(() {}); });
+    ctrl.forward();
+    ctrl.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted && _holdCtrl == ctrl) {
+        _onDevote(heldMs: holdMs);
       }
-      _cooldownTotal = room!.cooldownSec > 0 ? room.cooldownSec : 30;
-      final remain = room.cooldownUntil!.difference(DateTime.now()).inSeconds;
-      final next = remain > 0 ? remain : 0;
-      if (next == 0) _cooldownDeadline = null;
-      // 쿨타임이 막 끝난 순간(0 도달) → '가득 찼어요' 강한 피드백 1.6s
-      if (_prevCooldown > 0 && next == 0 && room.devotionsRemaining > 0) {
-        if (mounted) setState(() { _armed = true; });
-        Timer(const Duration(milliseconds: 1600), () { if (mounted) setState(() => _armed = false); });
-      }
-      _prevCooldown = next;
-      if (mounted) setState(() => _cooldownRemain = next);
     });
+    setState(() {});
+  }
+
+  /// 정성 버튼에서 손을 떼거나(onTapUp) 벗어남(onTapCancel) — app3 `up()` 1:1.
+  /// 3초를 채우기 전에 떼면 서버로 보내지 않고 취소만 하고 "조금만 더 머물러
+  /// 주세요" 안내를 짧게 보여준다.
+  void _onHoldUp() {
+    final ctrl = _holdCtrl;
+    if (ctrl == null || ctrl.status == AnimationStatus.completed) return;
+    final wasProgressing = ctrl.value > 0;
+    ctrl.stop();
+    ctrl.reset();
+    _holdCtrl = null;
+    if (wasProgressing) {
+      _holdEarlyTimer?.cancel();
+      setState(() => _holdEarly = true);
+      _holdEarlyTimer = Timer(const Duration(milliseconds: 1400), () { if (mounted) setState(() => _holdEarly = false); });
+    } else {
+      setState(() {});
+    }
   }
 
   void _addFx(Widget w, {int life = 2600}) {
@@ -200,7 +202,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     final p = context.read<WishRoomProvider>();
     final room = p.room;
     if (room == null || _devotion.busy) return;
-    setState(() { _armed = false; _capText = null; _quoteText = null; _lastGain = null; });
+    setState(() { _capText = null; _quoteText = null; _lastGain = null; });
     final cat = WrCatalog.I;
     final ritual = cat.ritual(room.theme);
     final verb = ritual['verb'] as String? ?? '정성';
@@ -446,13 +448,19 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
         final cat = WrCatalog.I;
         final isDim = room.decayBadge && room.brightness < 1 && !_rekindling;
         final effBrightness = _rekindling ? _rekindleBrightness : room.brightness;
-        final boost = _devotion.busy ? _devotion.roomBoost : _rekindleBoost;
-        final lim = room.dailyLimit > 0 ? room.dailyLimit : 10;
-        final used = lim - room.devotionsRemaining;
-        final busyCooldown = _cooldownRemain > 0 && used < lim;
-        final done = used >= lim;
-        final charge = busyCooldown ? 1 - _cooldownRemain / _cooldownTotal : 0.0;
-        final double deg = busyCooldown ? charge * 360 : done ? 360.0 : (used / lim) * 360;
+        // [v5 S1] app3/home.jsx `prog > .02 ? (prog > .6 ? 2 : 1) : done ? 2 : 0` 1:1 —
+        // hold 진행률(0→1)에 따라 촛불 광원이 단계적으로 커진다.
+        final holdProg = _holdCtrl?.value ?? 0.0;
+        final boost = _devotion.busy
+            ? _devotion.roomBoost
+            : holdProg > .02
+                ? (holdProg > .6 ? 2.0 : 1.0)
+                : _rekindleBoost;
+        // [v5 S1] dailyLimit은 이제 하루 1회 — done(오늘 기도 완료)은
+        // devotionsToday>=1 하나로 판정한다(구 10회 카운터 폐기).
+        final done = room.devotionsToday >= 1;
+        final holding = _holdCtrl != null;
+        final double deg = holding ? holdProg * 360 : done ? 360.0 : 0.0;
         final ritual = cat.ritual(room.theme);
 
         // app2/guide2.jsx › GuideBook "한 바퀴 둘러보기"를 꾸미기/보관함 등 다른 탭에서
@@ -468,7 +476,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             child: RoomScene(
               room: _withBrightness(room, effBrightness),
               items: p.items,
-              pray: _devotion.busy || busyCooldown,
+              pray: _devotion.busy || holding,
               boost: boost,
               shake: _devotion.shaking,
               // §14.4 "움직임 재생·정지" — 웹에서만 사용자가 로컬로 정지할 수
@@ -513,15 +521,15 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(color: const Color(0xF0FFFAF4), borderRadius: BorderRadius.circular(14),
                   boxShadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 20, offset: Offset(0, 6))]),
-                child: Text(_speechText(room, ritual, busyCooldown, isDim),
+                child: Text(_speechText(room, ritual, holdProg, isDim),
                   style: const TextStyle(color: Color(0xFF5A2A36), fontSize: 11.5, fontWeight: FontWeight.w700, height: 1.4)),
               ),
             )),
-            // 머금는 동안의 기도문
-            if (busyCooldown) Positioned(left: 16, right: 16, top: 640, child: Center(child: Container(
+            // 머금는 동안(3초 hold 진행 중)의 기도문
+            if (holding) Positioned(left: 16, right: 16, top: 640, child: Center(child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(color: const Color(0x8C1E0A18), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x40FFC8A0))),
-              child: Text(_prayLine(ritual, charge), style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFFFF4E0))),
+              child: Text(_prayLine(ritual, holdProg), style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFFFF4E0))),
             ))),
             // devote() 0.7s — 아이템 기운 보너스 pill(top 236) `✦ 아이템 기운 +n%` + 아이템별 칩 최대 4개.
             if (_lastGain != null && _lastGain!.bonus > 0) Positioned(left: 0, right: 0, top: 236, child: Center(child: _GainPill(gain: _lastGain!))),
@@ -532,7 +540,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             ))),
             // ── 하단 슬림 도크(58px) + 둥근 정성 버튼(66px) ──
             Positioned(left: 12, right: 12, top: 690, child: _bottomDock(
-              room: room, cat: cat, isDim: isDim, busy: busyCooldown, done: done, deg: deg, ritual: ritual, used: used, lim: lim,
+              room: room, cat: cat, isDim: isDim, busy: holding, done: done, deg: deg, ritual: ritual,
             )),
 
             // devote() 2.9s / rekindle() 3.4s 보상시트 — [명세] quote보다 먼저(=아래) 배치해
@@ -701,11 +709,15 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
 
   // A-4 말풍선 문구 규칙(우선순위 순) 1:1 — ①4일+부재(dim) ②다시밝힌 직후 ③머금는 중
   // (충전 단계 0/1/2) ④평상시(3종 순환).
-  String _speechText(WishRoom room, Map<String, dynamic> ritual, bool busy, bool isDim) {
+  // [v5 S1] app3/home.jsx down()/tick() 1:1 — hold 진행률(0→1, 증가 방향)에
+  // 따라 간절함 멘트 3단계가 바뀐다(구 쿨다운 잔여초 감소 방향에서 전환).
+  String _speechText(WishRoom room, Map<String, dynamic> ritual, double holdProg, bool isDim) {
     if (isDim) return '${room.absentDays}일 만에 오셨네요\n촛불이 많이 약해졌어요';
     if (_justRekindled) return '다시 와주셔서\n고마워요';
-    if (busy) {
-      final stage = _cooldownRemain > _cooldownTotal * .67 ? 0 : _cooldownRemain > _cooldownTotal * .33 ? 1 : 2;
+    // [v5 S1] app3/home.jsx hint — early(3초 전에 손을 뗐을 때) 안내 1:1.
+    if (_holdEarly) return '조금만 더\n머물러 주세요';
+    if (holdProg > 0) {
+      final stage = holdProg < .34 ? 0 : holdProg < .67 ? 1 : 2;
       return ['간절히…\n간절히 빌어요', '이 마음,\n꼭 닿기를', '곧 이루어질\n거예요'][stage];
     }
     const opts = ['오늘도 좋은 기운이\n모이고 있어요', '촛불이 따뜻하게\n타오르고 있어요', '조금씩, 분명히\n가까워지고 있어요'];
@@ -723,7 +735,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
 
   /// ── 하단 도크 — 소원 한 줄(소원 빛깔/종이 반영) + 둥근 정성 버튼(링게이지) ──
   Widget _bottomDock({required WishRoom room, required WrCatalog cat, required bool isDim, required bool busy,
-      required bool done, required double deg, required Map<String, dynamic> ritual, required int used, required int lim}) {
+      required bool done, required double deg, required Map<String, dynamic> ritual}) {
     final wishColor = cat.wishColors.where((c) => c['id'] == room.wishColor).toList();
     final paper = cat.papers.where((p) => p['id'] == room.paper).toList();
     final W = wishColor.isNotEmpty ? wishColor.first : null;
@@ -732,7 +744,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     final inkColor = _hex(pp['ink'] as String);
     final subColor = _hex2((pp['sub'] as String?) ?? '');
     final wColor = W != null ? _hex(W['color'] as String) : null;
-    final ringColor = _armed ? const Color(0xFFFFE08A) : WrC.blossom2;
+    final ringColor = WrC.blossom2;
 
     String labelText;
     if (room.capsuleDue) {
@@ -800,22 +812,26 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
         ]),
       ))),
       const SizedBox(width: 10),
-      // 둥근 정성 버튼
+      // 둥근 정성 버튼 — [v5 S1] app3/home.jsx down()/up() 1:1: 탭 1회가
+      // 아니라 "누르고 있는 동안"(onTapDown~onTapUp/onTapCancel) hold를 측정한다.
       GestureDetector(
-        onTap: isDim ? _onRekindle : (busy ? null : _onDevote),
+        onTap: isDim ? _onRekindle : null,
+        onTapDown: (!isDim && !busy && !done) ? (_) => _onHoldDown(room) : null,
+        onTapUp: (_) => _onHoldUp(),
+        onTapCancel: _onHoldUp,
         child: Container(
           width: 66, height: 66,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: SweepGradient(colors: [isDim ? const Color(0xFFFFE08A) : ringColor, isDim ? const Color(0xFFFFE08A) : ringColor, const Color(0x24FFFFFF)],
               stops: [0, (isDim ? 1.0 : deg / 360).clamp(0.0, 1.0), (isDim ? 1.0 : deg / 360).clamp(0.0, 1.0)]),
-            boxShadow: [BoxShadow(color: (_armed || isDim) ? const Color(0xBFFFD278) : const Color(0x80F2628F), blurRadius: (_armed || isDim) ? 26 : 18)],
+            boxShadow: [BoxShadow(color: isDim ? const Color(0xBFFFD278) : const Color(0x80F2628F), blurRadius: isDim ? 26 : 18)],
           ),
           padding: const EdgeInsets.all(4),
           child: Container(
             decoration: BoxDecoration(shape: BoxShape.circle,
               gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: isDim || _armed ? const [Color(0xFFFFE9A8), Color(0xFFF5C052)] : (busy || done ? const [Color(0xFF4A2238), Color(0xFF2A1020)] : const [Color(0xFFFF9CBC), Color(0xFFF2628F)])),
+                colors: isDim ? const [Color(0xFFFFE9A8), Color(0xFFF5C052)] : (busy || done ? const [Color(0xFF4A2238), Color(0xFF2A1020)] : const [Color(0xFFFF9CBC), Color(0xFFF2628F)])),
             ),
             alignment: Alignment.center,
             // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
@@ -834,7 +850,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                 ])
               : busy
                 ? Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text('$_cooldownRemain', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 19, color: Colors.white, height: 1)),
+                    Text(ritual['icon'] as String? ?? '🙏', style: const TextStyle(fontSize: 18, height: 1)),
                     const Text('머금는 중', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 9, color: Colors.white70)),
                   ])
                 : done
@@ -844,7 +860,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
                     ])
                   : Column(mainAxisSize: MainAxisSize.min, children: [
                       Text(ritual['icon'] as String? ?? '🙏', style: const TextStyle(fontSize: 20, height: 1)),
-                      Text('${ritual['verb']} $used/$lim', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 10, color: Colors.white)),
+                      Text('${ritual['verb']}', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w800, fontSize: 10, color: Colors.white)),
                     ]),
             ),
           ),
@@ -889,6 +905,11 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
       'decayBadge': r.decayBadge, 'isMine': r.isMine, 'supportedToday': r.supportedToday,
       'absentDays': r.absentDays, 'devotionsToday': r.devotionsToday, 'devotionsRemaining': r.devotionsRemaining,
       'dailyLimit': r.dailyLimit, 'cooldownSec': r.cooldownSec, 'daysLit': r.daysLit,
+      // [버그수정 — 전수감사] 얕은 재구성 시 v5 S2 신규 필드(dayN/prayedN/stage/
+      // unlocked/pendingUnlock/lastUnlockAckDay)가 누락돼 밝기 오버라이드마다
+      // 기본값으로 리셋되던 문제 — 원본 r의 값을 그대로 전달한다.
+      'dayN': r.dayN, 'prayedN': r.prayedN, 'stage': r.stage, 'unlocked': r.unlocked,
+      'pendingUnlock': r.pendingUnlock, 'lastUnlockAckDay': r.lastUnlockAckDay,
       'equip': {
         'CANDLE': r.equip.candle, 'FLOWER': r.equip.flower, 'BACKGROUND': r.equip.background, 'SPECIAL': r.equip.special,
         'DECORATION': r.equip.decoration, 'SEAL': r.equip.seal, 'THEME': r.equip.theme,

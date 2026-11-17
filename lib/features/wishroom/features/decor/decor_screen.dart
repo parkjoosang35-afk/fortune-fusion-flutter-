@@ -846,6 +846,14 @@ class _DecorScreenState extends State<DecorScreen> {
       'dailyLimit': room.dailyLimit,
       'cooldownSec': room.cooldownSec,
       'daysLit': room.daysLit,
+      // [버그수정 — 전수감사, main_room_screen.dart _withBrightness와 동일 패턴]
+      // v5 S2 신규 필드 누락 시 미리보기/가상방에서 dayN 등이 기본값으로 리셋됨.
+      'dayN': room.dayN,
+      'prayedN': room.prayedN,
+      'stage': room.stage,
+      'unlocked': room.unlocked,
+      'pendingUnlock': room.pendingUnlock,
+      'lastUnlockAckDay': room.lastUnlockAckDay,
       'equip': equipJson,
       'layout': room.layout.map(
         (k, v) => MapEntry(k, {'x': v.x, 'y': v.y, 's': v.s}),
@@ -2431,6 +2439,13 @@ class _PlaceModeViewState extends State<_PlaceModeView> {
       'dailyLimit': room.dailyLimit,
       'cooldownSec': room.cooldownSec,
       'daysLit': room.daysLit,
+      // [버그수정 — 전수감사] v5 S2 신규 필드 누락 방지(_previewRoom과 동일 패턴).
+      'dayN': room.dayN,
+      'prayedN': room.prayedN,
+      'stage': room.stage,
+      'unlocked': room.unlocked,
+      'pendingUnlock': room.pendingUnlock,
+      'lastUnlockAckDay': room.lastUnlockAckDay,
       'equip': {
         'CANDLE': room.equip.candle,
         'FLOWER': room.equip.flower,
