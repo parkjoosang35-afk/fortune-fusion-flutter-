@@ -10,6 +10,7 @@ import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
 import 'guinji_deep_result_screen.dart';
 import '../widgets/guinji_animated_graph.dart' show parseGuinjiBirthLabel;
+import '../widgets/guinji_map_widgets.dart' show GmTempleBg;
 
 /// 08-인트로 · Deep Intro — 핸드오프 `DeepIntro`(1276~1318줄) 1:1 이식.
 ///
@@ -121,192 +122,198 @@ class _GuinjiDeepIntroScreenState extends State<GuinjiDeepIntroScreen>
 
     return Scaffold(
       backgroundColor: GmColors.bg,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // DEEP READING 라벨. [SPEC §6 H7 "메타 top 76"]
-            Positioned(
-              top: 76,
-              left: 0,
-              right: 0,
-              child: Text(
-                'DEEP READING',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: GmText.mono,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 10.5,
-                  letterSpacing: 3.5,
-                  color: GmColors.dim,
+      body: GmTempleBg(
+        child: SafeArea(
+          child: Stack(
+            children: [
+              // DEEP READING 라벨. [SPEC §6 H7 "메타 top 76"]
+              Positioned(
+                top: 76,
+                left: 0,
+                right: 0,
+                child: Text(
+                  'DEEP READING',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: GmText.mono,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10.5,
+                    letterSpacing: 3.5,
+                    color: GmColors.dim,
+                  ),
                 ),
               ),
-            ),
 
-            // 회전 오행 원 + 중앙 가로선 + 얼굴 2개 + 한자 배지.
-            Center(
-              child: SizedBox(
-                width: 320,
-                height: 320,
-                child: AnimatedBuilder(
-                  animation: Listenable.merge([
-                    _spinController,
-                    _drawController,
-                  ]),
-                  builder: (context, _) {
-                    return CustomPaint(
-                      painter: _DeepIntroPainter(
-                        color: color,
-                        hanja: meta.hanja,
-                        spin: _spinController.value,
-                        draw: _drawController.value,
-                      ),
-                      child: Stack(
-                        children: [
-                          // 왼쪽 — "나" 얼굴.
-                          Positioned(
-                            left: 160 - 62 - 34,
-                            top: 160 - 34,
-                            child: _IntroFace(
-                              facePath: myFacePath,
-                              size: 68,
-                              ringColor: Colors.white.withValues(alpha: 0.6),
-                              fallbackColor: GmColors.gold,
-                              fallbackText: widget.ownerName.isNotEmpty
-                                  ? widget.ownerName.substring(0, 1)
-                                  : '나',
-                            ),
-                          ),
-                          // 오른쪽 — 상대 얼굴.
-                          Positioned(
-                            left: 160 + 62 - 34,
-                            top: 160 - 34,
-                            child: _IntroFace(
-                              facePath: theirCharacter?.face,
-                              size: 68,
-                              ringColor: color,
-                              glowColor: color,
-                              fallbackColor: color,
-                              fallbackText: person.name.isNotEmpty
-                                  ? person.name.substring(0, 1)
-                                  : '?',
-                            ),
-                          ),
-                          // 중앙 한자 배지.
-                          Positioned(
-                            left: 160 - 15,
-                            top: 160 - 15,
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: GmColors.bg,
-                                border: Border.all(color: color),
-                                borderRadius: BorderRadius.circular(8),
+              // 회전 오행 원 + 중앙 가로선 + 얼굴 2개 + 한자 배지.
+              Center(
+                child: SizedBox(
+                  width: 320,
+                  height: 320,
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _spinController,
+                      _drawController,
+                    ]),
+                    builder: (context, _) {
+                      return CustomPaint(
+                        painter: _DeepIntroPainter(
+                          color: color,
+                          hanja: meta.hanja,
+                          spin: _spinController.value,
+                          draw: _drawController.value,
+                        ),
+                        child: Stack(
+                          children: [
+                            // 왼쪽 — "나" 얼굴.
+                            Positioned(
+                              left: 160 - 62 - 34,
+                              top: 160 - 34,
+                              child: _IntroFace(
+                                facePath: myFacePath,
+                                size: 68,
+                                ringColor: Colors.white.withValues(alpha: 0.6),
+                                fallbackColor: GmColors.gold,
+                                fallbackText: widget.ownerName.isNotEmpty
+                                    ? widget.ownerName.substring(0, 1)
+                                    : '나',
                               ),
-                              child: Text(
-                                meta.hanja,
-                                style: TextStyle(
-                                  fontFamily: GmText.display,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
-                                  color: color,
+                            ),
+                            // 오른쪽 — 상대 얼굴.
+                            Positioned(
+                              left: 160 + 62 - 34,
+                              top: 160 - 34,
+                              child: _IntroFace(
+                                facePath: theirCharacter?.face,
+                                size: 68,
+                                ringColor: color,
+                                glowColor: color,
+                                fallbackColor: color,
+                                fallbackText: person.name.isNotEmpty
+                                    ? person.name.substring(0, 1)
+                                    : '?',
+                              ),
+                            ),
+                            // 중앙 한자 배지.
+                            Positioned(
+                              left: 160 - 15,
+                              top: 160 - 15,
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: GmColors.bg,
+                                  border: Border.all(color: color),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  meta.hanja,
+                                  style: TextStyle(
+                                    fontFamily: GmText.display,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: color,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
 
-            // 타이틀 + 진행 문구 목록.
-            Positioned(
-              left: 28,
-              right: 28,
-              top: 476,
-              child: Column(
-                children: [
-                  Text(
-                    '${widget.ownerName}님과 ${person.name}님,\n두 사람의 이야기',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: GmText.display,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      height: 1.35,
-                      letterSpacing: -0.4,
-                      color: GmColors.fg,
+              // 타이틀 + 진행 문구 목록.
+              Positioned(
+                left: 28,
+                right: 28,
+                top: 476,
+                child: Column(
+                  children: [
+                    Text(
+                      '${widget.ownerName}님과 ${person.name}님,\n두 사람의 이야기',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: GmText.display,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        height: 1.35,
+                        letterSpacing: -0.4,
+                        color: GmColors.fg,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < _lines.length; i++)
-                          AnimatedOpacity(
-                            opacity: i <= _step ? 1 : 0,
-                            duration: const Duration(milliseconds: 600),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 5),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 14,
-                                    child: Text(
-                                      i < _step ? '✓' : '·',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: i < _step ? color : GmColors.dim,
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < _lines.length; i++)
+                            AnimatedOpacity(
+                              opacity: i <= _step ? 1 : 0,
+                              duration: const Duration(milliseconds: 600),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 5,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 14,
+                                      child: Text(
+                                        i < _step ? '✓' : '·',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: i < _step
+                                              ? color
+                                              : GmColors.dim,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _lines[i],
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: i < _step
-                                          ? GmColors.muted
-                                          : GmColors.dim,
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _lines[i],
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: i < _step
+                                            ? GmColors.muted
+                                            : GmColors.dim,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // 하단 CTA — 완료 전까지 비활성(투명도 35%).
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: 24,
-              child: AnimatedOpacity(
-                opacity: _done ? 1 : 0.35,
-                duration: const Duration(milliseconds: 600),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _done ? _goToResult : null,
-                    style: gmPrimary(),
-                    child: Text(_done ? '풀이 읽기' : '풀이를 준비하고 있어요'),
+              // 하단 CTA — 완료 전까지 비활성(투명도 35%).
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 24,
+                child: AnimatedOpacity(
+                  opacity: _done ? 1 : 0.35,
+                  duration: const Duration(milliseconds: 600),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _done ? _goToResult : null,
+                      style: gmPrimary(),
+                      child: Text(_done ? '풀이 읽기' : '풀이를 준비하고 있어요'),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
