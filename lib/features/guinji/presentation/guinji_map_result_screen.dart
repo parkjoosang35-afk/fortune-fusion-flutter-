@@ -658,11 +658,10 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
                     child: _GuinjiTypeGuideSection(
                       people: widget.people,
-                      onTapType: (key) {
-                        // 해당 유형으로 필터 후 랭킹 화면 2번째 탭으로
-                        // 이동(상세 유형 안내 시트는 후속 작업).
-                        setState(() => _filter = key);
-                      },
+                      // [SPEC §6 H4 9번] 카드 탭 시 지도 바깥 인장 탭과
+                      // 동일한 분기(_handleTypeTap)를 재사용한다: 인원이
+                      // 있으면 필터 토글, 없으면 H4-b 유형 안내 시트.
+                      onTapType: _handleTypeTap,
                     ),
                   ),
 

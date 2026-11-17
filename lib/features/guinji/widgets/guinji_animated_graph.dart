@@ -418,6 +418,19 @@ class _GuinjiAnimatedRelationGraphState
             },
             onTapUp: (details) {
               if (_moved) return;
+              // 제스처 아레나 특성상 "이동 없는 단순 탭"은 onScaleStart/End가
+              // 호출되지 않고 onTapUp만 발동한다. 따라서 노드(얼굴) 탭 선택
+              // 판정도 여기서 함께 처리해야 한다(드래그 종료 후 선택은
+              // onScaleEnd가 계속 담당).
+              final n = _hitTestNode(details.localPosition);
+              if (n != null) {
+                final tapped = n.person;
+                setState(() {
+                  _selected = _selected == tapped ? null : tapped;
+                });
+                widget.onSelect?.call(tapped);
+                return;
+              }
               final type = _hitTestTypeLegend(details.localPosition);
               if (type != null) {
                 widget.onTypeTap?.call(type);
