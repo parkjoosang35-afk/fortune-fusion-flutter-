@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/router/main_bottom_nav_bar.dart';
 import '../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../core/widgets/zoomable_content.dart';
 import '../../share/application/share_service.dart';
@@ -155,6 +156,17 @@ class GuinjiGuestResultScreen extends StatelessWidget {
           title: '게스트 결과',
           onBack: () => Navigator.of(context).maybePop(),
         ),
+        // [2026-12 보강 — G2/W2 하단탭바 누락 수정] QA_CHECKLIST.md §1
+        // 전역 규칙 "앱 화면 전부 하단 탭바 노출, '홈' 활성"은 예외 없이
+        // 모든 화면에 적용되고, SPEC.md §6 G2 구성 목록(1~8)에도 하단탭바를
+        // 제외하라는 명시적 지시가 없다. 이 화면은 named route 체계 밖에서
+        // `MaterialPageRoute`로 직접 push되어 `wrapWithGlobalBottomNav()`
+        // 셸의 적용을 받지 못했던 것이 원인이었다 — G1(`guinji_map_guest_
+        // join_screen.dart`)이 이미 동일한 이유로 `MainBottomNavBar`를
+        // 직접 갖고 있는 것과 같은 패턴으로 여기에도 추가한다. "자동 전환
+        // 금지"(결과 화면 체류 자체) 절대 원칙과는 무관 — 하단탭바는 사용자가
+        // 직접 누를 때만 탭을 전환한다.
+        bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
         // [2026-12 보강 — SPEC §2 `bgGlow` 전역 배경] `design_files/
         // guinji-guest.jsx`의 `GsResult`(105줄~)는 공유 셸 `GsShell`
         // (18줄 `<TpBg />`)로 래핑돼 G2/W2 모두 이 배경을 공유한다.

@@ -350,7 +350,8 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                         child: TextButton(
                           onPressed: () => Navigator.of(sheetContext).pop(),
                           style: TextButton.styleFrom(
-                            backgroundColor: GiColors.glow,
+                            // [SPEC.md §2 전역 버튼색 — G1/W1 적용]
+                            backgroundColor: GiColors.primary,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
@@ -363,7 +364,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
                             style: TextStyle(
                               fontFamily: GiFonts.body,
                               fontWeight: FontWeight.w700,
-                              color: GiColors.bg1,
+                              color: GiColors.onPrimary,
                             ),
                           ),
                         ),
@@ -1466,12 +1467,17 @@ class _GiCtaButtonState extends State<_GiCtaButton> {
           child: Container(
             height: 54,
             decoration: BoxDecoration(
-              color: GiColors.glow,
+              // [2026-12 보강 — G1/W1 디자인체계 충돌 해소, 사용자 결정:
+              // "노란색으로 간다"] SPEC.md §2 전역 primary(`#FEE500`)로
+              // 통일. 기존 `GiColors.glow`(촛불 금색)는 장식·강조
+              // 텍스트에만 남기고, 이 화면의 유일한 주요 CTA 버튼은
+              // QA_CHECKLIST.md §1 기준에 맞춘다.
+              color: GiColors.primary,
               borderRadius: BorderRadius.circular(GiRadius.field),
               boxShadow: widget.enabled
                   ? const [
                       BoxShadow(
-                        color: Color(0x59F5CF6A),
+                        color: Color(0x47FEE500), // rgba(254,229,0,.28)
                         blurRadius: 24,
                         offset: Offset(0, 4),
                       ),
@@ -1485,7 +1491,7 @@ class _GiCtaButtonState extends State<_GiCtaButton> {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.4,
-                      color: GiColors.bg1,
+                      color: GiColors.onPrimary,
                     ),
                   )
                 : Row(
@@ -1497,7 +1503,7 @@ class _GiCtaButtonState extends State<_GiCtaButton> {
                           fontFamily: GiFonts.display,
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
-                          color: GiColors.bg1,
+                          color: GiColors.onPrimary,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1508,7 +1514,7 @@ class _GiCtaButtonState extends State<_GiCtaButton> {
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                           letterSpacing: 0.02,
-                          color: GiColors.bg1,
+                          color: GiColors.onPrimary,
                         ),
                       ),
                     ],

@@ -29,9 +29,20 @@ class GiColors {
   static const mutedFaintest = Color(
     0x52E8DCC8,
   ); // rgba(232,220,200,.32) placeholder
-  static const glow = Color(0xFFF5CF6A); // 촛불 금색 — 강조·CTA·선택
+  static const glow = Color(0xFFF5CF6A); // 촛불 금색 — 텍스트 강조·장식용(버튼 아님)
   static const glowShadow = Color(0x59F5CF6A); // rgba(245,207,106,.35)
   static const glowShadowSoft = Color(0x24F5CF6A); // rgba(245,207,106,.14) 보더
+  // [2026-12 보강 — G1/W1 디자인체계 충돌 해소, 사용자 결정: "노란색으로
+  // 간다"] SPEC.md §2 `primary`/`onPrimary`(`#FEE500`/`#191600`)와
+  // QA_CHECKLIST.md §1 "모든 주요 버튼이 #FEE500 / 글자 #191600 (로즈골드
+  // ·금색·흰색 버튼 0곳)"은 전역 규칙이다. 이 화면(G1/W1)은 격리된 전용
+  // 팔레트(GiColors)를 쓰지만, 원본 시안 `guinji-temple.jsx`의 `TpBtn`도
+  // kind='gold' 기본값이 실제로는 `#FEE500`/`#191600`이라 전역 규칙과
+  // 모순되지 않는다 — 이 화면의 "주요 버튼"(CTA)만 아래 토큰으로 바꾸고,
+  // `glow`(촛불 금색)는 장식·강조 텍스트·체크박스 등 버튼이 아닌 용도로
+  // 계속 사용한다.
+  static const primary = Color(0xFFFEE500);
+  static const onPrimary = Color(0xFF191600);
   static const crystal = Color(0xFF8DBFD6);
   static const accent = Color(0xFFC94A3B); // 인장 빨강
   static const card = Color(0x0DFFEBC8); // rgba(255,235,200,.05)
