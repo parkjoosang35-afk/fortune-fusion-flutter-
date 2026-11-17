@@ -2928,7 +2928,8 @@
    "label": "함께 빌기",
    "amount": 1,
    "limit": 5,
-   "sub": "CHEER · 1일 5회"
+   "sub": "CHEER · 1일 5회",
+   "auto": true
   },
   {
    "id": "ad",
@@ -2950,7 +2951,8 @@
    "label": "대리 기도 받기",
    "amount": 3,
    "limit": 15,
-   "sub": "DISPATCH · 최대 15"
+   "sub": "DISPATCH · 최대 15",
+   "auto": true
   }
  ],
  "WISH_TEMPLATES": [

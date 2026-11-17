@@ -80,8 +80,26 @@ class WishRoom {
   final double brightness;       // §6.2  1.0 / .8 / .5 / .3 / .2 (아이템 decay 효과로 하한 상승)
   final String decayLabel;
   final bool decayBadge, isMine, supportedToday;
+  // [v5 S1] ⚠️ 필드명 유지 + 의미 변경(CHECKLIST.md v5 지시, 서버 수정과 짝을 맞춤 —
+  // wishroom-engine.ts roomView() 참고):
+  //   dailyLimit        : 과거 "하루 최대 10회" → 이제 사실상 1(하루 1회 기도).
+  //   devotionsToday/Remaining : 과거 "오늘 올린 횟수/남은 횟수" → 이제 0 또는 1
+  //                              (오늘 기도했는지 여부를 0/1로만 표현).
+  //   cooldownSec       : 과거 "다음 기도까지 남은 초 단위 쿨타임(30초)" → v5에서는
+  //                        쿨타임 개념 자체가 폐기되어 서버가 항상 0을 내려준다.
+  //   cooldownUntil     : 과거 "쿨타임 끝나는 시각(몇 초 뒤)" → 이제 "다음 날 KST 자정"
+  //                        (오늘 이미 기도했을 때만 값이 채워짐, 안 했으면 null/0).
   final int absentDays, devotionsToday, devotionsRemaining, dailyLimit, cooldownSec, daysLit;
   final DateTime? cooldownUntil, completedAt, cancelUntil, createdAt;
+  // [v5 S2 신규 — 매핑표 00-C UNLOCK SPEC] 날짜별 열림. dayN=방 생성일부터 경과일,
+  // prayedN=기도한 날 수(=devotionCount), stage=app3/flow.js stageIdx(n)(-1=기도 전).
+  // unlocked=현재 열려 있는 기능 키 목록(ack 여부 무관), pendingUnlock=아직 ack 안 한
+  // 것 중 순서상 첫 번째(하루 1장만, null이면 보여줄 카드 없음), lastUnlockAckDay=
+  // 마지막으로 열림 카드를 확인(ack)한 날짜(KST 'YYYY-MM-DD').
+  final int dayN, prayedN, stage;
+  final List<String> unlocked;
+  final String? pendingUnlock;
+  final String? lastUnlockAckDay;
   final Equip equip;
   final Map<String, LayoutPos> layout;
   final Effects effects;
@@ -110,9 +128,13 @@ class WishRoom {
         points = (j['points'] as num).toDouble(), levelName = j['levelName'], curLevelPts = j['curLevelPts'],
         nextLevelPts = j['nextLevelPts'], brightness = (j['brightness'] as num).toDouble(), decayLabel = j['decayLabel'] ?? '',
         decayBadge = j['decayBadge'] ?? false, isMine = j['isMine'] ?? false, supportedToday = j['supportedToday'] ?? false,
-        absentDays = j['absentDays'] ?? 0, devotionsToday = j['devotionsToday'] ?? 0, devotionsRemaining = j['devotionsRemaining'] ?? 10,
-        dailyLimit = j['dailyLimit'] ?? 10, cooldownSec = j['cooldownSec'] ?? 30, daysLit = j['daysLit'] ?? 1,
+        absentDays = j['absentDays'] ?? 0, devotionsToday = j['devotionsToday'] ?? 0, devotionsRemaining = j['devotionsRemaining'] ?? 1,
+        dailyLimit = j['dailyLimit'] ?? 1, cooldownSec = j['cooldownSec'] ?? 0, daysLit = j['daysLit'] ?? 1,
         cooldownUntil = _ts(j['cooldownUntil']), completedAt = _ts(j['completedAt']), cancelUntil = _ts(j['cancelUntil']), createdAt = _ts(j['createdAt']),
+        dayN = j['dayN'] ?? 1, prayedN = j['prayedN'] ?? 0, stage = j['stage'] ?? -1,
+        unlocked = List<String>.from(j['unlocked'] ?? const []),
+        pendingUnlock = j['pendingUnlock'] as String?,
+        lastUnlockAckDay = j['lastUnlockAckDay'] as String?,
         equip = Equip.fromJson(Map<String, dynamic>.from(j['equip'] ?? const {})),
         layout = (Map<String, dynamic>.from(j['layout'] ?? const {})).map((k, v) => MapEntry(k, LayoutPos.fromJson(Map<String, dynamic>.from(v)))),
         effects = Effects.fromJson(j['effects'] == null ? null : Map<String, dynamic>.from(j['effects'])),
@@ -127,6 +149,9 @@ class WishRoom {
   double get levelProgress => nextLevelPts == null ? 1 : ((points - curLevelPts) / (nextLevelPts! - curLevelPts)).clamp(0, 1).toDouble();
   bool get readOnly => status == RoomStatus.SEALED || status == RoomStatus.ARCHIVED;
   bool get sacred => theme != WrTheme.free; // 교회·법당·신당 — 창밖 배경·Lv 해금 오브젝트·촛불 교체 숨김
+  /// [v5 S2] 매핑표 00-C — 하단바/메뉴 잠금 표시(🔒)에 사용. 서버 unlocked[]에 키가
+  /// 있으면 열린 것(ack 여부 무관) — 서버 open(k) 로직과 1:1(wishroom-engine.ts computeUnlockView).
+  bool isFeatureUnlocked(String key) => unlocked.contains(key);
 }
 
 class Me {

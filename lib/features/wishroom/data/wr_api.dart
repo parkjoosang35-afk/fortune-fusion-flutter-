@@ -20,7 +20,7 @@ abstract class WrRepository {
   Future<WishRoom> createRoom({required String text, required String char, required String sealUntil, Visibility visibility, WrTheme theme, String wishColor, String paper, bool force});   // 1 POST /wish-rooms
   Future<MyRoomResponse> myRoom();                                                                              // 2 GET  /wish-rooms/me
   Future<WishRoom> room(String id);                                                                             // 3 GET  /wish-rooms/{id}
-  Future<DevotionResult> devote(String id);                                                                     // 4 POST /wish-rooms/{id}/devotions
+  Future<DevotionResult> devote(String id, {int? heldMs});                                                      // 4 POST /wish-rooms/{id}/devotions — v5 S1: heldMs(ms) 버튼 누르고 있던 시간, 3초 hold 검증용
   Future<(WishRoom, Map<String, dynamic>?)> support(String id);                                                 // 5 POST /wish-rooms/{id}/supports
   Future<List<WrComment>> comments(String id);                                                                  // 6 GET  /wish-rooms/{id}/comments
   Future<WrComment> postComment(String id, String text);                                                        // 6 POST /wish-rooms/{id}/comments
@@ -157,7 +157,8 @@ class ApiRepository implements WrRepository {
     return MyRoomResponse.fromJson(raw);
   }
   @override Future<WishRoom> room(String id) async => WishRoom.fromJson(_m(await _req('GET', '/wish-rooms/$id')));
-  @override Future<DevotionResult> devote(String id) async => DevotionResult.fromJson(_m(await _req('POST', '/wish-rooms/$id/devotions')));
+  @override Future<DevotionResult> devote(String id, {int? heldMs}) async =>
+      DevotionResult.fromJson(_m(await _req('POST', '/wish-rooms/$id/devotions', heldMs == null ? null : {'heldMs': heldMs})));
   @override Future<(WishRoom, Map<String, dynamic>?)> support(String id) async { final d = _m(await _req('POST', '/wish-rooms/$id/supports')); return (WishRoom.fromJson(_m(d['room'])), d['reward'] == null ? null : _m(d['reward'])); }
   @override Future<List<WrComment>> comments(String id) async => _l(await _req('GET', '/wish-rooms/$id/comments'), WrComment.fromJson);
   @override Future<WrComment> postComment(String id, String text) async => WrComment.fromJson(_m(await _req('POST', '/wish-rooms/$id/comments', {'text': text})));

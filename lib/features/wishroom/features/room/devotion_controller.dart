@@ -36,7 +36,14 @@ class DevotionController extends ChangeNotifier {
   /// onWashDone(t1.7): boost2+화면 wash2s+`RITUAL.done` 캡션.
   /// onQuote(t2.3): 말씀 카드(RITUAL.quotes 랜덤 1개).
   /// onDone(t2.9): 연출 끝 — 레벨업 오버레이 또는 보상 시트.
+  ///
+  /// [v5 S1] heldMs — 호출부(MainRoomScreen._onHoldDown/_onHoldUp)가 버튼을 실제로
+  /// 누르고 있던 시간(ms)을 측정해 전달한다(app3/flow.js pray(heldMs) 1:1). 이
+  /// 타임라인(shake→...→end)은 여전히 "서버 POST 성공 이후"에 재생되는 연출일 뿐,
+  /// "3초 꾹 누르기" 자체는 호출부가 devote()를 부르기 **전에** 이미 끝낸 뒤라는
+  /// 점에 유의 — 서버는 heldMs < holdMinMs(2.9s)일 때만 HOLD_SHORT로 거절한다.
   Future<void> devote(String roomId, {
+    int? heldMs,
     required VoidCallback onShakeBurst,
     required void Function(DevotionGain? gain) onItemBurst,
     required VoidCallback onPetalButterfly,
@@ -50,7 +57,7 @@ class DevotionController extends ChangeNotifier {
     onShakeBurst();
     late DevotionResult res;
     try {
-      res = await repo.devote(roomId);
+      res = await repo.devote(roomId, heldMs: heldMs);
     } on ApiError catch (e) {
       _set(DevotionPhase.idle);
       onError(e);

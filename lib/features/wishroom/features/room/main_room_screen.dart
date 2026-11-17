@@ -41,8 +41,17 @@ class MainRoomScreen extends StatefulWidget {
   State<MainRoomScreen> createState() => _MainRoomScreenState();
 }
 
-class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObserver {
+class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   late DevotionController _devotion;
+  // [v5 S1] 3초 hold 정성 버튼 — app3/home.jsx down()/tick()/up() 1:1 이식.
+  // 버튼을 누르고 있는 동안 AnimationController로 0→1(= RULES.holdMs, 서버 기준
+  // WrCatalog.I.devotionRule['holdMs'] 3000ms) 진행시키고, 끝까지 채우면 자동으로
+  // _onDevote(heldMs: holdMs)를 호출한다(= 원본의 "손을 떼지 않아도 3초가 되면
+  // 자동 완료"). 3초 전에 손을 떼면(onTapUp/onTapCancel) 서버에 보내지 않고 취소만
+  // 한다 — "조금만 더 머물러 주세요" 피드백.
+  AnimationController? _holdCtrl;
+  bool _holdEarly = false; // 3초 전에 손을 뗐을 때 잠깐 보여주는 안내(app3 setEarly(true) 1:1).
+  Timer? _holdEarlyTimer;
   Timer? _cooldownTicker;
   int _cooldownRemain = 0;
   // [전수검수 2026-10-12 — MAJOR] 서버가 쿨다운 중에도 cooldownUntil을
@@ -128,6 +137,8 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     _devotion.dispose();
     _cooldownTicker?.cancel();
     _speechTimer?.cancel();
+    _holdCtrl?.dispose();
+    _holdEarlyTimer?.cancel();
     super.dispose();
   }
 
@@ -182,7 +193,10 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   /// A-4 `devote()` 타임라인 — 0.0 shake+wash+촛불 링3+금빛버스트26+꽃잎버스트10 ·
   /// 0.3 boost1 · 0.7 버스트18+빛나선26+`+1 {verb}`+아이템 기운 보너스 ·
   /// 1.1 꽃잎22+나비4 · 1.7 boost2+wash2s+RITUAL.done · 2.3 말씀카드 · 2.9 끝.
-  Future<void> _onDevote() async {
+  ///
+  /// [v5 S1] heldMs — 정성 버튼을 실제로 누르고 있던 시간(ms, app3/home.jsx
+  /// `performance.now() - t0.current` 1:1). _onHoldDown/_onHoldUp이 측정해 넘긴다.
+  Future<void> _onDevote({int? heldMs}) async {
     final p = context.read<WishRoomProvider>();
     final room = p.room;
     if (room == null || _devotion.busy) return;
@@ -190,7 +204,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     final cat = WrCatalog.I;
     final ritual = cat.ritual(room.theme);
     final verb = ritual['verb'] as String? ?? '정성';
-    await _devotion.devote(room.id,
+    await _devotion.devote(room.id, heldMs: heldMs,
       // t0.0 — 화면전체 금빛 wash 1.2s + 촛불 링3개(140px, 0/.15/.3s 스태거) +
       // 금빛 버스트26(spread190,1.4s) + 꽃잎 버스트10(glyph). app2/screens-a2.jsx devote() 230-234줄 1:1.
       onShakeBurst: () {
@@ -259,27 +273,27 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
         if (res.leveledUp) {
           _showLevelUp(res.room.level);
         } else {
-          final is10th = res.room.devotionsToday >= res.room.dailyLimit && res.bonus > 0;
+          // [v5 S1] dailyLimit은 이제 사실상 1(하루 1회) — "10회째" 판정을 7일
+          // 연속 보너스(res.bonus>0) 유무로만 구분한다. 매핑표 00-A ②"하루한번3초".
+          final streakBonus = res.bonus > 0;
           // [명세] showModalBottomSheet 대신 Stack 오버레이로 설정 — quote(z95)가 이
           // reward(z88/89) 위에 겹쳐 보이는 원본 레이어링을 재현하기 위함.
           setState(() => _reward = {
-            'title': is10th ? '$verb 10회를 채웠어요' : '소원방이 더욱 빛나고 있어요',
-            'sub': 'DEVOTION · ${res.room.devotionsToday.toString().padLeft(2, '0')} / ${res.room.dailyLimit}',
-            'body': is10th ? '복주머니 +${res.bonus}' : null,
+            'title': streakBonus ? '7일 연속 $verb를 채웠어요' : '소원방이 더욱 빛나고 있어요',
+            'sub': 'DEVOTION · ${res.room.prayedN}일째',
+            'body': streakBonus ? '복주머니 +${res.bonus}' : null,
             'bonus': res.bonus,
             'cta': '확인', // A-4 devote() 보상시트 CTA — docs A_인트로…md 134줄(rekindle()의 '오늘도 정성 들이기'와 구분).
           });
         }
       },
       onError: (e) {
-        if (e.code == 'COOLDOWN' && e.retryAfter != null) {
-          setState(() => _cooldownRemain = e.retryAfter!);
-          // [전수검수 2026-10-12] 로컬 쿨다운 deadline 기록 — 서버가
-          // cooldownUntil 없이 거부할 때 티커가 이 값을 쓴다.
-          _cooldownDeadline = DateTime.now().add(Duration(seconds: e.retryAfter!));
-          WrToast.show(context, '촛불이 $verb를 머금는 중이에요 · ${e.retryAfter}초');
-        } else if (e.code == 'DAILY_LIMIT') {
-          WrToast.show(context, '오늘의 정성을 모두 담았어요');
+        // [v5 S1] 서버 코드 변경(app3/flow.js pray() 1:1): COOLDOWN/DAILY_LIMIT →
+        // ALREADY_TODAY(429, 오늘 이미 기도함) · HOLD_SHORT(400, 3초 미만 hold).
+        if (e.code == 'ALREADY_TODAY') {
+          WrToast.show(context, '오늘의 기도는 이미 올렸어요');
+        } else if (e.code == 'HOLD_SHORT') {
+          WrToast.show(context, '조금만 더 머물러 주세요');
         } else {
           WrToast.show(context, e.message);
         }
