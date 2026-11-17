@@ -223,9 +223,7 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
           onSeeMore: () {
             Navigator.of(rootContext).maybePop();
             Navigator.of(rootContext).push(
-              guinjiPageRoute(
-                GuinjiMapRelationDetailScreen(person: newPerson),
-              ),
+              guinjiPageRoute(GuinjiMapRelationDetailScreen(person: newPerson)),
             );
           },
         );
@@ -299,8 +297,11 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Expanded(
+                                    // [2026-12 보강 — COPY.md H10 "title" 대조]
+                                    // 기존 "지인 정보 직접 입력"을 원문
+                                    // "직접 입력해서 추가"로 교정한다.
                                     child: Text(
-                                      '지인 정보 직접 입력',
+                                      '직접 입력해서 추가',
                                       style: TextStyle(
                                         fontFamily: GmText.display,
                                         fontSize: 22,
@@ -336,8 +337,11 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
                                 ],
                               ),
                               const SizedBox(height: 8),
+                              // [2026-12 보강 — COPY.md H10 "sub" 대조] 원문
+                              // "생년월일을 알고 있다면 초대 없이 바로 볼 수
+                              // 있어요"로 교정한다.
                               const Text(
-                                '초대 링크 없이 지인의 정보를 바로 입력하면\n곧바로 관계를 확인할 수 있어요.',
+                                '생년월일을 알고 있다면 초대 없이 바로 볼 수 있어요',
                                 style: TextStyle(
                                   fontFamily: GmText.ui,
                                   fontWeight: FontWeight.w600,
@@ -358,7 +362,12 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
                           border: Border(top: BorderSide(color: GmColors.hair)),
                         ),
                         child: GmPrimaryButton(
-                          label: _submitting ? '등록하는 중…' : '관계 확인하기',
+                          // [2026-12 보강 — COPY.md H10 "cta.ok" 대조] 원문
+                          // "관계 보고 지도에 띄우기"로 교정한다(loading=true일
+                          // 때는 GmPrimaryButton이 라벨 대신 스피너만
+                          // 렌더링하므로 '등록하는 중…' 문자열은 화면에
+                          // 보이지 않는다 — 기존 세션에서 실측 확인됨).
+                          label: _submitting ? '등록하는 중…' : '관계 보고 지도에 띄우기',
                           loading: _submitting,
                           onPressed: (_canSubmit && !_submitting)
                               ? _handleSubmit
@@ -380,192 +389,198 @@ class _GuinjiDirectInputScreenState extends State<GuinjiDirectInputScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-            const GmFieldLabel('지인의 이름 · 별칭'),
-            const SizedBox(height: 6),
-            GmFieldShell(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: TextField(
-                controller: _nameController,
-                maxLength: 20,
-                onChanged: (_) => setState(() {}),
-                style: const TextStyle(
-                  fontFamily: GmText.ui,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: GmColors.fg,
+        // [2026-12 보강 — COPY.md H10 "f.name" 대조] 라벨 "이름" ·
+        // placeholder "예) 엄마, 김지민"으로 교정한다(원본
+        // `design_files/guinji-temple.jsx`의 `TpAddSheet`도 동일).
+        const GmFieldLabel('이름'),
+        const SizedBox(height: 6),
+        GmFieldShell(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: TextField(
+            controller: _nameController,
+            maxLength: 20,
+            onChanged: (_) => setState(() {}),
+            style: const TextStyle(
+              fontFamily: GmText.ui,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: GmColors.fg,
+            ),
+            decoration: const InputDecoration(
+              isDense: true,
+              counterText: '',
+              hintText: '예) 엄마, 김지민',
+              hintStyle: TextStyle(color: GmColors.dim),
+              border: InputBorder.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        const GmFieldLabel('성별'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _GdGenderSegment(
+              label: '여성',
+              active: _gender == 'female',
+              onTap: () => setState(() => _gender = 'female'),
+            ),
+            const SizedBox(width: 8),
+            _GdGenderSegment(
+              label: '남성',
+              active: _gender == 'male',
+              onTap: () => setState(() => _gender = 'male'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        const GmFieldLabel('생년월일'),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            // [2026-12 보강 — COPY.md H10 "f.birth" 대조] 원문
+            // "생년월일(1990 / 월 / 일)"에 맞춰 placeholder를 교정한다
+            // (원본 jsx `TpAddSheet`의 input placeholder와 동일).
+            Expanded(
+              flex: 7,
+              child: _GdNumberBox(
+                controller: _yearController,
+                placeholder: '1990',
+                maxLength: 4,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 5,
+              child: _GdNumberBox(
+                controller: _monthController,
+                placeholder: '월',
+                maxLength: 2,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 5,
+              child: _GdNumberBox(
+                controller: _dayController,
+                placeholder: '일',
+                maxLength: 2,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        const GmFieldLabel('양력/음력'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var i = 0; i < _calendarChips.length; i++)
+              _GdCalendarChip(
+                label: _calendarChips[i],
+                active: _calendarIndex == i,
+                onTap: () => setState(() => _calendarIndex = i),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        const GmFieldLabel('태어난 시간'),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: _GdNumberBox(
+                controller: _hourController,
+                placeholder: '09',
+                maxLength: 2,
+                enabled: !_timeUnknown,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _GdNumberBox(
+                controller: _minuteController,
+                placeholder: '20',
+                maxLength: 2,
+                enabled: !_timeUnknown,
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () => setState(() => _timeUnknown = !_timeUnknown),
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: _timeUnknown ? GmColors.fg : Colors.transparent,
+                  border: Border.all(
+                    color: _timeUnknown ? GmColors.fg : GmColors.line,
+                  ),
                 ),
-                decoration: const InputDecoration(
-                  isDense: true,
-                  counterText: '',
-                  hintText: '어떻게 불릴까요',
-                  hintStyle: TextStyle(color: GmColors.dim),
-                  border: InputBorder.none,
+                child: Text(
+                  _timeUnknown ? '✓ 시간 모름' : '시간 모름',
+                  style: TextStyle(
+                    fontFamily: GmText.ui,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _timeUnknown ? GmColors.onFg : GmColors.muted,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            const GmFieldLabel('성별'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _GdGenderSegment(
-                  label: '여성',
-                  active: _gender == 'female',
-                  onTap: () => setState(() => _gender = 'female'),
-                ),
-                const SizedBox(width: 8),
-                _GdGenderSegment(
-                  label: '남성',
-                  active: _gender == 'male',
-                  onTap: () => setState(() => _gender = 'male'),
-                ),
-              ],
+          ],
+        ),
+        if (_timeUnknown) ...[
+          const SizedBox(height: 8),
+          const Text(
+            '태어난 시간을 몰라요. 3기둥으로 계산합니다(정확도 다소 낮아짐).',
+            style: TextStyle(
+              fontFamily: GmText.ui,
+              fontWeight: FontWeight.w600,
+              fontSize: 11.5,
+              color: GmColors.muted,
+              height: 1.5,
             ),
-            const SizedBox(height: 16),
+          ),
+        ],
 
-            const GmFieldLabel('생년월일'),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  flex: 7,
-                  child: _GdNumberBox(
-                    controller: _yearController,
-                    placeholder: '1998',
-                    maxLength: 4,
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: GmColors.line),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('✦', style: TextStyle(fontSize: 13, color: GmColors.gold)),
+              SizedBox(width: 10),
+              // [2026-12 보강 — COPY.md H10 "note" 대조] 원문
+              // "직접 입력한 인연은 나만 볼 수 있어요. 태어난 시간은
+              // 몰라도 괜찮아요."로 교정한다.
+              Expanded(
+                child: Text(
+                  '직접 입력한 인연은 나만 볼 수 있어요. 태어난 시간은 몰라도 괜찮아요.',
+                  style: TextStyle(
+                    fontFamily: GmText.ui,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    height: 1.6,
+                    color: GmColors.muted,
                   ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 5,
-                  child: _GdNumberBox(
-                    controller: _monthController,
-                    placeholder: '05',
-                    maxLength: 2,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 5,
-                  child: _GdNumberBox(
-                    controller: _dayController,
-                    placeholder: '14',
-                    maxLength: 2,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            const GmFieldLabel('양력/음력'),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var i = 0; i < _calendarChips.length; i++)
-                  _GdCalendarChip(
-                    label: _calendarChips[i],
-                    active: _calendarIndex == i,
-                    onTap: () => setState(() => _calendarIndex = i),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            const GmFieldLabel('태어난 시간'),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: _GdNumberBox(
-                    controller: _hourController,
-                    placeholder: '09',
-                    maxLength: 2,
-                    enabled: !_timeUnknown,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: _GdNumberBox(
-                    controller: _minuteController,
-                    placeholder: '20',
-                    maxLength: 2,
-                    enabled: !_timeUnknown,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () => setState(() => _timeUnknown = !_timeUnknown),
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: _timeUnknown ? GmColors.fg : Colors.transparent,
-                      border: Border.all(
-                        color: _timeUnknown ? GmColors.fg : GmColors.line,
-                      ),
-                    ),
-                    child: Text(
-                      _timeUnknown ? '✓ 시간 모름' : '시간 모름',
-                      style: TextStyle(
-                        fontFamily: GmText.ui,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _timeUnknown ? GmColors.onFg : GmColors.muted,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (_timeUnknown) ...[
-              const SizedBox(height: 8),
-              const Text(
-                '태어난 시간을 몰라요. 3기둥으로 계산합니다(정확도 다소 낮아짐).',
-                style: TextStyle(
-                  fontFamily: GmText.ui,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11.5,
-                  color: GmColors.muted,
-                  height: 1.5,
                 ),
               ),
             ],
-
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: GmColors.line),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '✦',
-                    style: TextStyle(fontSize: 13, color: GmColors.gold),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '지인의 생년월일로 바로 관계를 계산해요. 초대 링크는 발송되지 않아요.',
-                      style: TextStyle(
-                        fontFamily: GmText.ui,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        height: 1.6,
-                        color: GmColors.muted,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ),
+        ),
 
         if (_formError != null) ...[
           const SizedBox(height: 12),

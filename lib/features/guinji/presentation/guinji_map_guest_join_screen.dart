@@ -530,7 +530,9 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
         _GiExplainCard(hostName: _hostName),
         const SizedBox(height: 22),
 
-        _GiFieldLabel('이름 · 닉네임'),
+        // [2026-12 보강 — COPY.md G1 "f.name" 라벨은 "이름"] 기존 "이름 ·
+        // 닉네임"에서 라벨을 COPY.md 원문에 맞춘다.
+        _GiFieldLabel('이름'),
         const SizedBox(height: 8),
         _GiTextField(
           controller: _nameController,
@@ -917,8 +919,11 @@ class _InvitationTopBar extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 Positioned(left: 16, child: _TopBarBackButton(onTap: onBack)),
+                // [2026-12 보강 — COPY.md G1 "bar.title (앱) = 귀인지도 초대"
+                // 대조] 기존 "귀인지도 참여"는 COPY.md/원본 jsx(`title="귀인지도
+                // 초대"`)와 다른 문구였다.
                 const Text(
-                  '귀인지도 참여',
+                  '귀인지도 초대',
                   style: TextStyle(
                     fontFamily: GiFonts.body,
                     fontWeight: FontWeight.w700,

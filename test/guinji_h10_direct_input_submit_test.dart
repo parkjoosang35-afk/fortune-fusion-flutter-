@@ -158,8 +158,8 @@ void main() {
 
       // 제출 버튼 탭 — 아직 gate.complete()를 호출하지 않았으므로
       // addMemberDirect()는 pending 상태로 멈춰 있어야 한다.
-      expect(find.text('관계 확인하기'), findsOneWidget);
-      await tester.tap(find.text('관계 확인하기'));
+      expect(find.text('관계 보고 지도에 띄우기'), findsOneWidget);
+      await tester.tap(find.text('관계 보고 지도에 띄우기'));
       await tester.pump(); // setState(_submitting = true) 반영
 
       // [핵심 발견 — GmPrimaryButton 구현 확인]

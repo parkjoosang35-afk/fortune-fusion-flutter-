@@ -10,6 +10,7 @@ import '../deep/guinji_reasons.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
 import '../theme/guinji_map_theme.dart';
+import '../theme/guinji_type_spec.dart' show gradeOf;
 import '../widgets/guinji_animated_graph.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_host_welcome_screen.dart';
@@ -151,9 +152,11 @@ class GuinjiGuestResultScreen extends StatelessWidget {
     return ResultTextScaleOverlay(
       child: Scaffold(
         backgroundColor: GmColors.bg,
+        // [2026-12 보강 — COPY.md G2 "bar.title (앱) = 관계 결과" 대조]
+        // 기존 "게스트 결과"는 COPY.md와 다른 문구였다.
         appBar: GmTopBar(
           back: true,
-          title: '게스트 결과',
+          title: '관계 결과',
           onBack: () => Navigator.of(context).maybePop(),
         ),
         // [2026-12 보강 — G2/W2 하단탭바 누락 수정] QA_CHECKLIST.md §1
@@ -853,9 +856,13 @@ class _GuestResultCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          const Text(
-            '관계 케미 점수',
-            style: TextStyle(fontSize: 10.5, color: GmColors.dim),
+          // [2026-12 보강 — COPY.md G2 "score = 케미 점수 · {등급}등급 +
+          // {유형 설명}" 대조] 기존에는 등급(S/A/B/C/D)이 전혀 표시되지
+          // 않았다 — H5(guinji_node_sheet.dart)와 동일한 gradeOf(score)를
+          // 재사용해 추가한다.
+          Text(
+            '케미 점수 · ${gradeOf(score)}등급',
+            style: const TextStyle(fontSize: 10.5, color: GmColors.dim),
           ),
           const SizedBox(height: 14),
           Text(
