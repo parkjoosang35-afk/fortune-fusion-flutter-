@@ -147,6 +147,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   /// 채워지면(AnimationStatus.completed) 자동으로 _onDevote(heldMs: holdMs)를
   /// 호출한다.
   void _onHoldDown(WishRoom room) {
+    debugPrint('WR_DEBUG onHoldDown t=${DateTime.now().millisecondsSinceEpoch} fired devotionsToday=${room.devotionsToday} busy=${_devotion.busy} rekindling=$_rekindling');
     if (room.devotionsToday >= 1 || _devotion.busy || _rekindling) return;
     _holdEarlyTimer?.cancel();
     setState(() => _holdEarly = false);
@@ -157,7 +158,14 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     HapticFeedback.lightImpact();
     // 링게이지(_bottomDock deg)·방 boost·말풍선 문구가 매 프레임 진행률을
     // 반영해야 하므로 틱마다 setState (app3 tick()의 setProg(p) 1:1).
-    ctrl.addListener(() { if (mounted) setState(() {}); });
+    int tickCount = 0;
+    ctrl.addListener(() {
+      tickCount++;
+      if (tickCount <= 3 || tickCount % 10 == 0) {
+        debugPrint('WR_DEBUG tick#$tickCount t=${DateTime.now().millisecondsSinceEpoch} value=${ctrl.value} status=${ctrl.status}');
+      }
+      if (mounted) setState(() {});
+    });
     ctrl.forward();
     ctrl.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted && _holdCtrl == ctrl) {
@@ -170,8 +178,9 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   /// 정성 버튼에서 손을 떼거나(onTapUp) 벗어남(onTapCancel) — app3 `up()` 1:1.
   /// 3초를 채우기 전에 떼면 서버로 보내지 않고 취소만 하고 "조금만 더 머물러
   /// 주세요" 안내를 짧게 보여준다.
-  void _onHoldUp() {
+  void _onHoldUp([String source = 'unknown']) {
     final ctrl = _holdCtrl;
+    debugPrint('WR_DEBUG onHoldUp src=$source t=${DateTime.now().millisecondsSinceEpoch} fired ctrlNull=${ctrl == null} ctrlValue=${ctrl?.value} ctrlStatus=${ctrl?.status}');
     if (ctrl == null || ctrl.status == AnimationStatus.completed) return;
     final wasProgressing = ctrl.value > 0;
     ctrl.stop();
@@ -471,7 +480,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
         }
 
         return Stack(children: [
-          Positioned.fill(child: WrCanvasScaler(child: GestureDetector(
+          Positioned.fill(key: const ValueKey('roomScene'), child: WrCanvasScaler(child: GestureDetector(
             onTap: _peek ? () => setState(() => _peek = false) : null,
             child: RoomScene(
               room: _withBrightness(room, effBrightness),
@@ -487,34 +496,48 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
           ))),
           // devote()/rekindle() 1회성 FX 오버레이(버스트·꽃잎비·나비 등) — WrCanvasScaler로
           // 390×844 좌표계를 맞춰야 WrBurst(x:204,y:330) 등 절대좌표가 room과 일치한다.
-          if (_fx.isNotEmpty) Positioned.fill(child: IgnorePointer(child: WrCanvasScaler(child: SizedBox(width: 390, height: 844,
+          // [버그수정 — 3초 hold 취소 버그, 바깥쪽 Stack 방어적 Key 추가] 이 바깥쪽
+          // Stack도 안쪽과 동일하게 조건부(if) 자식들로 구성돼 있어, hold 도중 _fx가
+          // 바뀌거나 다른 오버레이가 토글되면 같은 Element 재사용 문제가 재발할 수
+          // 있다 — 모든 직계 자식에 고유 Key를 줘서 원천 차단한다.
+          if (_fx.isNotEmpty) Positioned.fill(key: const ValueKey('fxOverlay'), child: IgnorePointer(child: WrCanvasScaler(child: SizedBox(width: 390, height: 844,
             child: Stack(children: [for (final e in _fx) KeyedSubtree(key: e.key, child: e.widget)]))))),
-          if (!_peek) SafeArea(child: WrCanvasScaler(child: Stack(children: [
+          if (!_peek) SafeArea(key: const ValueKey('mainOverlay'), child: WrCanvasScaler(child: Stack(children: [
             // TopBar — app2/fx2.jsx › TopBar({nav=true, right}) 1:1: 좌측 NavPill(뒤로가기+
             // 신통방통 홈), 우측 PouchPill. [버그수정 — 전수감사] 기존엔 NavPill이 전체
             // 화면 어디에도 없었고 PouchPill이 좌측에 있었다(원본은 우측).
-            Positioned(top: 52, left: 14, child: WrNavPill(onBack: () => _onBack(), onExitHome: () => _onExitHome())),
-            Positioned(top: 52, right: 14, child: _pouchPill(p.me?.pouch ?? 0)),
-            const Positioned(top: 58, left: 0, right: 0, child: Center(child: Text('내 소원방', style: TextStyle(color: Colors.white, fontSize: 20)))),
+            Positioned(key: const ValueKey('navPill'), top: 52, left: 14, child: WrNavPill(onBack: () => _onBack(), onExitHome: () => _onExitHome())),
+            Positioned(key: const ValueKey('pouchPill'), top: 52, right: 14, child: _pouchPill(p.me?.pouch ?? 0)),
+            const Positioned(key: ValueKey('titleText'), top: 58, left: 0, right: 0, child: Center(child: Text('내 소원방', style: TextStyle(color: Colors.white, fontSize: 20)))),
             // 레벨바
-            Positioned(top: 100, left: 14, child: _levelBar(room)),
+            Positioned(key: const ValueKey('levelBar'), top: 100, left: 14, child: _levelBar(room)),
             // 우상단 알약 버튼 3개: 안내서 · 방만 보기 · 공유
-            if (!_devotion.busy && !_rekindling) Positioned(top: 100, right: 14, child: _pillBtn('안내서', () => _openGuide(), leading: _guideIcon())),
+            // [버그수정 — 3초 hold 취소 버그] Stack의 직계 자식들(Key 없음)은 리스트 길이·순서가
+            // 바뀌면(if 조건 토글) Flutter가 "위치" 기준으로 Element를 재사용한다. holding이
+            // true가 되어 새 Positioned(기도문)가 중간에 삽입되면 그 뒤에 있던 _bottomDock의
+            // Element가 다른 위젯과 위치가 엇갈려 disposed/recreated됐고, 그 안에서 제스처
+            // 아레나를 쥐고 있던 GestureDetector가 강제로 onTapCancel되어 3초 hold가 500ms
+            // 안팎(헤드리스 환경 첫 프레임 지연 시점)에서 항상 끊겼다(Playwright CDP 테스트로
+            // 실측: pointerdown 후 DOM은 계속 눌려 있는데 Flutter onTapCancel만 527ms에 발생,
+            // AnimationController는 tick#1 이후 멈춤). 모든 조건부 Positioned에 고유 Key를 줘서
+            // Flutter가 위치가 아니라 "정체성"으로 매칭하게 하면 토글 시에도 다른 형제의
+            // Element가 영향받지 않는다 — 비주얼·레이아웃·애니메이션은 전혀 바뀌지 않는다.
+            if (!_devotion.busy && !_rekindling) Positioned(key: const ValueKey('guideBtn'), top: 100, right: 14, child: _pillBtn('안내서', () => _openGuide(), leading: _guideIcon())),
             // app2/guide2.jsx › FirstVisitChip — 처음 오셨나요 배너(top:140).
             if (_firstVisitReady && !_devotion.busy && !_rekindling)
-              Positioned(top: 140, left: 0, right: 0, child: WrFirstVisitChip(onStartTour: () => setState(() => _tour = true))),
-            if (!_devotion.busy && !_rekindling) Positioned(top: 136, right: 14, child: _pillBtn('◉ 방만 보기', () => setState(() => _peek = true))),
-            if (!_devotion.busy && !_rekindling) Positioned(top: 172, right: 14, child: _pillBtn('⤴ 공유', () => _openShareSheet(room))),
+              Positioned(key: const ValueKey('firstVisitChip'), top: 140, left: 0, right: 0, child: WrFirstVisitChip(onStartTour: () => setState(() => _tour = true))),
+            if (!_devotion.busy && !_rekindling) Positioned(key: const ValueKey('peekBtn'), top: 136, right: 14, child: _pillBtn('◉ 방만 보기', () => setState(() => _peek = true))),
+            if (!_devotion.busy && !_rekindling) Positioned(key: const ValueKey('shareBtn'), top: 172, right: 14, child: _pillBtn('⤴ 공유', () => _openShareSheet(room))),
             // [v2.1 §14.4] 웹에서만 노출되는 "움직임 재생·정지" 토글 — 이 페이지
             // 안의 동작(RoomScene의 반복 애니메이션)만 멈추는 로컬 한정 기능이며
             // 서버에 저장되지 않는다. 앱 빌드에서는 노출되지 않는다.
             if (kIsWeb && !_devotion.busy && !_rekindling)
-              Positioned(top: 208, right: 14, child: _pillBtn(
+              Positioned(key: const ValueKey('pauseBtn'), top: 208, right: 14, child: _pillBtn(
                 _webPaused ? '▶ 움직임 재생' : '❚❚ 움직임 정지',
                 () => setState(() => _webPaused = !_webPaused),
               )),
             // 말풍선
-            Positioned(left: 14, top: 400, child: GestureDetector(
+            Positioned(key: const ValueKey('speechBubble'), left: 14, top: 400, child: GestureDetector(
               onTap: () => setState(() => _speechIdx++),
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 220),
@@ -526,50 +549,50 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
               ),
             )),
             // 머금는 동안(3초 hold 진행 중)의 기도문
-            if (holding) Positioned(left: 16, right: 16, top: 640, child: Center(child: Container(
+            if (holding) Positioned(key: const ValueKey('prayLine'), left: 16, right: 16, top: 640, child: Center(child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(color: const Color(0x8C1E0A18), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x40FFC8A0))),
               child: Text(_prayLine(ritual, holdProg), style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFFFF4E0))),
             ))),
             // devote() 0.7s — 아이템 기운 보너스 pill(top 236) `✦ 아이템 기운 +n%` + 아이템별 칩 최대 4개.
-            if (_lastGain != null && _lastGain!.bonus > 0) Positioned(left: 0, right: 0, top: 236, child: Center(child: _GainPill(gain: _lastGain!))),
+            if (_lastGain != null && _lastGain!.bonus > 0) Positioned(key: const ValueKey('gainPill'), left: 0, right: 0, top: 236, child: Center(child: _GainPill(gain: _lastGain!))),
             // devote() 1.7s RITUAL.done(`cap 2.4s`, 15px) / rekindle() 2.1s `{n}일 만에
             // 다시 밝아졌어요`(`cap 2.6s`, 19px) — top 520/500 캡션. cap: 블러해제 페이드.
-            if (_capText != null) Positioned(key: ValueKey(_capText), left: 20, right: 20, top: _rekindling ? 500 : 520, child: Center(child: _CapText(
+            if (_capText != null) Positioned(key: ValueKey('capText_$_capText'), left: 20, right: 20, top: _rekindling ? 500 : 520, child: Center(child: _CapText(
               text: _capText!, fontSize: _rekindling ? 19 : 15, durMs: _rekindling ? 2600 : 2400,
             ))),
             // ── 하단 슬림 도크(58px) + 둥근 정성 버튼(66px) ──
-            Positioned(left: 12, right: 12, top: 690, child: _bottomDock(
+            Positioned(key: const ValueKey('bottomDock'), left: 12, right: 12, top: 690, child: _bottomDock(
               room: room, cat: cat, isDim: isDim, busy: holding, done: done, deg: deg, ritual: ritual,
             )),
 
             // devote() 2.9s / rekindle() 3.4s 보상시트 — [명세] quote보다 먼저(=아래) 배치해
             // quote(z95)가 이 위에 겹쳐 보이는 원본 레이어링(dim z88/sheet z89 < quote z95)을 재현.
-            if (_reward != null) Positioned.fill(child: _RewardOverlay(
+            if (_reward != null) Positioned.fill(key: const ValueKey('rewardOverlay'), child: _RewardOverlay(
               data: _reward!, onClose: () => setState(() => _reward = null),
             )),
             // devote() 2.3s 말씀 카드(RITUAL.quotes 랜덤 1개, 테마별 디자인) — 탭하면 닫힘.
-            if (_quoteText != null) Positioned.fill(child: _QuoteCard(
+            if (_quoteText != null) Positioned.fill(key: const ValueKey('quoteCard'), child: _QuoteCard(
               text: _quoteText!.$1, src: _quoteText!.$2, theme: room.theme, icon: ritual['icon'] as String? ?? '✿',
               onClose: () => setState(() => _quoteText = null),
             )),
           ]))),
-          if (_wishOpen) _wishFullCard(room, cat),
+          if (_wishOpen) KeyedSubtree(key: const ValueKey('wishFullCard'), child: _wishFullCard(room, cat)),
           // app2/screens-a2.jsx › MainRoom() 331줄 1:1 — 봉인 풀림 안내(UnsealBanner).
           // capsuleDue(서버 판정) && 아직 캡슐 오버레이를 열지 않았고 && '나중에' 선택도 안 했을 때.
           if (room.capsuleDue && !_capOpen && !_capLater)
-            Positioned.fill(child: WrUnsealBanner(room: room, onOpen: () => _openCapsule(room), onLater: () => setState(() => _capLater = true)))
+            Positioned.fill(key: const ValueKey('unsealBanner'), child: WrUnsealBanner(room: room, onOpen: () => _openCapsule(room), onLater: () => setState(() => _capLater = true)))
           // [버그수정 — 전수감사] '나중에'를 고른 뒤 top 176에 남는 금 버튼이 전혀 없어
           // 봉인일이 지난 방을 다시 열 방법이 사라지는 버그였다.
           // [버그수정 2] WrUnsealChip.build()는 Positioned를 최상위로 반환하므로 반드시 Stack의
           // 직계 자식이어야 한다 — WrCanvasScaler(ClipRect>OverflowBox>Transform.scale)로 바로 감싸면
           // "Incorrect use of ParentDataWidget" 런타임 에러로 전체 화면이 깨진다. 내부에 Stack을 한 겹 더 둔다.
           else if (room.capsuleDue && _capLater && !_capOpen)
-            Positioned.fill(child: SafeArea(child: WrCanvasScaler(child: Stack(children: [
+            Positioned.fill(key: const ValueKey('unsealChip'), child: SafeArea(child: WrCanvasScaler(child: Stack(children: [
               WrUnsealChip(onOpen: () => _openCapsule(room)),
             ])))),
           // app2/guide2.jsx › shell2.jsx {tour && <Tour .../>} — 둘러보기 6단계 코치마크.
-          if (_tour) Positioned.fill(child: WrCanvasScaler(child: WrTour(onDone: () {
+          if (_tour) Positioned.fill(key: const ValueKey('tour'), child: WrCanvasScaler(child: WrTour(onDone: () {
             setState(() => _tour = false);
             GuidePrefs.I.setTourDone();
           }))),
@@ -817,8 +840,8 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
       GestureDetector(
         onTap: isDim ? _onRekindle : null,
         onTapDown: (!isDim && !busy && !done) ? (_) => _onHoldDown(room) : null,
-        onTapUp: (_) => _onHoldUp(),
-        onTapCancel: _onHoldUp,
+        onTapUp: (_) => _onHoldUp('tapUp'),
+        onTapCancel: () => _onHoldUp('tapCancel'),
         child: Container(
           width: 66, height: 66,
           decoration: BoxDecoration(
