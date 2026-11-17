@@ -126,22 +126,23 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
       // 타로/귀인지도 등)과 동일하게 currentIndex: 0(홈)을 쓴다 —
       // 전용 하단바를 새로 만들지 않고 기존 [MainBottomNavBar] 그대로.
       bottomNav: const MainBottomNavBar(currentIndex: 0),
+      // [상단바 개편 — 사용자 요청] 좌측 장식 아이콘(_GHMark)을 지우고
+      // 표준 뒤로가기 버튼으로 교체한다. 우측 "◈ 내 궁합"(장식용 다이아몬드
+      // 아이콘) 버튼도 지우고 "궁합지도 안내" 전용 아이콘 버튼으로
+      // 교체한다 — 탭 시 기존 [showGunghapIntroSheet](S07 안내 바텀시트,
+      // "궁합을 보면 별이 떠요" 등 4단계 설명)를 그대로 연다. "내 궁합"
+      // 진입 동선은 하단 "최근 살펴본 궁합 → 내 궁합 관리 ›"에 이미
+      // 있으므로 기능 손실은 없다.
       appBar: GHAppBar(
-        leading: Row(
-          children: const [
-            _GHMark(),
-            SizedBox(width: 7),
-            Text('궁합지도', style: TextStyle()),
-          ],
-        ),
+        title: '궁합지도',
+        onBack: () => Navigator.of(context).pop(),
         actions: [
           GHIconButton(
-            glyph: '◈',
-            label: '내 궁합',
-            // [궁합지도 Phase 4 §3] "준비 중" 플레이스홀더를 실제
-            // 궁합스토리 화면(서버 DB 실데이터)으로 교체.
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const GunghapStoryScreen()),
+            glyph: 'ⓘ',
+            label: '궁합지도 안내',
+            onTap: () => showGunghapIntroSheet(
+              context,
+              onStart: () => _goMajor(context, method: 'direct'),
             ),
           ),
         ],
@@ -575,45 +576,6 @@ class _IntroGlyphPainter extends CustomPainter {
       i == 0 ? path.moveTo(pt.dx, pt.dy) : path.lineTo(pt.dx, pt.dy);
     }
     canvas.drawPath(path..close(), Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
-}
-
-class _GHMark extends StatelessWidget {
-  const _GHMark();
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-    size: const Size(20, 20),
-    painter: _GHMarkPainter(),
-  );
-}
-
-class _GHMarkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final k = size.width / 24;
-    canvas.save();
-    canvas.scale(k);
-    canvas.drawCircle(
-      const Offset(12, 12),
-      11,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = .8
-        ..color = GHColors.gold.withValues(alpha: .6),
-    );
-    canvas.drawLine(
-      const Offset(6.5, 15),
-      const Offset(17.5, 8.5),
-      Paint()
-        ..strokeWidth = .9
-        ..color = GHColors.gold,
-    );
-    canvas.drawCircle(const Offset(6.5, 15), 2.2, Paint()..color = GHColors.gold);
-    canvas.drawCircle(const Offset(17.5, 8.5), 2.2, Paint()..color = GHColors.violet);
-    canvas.restore();
   }
 
   @override
