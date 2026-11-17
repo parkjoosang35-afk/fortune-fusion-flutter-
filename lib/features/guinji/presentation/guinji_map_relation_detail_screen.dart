@@ -292,9 +292,33 @@ class _GuinjiMapRelationDetailScreenState
     return Scaffold(
       backgroundColor: GmColors.bg,
       appBar: GmTopBar(back: true, title: '${person.name}님과의 관계'),
+      // [QA_CHECKLIST §1 "모든 화면 배경이 bgGlow + 별, 단색 0곳"] 다른
+      // 전체화면(H2/H4/G2·W2/G3/W3/H11)과 동일하게 공용 전역배경
+      // ([GmTempleBg])을 적용한다. [OriginalResultBody]의 `background`는
+      // 캡처 시 `RepaintBoundary` 안의 `ColoredBox`를 채우는 불투명
+      // 레이어라, 단순히 바깥을 [GmTempleBg]로만 감싸면 이 불투명
+      // `ColoredBox`가 화면을 전부 덮어 배경이 보이지 않는다
+      // (tarot_result_screen.dart의 `OzBackground` 적용 패턴 참고).
+      // 따라서 `background`는 투명으로 바꾸고, `frame` 콜백으로
+      // [GmTempleBg]를 캡처 경계 **안쪽**(배경 레이어로)에 넣는다.
+      // [버그수정] `GmTempleBg`는 내부적으로 `Stack(fit: StackFit.expand)`를
+      // 쓰는데, `OriginalResultBody`가 이 전체를 `SingleChildScrollView`
+      // (세로 무제한 높이)에 직접 넣으므로, `StackFit.expand`가 무한
+      // 높이로 확장을 시도해 그라데이션 셰이더 생성이 실패하고
+      // 런타임 예외(`Null check operator used on a null value`)로
+      // 완전히 빈 화면이 되었다. `OzBackground`와 동일하게 `Positioned.fill`
+      // 로 감싸 바깥 `Stack`(기본 loose fit)이 실제 콘텐츠 크기에 맞춰
+      // 높이를 정하게 하면, `GmTempleBg` 내부의 `StackFit.expand`도
+      // 그 bounded 크기를 그대로 받아 정상 렌더링된다.
       body: OriginalResultBody(
         captureKey: _originalResultKey,
-        background: GmColors.bg,
+        background: Colors.transparent,
+        frame: (child) => Stack(
+          children: [
+            const Positioned.fill(child: GmTempleBg()),
+            child,
+          ],
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),

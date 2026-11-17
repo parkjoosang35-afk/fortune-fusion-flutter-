@@ -5,6 +5,7 @@ import '../../auth/application/auth_provider.dart';
 import '../application/guinji_provider.dart';
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_intro_cinematic.dart';
+import '../widgets/guinji_map_widgets.dart';
 
 /// L · Landing — `/guinji-map`
 ///
@@ -67,24 +68,31 @@ class _GuinjiLandingScreenState extends State<GuinjiLandingScreen> {
   @override
   Widget build(BuildContext context) {
     if (_checkingExistingMap) {
+      // [QA_CHECKLIST §1 "모든 화면 배경이 bgGlow + 별, 단색 0곳"] 기존
+      // 지도 여부를 확인하는 동안 잠깐 보이는 로딩 화면도 전역 배경
+      // 공용위젯([GmTempleBg])으로 통일한다 — 메인 인트로 본체는
+      // [GuinjiIntroCinematic]이 자체 시네마틱 배경을 그리므로 여기서는
+      // 건드리지 않는다(이 분기와 무관).
       return Scaffold(
         backgroundColor: GmColors.bg,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: GmColors.gold),
-              const SizedBox(height: 16),
-              Text(
-                '내 귀인지도를 불러오고 있어요',
-                style: TextStyle(
-                  fontFamily: GmText.ui,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: GmColors.muted,
+        body: GmTempleBg(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: GmColors.gold),
+                const SizedBox(height: 16),
+                Text(
+                  '내 귀인지도를 불러오고 있어요',
+                  style: TextStyle(
+                    fontFamily: GmText.ui,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: GmColors.muted,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );

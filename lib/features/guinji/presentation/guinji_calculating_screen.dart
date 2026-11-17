@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../character/guinji_character.dart';
 import '../theme/guinji_map_theme.dart';
+import '../widgets/guinji_map_widgets.dart';
 
 /// C · Calculating — `/guinji-map/calc` (호스트) / 게스트 참여 계산 화면.
 ///
@@ -86,70 +87,78 @@ class _GuinjiCalculatingScreenState extends State<GuinjiCalculatingScreen>
 
   @override
   Widget build(BuildContext context) {
+    // [QA_CHECKLIST §1 "모든 화면 배경이 bgGlow + 별, 단색 0곳"] jsx
+    // 1차 소스(`guinji-proto.jsx`의 `CCalc`)는 `CPhone`(보라·적색 2겹
+    // 라디얼 그라데이션 배경, `guinji-clean.jsx`)으로 감싸져 있다 —
+    // 단색이 아니라는 근거가 명확하므로 공용 전역배경([GmTempleBg])을
+    // 적용한다.
     return Scaffold(
       backgroundColor: GmColors.bg,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 200,
-              height: 200,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  AnimatedBuilder(
-                    animation: _ringController,
-                    builder: (context, _) {
-                      return CustomPaint(
-                        size: const Size(200, 200),
-                        painter: _ProgressRingPainter(
-                          progress: _progress,
-                          rotation: _ringController.value,
-                        ),
-                      );
-                    },
-                  ),
-                  ClipOval(
-                    child: Image.asset(
-                      widget.facePath ?? const GuinjiCharacter('f30', '').face,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+      body: GmTempleBg(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 200,
+                height: 200,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedBuilder(
+                      animation: _ringController,
+                      builder: (context, _) {
+                        return CustomPaint(
+                          size: const Size(200, 200),
+                          painter: _ProgressRingPainter(
+                            progress: _progress,
+                            rotation: _ringController.value,
+                          ),
+                        );
+                      },
+                    ),
+                    ClipOval(
+                      child: Image.asset(
+                        widget.facePath ??
+                            const GuinjiCharacter('f30', '').face,
                         width: 80,
                         height: 80,
-                        color: GmColors.card,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 80,
+                          height: 80,
+                          color: GmColors.card,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 40),
-            Text(
-              widget.title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: GmText.display,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: GmColors.fg,
-                height: 1.35,
+              const SizedBox(height: 40),
+              Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: GmText.display,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: GmColors.fg,
+                  height: 1.35,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '${widget.subtitle} · $_progress%',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: GmText.ui,
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5,
-                color: GmColors.muted,
+              const SizedBox(height: 12),
+              Text(
+                '${widget.subtitle} · $_progress%',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: GmText.ui,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                  color: GmColors.muted,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
