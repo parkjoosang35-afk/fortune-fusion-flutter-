@@ -103,6 +103,10 @@ import 'global_bottom_nav_shell.dart';
 // [귀인지도 기능 정리 — 관계상세/랭킹] `/guinji-map/*` 신규 디자인 톤으로
 // 새로 만든 관계상세(N→상세)·랭킹 화면. M/F 화면에서 진입점으로 연결한다.
 import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
+import '../../features/guinji/presentation/guinji_deep_intro_screen.dart';
+import '../../features/guinji/presentation/guinji_deep_result_screen.dart';
+import '../../features/guinji/presentation/guinji_map_relation_detail_screen.dart';
+import '../../features/guinji/domain/guinji_person.dart';
 // [결과 공유 기능 — sintong-share-proposal.pdf] `/r/{shareId}` 딥링크
 // 도착 화면. `/g/{token}`(귀인지도 게스트 참여)과 동일한 패턴으로 named
 // route 진입 전 별도 분기 처리한다(아래 참고).
@@ -370,6 +374,60 @@ class AppRouter {
         return _guinjiNamed('/guinji-map', const GuinjiLandingScreen());
       case '/guinji-map/new':
         return _guinjiNamed('/guinji-map/new', const GuinjiInputScreen());
+      // [QA 스크린샷 임시 디버그 라우트 — 작업 완료 후 제거]
+      case '/guinji-map/_qa-h1-loading':
+        return _guinjiNamed(
+          '/guinji-map/_qa-h1-loading',
+          const Scaffold(
+            backgroundColor: Color(0xFF1A0D2E),
+            body: Center(child: Text('QA_H1_LOADING_PLACEHOLDER')),
+          ),
+        );
+      case '/guinji-map/_qa-h6':
+        return _guinjiNamed(
+          '/guinji-map/_qa-h6',
+          GuinjiMapRelationDetailScreen(
+            person: const GuinjiPerson(
+              id: 'qa1',
+              name: '민지',
+              birth: '1998·05·14',
+              ohaeng: 'mok',
+              relation: 'guin',
+              score: 82,
+              note: 'QA 테스트',
+            ),
+          ),
+        );
+      case '/guinji-map/_qa-h7':
+        return _guinjiNamed(
+          '/guinji-map/_qa-h7',
+          GuinjiDeepIntroScreen(
+            person: const GuinjiPerson(
+              id: 'qa1',
+              name: '민지',
+              birth: '1998·05·14',
+              ohaeng: 'mok',
+              relation: 'guin',
+              score: 82,
+              note: 'QA 테스트',
+            ),
+          ),
+        );
+      case '/guinji-map/_qa-h8':
+        return _guinjiNamed(
+          '/guinji-map/_qa-h8',
+          GuinjiDeepResultScreen(
+            person: const GuinjiPerson(
+              id: 'qa1',
+              name: '민지',
+              birth: '1998·05·14',
+              ohaeng: 'mok',
+              relation: 'guin',
+              score: 82,
+              note: 'QA 테스트',
+            ),
+          ),
+        );
       case '/guinji-map/calc':
         // [흐름 정합성] 이 라우트는 호스트가 I(입력)에서 자기 정보만 제출한
         // 직후(createMapWithInput 성공)에만 진입한다 — 아직 지인이 참여하지
