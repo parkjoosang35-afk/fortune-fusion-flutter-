@@ -30,6 +30,7 @@ import 'features/explore/explore_screen.dart';
 import 'features/decor/decor_screen.dart';
 import 'features/characters/character_shop_screen.dart';
 import 'features/vault/vault_screen.dart';
+import 'features/guide/guide_prefs.dart';
 
 class WishRoomShell extends StatefulWidget {
   const WishRoomShell({super.key, this.initialIndex = 0});
@@ -53,19 +54,25 @@ class _WishRoomShellState extends State<WishRoomShell> {
     VaultScreen(),
   ];
 
-  // (이모지, 라벨, lock key) — lock key가 null이면 항상 열림.
+  // (이모지, 라벨, lock key, 탭 id) — lock key가 null이면 항상 열림.
+  // 탭 id는 app3/shell.jsx TABS[0](=['home','guardians','together','shop','vault'])
+  // 그대로 — GuidePrefs.markTabVisited()에 쓰여 N 배지(fresh) 판정에 사용.
   static const _labels = [
-    ('🕯', '내 소원', null),
-    ('👤', '수호자', 'guardian'),
-    ('☾', '함께 빌기', 'together'),
-    ('🛍', '상점', 'decor'),
-    ('◈', '보관함', null),
+    ('🕯', '내 소원', null, 'home'),
+    ('👤', '수호자', 'guardian', 'guardians'),
+    ('☾', '함께 빌기', 'together', 'together'),
+    ('🛍', '상점', 'decor', 'shop'),
+    ('◈', '보관함', null, 'vault'),
   ];
 
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex.clamp(0, _tabs.length - 1);
+    // [v5 S2] N 배지 판정(GuidePrefs.visitedTab)이 shared_preferences 로드 완료
+    // 전에는 항상 false로 나와 잠시 배지가 깜박일 수 있다 — 로드 완료 시 setState로
+    // 한 번 더 그린다(main_room_screen.dart _firstVisitReady와 동일 패턴).
+    GuidePrefs.I.load().then((_) { if (mounted) setState(() {}); });
   }
 
   @override
@@ -166,10 +173,19 @@ class _WishRoomShellState extends State<WishRoomShell> {
                       Consumer<WishRoomProvider>(
                         builder: (context, p, __) {
                           final key = _labels[i].$3;
-                          final locked =
-                              key != null &&
-                              (p.room == null ||
-                                  !p.room!.isFeatureUnlocked(key));
+                          final tabId = _labels[i].$4;
+                          final unlocked =
+                              key == null ||
+                              (p.room != null && p.room!.isFeatureUnlocked(key));
+                          final locked = !unlocked;
+                          // [v5 S2] 매핑표 "새로 열린 표시 — 열린 탭에 N 배지 → 그 탭을
+                          // 처음 들어가면 사라짐" — app3/shell.jsx
+                          // `fresh = k && v.open(k) && !(v.visited||[]).includes(id)` 1:1.
+                          // home/vault처럼 lock key가 없는 탭은 원본에서도 fresh 대상이
+                          // 아니다(k가 null이면 항상 false).
+                          final fresh = key != null &&
+                              unlocked &&
+                              !GuidePrefs.I.visitedTab(tabId);
                           return SizedBox(
                             width: WrSize.navItemW,
                             height: 48,
@@ -181,6 +197,7 @@ class _WishRoomShellState extends State<WishRoomShell> {
                                   return;
                                 }
                                 setState(() => _index = i);
+                                GuidePrefs.I.markTabVisited(tabId);
                               },
                               child: Center(
                                 child: AnimatedScale(
@@ -192,14 +209,29 @@ class _WishRoomShellState extends State<WishRoomShell> {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text(
-                                          locked ? '🔒' : _labels[i].$1,
-                                          style: TextStyle(
-                                            fontSize: 17,
-                                            color: i == _index
-                                                ? WrC.glow
-                                                : WrC.muted,
-                                          ),
+                                        Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            Text(
+                                              locked ? '🔒' : _labels[i].$1,
+                                              style: TextStyle(
+                                                fontSize: 17,
+                                                color: i == _index
+                                                    ? WrC.glow
+                                                    : WrC.muted,
+                                              ),
+                                            ),
+                                            if (fresh)
+                                              Positioned(
+                                                right: -6,
+                                                top: -3,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                  decoration: BoxDecoration(color: WrC.blossom, borderRadius: BorderRadius.circular(8)),
+                                                  child: const Text('N', style: TextStyle(fontSize: 9, color: Colors.white)),
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                         const SizedBox(height: 3),
                                         Text(

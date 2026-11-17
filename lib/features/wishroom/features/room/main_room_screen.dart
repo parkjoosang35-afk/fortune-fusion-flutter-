@@ -34,6 +34,7 @@ import '../wallet/wallet_sheet.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 import '../compose/compose_screen.dart';
+import 'unlock_card.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -593,6 +594,19 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             level: _levelUp!, wallpaperNotice: _levelUpWpNotice,
             onDone: () => setState(() { _levelUp = null; _levelUpWpNotice = null; }),
           ))),
+          // [v5 S2] 매핑표 00-C "열림 카드" — app3/shell.jsx 조건
+          // `scr==='home' && v.pending && !sh && !cele && !tour && !v.inPreview` 1:1.
+          // 서버가 계산한 room.pendingUnlock이 있고, 다른 시트·연출(소원 전문 펼침·
+          // 방만 보기·투어·레벨업·정성/다시밝히기 진행 중·보상시트·말씀카드·봉인 오버레이)이
+          // 하나도 떠 있지 않을 때만 1장을 보여준다. 가장 마지막(최상위)에 둬서 다른 모든
+          // 오버레이 위에 보이게 한다 — 단, LevelUp보다는 아래가 자연스러워 그 다음에 배치.
+          if (room.pendingUnlock != null && !_wishOpen && !_peek && !_tour &&
+              _levelUp == null && !_devotion.busy && !_rekindling &&
+              _reward == null && _quoteText == null && !_capOpen &&
+              !(room.capsuleDue && !_capLater))
+            Positioned.fill(key: const ValueKey('unlockCard'), child: WrCanvasScaler(child: UnlockCard(
+              roomId: room.id, unlockKey: room.pendingUnlock!, dayN: room.dayN,
+            ))),
         ]);
       }),
     ));
