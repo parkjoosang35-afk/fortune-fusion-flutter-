@@ -276,6 +276,26 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
+  /// [v5 S2] 매핑표 00-C "열림 카드" 확인(ack) — 하루 1장만 보여주는 pendingUnlock
+  /// 카드를 사용자가 "열어보기"로 닫을 때 호출한다. room.unlocked/pendingUnlock/
+  /// lastUnlockAckDay가 서버 응답으로 갱신되고, decor를 처음 ack하면 me.pouch도
+  /// 🧧50 welcome 보너스만큼 함께 갱신되어 돌아온다(server: applyUnlockAckOrThrow).
+  Future<bool> unlockAck(String id, String key) async {
+    lastError = null;
+    try {
+      final (room: r, me: m) = await repo.unlockAck(id, key);
+      room = r;
+      me = m;
+      _syncNativeWallpaper();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// §6.1 정성들이기는 DevotionController가 repo.devote()를 직접 호출하며,
   /// 완료 콜백(onDone)에서 이 메서드를 호출해 Provider 상태(room/me)에 반영한다.
   void applyDevotionResult(DevotionResult r) {

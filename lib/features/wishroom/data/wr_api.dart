@@ -40,6 +40,7 @@ abstract class WrRepository {
   // 보조
   Future<({WishRoom before, WishRoom room})> enter(String id);                                                  // POST /wish-rooms/{id}/enter
   Future<WishRoom> rekindle(String id);                                                                         // POST /wish-rooms/{id}/rekindle
+  Future<({WishRoom room, Me me})> unlockAck(String id, String key);                                            // [v5 S2] POST /wish-rooms/{id}/unlock-ack — 매핑표 00-C "열림 카드" 확인
   Future<Me> me();                                                                                              // GET  /me
   Future<List<Map<String, dynamic>>> ledger();                                                                  // GET  /me/ledger
   Future<(int, Me)> earn(String source);                                                                        // POST /me/earn
@@ -177,6 +178,7 @@ class ApiRepository implements WrRepository {
   @override Future<int> readNotifications({String? id}) async => (_m(await _req('POST', '/notifications', {if (id != null) 'id': id}))['unread'] as num).toInt();
   @override Future<({WishRoom before, WishRoom room})> enter(String id) async { final d = _m(await _req('POST', '/wish-rooms/$id/enter')); return (before: WishRoom.fromJson(_m(d['before'])), room: WishRoom.fromJson(_m(d['room']))); }
   @override Future<WishRoom> rekindle(String id) async => WishRoom.fromJson(_m(_m(await _req('POST', '/wish-rooms/$id/rekindle'))['room']));
+  @override Future<({WishRoom room, Me me})> unlockAck(String id, String key) async { final d = _m(await _req('POST', '/wish-rooms/$id/unlock-ack', {'key': key})); return (room: WishRoom.fromJson(_m(d['room'])), me: Me.fromJson(_m(d['me']))); }
   @override Future<Me> me() async => Me.fromJson(_m(await _req('GET', '/me')));
   @override Future<List<Map<String, dynamic>>> ledger() async => (await _req('GET', '/me/ledger') as List).map(_m).toList();
   @override Future<(int, Me)> earn(String source) async { final d = _m(await _req('POST', '/me/earn', {'source': source})); return ((d['amount'] as num).toInt(), Me.fromJson(_m(d['me']))); }
