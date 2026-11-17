@@ -302,9 +302,23 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
         // 「❖ 상세 궁합 보고서 확인하기」(해금 전) / 「✦ 상세 보고서 다시
         // 보기」(해금 후, 상세 섹션으로 스크롤). 결과가 아직 없으면(로딩/
         // 에러) 저장/공유할 것이 없으므로 footer를 아예 숨긴다.
+        // [버그 수정 — "친구 궁합 결과" 화면 완전 빈 화면] 이 Row가
+        // `crossAxisAlignment: CrossAxisAlignment.stretch`였던 탓에, 높이를
+        // 지정하지 않는 부모(`GHScreen._Footer`의 Container)로부터 전달된
+        // 무한(Infinity) 높이 제약을 그대로 자식에게 강제하려고 해
+        // "BoxConstraints forces an infinite height" 레이아웃 예외가
+        // 발생했다. 디버그 모드에서는 이 예외가 assert로만 걸려 바로
+        // 드러나지만, release 모드(실제 프리뷰/배포 빌드)에서는 assert가
+        // 전부 비활성화되므로 에러 텍스트 없이 레이아웃만 조용히 깨져
+        // 본문 전체가 그려지지 않는다 — 사용자가 신고한 "에러 메시지도
+        // 없이 완전히 흰 빈 화면" 증상과 정확히 일치한다. 이 화면 안의
+        // 다른 footer Row들(궁합지도 초대/공유 화면 등)은 전부
+        // crossAxisAlignment를 지정하지 않는(기본값 center) 패턴을
+        // 쓰고 있어, 이 한 줄만 유일하게 어긋나 있었다. 두 버튼 모두
+        // 기본 높이(GHButtonSizeT.lg)로 이미 동일하므로 stretch가 애초에
+        // 필요하지도 않았다 — 제거한다.
         footer: showResult
             ? Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
                     width: 92,

@@ -316,6 +316,17 @@ class GunghapProvider extends ChangeNotifier {
     return true;
   }
 
+  /// [테스트 전용 — 궁합지도 "친구 궁합 결과" 완전 빈 화면 버그 조사]
+  /// 네트워크 호출 없이 서버 응답과 동일한 형태의 `result` Map을 직접
+  /// 주입해 `GunghapResultScreen`의 렌더링 경로만 단독으로 재현하기
+  /// 위한 테스트 헬퍼. 프로덕션 코드 어디에서도 호출하지 않는다.
+  @visibleForTesting
+  void debugSetResult(Map<String, dynamic> result) {
+    _result = result;
+    _isLoading = false;
+    notifyListeners();
+  }
+
   /// POST /gunghap/results/{resultId}/unlock — 상세 보고서 잠금해제(100
   /// 복주머니, 초대자 본인 인증 필수, 멱등).
   ///
