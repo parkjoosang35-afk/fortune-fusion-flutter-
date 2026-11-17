@@ -543,6 +543,8 @@ class _GuinjiMapRelationDetailScreenState
                   builder: (context, resultAccess, luckPouch, _) {
                     final quote = resultAccess.quote;
                     return _SpecialLockedCard(
+                      personName: person.name,
+                      typeLabel: meta.label,
                       unlocking: _unlocking,
                       freePassRemaining: quote?.freePassRemaining ?? 0,
                       freePassHasLegacyUnlimited:
@@ -754,6 +756,8 @@ class _MomentRow extends StatelessWidget {
 /// 선택→해금 흐름, 모달을 한 겹 더 띄우지 않아 더 빠르게 열림).
 class _SpecialLockedCard extends StatefulWidget {
   const _SpecialLockedCard({
+    required this.personName,
+    required this.typeLabel,
     required this.onUnlockFreePass,
     required this.onUnlockAd,
     required this.onUnlockPouch,
@@ -765,6 +769,13 @@ class _SpecialLockedCard extends StatefulWidget {
     required this.pouchPrice,
     this.unlocking = false,
   });
+
+  /// [2026-12 보강 — COPY.md H6 "title = {이름}님과의 자세한 관계" ·
+  /// "sub = {유형이름} · 10개 장으로 풀어드려요" 대조] 이 카드가 SPEC §6
+  /// H6의 실제 title/sub 역할을 하므로, 상위 화면 상단바(단순
+  /// "{이름}님과의 관계")와 별개로 COPY.md 원문을 이 카드 안에 표시한다.
+  final String personName;
+  final String typeLabel;
 
   final VoidCallback onUnlockFreePass;
   final VoidCallback onUnlockAd;
@@ -867,9 +878,12 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
         children: [
           const GmLabelMini('SPECIAL · 스페셜 해설', color: MyPageColors.red),
           const SizedBox(height: 6),
-          const Text(
-            '이 관계, 어떻게 대해야 할까',
-            style: TextStyle(
+          // [2026-12 보강 — COPY.md H6 "title" 대조] 원문 "{이름}님과의
+          // 자세한 관계"로 교정(기존 "이 관계, 어떻게 대해야 할까"는
+          // COPY.md와 다른 문구였다).
+          Text(
+            '${widget.personName}님과의 자세한 관계',
+            style: const TextStyle(
               fontFamily: MyPageFonts.ui,
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -877,9 +891,12 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            '사주 4기둥을 근거로 자세히 풀어드립니다.',
-            style: TextStyle(
+          // [2026-12 보강 — COPY.md H6 "sub" 대조] 원문 "{유형이름} · 10개
+          // 장으로 풀어드려요"로 교정(기존 "사주 4기둥을 근거로 자세히
+          // 풀어드립니다."는 COPY.md와 다른 문구였다).
+          Text(
+            '${widget.typeLabel} · 10개 장으로 풀어드려요',
+            style: const TextStyle(
               fontFamily: MyPageFonts.ui,
               fontSize: 12,
               height: 1.5,

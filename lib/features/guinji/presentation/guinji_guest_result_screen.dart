@@ -559,7 +559,9 @@ class _GuinjiDeepTeaser extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const GmLabelMini('내 지도를 만들면 이런 풀이를 가질 수 있어요'),
+        // [2026-12 보강 — COPY.md G2 "preview.meta" 대조] 원문 "10장 풀이
+        // 미리보기"로 교정.
+        const GmLabelMini('10장 풀이 미리보기'),
         const SizedBox(height: 10),
         // 1장 맛보기 카드.
         ClipRRect(
@@ -688,21 +690,24 @@ class _GuinjiDeepTeaser extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        // [2026-12 광고형 재설계] G-7 자리의 CTA를 "해금" 문구에서
-        // "광고/유도" 문구로 교체했다 — 웹/앱 구분 없이 누르면 이
-        // 관계와는 무관한 "내 지도 만들기" 여정으로 이동한다(아래 빌드
-        // 화면의 중복 '내 지도 만들기 · 무료' 버튼은 이 버튼으로
-        // 흡수되어 제거했다).
+        // [2026-12 보강 — COPY.md G2 "preview.cta" 대조, 사용자 지시
+        // "둘다 고쳐"] 이전 "광고형 재설계"(대표 확인 완료, 2026-12)로
+        // "내 지도 만들기 · 무료"로 바뀌었던 CTA를 COPY.md 원문 "나도 내
+        // 귀인지도 만들기"로 되돌린다 — 로직(onCreateOwnMap, G3 연결)은
+        // 전혀 변경하지 않았다.
         GmRoseButton(
-          label: '내 지도 만들기 · 무료',
+          label: '나도 내 귀인지도 만들기',
           icon: Icons.arrow_forward,
           onPressed: onCreateOwnMap,
         ),
         const SizedBox(height: 8),
+        // [2026-12 보강 — COPY.md G2 "preview.pitch" 대조] 원문 "내
+        // 지도를 만들면 내 곁의 인연마다 / 이런 깊은 풀이를 가질 수
+        // 있어요"로 교정.
         const Text(
-          '나도 내 지도를 만들면 귀인들과 이런 깊은 풀이를 볼 수 있어요',
+          '내 지도를 만들면 내 곁의 인연마다\n이런 깊은 풀이를 가질 수 있어요',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: GmColors.dim),
+          style: TextStyle(fontSize: 11, color: GmColors.dim, height: 1.5),
         ),
       ],
     );
