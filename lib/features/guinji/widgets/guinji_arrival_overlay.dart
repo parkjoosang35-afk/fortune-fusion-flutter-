@@ -541,9 +541,10 @@ class _GuinjiArrivalOverlayState extends State<GuinjiArrivalOverlay>
                 ),
               ),
 
-            // 푸시 토스트 — 도착 0.9초 전부터 3.1초간 상단 노출(핸드오프
-            // 1:1 문구 "{이름}님이 지도에 들어왔어요 · 방금 · 생년월일을
-            // 입력했어요").
+            // 푸시 토스트 — 도착 0.9초 전부터 3.1초간 상단 노출([COPY.md
+            // "arrive.toast.title/sub"] "{이름}님이 귀인지도에 들어왔어요" ·
+            // "{인장} {유형} · 케미 {점수}점"; 문서 우선순위(SPEC §0: SPEC →
+            // COPY.md → 시안)에 따라 과거 jsx 프로토타입 문구 대신 COPY.md를 따른다).
             if (toast != null)
               _ArrivalToast(
                 key: ValueKey('toast_${toast.$1.id}'),
@@ -755,6 +756,7 @@ class _ArrivalToast extends StatelessWidget {
       translateFactor = p;
     }
     final visual = _visualFor(person);
+    final meta = guinjiRelationMetaOf(person.relation);
 
     return Positioned(
       top: 54,
@@ -828,7 +830,7 @@ class _ArrivalToast extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  '${person.name}님이 지도에 들어왔어요',
+                                  '${person.name}님이 귀인지도에 들어왔어요',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -838,9 +840,21 @@ class _ArrivalToast extends StatelessWidget {
                                     color: GmColors.fg,
                                   ),
                                 ),
-                                const Text(
-                                  '방금 · 생년월일을 입력했어요',
-                                  style: TextStyle(
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: meta.hanja,
+                                        style: TextStyle(
+                                          fontFamily: GmText.display,
+                                          fontWeight: FontWeight.w900,
+                                          color: meta.color,
+                                        ),
+                                      ),
+                                      TextSpan(text: ' ${meta.label} · 케미 ${person.score}점'),
+                                    ],
+                                  ),
+                                  style: const TextStyle(
                                     fontFamily: GmText.ui,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12.5,
