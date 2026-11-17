@@ -306,7 +306,8 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
         for (final key in guinjiRelationOrder)
           key: people.where((p) => p.relation == key).length,
       };
-      final available = await ShareClient.instance.isKakaoTalkSharingAvailable();
+      final available = await ShareClient.instance
+          .isKakaoTalkSharingAvailable();
       if (!available) {
         if (!mounted) return;
         AppToast.show(context, '카카오톡이 설치되어 있지 않아요.');
@@ -783,18 +784,41 @@ class _TheCard extends StatelessWidget {
                       bottom: BorderSide(color: GuinjiColors.surfaceCardBorder),
                     ),
                   ),
-                  child: Text(
-                    dominantMeta != null
-                        ? '"${dominantMeta!.description}"'
-                        : '"간절히 원하면,\n온 우주가 도와준다"',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: GuinjiFonts.body,
-                      fontStyle: FontStyle.italic,
-                      fontSize: 10,
-                      height: 1.4,
-                      color: GuinjiColors.textPrimary,
-                    ),
+                  child: Column(
+                    children: [
+                      // [COPY.md card.quote.label "가장 많은 인연 ·
+                      // {인장} {유형}"] 인용구(card.quote) 바로 위에
+                      // 유형색 라벨을 둔다 — SPEC §6 H12 "하단 인용 박스
+                      // (반투명, 유형색 라벨 + 설명 11.5)"가 요구하는
+                      // 라벨이 지금까지 누락돼 있었다.
+                      if (dominantMeta != null) ...[
+                        Text(
+                          '가장 많은 인연 · ${dominantMeta!.hanja} '
+                          '${dominantMeta!.label}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: GuinjiFonts.body,
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w700,
+                            color: dominantMeta!.color,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                      ],
+                      Text(
+                        dominantMeta != null
+                            ? '"${dominantMeta!.description}"'
+                            : '"간절히 원하면,\n온 우주가 도와준다"',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: GuinjiFonts.body,
+                          fontStyle: FontStyle.italic,
+                          fontSize: 10,
+                          height: 1.4,
+                          color: GuinjiColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
