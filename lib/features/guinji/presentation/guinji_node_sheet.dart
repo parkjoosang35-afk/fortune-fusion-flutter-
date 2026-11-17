@@ -735,11 +735,8 @@ Future<void> showGuinjiNodeSheet({
   VoidCallback? onSeeMore,
   bool unlocked = false,
 }) {
-  return showModalBottomSheet(
+  return showGmBottomSheet(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: const Color(0xAD06030E),
     builder: (_) => GuinjiNodeSheet(
       name: name,
       birthLabel: birthLabel,

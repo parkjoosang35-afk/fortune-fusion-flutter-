@@ -118,11 +118,8 @@ Future<void> showGuinjiEmptySlotSheet({
   required VoidCallback onInvite,
   required void Function(String prefillName) onDirect,
 }) {
-  return showModalBottomSheet<void>(
+  return showGmBottomSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: const Color(0xAD06030E),
     builder: (sheetContext) => _GuinjiEmptySlotSheetBody(
       slot: slot,
       filled: filled,
@@ -443,11 +440,8 @@ Future<void> showGuinjiTypeInfoSheet({
   required List<GuinjiPerson> people,
   required void Function(GuinjiPerson person) onPerson,
 }) {
-  return showModalBottomSheet<void>(
+  return showGmBottomSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: const Color(0xAD06030E),
     builder: (sheetContext) => _GuinjiTypeInfoSheetBody(
       typeKey: typeKey,
       people: people,

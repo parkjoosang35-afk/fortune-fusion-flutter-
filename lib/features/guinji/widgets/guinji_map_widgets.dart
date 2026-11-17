@@ -849,3 +849,47 @@ class GmAgreeRow extends StatelessWidget {
     );
   }
 }
+
+/// ─────────────────────────────────────────────────────────────
+/// [QA_CHECKLIST.md §1 전역 7 "바텀시트 공통 스타일(딤+블러6)"] 공용
+/// 바텀시트 딤+블러 래퍼.
+///
+/// `showModalBottomSheet`의 `barrierColor`는 단색만 지원하고 블러는
+/// 직접 지원하지 않는다. SPEC §2 바텀시트 토큰("딤 `rgba(6,3,14,.68)` +
+/// blur 6")을 충족하려면 barrier 뒤의 화면(지도/리스트 등)에 블러를
+/// 추가로 입혀야 한다 — 이 함수는 `builder`가 반환하는 시트 위젯을
+/// 풀스크린 `Stack`으로 감싸고, 그 밑에 `BackdropFilter(blur 6)` 레이어를
+/// 깔아 해결한다. 블러 레이어는 `IgnorePointer`로 감싸 탭 이벤트가 그대로
+/// 프레임워크의 `ModalBarrier`(바깥 탭 시 닫기)로 전달되게 한다 — 기존
+/// 바깥 탭 닫기 동작은 그대로 유지된다.
+///
+/// 기존 `showModalBottomSheet(... barrierColor: const Color(0xAD06030E))`
+/// 호출부를 이 함수로 교체하면 된다. [절대 원칙] 반환 타입·파라미터
+/// 이름은 `showModalBottomSheet`와 최대한 동일하게 유지해 교체 시 호출부
+/// 수정을 최소화한다.
+Future<T?> showGmBottomSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  Color barrierColor = const Color(0xAD06030E),
+  double blurSigma = 6,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: barrierColor,
+    builder: (sheetContext) => Stack(
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+        builder(sheetContext),
+      ],
+    ),
+  );
+}
