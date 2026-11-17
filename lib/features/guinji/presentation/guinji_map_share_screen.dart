@@ -58,7 +58,7 @@ Future<void> shareGuinjiMapInvite(
   if (token == null || token.isEmpty) return;
   final link = buildGuinjiInviteLink(token);
   final message =
-      '귀인지도에 당신을 초대했어요!\n'
+      '귀인지도에 당신을 초대했어요\n'
       '링크를 열면 생일만 입력해도 관계가 채워져요.\n$link';
 
   Future<void> copyAndToast(String toastMessage) async {

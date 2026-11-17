@@ -222,9 +222,15 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    // [QA_CHECKLIST §1 전역 2 "모든 주요 버튼이 #FEE500 ·
+                    // 로즈골드·금색·흰색 버튼 0곳"] 이 축하 다이얼로그는
+                    // SPEC.md에 명시된 화면 목록 밖(레거시 기능)이지만
+                    // 전역 규칙은 화면을 가리지 않고 모든 주요 버튼에
+                    // 적용되므로, 기존 금색(`GmColors.gold`) 배경을
+                    // `GmColors.primary`(#FEE500/#191600)로 교체한다.
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: GmColors.gold,
-                      foregroundColor: GmColors.onFg,
+                      backgroundColor: GmColors.primary,
+                      foregroundColor: GmColors.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
