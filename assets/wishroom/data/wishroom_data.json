@@ -3,70 +3,70 @@
   {
    "lv": 1,
    "name": "처음 만난 소원방",
-   "pts": 0,
+   "pts": 1,
    "change": "기본 방, 촛불만 점등",
    "fx": "intro"
   },
   {
    "lv": 2,
    "name": "작은 정성",
-   "pts": 30,
+   "pts": 3,
    "change": "창가에 첫 꽃잎",
    "fx": "flame"
   },
   {
    "lv": 3,
    "name": "향로 등장",
-   "pts": 100,
+   "pts": 5,
    "change": "향로 배치 + 연기",
    "fx": "incense"
   },
   {
    "lv": 4,
    "name": "등불 추가",
-   "pts": 250,
+   "pts": 7,
    "change": "등불 점화, 반딧불 2마리",
    "fx": "lantern"
   },
   {
    "lv": 5,
    "name": "소원함 빛남",
-   "pts": 500,
+   "pts": 10,
    "change": "소원함 테두리 발광",
    "fx": "box"
   },
   {
    "lv": 6,
    "name": "연꽃 장식",
-   "pts": 900,
+   "pts": 14,
    "change": "연꽃 개화",
    "fx": "lotus"
   },
   {
    "lv": 7,
    "name": "천장 별빛",
-   "pts": 1500,
+   "pts": 21,
    "change": "천장 별 파티클",
    "fx": "stars"
   },
   {
    "lv": 8,
    "name": "복주머니 장식",
-   "pts": 2400,
+   "pts": 30,
    "change": "복주머니 걸림",
    "fx": "pouch"
   },
   {
    "lv": 9,
    "name": "방 전체 밝아짐",
-   "pts": 3600,
+   "pts": 40,
    "change": "전체 광량 +30%",
    "fx": "lightup"
   },
   {
    "lv": 10,
    "name": "소원방 완성",
-   "pts": 5000,
+   "pts": 50,
    "change": "완성 상태 유지",
    "fx": "cinema"
   }
@@ -87,28 +87,24 @@
   },
   {
    "minDays": 8,
-   "brightness": 0.5,
+   "brightness": 0.62,
    "label": "희미해짐",
    "badge": true
   },
   {
    "minDays": 15,
-   "brightness": 0.3,
+   "brightness": 0.48,
    "label": "가물거림",
-   "badge": true
-  },
-  {
-   "minDays": 31,
-   "brightness": 0.2,
-   "label": "겨우 남은 불씨",
    "badge": true
   }
  ],
  "DEVOTION_RULE": {
-  "dailyLimit": 10,
-  "cooldownSec": 30,
-  "bonusAt": 10,
-  "bonusPouch": 20
+  "dailyLimit": 1,
+  "holdMs": 3000,
+  "holdMinMs": 2900,
+  "streakAt": 7,
+  "streakBonus": 20,
+  "cooldownSec": 0
  },
  "CHARACTERS": [
   {
@@ -619,7 +615,7 @@
   {
    "id": "DECORATION",
    "label": "장식",
-   "max": 5,
+   "max": 3,
    "glyph": "◈"
   },
   {
@@ -2912,47 +2908,49 @@
  ],
  "EARN": [
   {
-   "id": "ad",
-   "label": "짧은 영상 보기",
-   "amount": 30,
-   "limit": 10,
-   "sub": "AD · 1일 10회"
-  },
-  {
-   "id": "attend",
-   "label": "오늘의 출석",
-   "amount": 10,
+   "id": "pray",
+   "label": "오늘의 기도",
+   "amount": 5,
    "limit": 1,
-   "sub": "ATTEND · 1일 1회"
-  },
-  {
-   "id": "devo10",
-   "label": "정성 10회 완료 보너스",
-   "amount": 20,
-   "limit": 1,
-   "sub": "DEVOTION × 10",
+   "sub": "PRAY · 1일 1회",
    "auto": true
   },
   {
-   "id": "m_visit",
-   "label": "다른 소원방 3곳 둘러보기",
-   "amount": 10,
-   "limit": 1,
-   "sub": "MISSION · 01"
-  },
-  {
-   "id": "m_cheer",
-   "label": "응원 3번 보내기",
+   "id": "streak7",
+   "label": "7일 연속 기도",
    "amount": 20,
    "limit": 1,
-   "sub": "MISSION · 02"
+   "sub": "STREAK · 7일째",
+   "auto": true
   },
   {
-   "id": "m_msg",
-   "label": "응원 메시지 남기기",
-   "amount": 30,
+   "id": "cheer",
+   "label": "함께 빌기",
+   "amount": 1,
+   "limit": 5,
+   "sub": "CHEER · 1일 5회"
+  },
+  {
+   "id": "ad",
+   "label": "짧은 영상 보기",
+   "amount": 2,
+   "limit": 5,
+   "sub": "AD · 1일 5회 · 30초 간격"
+  },
+  {
+   "id": "welcome",
+   "label": "꾸미기 처음 열림 선물",
+   "amount": 50,
    "limit": 1,
-   "sub": "MISSION · 03"
+   "sub": "WELCOME · 평생 1회",
+   "auto": true
+  },
+  {
+   "id": "dispatchRecv",
+   "label": "대리 기도 받기",
+   "amount": 3,
+   "limit": 15,
+   "sub": "DISPATCH · 최대 15"
   }
  ],
  "WISH_TEMPLATES": [
@@ -3141,5 +3139,58 @@
   "은하수",
   "작은연꽃",
   "먼산"
- ]
+ ],
+ "UNLOCK": {
+  "guardian": 2,
+  "decor": 3,
+  "together": 4,
+  "wardrobe": 5,
+  "theme": 7,
+  "wallpaper": 7,
+  "shop": 14
+ },
+ "GOALS": [
+  21,
+  49,
+  100,
+  0
+ ],
+ "POUCH": {
+  "pray": 5,
+  "cheer": 1,
+  "cheerMax": 5,
+  "streak7": 20,
+  "ad": 2,
+  "adMax": 5,
+  "welcome": 50,
+  "won": 10,
+  "dispatch": {
+   "1": 50,
+   "3": 120,
+   "7": 250
+  },
+  "dispatchRecv": 3,
+  "dispatchRecvMax": 15
+ },
+ "LIMITS": {
+  "textMin": 2,
+  "textMax": 60,
+  "holdMinMs": 2900,
+  "adCooldownSec": 30,
+  "cheerPerRoom": 1,
+  "reportHide": 3,
+  "txnKeep": 50,
+  "msgMax": 80,
+  "msgPerDay": 10,
+  "msgPerMin": 3,
+  "giftOptions": [
+   10,
+   30,
+   50,
+   100
+  ],
+  "giftPerDay": 300,
+  "giftNewDays": 7,
+  "giftNewPerDay": 100
+ }
 }
