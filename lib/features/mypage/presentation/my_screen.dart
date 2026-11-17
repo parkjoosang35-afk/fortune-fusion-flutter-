@@ -135,6 +135,15 @@ class _MyScreenState extends State<MyScreen> {
 }
 
 /// **상단바** README §4-S01: "마이" 30px/800 + 우측 ◔/⚙ 아이콘 버튼 2개.
+///
+/// [뒤로가기 추가 — 사용자 요청, "마이페이지에도 뒤로가기가 없어 요기도
+/// 뒤로 가기 넣어"] "마이"는 [AppShell]의 `IndexedStack` 내부 탭이라
+/// Navigator 스택에 pop으로 돌아갈 이전 화면이 없다(다른 화면에서 이
+/// 탭으로 전환할 때도 [MainBottomNavBar]가 `pushNamedAndRemoveUntil`로
+/// 스택을 정리하고 들어온다). 따라서 좌측 뒤로가기는 동일한 "홈 탭 복귀"
+/// 패턴(`pushNamedAndRemoveUntil('/home', ..., arguments: 0)`)을 그대로
+/// 재사용해 홈(탭 0)으로 돌아간다 — 기존 우측 2개 아이콘(◔ 알림/⚙ 설정)
+/// 배치나 기능은 전혀 건드리지 않는다.
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.unreadCount});
 
@@ -146,6 +155,15 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(2, 6, 2, 0),
       child: Row(
         children: [
+          _TopBarIconButton(
+            glyph: '←',
+            onTap: () => Navigator.of(context).pushNamedAndRemoveUntil(
+              '/home',
+              (route) => false,
+              arguments: 0,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(child: Text('마이', style: MyPageTextStyles.page)),
           _TopBarIconButton(
             glyph: '◔',
