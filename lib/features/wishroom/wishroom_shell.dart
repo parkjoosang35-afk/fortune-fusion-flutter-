@@ -1,17 +1,34 @@
-// 신통방통 소원방 v2.6 · 내부 5탭 셸 — 핸드오프 app_router.dart의
-// StatefulShellRoute.indexedStack(5브랜치: 내 소원방·소원방(탐색)·알림·꾸미기·보관함)을
-// 기존 앱 컨벤션(Navigator 1.0 + IndexedStack, go_router 미도입)으로 재구현.
-// 바텀내비는 핸드오프 WrBottomNav 디자인(이모지 아이콘 🕯☾✉✿◈)을 그대로 따른다.
+// 신통방통 소원방 v5 S2 · 내부 6탭(5탭+홈버튼) 셸.
+// [v5 S2 — CHECKLIST.md "하단바 6칸: 神 · 내 소원 · 수호자 · 함께 빌기 · 상점 · 보관함
+// (알림 → 상단 🔔)"] 기존 5탭(내소원방·소원방·알림·꾸미기·보관함)+별도 신통방통
+// 홈버튼 구조를, 프로토타입 app3/shell.jsx의 TABS 배열 그대로(神 홈버튼 + home·
+// guardians·together·shop·vault 5탭)로 재구성한다. 알림 탭은 하단바에서 빠지고
+// (화면 자체는 유지, 상단 벨 진입은 main_room_screen.dart TopBar 작업에서 별도
+// 연결 예정), 꾸미기 탭은 하단바에서 빠지고 "⋯ 소원방 돌보기" 메뉴의 시트로
+// 들어간다(매핑표 46번 "사기=상점 1곳 · 놓기=꾸미기 시트") — 상점 탭 자리에는
+// 정식 ShopScreen이 아직 없어 임시로 DecorScreen을 연결한다(Todo #5에서 교체).
+//
+// 매핑표 00-C UNLOCK SPEC · app3/shell.jsx TABS/goTab() 1:1:
+//   TABS = [['home',🕯,'내 소원',null], ['guardians',👤,'수호자','guardian'],
+//           ['together',☾,'함께 빌기','together'], ['shop',🛍,'상점','decor'],
+//           ['vault',◈,'보관함',null]]
+// lock key가 있는 탭은 room.isFeatureUnlocked(key)(=서버 unlocked[] 포함 여부)가
+// false면 🔒 + 흐림(opacity .4)으로 표시하고, 탭을 눌러도 화면 이동을 막는다
+// (매핑표 "하단바 탭: 🔒 + 흐림 · 누르면 안내 시트 … (화면 이동 안 함)").
+// 안내 시트(C12, "🔒 N일째에 열려요 · N일 뒤" + 진행 막대 + [기다릴게요])의 정식
+// GuideSheet3 포팅과 열림 카드(UnlockCard3)는 Todo #4에서 이어서 구현한다 —
+// 여기서는 그 완성 전까지 화면 이동을 안전하게 막기 위한 최소 안내 시트만 둔다.
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/wr_theme.dart';
 import 'application/wishroom_provider.dart';
+import 'data/wr_catalog.dart';
 import 'core/wr_nav_pill.dart';
 import 'features/room/main_room_screen.dart';
 import 'features/explore/explore_screen.dart';
-import 'features/notifications/notifications_screen.dart';
 import 'features/decor/decor_screen.dart';
+import 'features/characters/character_shop_screen.dart';
 import 'features/vault/vault_screen.dart';
 
 class WishRoomShell extends StatefulWidget {
@@ -25,20 +42,24 @@ class WishRoomShell extends StatefulWidget {
 class _WishRoomShellState extends State<WishRoomShell> {
   late int _index;
 
+  // [v5 S2] app3/shell.jsx TABS 배열 1:1 — home(잠금없음)·guardians('guardian')·
+  // together('together')·shop('decor', 임시로 DecorScreen 연결 — Todo #5에서 정식
+  // ShopScreen으로 교체)·vault(잠금없음). 알림/꾸미기는 하단바에서 제거.
   static const _tabs = [
     MainRoomScreen(),
+    CharacterShopScreen(),
     ExploreScreen(),
-    WrNotificationsScreen(),
     DecorScreen(),
     VaultScreen(),
   ];
 
+  // (이모지, 라벨, lock key) — lock key가 null이면 항상 열림.
   static const _labels = [
-    ('🕯', '내 소원방'),
-    ('☾', '소원방'),
-    ('✉', '알림'),
-    ('✿', '꾸미기'),
-    ('◈', '보관함'),
+    ('🕯', '내 소원', null),
+    ('👤', '수호자', 'guardian'),
+    ('☾', '함께 빌기', 'together'),
+    ('🛍', '상점', 'decor'),
+    ('◈', '보관함', null),
   ];
 
   @override
@@ -138,93 +159,66 @@ class _WishRoomShellState extends State<WishRoomShell> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     for (var i = 0; i < _tabs.length; i++)
-                      // [버그수정 — 사용자 리포트: "하단바 터치가 잘안됨"] 기존
-                      // GestureDetector가 Column(mainAxisSize: min)을 감싸고
-                      // 있어 히트박스가 텍스트 글자 크기(17px 이모지 +
-                      // 10px 라벨)만큼만 아주 작게 잡혔다. WrSize.navItemW
-                      // (디자인 토큰에 정의돼 있었지만 이 화면에서 전혀
-                      // 쓰이지 않았다)로 가로 58px, 세로도 패딩을 포함한
-                      // 고정 터치 영역을 명시하고 behavior: opaque로 탭
-                      // 아이템 전체(투명한 여백 포함)가 반응하도록 한다.
-                      SizedBox(
-                        width: WrSize.navItemW,
-                        height: 48,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            setState(() => _index = i);
-                            if (i == 2) {
-                              context
-                                  .read<WishRoomProvider>()
-                                  .loadNotifications();
-                            }
-                          },
-                          child: Center(
-                            child: AnimatedScale(
-                              scale: i == _index ? 1.1 : 1,
-                              duration: const Duration(milliseconds: 500),
-                              curve: const Cubic(.34, 1.56, .64, 1),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Text(
-                                        _labels[i].$1,
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color: i == _index
-                                              ? WrC.glow
-                                              : WrC.muted,
+                      // [v5 S2] 매핑표 00-C "하단바 탭: 🔒 + 흐림 · 누르면 안내 시트
+                      // … (화면 이동 안 함)" — lock key가 있고 room.isFeatureUnlocked()가
+                      // false면 탭을 눌러도 _index를 바꾸지 않고 최소 안내 시트만 띄운다.
+                      // (정식 GuideSheet3/진행 막대 포팅은 Todo #4에서 이어감)
+                      Consumer<WishRoomProvider>(
+                        builder: (context, p, __) {
+                          final key = _labels[i].$3;
+                          final locked =
+                              key != null &&
+                              (p.room == null ||
+                                  !p.room!.isFeatureUnlocked(key));
+                          return SizedBox(
+                            width: WrSize.navItemW,
+                            height: 48,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                if (locked) {
+                                  _showLockHintSheet(context, key);
+                                  return;
+                                }
+                                setState(() => _index = i);
+                              },
+                              child: Center(
+                                child: AnimatedScale(
+                                  scale: i == _index ? 1.1 : 1,
+                                  duration: const Duration(milliseconds: 500),
+                                  curve: const Cubic(.34, 1.56, .64, 1),
+                                  child: Opacity(
+                                    opacity: locked ? .4 : 1,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          locked ? '🔒' : _labels[i].$1,
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            color: i == _index
+                                                ? WrC.glow
+                                                : WrC.muted,
+                                          ),
                                         ),
-                                      ),
-                                      if (i == 2)
-                                        Consumer<WishRoomProvider>(
-                                          builder: (_, p, __) =>
-                                              p.unreadCount > 0
-                                              ? Positioned(
-                                                  right: -6,
-                                                  top: -3,
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 4,
-                                                          vertical: 1,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: WrC.blossom,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      '${p.unreadCount}',
-                                                      style: const TextStyle(
-                                                        fontSize: 9,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                              : const SizedBox.shrink(),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          _labels[i].$2,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: i == _index
+                                                ? WrC.fg
+                                                : WrC.muted,
+                                          ),
                                         ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    _labels[i].$2,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: i == _index ? WrC.fg : WrC.muted,
+                                      ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     // [버그수정 — 사용자 리포트: "하단바에 신통방통 메인으로
                     // 들어가는 홈바가없고"] 소원방 모듈 5탭 어디에도 앱의
@@ -243,8 +237,10 @@ class _WishRoomShellState extends State<WishRoomShell> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // [v5 S2] 매핑표 "神 신통방통" — app3/shell.jsx
+                              // nav-home 버튼("神" 글리프)과 동일하게 교체.
                               Text(
-                                '⌂',
+                                '神',
                                 style: TextStyle(
                                   fontSize: 17,
                                   color: WrC.muted,
@@ -267,6 +263,65 @@ class _WishRoomShellState extends State<WishRoomShell> {
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// [v5 S2] 매핑표 00-C "잠긴 곳 표시 — 하단바 탭: 🔒 + 흐림 · 누르면 안내 시트
+  /// '🔒 N일째에 열려요 · N일 뒤' + 진행 막대 + [기다릴게요] (화면 이동 안 함)"의
+  /// 최소 구현. app3/shell.jsx goTab()의 `left = max(1, unlock[k] - dayN)` 계산을
+  /// 그대로 따른다. 정식 GuideSheet3(그림·1·2·3 안내 카드 등)로의 교체는 Todo #4.
+  void _showLockHintSheet(BuildContext context, String key) {
+    final room = context.read<WishRoomProvider>().room;
+    final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)[key] as int? ?? 0;
+    final dayN = room?.dayN ?? 1;
+    final left = math.max(1, unlockDay - dayN);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => Container(
+        decoration: WrDeco.sheet,
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🔒', style: TextStyle(fontSize: 40)),
+              const SizedBox(height: 10),
+              Text('$unlockDay일째에 열려요', style: WrF.display(18)),
+              const SizedBox(height: 6),
+              Text(
+                '$left일 뒤에 만날 수 있어요',
+                textAlign: TextAlign.center,
+                style: WrF.body(13, color: WrC.muted, height: 1.6),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: WrSize.btnH,
+                child: DecoratedBox(
+                  decoration: WrDeco.btnPink,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => Navigator.of(sheetCtx).pop(),
+                      child: const Center(
+                        child: Text(
+                          '기다릴게요',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
