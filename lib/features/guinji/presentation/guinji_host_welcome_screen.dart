@@ -69,91 +69,87 @@ class GuinjiHostWelcomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: GmColors.bg,
-      body: Container(
-        decoration: const BoxDecoration(gradient: GmColors.bgGradient),
+      // [2026-12 보강 — SPEC §2 `bgGlow` 전역 배경] `design_files/
+      // guinji-loop.jsx`의 `LpGift`(145~173줄)는 `<TpBg />`(151줄)를 화면
+      // 최상단에 깐다 — 기존에 쓰던 `GmStarsBackground`(별 24개, 반짝임
+      // 없음)는 TpBg의 일부(별 44개 + 반짝임)만 흉내 낸 불완전한 대체였다.
+      // [GmTempleBg]로 교체해 글로우 3겹 + 정확한 별 스펙을 모두 적용한다.
+      body: GmTempleBg(
         child: SafeArea(
-          child: Stack(
-            children: [
-              const Positioned.fill(child: GmStarsBackground(opacity: 0.4)),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(22, 30, 22, 16),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            const GmLabelMini('WELCOME · 첫 방문'),
-                            const SizedBox(height: 12),
-                            Text(
-                              '$guestName님, 반가워요\n'
-                              '이제 내 곁의 귀인을\n'
-                              '찾아볼 차례예요',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontFamily: GmText.display,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 24,
-                                height: 1.4,
-                                letterSpacing: -0.03,
-                                color: GmColors.fg,
-                              ),
-                            ),
-                            const SizedBox(height: 26),
-                            _GiPulsingCharacter(facePath: char.face),
-                            const SizedBox(height: 16),
-                            Text(
-                              '$hostName님 지도에 별을 띄운 것처럼\n'
-                              '내 지도에도 인연을 하나씩 채울 수 있어요',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontFamily: GmText.ui,
-                                fontSize: 13.5,
-                                height: 1.6,
-                                color: GmColors.muted,
-                              ),
-                            ),
-                            // [정책 없음 — 클래스 주석 참고] showGift가
-                            // true일 때만 노출한다. 기본값(false)에서는
-                            // SPEC 정책("정책 없으면 카드만 숨깁니다")에
-                            // 따라 이 카드 전체를 생략한다.
-                            if (showGift) ...[
-                              const SizedBox(height: 22),
-                              const _GiGiftCard(),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    GmRoseButton(
-                      label: '내 귀인지도 만들기',
-                      onPressed: onCreateMap,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: onLater,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: GmColors.line),
-                          foregroundColor: GmColors.muted,
-                          minimumSize: const Size.fromHeight(46),
-                          shape: const StadiumBorder(),
-                        ),
-                        child: const Text(
-                          '나중에 할게요',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 30, 22, 16),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        const GmLabelMini('WELCOME · 첫 방문'),
+                        const SizedBox(height: 12),
+                        Text(
+                          '$guestName님, 반가워요\n'
+                          '이제 내 곁의 귀인을\n'
+                          '찾아볼 차례예요',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: GmText.display,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 24,
+                            height: 1.4,
+                            letterSpacing: -0.03,
+                            color: GmColors.fg,
                           ),
                         ),
+                        const SizedBox(height: 26),
+                        _GiPulsingCharacter(facePath: char.face),
+                        const SizedBox(height: 16),
+                        Text(
+                          '$hostName님 지도에 별을 띄운 것처럼\n'
+                          '내 지도에도 인연을 하나씩 채울 수 있어요',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: GmText.ui,
+                            fontSize: 13.5,
+                            height: 1.6,
+                            color: GmColors.muted,
+                          ),
+                        ),
+                        // [정책 없음 — 클래스 주석 참고] showGift가
+                        // true일 때만 노출한다. 기본값(false)에서는
+                        // SPEC 정책("정책 없으면 카드만 숨깁니다")에
+                        // 따라 이 카드 전체를 생략한다.
+                        if (showGift) ...[
+                          const SizedBox(height: 22),
+                          const _GiGiftCard(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                GmRoseButton(label: '내 귀인지도 만들기', onPressed: onCreateMap),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: onLater,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: GmColors.line),
+                      foregroundColor: GmColors.muted,
+                      minimumSize: const Size.fromHeight(46),
+                      shape: const StadiumBorder(),
+                    ),
+                    child: const Text(
+                      '나중에 할게요',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

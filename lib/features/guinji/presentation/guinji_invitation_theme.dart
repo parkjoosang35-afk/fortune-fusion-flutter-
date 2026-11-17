@@ -26,7 +26,9 @@ class GiColors {
   static const fg = Color(0xFFF8F2E6); // 본문
   static const muted = Color(0x9EE8DCC8); // rgba(232,220,200,.62)
   static const mutedFaint = Color(0x6BE8DCC8); // rgba(232,220,200,.42) 힌트
-  static const mutedFaintest = Color(0x52E8DCC8); // rgba(232,220,200,.32) placeholder
+  static const mutedFaintest = Color(
+    0x52E8DCC8,
+  ); // rgba(232,220,200,.32) placeholder
   static const glow = Color(0xFFF5CF6A); // 촛불 금색 — 강조·CTA·선택
   static const glowShadow = Color(0x59F5CF6A); // rgba(245,207,106,.35)
   static const glowShadowSoft = Color(0x24F5CF6A); // rgba(245,207,106,.14) 보더
@@ -43,6 +45,13 @@ class GiColors {
   static const overlayTopLeft = Color(0x38785084); // rgba(120,80,200,.22) 근사
   /// 오버레이 2 — 우하단 인장 빨강빛
   static const overlayBottomRight = Color(0x1FC94A3B); // rgba(201,74,59,.12)
+  /// [2026-12 보강 — SPEC §2 `bgGlow` ③] 하단 중앙 금빛 — `design_files/
+  /// guinji-temple.jsx` `TpBg()`의 세 번째 타원(60%×30% at 50% 100%,
+  /// rgba(245,207,106,.08))을 이 화면 전용 토큰 체계에 추가한다. 이
+  /// 화면(`guinji_invitation_theme.dart`)은 `GmColors`와 격리된 별도
+  /// 팔레트라 `GmTempleBg`를 그대로 가져다 쓰지 않고, 기존 2겹(보라·빨강)
+  /// 오버레이에 이 3번째 금빛만 추가해 SPEC의 3겹 글로우를 완성한다.
+  static const overlayBottomCenter = Color(0x14F5CF6A); // rgba(245,207,106,.08)
 
   static const wash1 = Color(0x8C0A0716); // rgba(10,7,22,.55)
   static const wash2 = Color(0x001A0D2E); // transparent

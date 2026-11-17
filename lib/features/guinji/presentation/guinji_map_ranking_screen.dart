@@ -196,81 +196,89 @@ class _GuinjiMapRankingScreenState extends State<GuinjiMapRankingScreen> {
     return Scaffold(
       backgroundColor: GmColors.bg,
       appBar: GmTopBar(back: true, title: title),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 탭(핸드오프: 랭킹 / 유형별 목록, 배경 pill 2종)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  // [QA 대조 — SPEC §6 H11 "세그먼트 2탭: 배경
-                  // rgba(255,235,200,.05)"] design_files/guinji-rank.jsx
-                  // 기준 흰색이 아닌 따뜻한 톤(cardTint) — 기존 코드는
-                  // 순수 흰색 5%를 쓰고 있었다.
-                  color: GmColors.cardTint,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _TabButton(
-                        label: '랭킹',
-                        active: _tab == 0,
-                        onTap: () => setState(() => _tab = 0),
+      // [2026-12 보강 — SPEC §2 `bgGlow` 전역 배경] `design_files/
+      // guinji-rank.jsx`의 `RankScreen` 자체는 배경을 지정하지 않고
+      // 상위 데모 셸(`CPhone`)의 배경을 그대로 물려받는 구조다 —
+      // `CPhone`의 배경은 `TpBg`와 동일한 3겹 라디얼 글로우 그라데이션
+      // (`guinji-clean.jsx` 12줄)이므로, 여기서도 [GmTempleBg]를 적용해
+      // 단색(`GmColors.bg`) 배경을 글로우·별로 보강한다.
+      body: GmTempleBg(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // 탭(핸드오프: 랭킹 / 유형별 목록, 배경 pill 2종)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    // [QA 대조 — SPEC §6 H11 "세그먼트 2탭: 배경
+                    // rgba(255,235,200,.05)"] design_files/guinji-rank.jsx
+                    // 기준 흰색이 아닌 따뜻한 톤(cardTint) — 기존 코드는
+                    // 순수 흰색 5%를 쓰고 있었다.
+                    color: GmColors.cardTint,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _TabButton(
+                          label: '랭킹',
+                          active: _tab == 0,
+                          onTap: () => setState(() => _tab = 0),
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: _TabButton(
-                        label: '유형별 목록',
-                        active: _tab == 1,
-                        onTap: () => setState(() => _tab = 1),
+                      Expanded(
+                        child: _TabButton(
+                          label: '유형별 목록',
+                          active: _tab == 1,
+                          onTap: () => setState(() => _tab = 1),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: _tab == 0
-                  ? _RankTab(
-                      sorted: sorted,
-                      onPick: _openDetail,
-                      onInvite:
-                          widget.onInvite ??
-                          () => Navigator.of(
-                            context,
-                          ).pushNamed('/guinji-map/m/share'),
-                      onShare: sorted.length >= 3
-                          ? () => Navigator.of(context).push(
-                              // [QA 대조 — SPEC §6 H12 "→ 바텀시트"] H12가
-                              // 투명 Scaffold + 하단카드 구조로 전환됨에
-                              // 따라, 다른 바텀시트 화면(H9/H10)과 동일하게
-                              // guinjiPageRoute(불투명 다크 배경)로 push
-                              // 해야 전환 중 흰 배경이 비치지 않는다 —
-                              // 기존 MaterialPageRoute는 이 화면이
-                              // 전체화면이던 시절의 호출 방식이었다.
-                              guinjiPageRoute(
-                                GuinjiResultCardScreen(
-                                  people: widget.people,
-                                  ownerName: widget.ownerName,
+              Expanded(
+                child: _tab == 0
+                    ? _RankTab(
+                        sorted: sorted,
+                        onPick: _openDetail,
+                        onInvite:
+                            widget.onInvite ??
+                            () => Navigator.of(
+                              context,
+                            ).pushNamed('/guinji-map/m/share'),
+                        onShare: sorted.length >= 3
+                            ? () => Navigator.of(context).push(
+                                // [QA 대조 — SPEC §6 H12 "→ 바텀시트"] H12가
+                                // 투명 Scaffold + 하단카드 구조로 전환됨에
+                                // 따라, 다른 바텀시트 화면(H9/H10)과 동일하게
+                                // guinjiPageRoute(불투명 다크 배경)로 push
+                                // 해야 전환 중 흰 배경이 비치지 않는다 —
+                                // 기존 MaterialPageRoute는 이 화면이
+                                // 전체화면이던 시절의 호출 방식이었다.
+                                guinjiPageRoute(
+                                  GuinjiResultCardScreen(
+                                    people: widget.people,
+                                    ownerName: widget.ownerName,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : null,
-                    )
-                  : _ListTab(
-                      list: sorted,
-                      filter: _filter,
-                      onFilter: (t) => setState(() => _filter = t),
-                      onPick: _openDetail,
-                      onDelete: widget.onMemberDelete == null
-                          ? null
-                          : _confirmDelete,
-                    ),
-            ),
-          ],
+                              )
+                            : null,
+                      )
+                    : _ListTab(
+                        list: sorted,
+                        filter: _filter,
+                        onFilter: (t) => setState(() => _filter = t),
+                        onPick: _openDetail,
+                        onDelete: widget.onMemberDelete == null
+                            ? null
+                            : _confirmDelete,
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

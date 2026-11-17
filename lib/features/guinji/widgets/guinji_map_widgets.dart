@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -147,7 +148,8 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           SizedBox(
             width: 40,
-            child: trailing ??
+            child:
+                trailing ??
                 (onShare != null
                     ? IconButton(
                         padding: EdgeInsets.zero,
@@ -250,6 +252,219 @@ class GmDot extends StatelessWidget {
     height: size,
     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
   );
+}
+
+/// ─────────────────────────────────────────────────────────────
+/// [2026-12 보강 — SPEC §2 `bgGlow` 전역 배경] "심야의 신전" 공통 배경.
+///
+/// `design_files/guinji-temple.jsx`의 `TpBg()` 함수(63~71줄)를 1:1 이식한
+/// 것이다. 원본은 H2(`TpInput`)·H4(`TpMain`, 2회)뿐 아니라 `guinji-guest.jsx`
+/// 의 `GsShell`(G1·W1·G2·W2·W3 공유 셸)·`guinji-loop.jsx`의 `LpGift`(G3)에서도
+/// 똑같이 쓰이는 **전 화면 공통 배경 컴포넌트**다 — H1(자체 시네마틱
+/// 배경)과 H7/H8(의도적으로 다른 단색 `DK.bg`)만 예외다.
+///
+/// SPEC §2 `bgGlow` 토큰 그대로:
+///   ① 타원 90%×45% at 12% 0%:  rgba(140,80,200,.30)
+///   ② 타원 70%×40% at 100% 70%: rgba(201,74,59,.13)
+///   ③ 타원 60%×30% at 50% 100%: rgba(245,207,106,.08)
+/// 위에 `bgTop→bgBottom` 기본 그라데이션, 그리고 §2 `stars`(1~1.6px 흰 점
+/// 44개, 불투명도 .55, 2~6s 반짝임 — jsx `tp-tw` keyframe)를 겹친다.
+///
+/// 이 화면들은 지금까지 [GmColors.bgGradient](2색 선형)만 쓰고 있었다 —
+/// 이 위젯으로 교체하면 글로우·별이 추가로 한 번에 적용된다. 교체 전
+/// `Container(decoration: BoxDecoration(gradient: GmColors.bgGradient))`와
+/// 레이아웃 계약(화면을 꽉 채우는 배경 1장)이 동일하므로 drop-in 교체가
+/// 가능하다.
+class GmTempleBg extends StatefulWidget {
+  const GmTempleBg({super.key, this.child});
+
+  /// 배경 위에 얹을 실제 화면 내용(선택) — 지정하지 않으면 배경 레이어만
+  /// 그리고, 호출부가 `Stack`으로 직접 내용을 겹치는 용도로 쓸 수 있다.
+  final Widget? child;
+
+  @override
+  State<GmTempleBg> createState() => _GmTempleBgState();
+}
+
+class _GmTempleBgState extends State<GmTempleBg>
+    with SingleTickerProviderStateMixin {
+  // jsx: `Array.from({length:44},(_,i)=>({x:(i*37+11)%100, y:(i*61+7)%100,
+  // r: i%6===0?1.6:1, t: 2+(i%5)*.8}))` — 44개 별의 결정적 배치를 그대로
+  // 재현한다(화면마다 동일한 별자리가 보여야 하므로 랜덤이 아니라 i 기반
+  // 해시 공식을 그대로 옮긴다).
+  static final List<_TpStarSpec> _stars = List.generate(44, (i) {
+    return _TpStarSpec(
+      x: (i * 37 + 11) % 100 / 100,
+      y: (i * 61 + 7) % 100 / 100,
+      r: i % 6 == 0 ? 1.6 : 1.0,
+      period: Duration(milliseconds: ((2 + (i % 5) * 0.8) * 1000).round()),
+      delayFraction: (i * .17) / (2 + (i % 5) * 0.8),
+    );
+  });
+
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // 개별 별마다 주기가 다르므로(2~4.2s), 공통 긴 주기 컨트롤러 하나를
+    // 0→1로 무한 반복시키고 각 별이 자기 주기·지연을 적용해 위상을
+    // 계산한다(`guinji_animated_graph.dart`의 `elapsedSeconds` 패턴과 동일).
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 60),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 기본 그라데이션 + ①②③ 라디얼 글로우 3겹(정적 — 시간에 따라
+        // 변하지 않으므로 애니메이션 리빌드 비용과 무관).
+        const DecoratedBox(
+          decoration: BoxDecoration(gradient: GmColors.bgGradient),
+        ),
+        Positioned.fill(child: CustomPaint(painter: _TempleGlowPainter())),
+        // 별 44개 — "동작 줄이기"가 켜져 있으면 반짝임 없이 고정 밝기로.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: reduceMotion
+                ? CustomPaint(painter: _TempleStarsPainter(phase: 0))
+                : AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        painter: _TempleStarsPainter(
+                          phase: _controller.value * 60,
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+        if (widget.child != null) widget.child!,
+      ],
+    );
+  }
+}
+
+class _TpStarSpec {
+  const _TpStarSpec({
+    required this.x,
+    required this.y,
+    required this.r,
+    required this.period,
+    required this.delayFraction,
+  });
+
+  final double x; // 0~1
+  final double y; // 0~1
+  final double r;
+  final Duration period;
+
+  /// 60초 공통 주기 기준 지연 비율(초 단위 delay를 별도 period로 정규화해
+  /// 둔 값 — 실제 위상 계산은 Painter에서 `elapsedSeconds`로 수행).
+  final double delayFraction;
+}
+
+/// SPEC §2 `bgGlow` 3겹 라디얼 — `RadialGradient`의 `center`/`radius`는
+/// CSS `radial-gradient(ellipse W% H% at X% Y%, ...)`를 타원 비율 그대로
+/// 옮기기 번거로워, `Rect`를 타원 크기로 직접 그려 1:1 재현한다.
+class _TempleGlowPainter extends CustomPainter {
+  const _TempleGlowPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    void drawGlow(
+      double cxFrac,
+      double cyFrac,
+      double wFrac,
+      double hFrac,
+      Color color,
+    ) {
+      final center = Offset(size.width * cxFrac, size.height * cyFrac);
+      final radius = Offset(size.width * wFrac / 2, size.height * hFrac / 2);
+      final rect = Rect.fromCenter(
+        center: center,
+        width: radius.dx * 2,
+        height: radius.dy * 2,
+      );
+      final paint = Paint()..shader = templeGlowShader(rect, color);
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.scale(1, radius.dy / (radius.dx == 0 ? 1 : radius.dx));
+      canvas.translate(-center.dx, -center.dy);
+      canvas.drawCircle(center, radius.dx, paint);
+      canvas.restore();
+    }
+
+    // ① 타원 90%×45% at 12% 0%: rgba(140,80,200,.30)
+    drawGlow(0.12, 0.0, 0.9, 0.45, const Color(0x4D8C50C8));
+    // ② 타원 70%×40% at 100% 70%: rgba(201,74,59,.13)
+    drawGlow(1.0, 0.7, 0.7, 0.4, const Color(0x21C94A3B));
+    // ③ 타원 60%×30% at 50% 100%: rgba(245,207,106,.08)
+    drawGlow(0.5, 1.0, 0.6, 0.3, const Color(0x14F5CF6A));
+  }
+
+  @override
+  bool shouldRepaint(covariant _TempleGlowPainter oldDelegate) => false;
+}
+
+/// [dart:ui] `Gradient.radial`의 중심/반지름을 받아 중심 색 → 투명 쉐이더를
+/// 만드는 짧은 헬퍼(파일 내부 전용 — `RadialGradient`(painting.dart)가 아닌
+/// `dart:ui`의 저수준 `Gradient.radial` 팩토리를 직접 써야 타원 스케일
+/// 변환(`canvas.scale`)과 함께 써도 반지름이 뒤틀리지 않는다).
+Shader templeGlowShader(Rect rect, Color color) {
+  return ui.Gradient.radial(
+    rect.center,
+    rect.width / 2,
+    [color, color.withValues(alpha: 0)],
+    const [0.0, 1.0],
+  );
+}
+
+/// SPEC §2 `stars` — 1~1.6px 흰 점 44개, 불투명도 .55, 2~6s 반짝임.
+/// jsx `@keyframes tp-tw { 0%,100%{opacity:.25} 50%{opacity:1} }`를
+/// `sin` 곡선으로 근사한다(0.25~1 범위 — 최종 표시 불투명도는 여기에
+/// 베이스 .55를 곱해 CSS와 동일한 체감 밝기를 낸다).
+class _TempleStarsPainter extends CustomPainter {
+  const _TempleStarsPainter({required this.phase});
+
+  /// 공통 60초 컨트롤러의 `value * 60`(초 단위 경과시간, 0→60 반복).
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final s in _GmTempleBgState._stars) {
+      final periodSec = s.period.inMilliseconds / 1000;
+      final delaySec = s.delayFraction * periodSec;
+      final t = ((phase - delaySec) % periodSec) / periodSec;
+      // 0→1→0 삼각파를 0.25~1 범위로 매핑(= CSS keyframe 0%/50%/100%).
+      final wave = (math.sin(t * math.pi * 2 - math.pi / 2) + 1) / 2;
+      final twinkle = 0.25 + wave * 0.75;
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.55 * twinkle);
+      canvas.drawCircle(
+        Offset(s.x * size.width, s.y * size.height),
+        s.r,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TempleStarsPainter oldDelegate) =>
+      oldDelegate.phase != phase;
 }
 
 /// ─────────────────────────────────────────────────────────────

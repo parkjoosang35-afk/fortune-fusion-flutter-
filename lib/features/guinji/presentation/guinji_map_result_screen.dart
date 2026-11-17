@@ -398,17 +398,20 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
             ),
           ],
         ),
-        body: Container(
-          decoration: const BoxDecoration(gradient: GmColors.bgGradient),
+        // [2026-12 보강 — SPEC §2 `bgGlow` 전역 배경] 원본 `TpMain`
+        // (design_files/guinji-temple.jsx 642줄)은 `<TpBg />`를 화면 최
+        // 상단에 깐다. `GmColors.bgGradient` 단색 그라데이션만 쓰던 기존
+        // 구현을 [GmTempleBg]로 교체한다 — 지도 자체의 오로라·광선·입자
+        // (`guinji_animated_graph.dart`, SPEC §5-3 ②~④)는 그 위에 별도로
+        // 그려지는 레이어라 영향 없다.
+        body: GmTempleBg(
           child: SingleChildScrollView(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.top + 56,
-                  ),
+                  SizedBox(height: MediaQuery.of(context).padding.top + 56),
                   // ── 헤더: GUINJI·貴人之圖 + 타이틀 + 케미 랭킹 버튼 ──
                   // (v5 TpMain 헤더 1:1 이식)
                   Padding(
@@ -851,7 +854,10 @@ class _GuinjiDirectAddBox extends StatelessWidget {
 
 /// v5 TpMain "여섯 가지 인연 알아보기" — 2열 그리드(관계유형 6종 카드).
 class _GuinjiTypeGuideSection extends StatelessWidget {
-  const _GuinjiTypeGuideSection({required this.people, required this.onTapType});
+  const _GuinjiTypeGuideSection({
+    required this.people,
+    required this.onTapType,
+  });
 
   final List<GuinjiPerson> people;
   final void Function(String key) onTapType;
@@ -1353,5 +1359,3 @@ class _GmOwnerSajuCard extends StatelessWidget {
     );
   }
 }
-
-

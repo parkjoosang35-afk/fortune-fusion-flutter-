@@ -140,8 +140,8 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
   }
 
   void _handleScroll() {
-    final solid = _scrollController.hasClients &&
-        _scrollController.offset > 300;
+    final solid =
+        _scrollController.hasClients && _scrollController.offset > 300;
     if (solid != _topBarSolid) {
       setState(() => _topBarSolid = solid);
     }
@@ -379,15 +379,11 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
     );
   }
 
-  void _showPrivacyPolicySheet() => _showPolicyWebViewSheet(
-        title: '개인정보처리방침',
-        path: '/privacy-policy',
-      );
+  void _showPrivacyPolicySheet() =>
+      _showPolicyWebViewSheet(title: '개인정보처리방침', path: '/privacy-policy');
 
-  void _showTermsSheet() => _showPolicyWebViewSheet(
-        title: '이용약관(회원약관)',
-        path: '/terms',
-      );
+  void _showTermsSheet() =>
+      _showPolicyWebViewSheet(title: '이용약관(회원약관)', path: '/terms');
 
   bool get _canSubmit =>
       _nameController.text.trim().isNotEmpty && _agreePolicy && _agreeAge14;
@@ -830,23 +826,41 @@ class _InvitationBackgroundOverlays extends StatelessWidget {
             ),
           ),
         ),
+        // [2026-12 보강 — SPEC §2 `bgGlow` ③] 하단 중앙 금빛 — TpBg의
+        // 세 번째 타원(60%×30% at 50% 100%)을 추가해 3겹 글로우를 완성.
+        Positioned(
+          bottom: -80,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              width: 420,
+              height: 220,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [GiColors.overlayBottomCenter, Colors.transparent],
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
-/// 별 점 — 1px 흰 점 6개, 고정 위치.
+/// 별 점 — [2026-12 보강 — SPEC §2 `stars`] `design_files/guinji-temple.jsx`
+/// `TpBg()`(63~71줄)의 44개 별 배치 공식(`x=(i*37+11)%100, y=(i*61+7)%100`)을
+/// 그대로 이식 — 기존 6개 고정 점은 TpBg 스펙(44개)에 크게 못 미쳤다.
 class _InvitationStarField extends StatelessWidget {
   const _InvitationStarField();
 
-  static const _stars = [
-    (0.12, 0.08, 0.7),
-    (0.78, 0.05, 0.5),
-    (0.40, 0.22, 0.35),
-    (0.88, 0.17, 0.5),
-    (0.22, 0.30, 0.4),
-    (0.64, 0.33, 0.35),
-  ];
+  static final List<(double, double, double)> _stars = List.generate(44, (i) {
+    final x = (i * 37 + 11) % 100 / 100;
+    final y = (i * 61 + 7) % 100 / 100;
+    return (x, y, 0.55);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -901,10 +915,7 @@ class _InvitationTopBar extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Positioned(
-                  left: 16,
-                  child: _TopBarBackButton(onTap: onBack),
-                ),
+                Positioned(left: 16, child: _TopBarBackButton(onTap: onBack)),
                 const Text(
                   '귀인지도 참여',
                   style: TextStyle(
@@ -1083,10 +1094,7 @@ class _GiFieldLabel extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          '◇ ',
-          style: TextStyle(fontSize: 9, color: GiColors.glow),
-        ),
+        const Text('◇ ', style: TextStyle(fontSize: 9, color: GiColors.glow)),
         Text(
           label,
           style: const TextStyle(

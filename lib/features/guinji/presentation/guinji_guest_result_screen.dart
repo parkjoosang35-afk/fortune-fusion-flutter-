@@ -155,47 +155,32 @@ class GuinjiGuestResultScreen extends StatelessWidget {
           title: '게스트 결과',
           onBack: () => Navigator.of(context).maybePop(),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-          child: Column(
-            children: [
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: _BobbingHostMascot(gender: hostGender),
-              ),
-              const SizedBox(height: 4),
-              GmLabelMini(
-                hostGender == 'male' ? '▸ 방통도령 · RESULT' : '▸ 방통선녀 · RESULT',
-              ),
-              const SizedBox(height: 10),
-              // [렌더 버그 방지] 줄바꿈이 들어가는 첫 줄과 색상이 다른
-              // TextSpan을 한 Text.rich 트리에 섞으면 Flutter Web(CanvasKit)
-              // 에서 첫 줄 글리프가 깨지는 문제가 있어, 줄바꿈이 들어가는
-              // 첫 줄을 별도 Text로 분리한다.
-              Text(
-                '당신은 $hostName에게',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: GmText.display,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  height: 1.3,
-                  color: GmColors.fg,
+        // [2026-12 보강 — SPEC §2 `bgGlow` 전역 배경] `design_files/
+        // guinji-guest.jsx`의 `GsResult`(105줄~)는 공유 셸 `GsShell`
+        // (18줄 `<TpBg />`)로 래핑돼 G2/W2 모두 이 배경을 공유한다.
+        // `GmColors.bg` 단색만 쓰던 기존 구현을 [GmTempleBg]로 교체한다.
+        body: GmTempleBg(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: _BobbingHostMascot(gender: hostGender),
                 ),
-              ),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: label,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const TextSpan(text: '이에요'),
-                  ],
+                const SizedBox(height: 4),
+                GmLabelMini(
+                  hostGender == 'male' ? '▸ 방통도령 · RESULT' : '▸ 방통선녀 · RESULT',
+                ),
+                const SizedBox(height: 10),
+                // [렌더 버그 방지] 줄바꿈이 들어가는 첫 줄과 색상이 다른
+                // TextSpan을 한 Text.rich 트리에 섞으면 Flutter Web(CanvasKit)
+                // 에서 첫 줄 글리프가 깨지는 문제가 있어, 줄바꿈이 들어가는
+                // 첫 줄을 별도 Text로 분리한다.
+                Text(
+                  '당신은 $hostName에게',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: GmText.display,
                     fontSize: 20,
@@ -204,142 +189,163 @@ class GuinjiGuestResultScreen extends StatelessWidget {
                     color: GmColors.fg,
                   ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              _GuestResultCard(
-                label: label,
-                hanja: hanja,
-                score: score,
-                color: color,
-                evidenceSummary: evidenceSummary,
-                body: body,
-              ),
-              // [귀인지도 v5 — G2/W2 QA 대조 보강] SPEC §6 G2-5 "근거 박스" ·
-              // COPY.md G2 "reasons = 왜 이렇게 나왔나요 → §1-2". H5(인물
-              // 시트, `guinji_node_sheet.dart`)가 이미 같은 `guinjiReasons`
-              // 데이터로 구현해 둔 S1~S5 행 패턴을 그대로 이식한다.
-              if ((guinjiReasons[relationKey] ?? const []).isNotEmpty) ...[
-                const SizedBox(height: 18),
-                _GuinjiReasonBox(relationKey: relationKey, color: color),
-              ],
-              const SizedBox(height: 24),
-              const Divider(color: GmColors.line, height: 1),
-              const SizedBox(height: 16),
-              Text(
-                mapTotal != null
-                    ? '$hostName님의 지도에 지금 $mapTotal명이 함께해요'
-                    : '당신의 지도에는 누가 있을까요',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: GmText.ui,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: GmColors.fg,
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: label,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const TextSpan(text: '이에요'),
+                    ],
+                    style: const TextStyle(
+                      fontFamily: GmText.display,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      height: 1.3,
+                      color: GmColors.fg,
+                    ),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                '노드를 눌러 관계 상세를 확인하세요',
-                style: TextStyle(fontSize: 10.5, color: GmColors.dim),
-              ),
-              const SizedBox(height: 12),
-              // [바이럴 페이지 개편] 회원가입한 사용자의 "내 귀인지도"(M화면)와
-              // 동일한 애니메이션 관계 그래프. 게스트 본인이 중심, 호스트가
-              // 관계 노드 1개로 표시된다.
-              GuinjiAnimatedRelationGraph(
-                centerTitle: '$centerName님',
-                centerSubtitle: '나',
-                people: [hostNode],
-                interactive: true,
-                showControls: false,
-                height: 260,
-              ),
-              // [귀인지도 핸드오프 v4 — L5, 2026-12 광고형 재설계]
-              // `guinji-loop.jsx`의 `LpTeaser` 레이아웃(1장 맛보기 +
-              // 2~10장 제목+자물쇠)은 그대로 가져오되, 문구는 '결제하면
-              // 열린다'는 해금 뉘앙스에서 '내 지도를 만들면 이런 깊은
-              // 풀이를 가질 수 있다'는 광고/유도 뉘앙스로 바꿨다 —
-              // [대표 확인 완료, 2026-12] 이 화면이 보여주는 것은
-              // 호스트-게스트 두 사람의 관계 그 자체이고, 그 관계의
-              // 10장 심층 풀이를 결제해서 볼 권한은 지도 소유자인
-              // 호스트에게만 있다(게스트 본인은 이 관계를 결제할 권한이
-              // 아예 없음 — `guinji_map_relation_detail_screen.dart`의
-              // `_handleUnlock`은 호스트 전용). 따라서 이 위젯은 '잠금
-              // 해제' 기능이 아니라 순수 홍보/미리보기이며, CTA는
-              // 항상 [onCreateOwnMap](자기 지도 만들기, 이 관계와는
-              // 무관한 완전히 새로운 여정)만 호출한다 — 절대 원칙(자동
-              // 전환 금지)과 동일하게 게스트가 버튼을 직접 눌렀을 때만
-              // 동작한다.
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: _GuinjiDeepTeaser(
-                  hostName: hostName,
-                  meName: centerName,
-                  relationKey: relationKey,
-                  // [귀인지도 v5 — G3 연결] SPEC §6 G2 "동작: 나도 내 귀인지도
-                  // 만들기 → G3". 기본값은 더 이상 H1(`/guinji-map`)로
-                  // 바로 가지 않고, 먼저 G3(새 호스트 환영,
-                  // [GuinjiHostWelcomeScreen])를 보여준다 — 이 화면은
-                  // 순수 표시 위젯(상태를 저장하지 않음)이므로 "게스트가
-                  // 자기 지도 만들기를 누른 시점"마다 매번 보여줘도
-                  // 자동 전환 금지 원칙에 위배되지 않는다(사용자가 직접
-                  // 누른 버튼의 즉시 결과일 뿐). G3 내부에서 다시
-                  // "내 귀인지도 만들기"→H2(`/guinji-map/new`),
-                  // "나중에 할게요"→H1(`/guinji-map`)로 분기한다.
-                  onCreateOwnMap:
-                      onCreateOwnMap ??
-                      () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => GuinjiHostWelcomeScreen(
-                            guestName: centerName,
-                            hostName: hostName,
-                            onCreateMap: () => Navigator.of(context)
-                                .pushNamed('/guinji-map/new'),
-                            onLater: () => Navigator.of(
-                              context,
-                            ).pushNamedAndRemoveUntil(
-                              '/guinji-map',
-                              (route) => false,
+                const SizedBox(height: 20),
+                _GuestResultCard(
+                  label: label,
+                  hanja: hanja,
+                  score: score,
+                  color: color,
+                  evidenceSummary: evidenceSummary,
+                  body: body,
+                ),
+                // [귀인지도 v5 — G2/W2 QA 대조 보강] SPEC §6 G2-5 "근거 박스" ·
+                // COPY.md G2 "reasons = 왜 이렇게 나왔나요 → §1-2". H5(인물
+                // 시트, `guinji_node_sheet.dart`)가 이미 같은 `guinjiReasons`
+                // 데이터로 구현해 둔 S1~S5 행 패턴을 그대로 이식한다.
+                if ((guinjiReasons[relationKey] ?? const []).isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  _GuinjiReasonBox(relationKey: relationKey, color: color),
+                ],
+                const SizedBox(height: 24),
+                const Divider(color: GmColors.line, height: 1),
+                const SizedBox(height: 16),
+                Text(
+                  mapTotal != null
+                      ? '$hostName님의 지도에 지금 $mapTotal명이 함께해요'
+                      : '당신의 지도에는 누가 있을까요',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: GmText.ui,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: GmColors.fg,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '노드를 눌러 관계 상세를 확인하세요',
+                  style: TextStyle(fontSize: 10.5, color: GmColors.dim),
+                ),
+                const SizedBox(height: 12),
+                // [바이럴 페이지 개편] 회원가입한 사용자의 "내 귀인지도"(M화면)와
+                // 동일한 애니메이션 관계 그래프. 게스트 본인이 중심, 호스트가
+                // 관계 노드 1개로 표시된다.
+                GuinjiAnimatedRelationGraph(
+                  centerTitle: '$centerName님',
+                  centerSubtitle: '나',
+                  people: [hostNode],
+                  interactive: true,
+                  showControls: false,
+                  height: 260,
+                ),
+                // [귀인지도 핸드오프 v4 — L5, 2026-12 광고형 재설계]
+                // `guinji-loop.jsx`의 `LpTeaser` 레이아웃(1장 맛보기 +
+                // 2~10장 제목+자물쇠)은 그대로 가져오되, 문구는 '결제하면
+                // 열린다'는 해금 뉘앙스에서 '내 지도를 만들면 이런 깊은
+                // 풀이를 가질 수 있다'는 광고/유도 뉘앙스로 바꿨다 —
+                // [대표 확인 완료, 2026-12] 이 화면이 보여주는 것은
+                // 호스트-게스트 두 사람의 관계 그 자체이고, 그 관계의
+                // 10장 심층 풀이를 결제해서 볼 권한은 지도 소유자인
+                // 호스트에게만 있다(게스트 본인은 이 관계를 결제할 권한이
+                // 아예 없음 — `guinji_map_relation_detail_screen.dart`의
+                // `_handleUnlock`은 호스트 전용). 따라서 이 위젯은 '잠금
+                // 해제' 기능이 아니라 순수 홍보/미리보기이며, CTA는
+                // 항상 [onCreateOwnMap](자기 지도 만들기, 이 관계와는
+                // 무관한 완전히 새로운 여정)만 호출한다 — 절대 원칙(자동
+                // 전환 금지)과 동일하게 게스트가 버튼을 직접 눌렀을 때만
+                // 동작한다.
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: _GuinjiDeepTeaser(
+                    hostName: hostName,
+                    meName: centerName,
+                    relationKey: relationKey,
+                    // [귀인지도 v5 — G3 연결] SPEC §6 G2 "동작: 나도 내 귀인지도
+                    // 만들기 → G3". 기본값은 더 이상 H1(`/guinji-map`)로
+                    // 바로 가지 않고, 먼저 G3(새 호스트 환영,
+                    // [GuinjiHostWelcomeScreen])를 보여준다 — 이 화면은
+                    // 순수 표시 위젯(상태를 저장하지 않음)이므로 "게스트가
+                    // 자기 지도 만들기를 누른 시점"마다 매번 보여줘도
+                    // 자동 전환 금지 원칙에 위배되지 않는다(사용자가 직접
+                    // 누른 버튼의 즉시 결과일 뿐). G3 내부에서 다시
+                    // "내 귀인지도 만들기"→H2(`/guinji-map/new`),
+                    // "나중에 할게요"→H1(`/guinji-map`)로 분기한다.
+                    onCreateOwnMap:
+                        onCreateOwnMap ??
+                        () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => GuinjiHostWelcomeScreen(
+                              guestName: centerName,
+                              hostName: hostName,
+                              onCreateMap: () => Navigator.of(
+                                context,
+                              ).pushNamed('/guinji-map/new'),
+                              onLater: () =>
+                                  Navigator.of(context).pushNamedAndRemoveUntil(
+                                    '/guinji-map',
+                                    (route) => false,
+                                  ),
                             ),
                           ),
                         ),
-                      ),
+                  ),
                 ),
-              ),
-              // [귀인지도 v5 — G2/W2 QA 대조 보강, G1과 동일 원칙] SPEC §6
-              // G2-7 "점선 안내 박스" · COPY.md G2 note. 원문 note(앱)은
-              // "+20P가 쌓였어요"이지만, 백엔드(`join/route.ts` 설계 결정
-              // 1)는 익명 참여에 포인트를 절대 지급하지 않는다 — G1에서
-              // 사용자가 결정한 원칙(B: 사실과 일치하는 COPY.md 웹 버전
-              // 문구로 플랫폼 구분 없이 통일)을 그대로 적용해, 여기서도
-              // "참여가 완료돼…" 문구 하나로 통일한다.
-              const SizedBox(height: 16),
-              _GiGuestDashedNotice(hostName: hostName),
-              const SizedBox(height: 24),
-              // [귀인지도 v5 — G2/W2 QA 대조 보강] SPEC §6 G2-8 "footer(앱:
-              // Primary + Ghost / 웹: 문구 다름)" · COPY.md G2 footer(앱) =
-              // "나도 내 귀인지도 만들기 / 결과 공유하기". Primary(위
-              // `_GuinjiDeepTeaser` CTA)는 이미 있으나 Ghost "결과 공유하기"
-              // 버튼이 화면에 전혀 없었다 — `guinji_map_relation_detail_
-              // screen.dart`의 `_handleShare()`와 동일한 `ShareService.
-              // shareResult` 경로로 추가한다.
-              OutlinedButton.icon(
-                onPressed: () => _handleShare(context),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: GmColors.line),
-                  foregroundColor: GmColors.fg,
-                  minimumSize: const Size.fromHeight(46),
-                  shape: const StadiumBorder(),
+                // [귀인지도 v5 — G2/W2 QA 대조 보강, G1과 동일 원칙] SPEC §6
+                // G2-7 "점선 안내 박스" · COPY.md G2 note. 원문 note(앱)은
+                // "+20P가 쌓였어요"이지만, 백엔드(`join/route.ts` 설계 결정
+                // 1)는 익명 참여에 포인트를 절대 지급하지 않는다 — G1에서
+                // 사용자가 결정한 원칙(B: 사실과 일치하는 COPY.md 웹 버전
+                // 문구로 플랫폼 구분 없이 통일)을 그대로 적용해, 여기서도
+                // "참여가 완료돼…" 문구 하나로 통일한다.
+                const SizedBox(height: 16),
+                _GiGuestDashedNotice(hostName: hostName),
+                const SizedBox(height: 24),
+                // [귀인지도 v5 — G2/W2 QA 대조 보강] SPEC §6 G2-8 "footer(앱:
+                // Primary + Ghost / 웹: 문구 다름)" · COPY.md G2 footer(앱) =
+                // "나도 내 귀인지도 만들기 / 결과 공유하기". Primary(위
+                // `_GuinjiDeepTeaser` CTA)는 이미 있으나 Ghost "결과 공유하기"
+                // 버튼이 화면에 전혀 없었다 — `guinji_map_relation_detail_
+                // screen.dart`의 `_handleShare()`와 동일한 `ShareService.
+                // shareResult` 경로로 추가한다.
+                OutlinedButton.icon(
+                  onPressed: () => _handleShare(context),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: GmColors.line),
+                    foregroundColor: GmColors.fg,
+                    minimumSize: const Size.fromHeight(46),
+                    shape: const StadiumBorder(),
+                  ),
+                  icon: const Icon(Icons.ios_share_rounded, size: 16),
+                  label: const Text(
+                    '결과 공유하기',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
-                icon: const Icon(Icons.ios_share_rounded, size: 16),
-                label: const Text(
-                  '결과 공유하기',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
@@ -376,9 +382,7 @@ class _GuinjiReasonBox extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 11),
                   decoration: BoxDecoration(
                     border: i > 0
-                        ? const Border(
-                            top: BorderSide(color: GmColors.hair),
-                          )
+                        ? const Border(top: BorderSide(color: GmColors.hair))
                         : null,
                   ),
                   child: Row(

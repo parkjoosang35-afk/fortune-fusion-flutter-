@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/guinji_map_theme.dart';
+import '../widgets/guinji_map_widgets.dart';
 
 /// W3 · 링크 만료·중단 — `design_handoff_guinji_map_v5/SPEC.md` §6 W3
 /// "링크 만료·중단 (웹 · 앱 공통 문구)" + `COPY.md` "W3 링크 만료·중단" +
@@ -36,8 +37,11 @@ class GuinjiInviteExpiredScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GmColors.bg,
-      body: Container(
-        decoration: const BoxDecoration(gradient: GmColors.bgGradient),
+      // [2026-12 보강 — SPEC §2 `bgGlow` 전역 배경] `design_files/
+      // guinji-guest.jsx`의 `GsExpired`(173줄~)는 공유 셸 `GsShell`로
+      // 래핑돼 `<TpBg />`를 공유한다. `GmColors.bgGradient` 단색
+      // 그라데이션만 쓰던 기존 구현을 [GmTempleBg]로 교체한다.
+      body: GmTempleBg(
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
@@ -106,9 +110,10 @@ class GuinjiInviteExpiredScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed:
                         onCreateOwnMap ??
-                        () => Navigator.of(
-                          context,
-                        ).pushNamedAndRemoveUntil('/guinji-map', (route) => false),
+                        () => Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/guinji-map',
+                          (route) => false,
+                        ),
                     style: gmPrimary(),
                     child: const Text('내 귀인지도 만들기'),
                   ),
