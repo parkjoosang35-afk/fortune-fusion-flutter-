@@ -127,25 +127,15 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
       // 전용 하단바를 새로 만들지 않고 기존 [MainBottomNavBar] 그대로.
       bottomNav: const MainBottomNavBar(currentIndex: 0),
       // [상단바 개편 — 사용자 요청] 좌측 장식 아이콘(_GHMark)을 지우고
-      // 표준 뒤로가기 버튼으로 교체한다. 우측 "◈ 내 궁합"(장식용 다이아몬드
-      // 아이콘) 버튼도 지우고 "궁합지도 안내" 전용 아이콘 버튼으로
-      // 교체한다 — 탭 시 기존 [showGunghapIntroSheet](S07 안내 바텀시트,
-      // "궁합을 보면 별이 떠요" 등 4단계 설명)를 그대로 연다. "내 궁합"
-      // 진입 동선은 하단 "최근 살펴본 궁합 → 내 궁합 관리 ›"에 이미
-      // 있으므로 기능 손실은 없다.
+      // 표준 뒤로가기 버튼으로 교체한다. 우측 안내(ⓘ) 아이콘 버튼은
+      // 삭제하고 actions를 비워 "궁합지도" 타이틀이 AppBar 정중앙에
+      // 오도록 한다(좌측 뒤로가기·우측 빈 영역이 동일 flex로 균형을
+      // 맞춘다). 안내 바텀시트([showGunghapIntroSheet])는 본문 우상단의
+      // 핑크색 "궁합지도" 소개 버튼([_IntroButton])으로 계속 진입 가능
+      // 하므로 기능 손실은 없다.
       appBar: GHAppBar(
         title: '궁합지도',
         onBack: () => Navigator.of(context).pop(),
-        actions: [
-          GHIconButton(
-            glyph: 'ⓘ',
-            label: '궁합지도 안내',
-            onTap: () => showGunghapIntroSheet(
-              context,
-              onStart: () => _goMajor(context, method: 'direct'),
-            ),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
