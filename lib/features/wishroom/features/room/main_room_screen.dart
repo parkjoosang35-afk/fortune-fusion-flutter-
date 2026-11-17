@@ -147,7 +147,6 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   /// 채워지면(AnimationStatus.completed) 자동으로 _onDevote(heldMs: holdMs)를
   /// 호출한다.
   void _onHoldDown(WishRoom room) {
-    debugPrint('WR_DEBUG onHoldDown t=${DateTime.now().millisecondsSinceEpoch} fired devotionsToday=${room.devotionsToday} busy=${_devotion.busy} rekindling=$_rekindling');
     if (room.devotionsToday >= 1 || _devotion.busy || _rekindling) return;
     _holdEarlyTimer?.cancel();
     setState(() => _holdEarly = false);
@@ -158,14 +157,7 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     HapticFeedback.lightImpact();
     // 링게이지(_bottomDock deg)·방 boost·말풍선 문구가 매 프레임 진행률을
     // 반영해야 하므로 틱마다 setState (app3 tick()의 setProg(p) 1:1).
-    int tickCount = 0;
-    ctrl.addListener(() {
-      tickCount++;
-      if (tickCount <= 3 || tickCount % 10 == 0) {
-        debugPrint('WR_DEBUG tick#$tickCount t=${DateTime.now().millisecondsSinceEpoch} value=${ctrl.value} status=${ctrl.status}');
-      }
-      if (mounted) setState(() {});
-    });
+    ctrl.addListener(() { if (mounted) setState(() {}); });
     ctrl.forward();
     ctrl.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted && _holdCtrl == ctrl) {
@@ -178,9 +170,8 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
   /// 정성 버튼에서 손을 떼거나(onTapUp) 벗어남(onTapCancel) — app3 `up()` 1:1.
   /// 3초를 채우기 전에 떼면 서버로 보내지 않고 취소만 하고 "조금만 더 머물러
   /// 주세요" 안내를 짧게 보여준다.
-  void _onHoldUp([String source = 'unknown']) {
+  void _onHoldUp() {
     final ctrl = _holdCtrl;
-    debugPrint('WR_DEBUG onHoldUp src=$source t=${DateTime.now().millisecondsSinceEpoch} fired ctrlNull=${ctrl == null} ctrlValue=${ctrl?.value} ctrlStatus=${ctrl?.status}');
     if (ctrl == null || ctrl.status == AnimationStatus.completed) return;
     final wasProgressing = ctrl.value > 0;
     ctrl.stop();
@@ -840,8 +831,8 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
       GestureDetector(
         onTap: isDim ? _onRekindle : null,
         onTapDown: (!isDim && !busy && !done) ? (_) => _onHoldDown(room) : null,
-        onTapUp: (_) => _onHoldUp('tapUp'),
-        onTapCancel: () => _onHoldUp('tapCancel'),
+        onTapUp: (_) => _onHoldUp(),
+        onTapCancel: _onHoldUp,
         child: Container(
           width: 66, height: 66,
           decoration: BoxDecoration(
