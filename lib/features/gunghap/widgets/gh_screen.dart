@@ -131,26 +131,23 @@ class GHAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> actions;
   @override
   Size get preferredSize => const Size.fromHeight(GHSpace.appBar);
+  // [버그 수정 — 사용자 지적] 기존 Row(Expanded/Flexible/Expanded) 구조는
+  // 좌측(뒤로가기)·우측(actions) 폭이 서로 다르면 가운데 Flexible 타이틀이
+  // 화면 진짜 중앙이 아니라 좌측으로 쏠려 보이는 문제가 있었다(actions가
+  // 비어 있어도 좌측 뒤로가기 버튼의 실제 폭만큼 타이틀이 밀림). Stack +
+  // Center + Positioned.fill 구조로 교체해 타이틀을 좌우 버튼 유무/폭과
+  // 무관하게 항상 화면(AppBar) 정중앙에 고정한다.
   @override
   Widget build(BuildContext context) => SizedBox(
     height: GHSpace.appBar,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child:
-                  leading ??
-                  (onBack != null
-                      ? GHIconButton(glyph: '←', onTap: onBack!, label: '뒤로')
-                      : const SizedBox()),
-            ),
-          ),
           if (title != null)
-            Flexible(
-              flex: 2,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48),
               child: Text(
                 title!,
                 maxLines: 1,
@@ -159,9 +156,19 @@ class GHAppBar extends StatelessWidget implements PreferredSizeWidget {
                 style: GHText.cardTitle(size: 16),
               ),
             ),
-          Expanded(
-            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: actions),
+          Positioned(
+            left: 0,
+            child:
+                leading ??
+                (onBack != null
+                    ? GHIconButton(glyph: '←', onTap: onBack!, label: '뒤로')
+                    : const SizedBox()),
           ),
+          if (actions.isNotEmpty)
+            Positioned(
+              right: 0,
+              child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+            ),
         ],
       ),
     ),
