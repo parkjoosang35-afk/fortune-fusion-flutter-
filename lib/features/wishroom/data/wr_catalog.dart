@@ -56,6 +56,10 @@ class WrCatalog {
   /// 캐릭터 이미지 (의상 반영). 웹 room2.jsx › charSrc() 와 동일 규칙
   List<Map<String, dynamic>> get newOutfits => _list('NEW_OUTFITS');
 
+  /// [S3 신규] 코드(F01 등) → 표시 이름. 못 찾으면 코드 그대로 돌려준다
+  /// (received_sheet.dart가 VisitorIn.guardian 코드로 "OO님의 OO" 문구를 만들 때 사용).
+  String charName(String code) => characters.firstWhere((c) => c.id == code, orElse: () => WrCharacter.fromJson({'id': code, 'name': code, 'title': '', 'grade': '', 'gender': '', 'emblem': ''})).name;
+
   String charImage(String code, WrTheme outfit, {String? outfitId}) {
     if (outfitId != null && newOutfits.any((o) => o['id'] == outfitId && code == (o['gender'] == 'F' ? 'F00' : 'M00'))) {
       return 'assets/wishroom/outfits/$outfitId.png';

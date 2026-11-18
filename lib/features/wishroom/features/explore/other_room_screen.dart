@@ -258,6 +258,15 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
                     child: Text('💬 응원 메시지', style: WrF.body(12, w: FontWeight.w700, color: WrC.fg)))),
+                  if (!room.isMine) ...[
+                    const SizedBox(width: 6),
+                    // [S3 신규] app3/visit.jsx Visit3 "☾ 수호자 보내기" — 다른 분의 방에
+                    // 내 수호자를 보내 대신 빌게 한다(무료, 하루 1곳, 같은 방 주 1번).
+                    GestureDetector(onTap: () => _openVisitSheet(room), child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x80F2628F))),
+                      child: Text('☾ 수호자 보내기', style: WrF.body(12, w: FontWeight.w700, color: WrC.fg)))),
+                  ],
                 ])),
                 const SizedBox(height: 10),
                 Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
@@ -501,6 +510,129 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
         )),
       ]),
     )),
+    )));
+  }
+
+  // [S3 신규] app3/visit.jsx Visit3 send 모드 1:1 포팅 — 내 수호자 중 지금 바쁘지
+  // 않은(내 방을 지키거나 다른 곳에 파견 중이지 않은) 하나를 골라 보낸다.
+  Future<void> _sendVisit(WishRoom room, String guardian, bool anon) async {
+    if (_actionBusy) return;
+    _actionBusy = true;
+    try {
+      final p = context.read<WishRoomProvider>();
+      final result = await p.dispatchGuardian(room.id, guardian: guardian, anon: anon);
+      if (!mounted) return;
+      if (result != null) {
+        final name = WrCatalog.I.charName(guardian);
+        WrToast.show(context, result.ask ? '${room.owner}님께 방문을 여쭤봤어요 · 맞이하면 기도를 시작해요' : '$name이(가) 기도하러 갔어요 · 내일 돌아와요');
+      } else if (p.lastError != null) {
+        WrToast.show(context, p.lastError!.message);
+      }
+    } finally {
+      _actionBusy = false;
+    }
+  }
+
+  void _openVisitSheet(WishRoom room) {
+    final p = context.read<WishRoomProvider>();
+    final me = p.me;
+    if (me == null) return;
+    // busy(c): 내 방(entrustNow)을 지키고 있거나 이미 다른 곳에 파견 중인 수호자.
+    bool isBusy(String c) => p.room?.entrustNow?.guardian == c || p.room?.guardianAway?.guardian == c;
+    final owned = me.ownedChars;
+    final firstFree = owned.where((c) => !isBusy(c)).firstOrNull;
+    String? selected = firstFree ?? (owned.isNotEmpty ? owned.first : null);
+    bool anon = false;
+    const policyText = {'off': '이 방은 조용히 빌고 싶어 해요', 'ask': '받는 분께 여쭤봐요', 'open': '바로 찾아가요'};
+    _openSheet((sheetCtx) => StatefulBuilder(builder: (sheetCtx, setSheetState) => ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(sheetCtx).size.height * .85),
+      child: SingleChildScrollView(child: Container(
+        decoration: WrDeco.sheet,
+        padding: WrSize.sheetHeaderPad,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Stack(children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('VISIT · ${policyText[room.visitPolicy] ?? '받는 분께 여쭤봐요'}', style: WrF.mono(color: WrC.blossom2)),
+              const SizedBox(height: 6),
+              Text('누구를 보낼까요', style: WrF.display(20)),
+            ]),
+            Positioned(right: 0, top: 0, child: IconButton(onPressed: () => Navigator.of(sheetCtx).pop(), icon: const Icon(Icons.close, color: WrC.fg, size: 18))),
+          ]),
+          const SizedBox(height: 12),
+          Text('"${room.text}"', style: WrF.body(12.5, color: WrC.muted, height: 1.5)),
+          const SizedBox(height: 12),
+          if (owned.isEmpty)
+            Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Text('아직 수호자가 없어요', style: WrF.body(13, color: WrC.muted)))
+          else
+            GridView.count(
+              crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 7, mainAxisSpacing: 7, childAspectRatio: .78,
+              children: [
+                for (final c in owned)
+                  Builder(builder: (_) {
+                    final busy = isBusy(c);
+                    final name = WrCatalog.I.charName(c);
+                    final on = selected == c && !busy;
+                    return GestureDetector(
+                      onTap: busy ? null : () => setSheetState(() => selected = c),
+                      child: Opacity(
+                        opacity: busy ? .45 : 1,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: on ? const Color(0x29F2628F) : WrC.card,
+                            border: Border.all(color: on ? WrC.blossom2 : WrC.cardBorder),
+                          ),
+                          child: Column(children: [
+                            Expanded(child: Image.asset(WrCatalog.I.charImage(c, room.theme), fit: BoxFit.contain, alignment: Alignment.bottomCenter,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink())),
+                            Text(name, style: WrF.body(12.5, w: FontWeight.w700), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
+                            Text(busy ? '기도 중' : '보낼 수 있어요', style: WrF.body(10, color: busy ? WrC.muted : WrC.blossom2)),
+                          ]),
+                        ),
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => setSheetState(() => anon = !anon),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: WrDeco.card,
+              child: Row(children: [
+                Container(width: 20, height: 20,
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: anon ? WrC.blossom2 : WrC.line, width: 2),
+                    color: anon ? WrC.blossom2 : Colors.transparent),
+                  child: anon ? const Icon(Icons.check, size: 14, color: Colors.white) : null),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('이름 없이 보내기', style: WrF.body(13, w: FontWeight.w700)),
+                  Text('지역 · 나이대도 숨겨요 · 답례는 받지 않아요', style: WrF.body(11, color: WrC.muted)),
+                ])),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text('무료 · 하루 한 곳 · 같은 방은 주 1번 · 24시간 · 받는 분은 언제든 돌려보낼 수 있어요',
+            style: WrF.body(11, color: WrC.muted, height: 1.6)),
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, height: WrSize.btnH, child: ElevatedButton(
+            onPressed: (owned.isEmpty || owned.every(isBusy) || selected == null) ? null : () {
+              Navigator.of(sheetCtx).pop();
+              _sendVisit(room, selected!, anon);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, disabledBackgroundColor: WrC.blossom.withValues(alpha: .3), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+            child: Text(
+              owned.every(isBusy) ? '모든 수호자가 기도 중이에요' : (room.visitPolicy == 'ask' ? '☾ 방문 여쭤보기' : '☾ 보내기'),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+          )),
+        ]),
+      )),
     )));
   }
 

@@ -90,8 +90,6 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '원하지 않으면 공개 설정에서 수호자 방문을 끌 수 있어요.',
     lockKey: 'together',
-    // S3에서 찾아온 수호자(visitor) API/화면이 생기면 해제한다.
-    unimplemented: true,
   ),
   CareMenuInfo(
     key: '옷 갈아입기',

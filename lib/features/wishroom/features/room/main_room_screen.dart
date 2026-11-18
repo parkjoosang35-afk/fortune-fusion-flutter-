@@ -42,6 +42,7 @@ import 'unlock_card.dart';
 import 'care_menu_info.dart';
 import 'care_menu_info_sheet.dart';
 import '../entrust/entrust_sheet.dart';
+import '../entrust/received_sheet.dart';
 
 // [v5 S2 — CHECKLIST.md "기도 버튼 2상태 (Ø96 분홍 → Ø76 보라 「✓ 기도 완료」)"]
 // app3/home.jsx 7줄 BTN3 1:1 — 둥근 기도 버튼에만 쓰는 (라벨, 아이콘) 쌍.
@@ -3283,6 +3284,10 @@ class _CareSheetState extends State<_CareSheet> {
           openEntrustSheet(context);
         };
       case '찾아온 수호자':
+        return () {
+          Navigator.of(context).pop();
+          openReceivedSheet(context);
+        };
       case '소원 · 목표 고쳐 쓰기':
       default:
         return () {};
