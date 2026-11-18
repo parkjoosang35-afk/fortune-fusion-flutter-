@@ -117,7 +117,6 @@ class _MainRoomScreenState extends State<MainRoomScreen>
   bool _justRekindled = false;
   // app2/guide2.jsx › shell2.jsx tour state — 메인 화면 위 6단계 코치마크 오버레이.
   bool _tour = false;
-  bool _firstVisitReady = false;
 
   @override
   void initState() {
@@ -142,10 +141,11 @@ class _MainRoomScreenState extends State<MainRoomScreen>
     // 미리 로드돼 있어야 한다 — 레벨업 시점에 처음 불러오면 그 사이 안내를 놓친다.
     p.loadWallpaperStatus();
     // app2/guide2.jsx › hintsOn()/seenSet()/wr_tour_done — localStorage 로딩을
-    // shared_preferences 비동기 로딩으로 대체(GuidePrefs). FirstVisitChip은 이 값이
-    // 준비된 뒤에야 올바른 표시 여부를 결정할 수 있다.
+    // shared_preferences 비동기 로딩으로 대체(GuidePrefs). [v5 S2] FirstVisitChip
+    // 노출은 제거했지만 GuidePrefs 값(하단바 N배지·메뉴 안내 1회성 등)은 이 화면의
+    // 다른 위젯도 참조하므로 로딩 자체는 유지한다.
     GuidePrefs.I.load().then((_) {
-      if (mounted) setState(() => _firstVisitReady = true);
+      if (mounted) setState(() {});
     });
     _speechTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) setState(() => _speechIdx++);
@@ -679,6 +679,12 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                         pray: _devotion.busy || holding,
                         boost: boost,
                         shake: _devotion.shaking,
+                        // [v5 S2 — 대표 지시 "1일째 방에 수호자(하린)와 말풍선이 보임,
+                        // 기획에서는 1일째엔 수호자가 없고 2일째 열릴 때 처음 나타나야
+                        // 함"] app3/home.jsx `showG = v.open('guardian')` /
+                        // `hideChar={!showG || ...}` 1:1 — guardian 탭이 아직 안 열렸으면
+                        // (dayN<2 또는 기도 0번) 캐릭터 자체를 방에 그리지 않는다.
+                        hideChar: !room.isFeatureUnlocked('guardian'),
                         // §14.4 "움직임 재생·정지" — 웹에서만 사용자가 로컬로 정지할 수
                         // 있다. 앱 빌드에서는 _webPaused가 항상 false로 고정되어 기존
                         // 동작(정성·흔들림 등 실시간 연출)에 영향이 없다.
@@ -788,57 +794,55 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                                 ],
                               ),
                             ),
-                          // app2/guide2.jsx › FirstVisitChip — 처음 오셨나요 배너(top:140).
-                          if (_firstVisitReady &&
-                              !_devotion.busy &&
-                              !_rekindling)
+                          // [v5 S2 — 대표 지시 "상단 「처음 오셨나요 · 소원방 한 바퀴
+                          // 둘러보기」 칩이 모든 날짜에 남아 있음, v5에서는 이 칩을 없애고
+                          // 아침 인사 카드와 21일 미리보기로 대신한다"] 매핑표 00-A
+                          // "① 함께 빌기=응원 … ⑥ 아침 인사 = 기존 첫 방문 칩 대체"에
+                          // 맞춰 FirstVisitChip 노출을 제거한다. 아침 인사 카드(A13)·
+                          // 21일 미리보기(A3~A11) 신규 구현은 S3 이후 별도 작업이며,
+                          // 투어 진입로(⋯ 메뉴 → 소원방 쓰는 법 → 한 바퀴 둘러보기)는
+                          // 유지하므로 _tour 상태 자체는 그대로 둔다.
+                          // 말풍선 — app3/home.jsx `showG && ... && bubble` 1:1. 캐릭터가
+                          // 숨겨진 1일째(guardian 미열림)엔 말풍선도 같이 숨긴다([v5 S2 —
+                          // 대표 지시] 수호자 숨기기와 세트).
+                          if (room.isFeatureUnlocked('guardian'))
                             Positioned(
-                              key: const ValueKey('firstVisitChip'),
-                              top: 140,
-                              left: 0,
-                              right: 0,
-                              child: WrFirstVisitChip(
-                                onStartTour: () => setState(() => _tour = true),
-                              ),
-                            ),
-                          // 말풍선
-                          Positioned(
-                            key: const ValueKey('speechBubble'),
-                            left: 14,
-                            top: 400,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _speechIdx++),
-                              child: Container(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 220,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xF0FFFAF4),
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x59000000),
-                                      blurRadius: 20,
-                                      offset: Offset(0, 6),
+                              key: const ValueKey('speechBubble'),
+                              left: 14,
+                              top: 400,
+                              child: GestureDetector(
+                                onTap: () => setState(() => _speechIdx++),
+                                child: Container(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 220,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xF0FFFAF4),
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x59000000),
+                                        blurRadius: 20,
+                                        offset: Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    _speechText(room, ritual, holdProg, isDim),
+                                    style: const TextStyle(
+                                      color: Color(0xFF5A2A36),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.4,
                                     ),
-                                  ],
-                                ),
-                                child: Text(
-                                  _speechText(room, ritual, holdProg, isDim),
-                                  style: const TextStyle(
-                                    color: Color(0xFF5A2A36),
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.4,
                                   ),
                                 ),
                               ),
                             ),
-                          ),
                           // 머금는 동안(3초 hold 진행 중)의 기도문
                           if (holding)
                             Positioned(
