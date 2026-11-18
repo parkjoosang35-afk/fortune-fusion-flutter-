@@ -641,9 +641,9 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
               child: Text(W != null ? (W['hanja'] as String) : '願', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFFFF4E0)))),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(room.sealUntil != null && room.capsule == Capsule.LOCKED
-                  ? '🔐 ${fmtSealDot(room.sealUntil)}까지 봉인 · D-${room.sealDaysLeft}'
-                  : '오늘의 소원 · ${room.daysLit}일째 밝히는 중',
+              // [v5 S2] 소원 전문 펼침 카드 헤더도 _bottomDock과 동일하게 D-day
+              // 표시를 뺀다 — "오늘의 소원 · N일째 · 기도 N번"으로 통일.
+              Text('오늘의 소원 · ${room.dayN}일째 · ${cat.ritual(room.theme)['verb'] ?? '정성'} ${room.prayedN}번',
                 style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 11, color: subColor)),
               if (W != null) Text('${W['label']}의 소원', style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12, color: _hex(W['deep'] as String))),
             ])),
@@ -774,15 +774,25 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
     final wColor = W != null ? _hex(W['color'] as String) : null;
     final ringColor = WrC.blossom2;
 
+    // [v5 S2] CHECKLIST.md "소원 카드 'N일째 · 기도 N번 · ✓ 오늘' (봉인일
+    // D-day 표시 제거)" — app3/home.jsx 106~109줄 1:1:
+    //   <span>{v.dayN}일째</span><span>{VB} {v.prayedN}번…</span>
+    //   {v.prayedToday && <span>✓ 오늘</span>}
+    // 기존에는 봉인일(sealUntil)이 있으면 'D-${sealDaysLeft} · ${날짜}'를 그대로
+    // 보여줬는데(예: "D-100 · 2027.02.26"), v5에서 봉인일은 작성 화면 필수값이
+    // 아닌 선택 사항(⋯ 소원방 돌보기 메뉴)으로 강등됐으므로 이 메인 카드
+    // 라벨에서는 더 이상 D-day를 보여주지 않는다 — 봉인 중이어도 다른 방과
+    // 동일하게 "N일째 · {의식 동사} N번[ · ✓ 오늘]"로 통일한다.
+    final verb = ritual['verb'] as String? ?? '정성';
     String labelText;
     if (room.capsuleDue) {
       labelText = '🎁 소원 봉인이 풀렸어요';
-    } else if (room.sealUntil != null && room.capsule == Capsule.LOCKED) {
-      labelText = '🔐 D-${room.sealDaysLeft} · ${fmtSealDot(room.sealUntil)}';
     } else if (isDim) {
       labelText = '🕯 촛불 ${(room.brightness * 100).round()}%';
+    } else if (done) {
+      labelText = '${room.dayN}일째 · $verb ${room.prayedN}번 · ✓ 오늘';
     } else {
-      labelText = '${room.daysLit}일째 밝히는 중';
+      labelText = '${room.dayN}일째 · $verb ${room.prayedN}번';
     }
 
     return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
