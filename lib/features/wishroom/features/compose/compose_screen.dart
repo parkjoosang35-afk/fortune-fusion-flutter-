@@ -293,6 +293,14 @@ class _ComposeScreenState extends State<ComposeScreen> {
       data: wrThemeData(),
       child: Scaffold(
         backgroundColor: WrC.bg2,
+        // [버그수정 — 사용자 리포트] 기본값(true)이면 키보드가 열릴 때 Scaffold
+        // body 전체(배경 이미지 포함)가 키보드 높이만큼 눌려 찌그러지고, 하단
+        // Positioned(bottom:0) 제출 버튼도 함께 밀려 올라와 입력창 바로 위
+        // 키보드 툴바 근처에 겹쳐 보이는 문제가 있었다. 이 화면은 콘텐츠를
+        // 이미 SingleChildScrollView로 감싸고 있어 Scaffold가 키보드를 피해
+        // 리사이즈할 필요가 없다 — false로 고정해 레이아웃이 항상 화면
+        // 전체 높이를 기준으로 그려지도록 한다(버튼은 항상 화면 맨 아래 고정).
+        resizeToAvoidBottomInset: false,
         body: Stack(
           fit: StackFit.expand,
           children: [

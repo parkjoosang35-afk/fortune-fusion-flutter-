@@ -150,6 +150,33 @@
       el.style.opacity = '0';
       setTimeout(function () { el.remove(); }, 220);
     });
+
+    // [버그수정 — 사용자 리포트 "첫 화면만 작게(좌우 필러박싱)"] 모바일
+    // Chrome/Safari는 페이지 로드 직후 주소창이 아직 화면을 차지한
+    // 상태라 window.innerHeight가 실제보다 작게 보고된다. Flutter 엔진은
+    // 이 초기값으로 첫 프레임(웰컴 화면)의 캔버스 크기를 확정해버리고,
+    // 390x844 기준 캔버스를 "폭/높이 중 더 작은 비율"로 맞추는
+    // WrCanvasScaler가 작게 측정된 높이에 맞춰 전체를 축소해 좌우에
+    // 검은 여백이 생겼다. 이후 다른 화면으로 넘어가며 스크롤/탭 등
+    // 상호작용이 발생하면 주소창이 자연히 접혀 innerHeight가 커지지만,
+    // 브라우저가 resize 이벤트를 쏘지 않는 경우가 있어 Flutter가 새
+    // 크기를 반영하지 못했다. 주소창이 접히는 타이밍(대략 수백 ms 이내)
+    // 뒤에 몇 차례 강제로 resize 이벤트를 재발행해, Flutter 엔진이
+    // 최종 안정된 뷰포트 크기로 첫 화면도 다시 계산하도록 한다. 순수
+    // JS 보정이라 Dart 레이아웃 코드·다른 화면 동작에는 영향이 없다.
+    (function () {
+      function fireResize() {
+        try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+      }
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fireResize);
+      }
+      window.addEventListener('load', function () {
+        [50, 200, 500, 1000].forEach(function (ms) {
+          setTimeout(fireResize, ms);
+        });
+      });
+    })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
