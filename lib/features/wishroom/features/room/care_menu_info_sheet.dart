@@ -19,22 +19,27 @@ Future<void> showCareMenuInfoSheet(
   required int need,
   required int dayN,
   required VoidCallback onGo,
+  // [v5 S2 — 사용자 확정 "API가 없는 3줄 → 기능 미구현이면 항상 잠김"] true면
+  // 날짜 배지("N일째에 열려요")·진행막대·"N일 뒤 열려요" 대신 "곧 열려요"만
+  // 보여준다(날짜 계산이 의미 없는 미구현 기능이므로).
+  bool comingSoon = false,
 }) {
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (_) => _CareMenuInfoSheet(info: info, lock: lock, need: need, dayN: dayN, onGo: onGo),
+    builder: (_) => _CareMenuInfoSheet(info: info, lock: lock, need: need, dayN: dayN, onGo: onGo, comingSoon: comingSoon),
   );
 }
 
 class _CareMenuInfoSheet extends StatelessWidget {
-  const _CareMenuInfoSheet({required this.info, required this.lock, required this.need, required this.dayN, required this.onGo});
+  const _CareMenuInfoSheet({required this.info, required this.lock, required this.need, required this.dayN, required this.onGo, this.comingSoon = false});
   final CareMenuInfo info;
   final bool lock;
   final int need;
   final int dayN;
   final VoidCallback onGo;
+  final bool comingSoon;
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +115,10 @@ class _CareMenuInfoSheet extends StatelessWidget {
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x4DFFDCB4), width: 1, style: BorderStyle.solid)),
           child: Text('💡 ${info.note}', style: WrF.body(12.5, height: 1.65, color: WrC.muted)),
         ),
-        if (lock) ...[
+        if (lock && comingSoon) ...[
+          const SizedBox(height: 14),
+          Center(child: Text('준비하고 있어요 · 준비되는 대로 알려 드릴게요', style: WrF.body(12, color: WrC.muted))),
+        ] else if (lock) ...[
           const SizedBox(height: 14),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text('오늘 $dayN일째', style: WrF.body(12, w: FontWeight.w700, color: WrC.muted)),

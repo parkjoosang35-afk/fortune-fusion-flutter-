@@ -9,6 +9,7 @@ import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/wr_nav_pill.dart';
+import '../../core/wr_bottom_nav.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_ad_earn_button.dart';
 import '../../core/wr_toast.dart';
@@ -224,15 +225,17 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
       data: wrThemeData(),
       child: Scaffold(
         backgroundColor: WrC.bg2,
-        bottomNavigationBar: SafeArea(top: false, child: Row(children: [
-          for (final tab in [(0, Icons.home_outlined, '내 소원방'), (1, Icons.explore_outlined, '소원방'), (2, Icons.notifications_outlined, '알림'), (3, Icons.palette_outlined, '꾸미기'), (4, Icons.inventory_2_outlined, '보관함')])
-            Expanded(child: TextButton(onPressed: () {
-              wrReturnToTab(context, tab.$1);
-            }, child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(tab.$2, size: 22, color: WrC.fg),
-              Text(tab.$3, style: const TextStyle(fontSize: 10, color: WrC.fg)),
-            ]))),
-        ])),
+        // [v5 S2 — 사용자 지시 "5탭 하단바를 지우고 공용 6탭 하단바로 통일"]
+        // 기존 자체 5탭(내소원방/소원방/알림/꾸미기/보관함, 구 셸 인덱스 체계)을
+        // wishroom_shell.dart와 완전히 동일한 공용 바텀탭(神 홈버튼 + 내 소원·
+        // 수호자·함께 빌기·상점·보관함)으로 교체한다. 이 화면 자신이 "수호자"
+        // 탭(인덱스 1)에 해당하므로 currentIndex: 1로 하이라이트하고, 탭을
+        // 누르면 wrReturnToTab()으로 셸로 복귀시켜 해당 탭을 연다.
+        bottomNavigationBar: wrBottomNavBar(
+          context,
+          currentIndex: 1,
+          onTabTap: (i) => wrReturnToTab(context, i),
+        ),
         body: Consumer<WishRoomProvider>(
           builder: (context, p, __) {
             if (p.characters.isEmpty) {

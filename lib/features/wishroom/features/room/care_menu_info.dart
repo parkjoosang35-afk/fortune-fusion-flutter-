@@ -26,6 +26,7 @@ class CareMenuInfo {
     required this.steps,
     required this.note,
     this.lockKey,
+    this.unimplemented = false,
   });
 
   /// Row 식별자(한글 제목 그대로 — menuinfo.js의 `t` 키와 1:1).
@@ -40,6 +41,13 @@ class CareMenuInfo {
   final String note;
   /// null이면 항상 열림(잠금 없음). 값이 있으면 WrCatalog UNLOCK[lockKey] 일째에 열림.
   final String? lockKey;
+  /// [v5 S2 — 사용자 확정 "API가 없는 3줄 → 기능 미구현이면 항상 잠김"] true면
+  /// Flutter에 대응 API/화면이 아직 없어(entrust·visitor·updateWish) 서버
+  /// unlocked[] 날짜와 무관하게 항상 잠긴 것으로 취급한다. 안내창 문구도 날짜
+  /// 대신 "곧 열려요"로 바뀐다(_careRow에서 처리). 수호자에게 맡기기·찾아온
+  /// 수호자는 S3에서, 소원·목표 고쳐 쓰기는 S6에서 기능이 생기면 이 플래그를
+  /// false로 되돌린다.
+  final bool unimplemented;
 }
 
 // app3/menuinfo.js INFO 객체 순서 그대로(10개).
@@ -69,6 +77,8 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '방이 자라는 건 내가 직접 빈 날만 세어요. 맡긴 날은 촛불과 연속 기록만 지켜요.',
     lockKey: 'guardian',
+    // S3에서 수호자에게 맡기기(entrust) API/화면이 생기면 해제한다.
+    unimplemented: true,
   ),
   CareMenuInfo(
     key: '찾아온 수호자',
@@ -82,6 +92,8 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '원하지 않으면 공개 설정에서 수호자 방문을 끌 수 있어요.',
     lockKey: 'together',
+    // S3에서 찾아온 수호자(visitor) API/화면이 생기면 해제한다.
+    unimplemented: true,
   ),
   CareMenuInfo(
     key: '옷 갈아입기',
@@ -177,5 +189,7 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '전혀 다른 소원이 되었다면 이 소원을 마무리하고 새로 담는 걸 권해요.',
     lockKey: null,
+    // S6에서 소원·목표 고쳐 쓰기(updateWish) API/화면이 생기면 해제한다.
+    unimplemented: true,
   ),
 ];

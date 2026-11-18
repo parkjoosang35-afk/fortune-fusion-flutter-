@@ -756,13 +756,9 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                               ),
                             ),
                           ),
-                          // 레벨바
-                          Positioned(
-                            key: const ValueKey('levelBar'),
-                            top: 100,
-                            left: 14,
-                            child: _levelBar(room),
-                          ),
+                          // [v5 S2 — 사용자 확정] 레벨/통계 카드(레벨바) 제거.
+                          // 진행 상황은 소원 카드("N일째·기도N번")와 보관함에서 보여준다.
+                          // 레벨업 연출(WrLevelUp 시네마틱)은 그대로 유지한다.
                           // [v5 S2 — CHECKLIST.md "상단 오른쪽 [👁 방만 보기] [⋯] · 🧧 잔액은
                           // 3일째부터" / 사용자 확정 B안 "상단 우측 최종 모습 1~2일째: [👁 방만
                           // 보기][⋯] 2개, 3일째부터: [👁 방만 보기][🧧 잔액][⋯] 3개"] 기존
@@ -1307,42 +1303,8 @@ class _MainRoomScreenState extends State<MainRoomScreen>
   // 금액 변동 시 bump(확대/축소) 애니메이션을 더한다.
   Widget _pouchPill(int pouch) => _PouchPillTap(pouch: pouch);
 
-  Widget _levelBar(WishRoom room) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-    decoration: BoxDecoration(
-      color: const Color(0x8C1E0C18),
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: WrC.line),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'LV.${room.level}',
-          style: const TextStyle(
-            fontFamily: 'IBMPlexMono',
-            fontSize: 10,
-            color: Color(0xFFF5CF6A),
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          room.levelName,
-          style: WrF.body(12, w: FontWeight.w700, color: WrC.fg),
-        ),
-        const SizedBox(width: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(2),
-          child: SizedBox(
-            width: 74,
-            height: 4,
-            child: _ShimmerLevelBar(progress: room.levelProgress),
-          ),
-        ),
-      ],
-    ),
-  );
+  // [v5 S2 — 사용자 확정] 레벨바(_levelBar) 제거됨. 진행 상황은 소원 카드와
+  // 보관함에서 보여준다(레벨업 시네마틱 WrLevelUp은 그대로 유지).
 
   // [v5 S2] app3/home.jsx 60~66줄 1:1 — 44px 원형 버튼(방만 보기 · ⋯ 메뉴).
   // 기존 알약(_pillBtn)과 달리 원형이며, glass 배경 + line 테두리로 기존
@@ -2837,6 +2799,11 @@ class _CareSheetState extends State<_CareSheet> {
   // 토글 시 이 위젯 자신도 setState하여 즉시 시각 반영, 동시에 부모 콜백도 호출해
   // 시트를 닫은 뒤 메인 화면(frozen 애니메이션)에도 반영되도록 한다.
   late bool _webPaused = widget.webPaused;
+  // [v5 S2 — 사용자 확정 "그 밖에 블록에 인트로 토글 추가"] skipIntro도 같은 이유로
+  // 로컬 상태를 별도로 들고, 서버 PATCH 완료 후에만 반영한다(낙관적 갱신 없음 —
+  // 실패 시 토글이 원래대로 되돌아가야 하므로 Provider의 me.skipIntro를 신뢰하되
+  // 통신 중에는 이 로컬 값으로 즉시 토글 모양을 보여준다).
+  bool? _skipIntroOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -2844,6 +2811,7 @@ class _CareSheetState extends State<_CareSheet> {
     final p = context.watch<WishRoomProvider>();
     final cat = WrCatalog.I;
     final reduceMotionOs = MediaQuery.of(context).disableAnimations;
+    final skipIntro = _skipIntroOverride ?? (p.me?.skipIntro ?? false);
 
     // app3/shop.jsx Row 2행 부제(s) 1:1 치환 — 서버 데이터가 없는 항목(v.entrustNow
     // 등 전용 API 없음)은 note 수준의 일반 안내 문구로 대체한다.
@@ -2950,7 +2918,29 @@ class _CareSheetState extends State<_CareSheet> {
               s: '탭 6개 · ⋯ 메뉴 · 각 열리는 날을 한 장으로',
               onTap: () => widget.openGuide(),
             ),
-            // 「그 밖에」 2 — 움직임 줄이기(기존 pauseBtn 웹 전용 토글을 흡수).
+            // 「그 밖에」 2 — 들어갈 때 인트로 보기(skipIntro 반전 토글).
+            // [v5 S2 — 사용자 확정] 서버 PATCH(setSkipIntro)에 연결, 값=true면
+            // "인트로를 본다"(= skipIntro=false)로 매핑한다.
+            _toggleRow(
+              ic: '🎬',
+              t: '들어갈 때 인트로 보기',
+              s: skipIntro ? '바로 방으로 들어가요' : '들어갈 때마다 짧은 인트로를 봐요',
+              value: !skipIntro,
+              enabled: true,
+              onChanged: (showIntro) async {
+                final next = !showIntro; // skipIntro
+                setState(() => _skipIntroOverride = next); // 즉시 시각 반영
+                final ok = await context.read<WishRoomProvider>().setSkipIntro(
+                  next,
+                );
+                if (!mounted) return;
+                if (!ok) {
+                  // 실패 시 토글을 되돌린다.
+                  setState(() => _skipIntroOverride = !next);
+                }
+              },
+            ),
+            // 「그 밖에」 3 — 움직임 줄이기(기존 pauseBtn 웹 전용 토글을 흡수).
             // 사용자 지시: "휴대폰의 동작 줄이기 설정도 따르게 한다" — OS
             // disableAnimations가 이미 켜져 있으면 이 토글은 항상 켜진 것으로
             // 보여주고(끌 수 없음), 꺼져 있으면 이 화면 로컬 _webPaused를 토글한다.
@@ -3067,12 +3057,17 @@ class _CareSheetState extends State<_CareSheet> {
     final unlockDay = info.lockKey == null
         ? 0
         : ((WrCatalog.I.raw['UNLOCK'] as Map)[info.lockKey] as int? ?? 0);
+    // [v5 S2 — 사용자 확정 "API가 없는 3줄 → 기능 미구현이면 항상 잠김"]
+    // unimplemented면 서버 unlocked[]/날짜와 무관하게 항상 잠긴 것으로 본다.
     final isOpen =
-        info.lockKey == null || room.isFeatureUnlocked(info.lockKey!);
+        !info.unimplemented &&
+        (info.lockKey == null || room.isFeatureUnlocked(info.lockKey!));
     final dayN = room.dayN;
     final lockLabel = isOpen
         ? null
-        : '${math.max(1, unlockDay - dayN)}일 뒤에 열려요';
+        : (info.unimplemented
+              ? '곧 열려요'
+              : '${math.max(1, unlockDay - dayN)}일 뒤에 열려요');
     final sub =
         lockLabel ??
         _subFor(info.key, room: room, guardian: guardian, themeInfo: themeInfo);
@@ -3084,6 +3079,7 @@ class _CareSheetState extends State<_CareSheet> {
         lock: !isOpen,
         need: unlockDay,
         dayN: dayN,
+        comingSoon: info.unimplemented,
         onGo: onGo,
       );
     }
@@ -3234,8 +3230,13 @@ class _CareSheetState extends State<_CareSheet> {
   }
 
   // app3/shop.jsx Row on={} 1:1 매핑. API/화면이 없는 3개
-  // (수호자에게 맡기기 · 찾아온 수호자 · 소원·목표 고쳐쓰기)는 "준비 중" 토스트로
-  // 임시 처리한다(Flutter에 entrust/visitor/updateWish API가 없음 — wr_api.dart 확인).
+  // (수호자에게 맡기기 · 찾아온 수호자 · 소원·목표 고쳐쓰기)는 CareMenuInfo.unimplemented
+  // 플래그로 _careRow의 isOpen을 항상 false로 묶어 두기 때문에(사용자 확정
+  // "기능 미구현이면 항상 잠김"), 이 default 분기는 열린 상태에서만 호출될 수
+  // 있는 onGo를 요구하는 showCareMenuInfoSheet의 '바로 가기' 버튼 경로에서는
+  // 실질적으로 호출되지 않는다(항상 잠김 → [기다릴게요] 버튼만 노출). 그래도
+  // 안전망으로 남겨 두되, "준비 중" 토스트는 더 이상 띄우지 않는다(잠김
+  // 안내창이 이미 "곧 열려요" 문구로 사용자에게 정직하게 보여줬으므로).
   VoidCallback _onGoFor(String key) {
     switch (key) {
       case '수호자':
@@ -3275,7 +3276,7 @@ class _CareSheetState extends State<_CareSheet> {
       case '찾아온 수호자':
       case '소원 · 목표 고쳐 쓰기':
       default:
-        return () => WrToast.show(context, '곧 만나요 · 아직 준비 중인 기능이에요');
+        return () {};
     }
   }
 
@@ -3943,81 +3944,8 @@ class _ShareSheetState extends State<_ShareSheet> {
 /// 복주머니 pill — app2/screens-a2.jsx › PouchPill({onClick: app.openWallet}) 1:1.
 /// 탭하면 wallet_sheet.dart를 열고, 금액이 바뀔 때마다(정성·광고보상 등) 0.3초
 /// bump(확대 후 복귀) 애니메이션을 재생한다.
-/// [버그수정 — 전수감사] app2/screens-a2.jsx 293줄 레벨바: `background: linear-gradient(90deg,
-/// var(--blossom), #ffd98a, var(--blossom)); background-size: 200% 100%; animation: shimmer
-/// 2.6s linear infinite` (wr2.css `@keyframes shimmer { to { background-position: -200% 0 } }`)
-/// — 단순 LinearProgressIndicator로는 이 반짝이는 그라디언트 이동 효과가 전혀 재현되지 않는다.
-/// 채워진 부분(progress)만 2.6s 주기로 그라디언트가 흐르도록 CustomPaint로 1:1 재현.
-class _ShimmerLevelBar extends StatefulWidget {
-  const _ShimmerLevelBar({required this.progress});
-  final double progress;
-  @override
-  State<_ShimmerLevelBar> createState() => _ShimmerLevelBarState();
-}
-
-class _ShimmerLevelBarState extends State<_ShimmerLevelBar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2600),
-  )..repeat();
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0x24FFFFFF),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        FractionallySizedBox(
-          widthFactor: widget.progress.clamp(0.0, 1.0),
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (_, __) => CustomPaint(
-              painter: _ShimmerPainter(t: _c.value),
-              size: Size.infinite,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ShimmerPainter extends CustomPainter {
-  _ShimmerPainter({required this.t});
-  final double t; // 0..1, shimmer 2.6s linear infinite
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.width <= 0 || size.height <= 0) return;
-    // background-size:200% 100% + background-position 0→-200% ≡ 그라디언트 폭을 2배로 두고
-    // 왼쪽으로 2배 폭만큼 흘려보내는 것과 동일.
-    final w = size.width * 2;
-    final dx = -w * t;
-    final rect = Rect.fromLTWH(dx, 0, w, size.height);
-    final paint = Paint()
-      ..shader = const LinearGradient(
-        colors: [WrC.blossom, Color(0xFFFFD98A), WrC.blossom],
-        stops: [0, .5, 1],
-      ).createShader(rect);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(2)),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShimmerPainter old) => old.t != t;
-}
-
+// [v5 S2 — 사용자 확정] 레벨바(_levelBar)와 함께 이 바(_ShimmerLevelBar/_ShimmerPainter)를
+// 쓰던 레벨/통계 카드를 제거했다. 레벨업 시네마틱(WrLevelUp)은 그대로 유지한다.
 class _PouchPillTap extends StatefulWidget {
   const _PouchPillTap({required this.pouch});
   final int pouch;
