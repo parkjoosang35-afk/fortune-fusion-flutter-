@@ -10,10 +10,16 @@ class GuidePrefs {
   bool _hintsOn = true;
   Set<String> _seen = {};
   bool _tourDone = false;
+  // [J6 Tour21] app3/tour.jsx Tour21 — "21일 미리보기 투어"를 이미 보여줬는지
+  // (또는 "괜찮아요, 바로 시작할게요"로 건너뛰었는지)를 기존 wr_tour_done(6단계
+  // 둘러보기)과 완전히 별개의 키로 추적한다. 생애 첫 기도 직후 1회만 떠야 하므로
+  // 한 번이라도 보여주거나 건너뛰면 다시는 뜨지 않게 영구 기록한다.
+  bool _tour21Done = false;
   bool _loaded = false;
 
   bool get hintsOn => _hintsOn;
   bool get tourDone => _tourDone;
+  bool get tour21Done => _tour21Done;
   bool seen(String id) => _seen.contains(id);
 
   Future<void> load() async {
@@ -22,6 +28,7 @@ class GuidePrefs {
     _hintsOn = (p.getString('wr_hints') ?? 'on') != 'off';
     _seen = (p.getStringList('wr_hint_seen') ?? const []).toSet();
     _tourDone = p.getBool('wr_tour_done') ?? false;
+    _tour21Done = p.getBool('wr_tour21_done') ?? false;
     await _loadVisitedTabs(p);
     await _loadMenuInfoSeen(p);
     _loaded = true;
@@ -48,6 +55,15 @@ class GuidePrefs {
     _tourDone = true;
     final p = await SharedPreferences.getInstance();
     await p.setBool('wr_tour_done', true);
+  }
+
+  /// [J6 Tour21] Tour21을 끝까지 봤거나("진짜 첫 기도 올리러 가기") 중간에
+  /// 건너뛰었을 때("매일 알림 없이 돌아가기"/"괜찮아요, 바로 시작할게요") 둘 다
+  /// 호출한다 — 원본 `previewEnd()`가 호출되는 모든 경로와 1:1.
+  Future<void> setTour21Done() async {
+    _tour21Done = true;
+    final p = await SharedPreferences.getInstance();
+    await p.setBool('wr_tour21_done', true);
   }
 
   // [v5 S2] 매핑표 00-C "새로 열린 표시 — 열린 탭에 N 배지 → 그 탭을 처음 들어가면

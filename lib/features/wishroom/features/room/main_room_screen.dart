@@ -39,6 +39,7 @@ import '../characters/character_shop_screen.dart';
 import '../decor/decor_screen.dart';
 import '../notifications/notifications_screen.dart';
 import 'unlock_card.dart';
+import 'tour21_screen.dart';
 import 'care_menu_info.dart';
 import 'care_menu_info_sheet.dart';
 import '../entrust/entrust_sheet.dart';
@@ -119,6 +120,12 @@ class _MainRoomScreenState extends State<MainRoomScreen>
   bool _justRekindled = false;
   // app2/guide2.jsx › shell2.jsx tour state — 메인 화면 위 6단계 코치마크 오버레이.
   bool _tour = false;
+  // [J6 Tour21] app3/home.jsx DoneCard.onClose `firstTime = prayedN===1 &&
+  // !toured && !realFirst` 1:1 — 생애 첫 기도였는지를 devote() onDone에서 미리
+  // 계산해 두고, 보상시트(_reward)가 닫힐 때(= 원본 DoneCard.onClose 훅 포인트)
+  // Tour21을 띄운다. GuidePrefs.I.tour21Done으로 "한 번이라도 봤으면 다시 안 뜸"을 보장.
+  bool _firstTimeAfterPray = false;
+  bool _tour21 = false;
 
   @override
   void initState() {
@@ -370,6 +377,12 @@ class _MainRoomScreenState extends State<MainRoomScreen>
           _lastGain = null;
         });
         p.applyDevotionResult(res);
+        // [J6 Tour21] app3/home.jsx `cur.prayedN === 1 && !cur.toured && !cur.realFirst`
+        // 1:1 — Flutter에는 toured/realFirst 대응 필드가 없으므로(서버 스키마 부재),
+        // GuidePrefs.I.tour21Done(로컬 1회성 플래그, 원본 realFirst와 동등 역할)으로
+        // 대체한다. prayedN==1이면서 아직 Tour21을 본 적 없을 때만 생애 첫 기도로 간주.
+        _firstTimeAfterPray =
+            res.room.prayedN == 1 && !GuidePrefs.I.tour21Done;
         if (res.leveledUp) {
           _showLevelUp(res.room.level);
         } else {
@@ -926,7 +939,14 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                               key: const ValueKey('rewardOverlay'),
                               child: _RewardOverlay(
                                 data: _reward!,
-                                onClose: () => setState(() => _reward = null),
+                                // [J6 Tour21] app3/home.jsx DoneCard.onClose 1:1 훅 포인트.
+                                onClose: () => setState(() {
+                                  _reward = null;
+                                  if (_firstTimeAfterPray) {
+                                    _firstTimeAfterPray = false;
+                                    _tour21 = true;
+                                  }
+                                }),
                               ),
                             ),
                           // devote() 2.3s 말씀 카드(RITUAL.quotes 랜덤 1개, 테마별 디자인) — 탭하면 닫힘.
@@ -989,6 +1009,21 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                         onDone: () {
                           setState(() => _tour = false);
                           GuidePrefs.I.setTourDone();
+                        },
+                      ),
+                    ),
+                  ),
+                // [J6 Tour21] app3/shell.jsx `{tour && <Tour21 .../>}` 1:1 — 생애 첫
+                // 기도 직후 보상시트를 닫으면 뜬다. WrTour(_tour, 6단계 둘러보기)와는
+                // 별개 오버레이이며 동시에 뜨지 않는다(_tour21은 _reward.onClose에서만 켜짐).
+                if (_tour21)
+                  Positioned.fill(
+                    key: const ValueKey('tour21'),
+                    child: WrCanvasScaler(
+                      child: Tour21Screen(
+                        onEnd: (remind) {
+                          setState(() => _tour21 = false);
+                          showTour21EndToast(context);
                         },
                       ),
                     ),
