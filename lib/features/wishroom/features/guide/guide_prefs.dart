@@ -23,6 +23,7 @@ class GuidePrefs {
     _seen = (p.getStringList('wr_hint_seen') ?? const []).toSet();
     _tourDone = p.getBool('wr_tour_done') ?? false;
     await _loadVisitedTabs(p);
+    await _loadMenuInfoSeen(p);
     _loaded = true;
   }
 
@@ -66,5 +67,24 @@ class GuidePrefs {
 
   Future<void> _loadVisitedTabs(SharedPreferences p) async {
     _visitedTabs = (p.getStringList('wr_visited_tabs') ?? const []).toSet();
+  }
+
+  // [v5 S2 — CHECKLIST.md "⋯ 소원방 돌보기 메뉴 10줄 + 안내창(menuinfo.js)"]
+  // app3/menuinfo.js `seen()`/`markSeen(t)` (localStorage 'wr_menuinfo_seen') 1:1.
+  // "열린 항목은 처음 1번만 안내 후 바로 가기, 재방문엔 안내 없이 바로 실행" 판정을
+  // 위 _seen(안내서 전용)과 분리된 별도 Set으로 shared_preferences에 보관한다 —
+  // 두 기능은 키 네임스페이스가 다른 서로 다른 "이미 봤어요" 추적이라 섞으면 안 된다.
+  Set<String> _menuInfoSeen = {};
+  bool menuInfoSeen(String key) => _menuInfoSeen.contains(key);
+
+  Future<void> markMenuInfoSeen(String key) async {
+    if (_menuInfoSeen.contains(key)) return;
+    _menuInfoSeen = {..._menuInfoSeen, key};
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList('wr_menuinfo_seen', _menuInfoSeen.toList());
+  }
+
+  Future<void> _loadMenuInfoSeen(SharedPreferences p) async {
+    _menuInfoSeen = (p.getStringList('wr_menuinfo_seen') ?? const []).toSet();
   }
 }
