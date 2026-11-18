@@ -1,8 +1,16 @@
 // SCR-02 소원 작성 `/compose` — docs/SCREENS.md §SCR-02 · docs/CHANGELOG.md §소원 봉인(타임캡슐)
-// 한지 카드(텍스트 100자) + 수호자 선택 + 테마/빛깔/종이 + 공개범위 + 봉인일(SealDatePicker) + CTA.
-// 봉인일 선택은 app2/capsule2.jsx의 SealGuideCard/SealDatePicker/SealConfirm을 그대로 따른다:
-// 소원을 봉인하려면 반드시 봉인 날짜(내일~3년 이내)를 먼저 골라야 제출할 수 있다(sealUntil 필수).
-// 제출 성공 시 인장 stamp 연출 후 인트로(full)로 자연 전환(WishRoomIntroScreen push replacement).
+// [S1 재구축 — 2026-11] app3/start.jsx `Write3({app})` 1:1 포팅으로 전면 재작성.
+// 한지 카드(60자) + 갈래 인장 8개(WC_ORDER) + 종이색 + 갈래별 예시 48개 토글.
+// 기존에 있던 테마 선택 · 수호자 선택 · 봉인일 선택 · 공개범위 선택 UI는 모두
+// 제거했다 — 각각 자유 방(free) · 하린(F00, null→서버 기본값) · 봉인 없음(null) ·
+// 나만 보기(PRIVATE) 자동값으로 대체되고, 나중에 ⋯(더보기) 메뉴에서 바꿀 수 있다
+// (「방 분위기」 7일째 · 「수호자」 2일째 · 「타임캡슐로 남기기」 · 「함께 빌어달라고 하기」).
+// 문구 검사(checkWishText)는 app3/flow.js `checkText(t)` 1:1 포팅 — 나쁜 말은 막고,
+// 전화번호·링크는 한 번 더 누르면 그대로 담을 수 있게 경고만, 위기 표현은 막지 않고
+// 109(자살예방 상담) 안내만 보여준다.
+// 제출 성공 시 "봉인 완료" 두루마리(SealedDoneScreen) 대신 "촛불 켜기" 연출
+// (WishLightScreen)로 이동한다 — SealedDoneScreen은 capsule_screen.dart(REWISH
+// 타임캡슐 플로우)에서 여전히 재사용 중이므로 그대로 둔다.
 import 'dart:ui';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:provider/provider.dart';
@@ -10,13 +18,96 @@ import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
-import '../../core/wr_nav_pill.dart';
 import '../intro/wish_room_intro_screen.dart';
-import 'sealed_done_screen.dart';
+import 'wish_light_screen.dart';
 import '../../core/wr_toast.dart';
-import '../characters/character_shop_screen.dart';
 import '../../../fortune/shared/domain/reading_artifact.dart';
 import '../../../fortune/shared/data/reading_wish_link_store.dart';
+
+/// app3/start.jsx `WC_ORDER` 1:1 — 갈래 인장 UI 표시 순서(바람이 맨 앞).
+const _wcOrder = [
+  'hope',
+  'health',
+  'study',
+  'career',
+  'love',
+  'family',
+  'wealth',
+  'peace',
+];
+
+/// app3/start.jsx `WC_SHORT` 1:1 — 인장 아래 짧은 라벨.
+const _wcShort = {
+  'hope': '바람',
+  'health': '건강',
+  'study': '합격',
+  'career': '일',
+  'love': '인연',
+  'family': '가족',
+  'wealth': '재물',
+  'peace': '평온',
+};
+
+/// 문구 검사 결과 심각도 — app3/flow.js `checkText()`의 level 1:1.
+enum WrTextCheckLevel {
+  /// 제출 자체를 막는다(너무 짧음 · 나쁜 말).
+  block,
+
+  /// 막지 않고 도움만 안내한다(위기 표현 → 109).
+  care,
+
+  /// 한 번 더 누르면 그대로 담을 수 있다(전화번호 · 링크 의심).
+  warn,
+}
+
+class WrTextCheck {
+  const WrTextCheck(this.code, this.level, this.msg);
+  final String code;
+  final WrTextCheckLevel level;
+  final String msg;
+}
+
+const _badWords = ['시발', '씨발', '개새', '병신', '좆', '엠창', '지랄'];
+const _crisisWords = ['죽고 싶', '자살', '사라지고 싶', '살기 싫'];
+final RegExp _phoneRe = RegExp(r'01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}');
+final RegExp _urlRe = RegExp(
+  r'(https?://|www\.|\.com\b|\.kr\b|카톡|오픈채팅)',
+  caseSensitive: false,
+);
+
+/// app3/flow.js `checkText(t)` 1:1 포팅.
+WrTextCheck? checkWishText(String raw) {
+  final s = raw.trim();
+  if (s.length < 2) {
+    return const WrTextCheck(
+      'SHORT',
+      WrTextCheckLevel.block,
+      '두 글자 이상 적어 주세요',
+    );
+  }
+  if (_badWords.any((w) => s.contains(w))) {
+    return const WrTextCheck(
+      'BAD',
+      WrTextCheckLevel.block,
+      '마음을 다치게 하는 말은 담을 수 없어요',
+    );
+  }
+  if (_crisisWords.any((w) => s.contains(w))) {
+    return const WrTextCheck(
+      'CRISIS',
+      WrTextCheckLevel.care,
+      '많이 힘드셨죠. 소원은 그대로 담을 수 있어요. 이야기할 곳이 필요하면 109(자살예방 상담, 24시간)에 전화해 주세요.',
+    );
+  }
+  if (_phoneRe.hasMatch(s) || _urlRe.hasMatch(s)) {
+    return const WrTextCheck(
+      'PRIVACY',
+      WrTextCheckLevel.warn,
+      '전화번호나 주소는 빼는 게 좋아요 · 함께 빌기에 공개하면 다른 분도 볼 수 있어요',
+    );
+  }
+  return null;
+}
 
 class ComposeScreen extends StatefulWidget {
   // [관상·손금 결과화면 + 소원방 봉인 통합 리디자인 v7, v7.1 "예외 경로"]
@@ -25,10 +116,6 @@ class ComposeScreen extends StatefulWidget {
   // 소원 작성이 성공하면(_submit) 새로 만들어진 소원에 이 풀이를 함께
   // 동봉한다 — v7.1 원칙("풀이는 동봉물, 새 소원 생성 금지")의 유일한
   // 예외 경로가 바로 이 경우다(소원이 아예 없을 때만 새로 씀).
-  // [신당 v3 재구축] 구버전 신당(ShrineSessionProvider) 연동 경로였던
-  // pendingShrineBoxNo 파라미터는 구 모듈 삭제와 함께 제거되었다. 신당 v3에서
-  // 동일한 "소원방 없을 때 함께 생성" 플로우가 필요해지면 shrine_v3 기반으로
-  // 새로 설계해 다시 연결한다.
   const ComposeScreen({super.key, this.pendingReading});
   final ReadingArtifact? pendingReading;
   @override
@@ -37,29 +124,21 @@ class ComposeScreen extends StatefulWidget {
 
 class _ComposeScreenState extends State<ComposeScreen> {
   final _textCtrl = TextEditingController();
-  String? _char;
-  // [v5 S2 — 사용자 확인 결과] 공유 시트(_ShareSheet) 기본값은 room.visibility를
-  // 그대로 따르므로, 소원을 처음 봉인할 때 고르는 이 초기값이 곧 그 방의
-  // 기본 공개범위가 된다. 매핑표/v5 프로토타입 기준 기본값은 "나만 보기"
-  // (PRIVATE)여야 하는데 기존 코드는 PUBLIC으로 시작해 있었다 — 사용자 확인
-  // 지시에 따라 PRIVATE으로 고친다. 사용자가 작성 화면에서 직접 "모두에게"로
-  // 바꾸면 그 선택이 그대로 반영된다(강제 고정 아님).
-  Visibility _visibility = Visibility.PRIVATE;
-  WrTheme _theme = WrTheme.free;
+  final _focusNode = FocusNode();
+
+  // [S1 재구축] 테마 · 공개범위는 더 이상 작성 화면에서 고르지 않는다 — 자유 방 /
+  // 나만 보기 자동값으로 시작하고, 나중에 ⋯ 메뉴(「방 분위기」·「함께 빌어달라고
+  // 하기」)에서 바꿀 수 있다. 수호자(char)와 봉인일(sealUntil)은 아예 state로
+  // 들고 있지 않고 서버에 null로 보내 각각 기본 수호자(F00)·봉인 없음이 된다.
+  final Visibility _visibility = Visibility.PRIVATE;
+  final WrTheme _theme = WrTheme.free;
+
   String _wishColor = 'hope';
-
-  /// [소원빛깔 → 인장 교체 — 사용자 지시 2026-10-14] 빛깔을 직접 누른 뒤부터
-  /// 한지 카드의 붉은 인장이 사라지고 선택한 빛깔 구슬이 그 자리에 들어간다.
-  bool _wishColorPicked = false;
   String _paper = 'hanji';
-  // [CHANGELOG §소원 봉인] 봉인일은 작성 단계에서 반드시 사용자가 직접 골라야 한다 —
-  // 내일부터 3년 이내, 미선택 상태(null)로 시작. 고르기 전에는 제출 자체가 막힌다.
-  DateTime? _sealUntil;
   bool _submitting = false;
-  bool _piiWarning;
-  bool _asking = false; // SealConfirm 표시 여부
-
-  _ComposeScreenState() : _piiWarning = false;
+  bool _exOpen = true; // app3/start.jsx Write3 useState(true) — 처음부터 펼쳐짐
+  bool _warnAck = false; // PII 경고(warn) 한 번 더 누르면 그대로 담기
+  int _pulseTick = 0; // 갈래 바꿀 때 인장 pulse 애니메이션 트리거
 
   @override
   void initState() {
@@ -77,15 +156,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
   @override
   void dispose() {
     _textCtrl.dispose();
+    _focusNode.dispose();
     super.dispose();
-  }
-
-  List<WrCharacter> get _myChars {
-    final me = context.read<WishRoomProvider>().me;
-    final owned = me?.ownedChars ?? const ['F00', 'M00'];
-    final all = WrCatalog.I.characters;
-    final list = all.where((c) => owned.contains(c.id)).toList();
-    return list.isEmpty ? all.take(2).toList() : list;
   }
 
   void _showCompletedNotice() {
@@ -118,44 +190,33 @@ class _ComposeScreenState extends State<ComposeScreen> {
     );
   }
 
-  Future<void> _submit({bool force = false}) async {
-    if (_textCtrl.text.trim().isEmpty || _char == null || _sealUntil == null)
+  Future<void> _submit() async {
+    final text = _textCtrl.text.trim();
+    if (_submitting) return;
+    final chk = checkWishText(text);
+    if (chk != null && chk.level == WrTextCheckLevel.block) return;
+    if (chk != null && chk.level == WrTextCheckLevel.warn && !_warnAck) {
+      setState(() => _warnAck = true);
       return;
-    setState(() {
-      _asking = false;
-      _submitting = true;
-    });
+    }
+    setState(() => _submitting = true);
     final p = context.read<WishRoomProvider>();
     final ok = await p.createRoom(
-      text: _textCtrl.text.trim(),
-      char: _char!,
-      sealUntil: _fmtIso(_sealUntil!),
+      text: text,
       visibility: _visibility,
       theme: _theme,
       wishColor: _wishColor,
       paper: _paper,
-      force: force,
+      // 클라이언트가 이미 전화번호/링크 경고를 한 번 보여주고 사용자가 다시
+      // 눌렀다면, 서버의 같은 취지 검사(PII_WARNING)도 함께 통과시킨다.
+      force: chk?.level == WrTextCheckLevel.warn,
     );
     if (!mounted) return;
     setState(() => _submitting = false);
     if (ok) {
-      // [버그수정 — 사용자 피드백 1] 소원방 테마(하느님방 등)를 골랐으면 수호자가 그
-      // 의상을 입은 채로 방에 남아야 한다. 작성 미리보기는 _theme 의상을 보여주지만
-      // 방 생성만으로는 방의 outfit이 확정되지 않아 기본 의상으로 돌아갔다 —
-      // 생성 직후 방 outfit을 선택 테마로 확정한다(실패해도 봉인 흐름은 막지 않는다).
-      if (_theme != WrTheme.free) {
-        final roomId = context.read<WishRoomProvider>().room?.id;
-        if (roomId != null) {
-          try {
-            await context.read<WishRoomProvider>().setOutfit(roomId, _theme);
-          } catch (_) {}
-        }
-      }
       // [v7 통합 — v7.1 예외 경로] 소원이 아예 없어 이 화면에서 "함께"
       // 새로 소원을 쓴 경우에만, 방금 생성된 소원에 대기 중이던 풀이를
       // 동봉한다(ReadingWishLinkStore — 서버 영속 전까지의 로컬 매핑).
-      // [신당 v3 재구축] 구버전 신당 부적 봉인 예외 경로(pendingShrineBoxNo →
-      // ShrineSessionProvider.updateBox)는 구 모듈 삭제와 함께 제거되었다.
       if (widget.pendingReading != null) {
         final newRoomId = context.read<WishRoomProvider>().room?.id;
         if (newRoomId != null) {
@@ -165,23 +226,20 @@ class _ComposeScreenState extends State<ComposeScreen> {
           );
         }
       }
-      // app2/capsule2.jsx SealedDone — 제출 성공 → 두루마리 말림/인장 연출 → "소원방 들어가기" → full 인트로.
-      // 원본 submit(): setAsk(false) → setSealing(true) → 1.5s 뒤 setDone(true) → SealedDone onGo={reload('intro')}.
-      // [버그수정] onGo 콜백이 바깥쪽(ComposeScreen, 곧 pushReplacement로 dispose됨)의 context를
-      // 캡처하면, 나중에 탭해도 Navigator.of(context)가 deactivated widget 조회로 조용히 실패해
-      // "클릭이 안 됨"처럼 보인다. 반드시 builder가 제공하는 새(SealedDoneScreen 자신의) context를 써야 한다.
-      if (!mounted) return; // 의상 저장을 기다리는 동안 작성 화면을 나간 경우
+      if (!mounted) return;
+      // [S1 재구축] app3/flows.jsx Light3 — 글자가 촛불로 날아듦 → 갈래 인장
+      // 쾅 → "이제 두 손 모아, 첫 기도를 올려볼까요" 연출 후 소원방 입장.
+      // [버그수정] onGo 콜백이 바깥쪽(ComposeScreen, 곧 pushReplacement로
+      // dispose됨)의 context를 캡처하면 나중에 탭해도 조용히 실패한다 —
+      // 반드시 builder가 제공하는 새 context(lightCtx)를 써야 한다.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (sealedCtx) => SealedDoneScreen(
-            date: _sealUntil!,
-            text: _textCtrl.text.trim(),
+          builder: (lightCtx) => WishLightScreen(
+            text: text,
             wishColor: _wishColor,
-            onGo: () {
-              Navigator.of(sealedCtx).pushReplacement(
-                MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
-              );
-            },
+            onGo: () => Navigator.of(lightCtx).pushReplacement(
+              MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
+            ),
           ),
         ),
       );
@@ -189,7 +247,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
     }
     final err = p.lastError;
     if (err?.code == 'PII_WARNING') {
-      setState(() => _piiWarning = true);
+      setState(() => _warnAck = true);
+      WrToast.show(context, '전화번호나 주소처럼 보이는 내용이 있어요 · 한 번 더 누르면 그대로 담아요');
     } else if (err?.code == 'ROOM_EXISTS') {
       // [안내창 — 사용자 피드백 5] "진행 중인 소원방이 있어요" 토스트 대신
       // 이유와 해제 시점을 알려주는 안내창을 보여준다.
@@ -199,18 +258,37 @@ class _ComposeScreenState extends State<ComposeScreen> {
     }
   }
 
+  void _useExample(String text) {
+    setState(() {
+      _textCtrl.text = text;
+      _textCtrl.selection = TextSelection.collapsed(offset: text.length);
+      _exOpen = false;
+      _warnAck = false;
+    });
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  Map<String, dynamic> get _curWishColor =>
+      WrCatalog.I.wishColors.firstWhere((w) => w['id'] == _wishColor);
+  Map<String, dynamic> get _curPaper =>
+      WrCatalog.I.papers.firstWhere((p) => p['id'] == _paper);
+
   @override
   Widget build(BuildContext context) {
-    final cat = WrCatalog.I;
-    final hasHistory = context
+    final text = _textCtrl.text;
+    final trimmed = text.trim();
+    final chk = checkWishText(text);
+    final canSubmit =
+        trimmed.length >= 2 &&
+        !_submitting &&
+        chk?.level != WrTextCheckLevel.block;
+    final archiveCount = context
         .watch<WishRoomProvider>()
         .archiveRooms
-        .isNotEmpty;
-    final canSubmit =
-        _textCtrl.text.trim().isNotEmpty &&
-        _char != null &&
-        _sealUntil != null &&
-        !_submitting;
+        .length;
+    final banner = _checkBanner(chk, trimmed);
     return Theme(
       data: wrThemeData(),
       child: Scaffold(
@@ -238,151 +316,47 @@ class _ComposeScreenState extends State<ComposeScreen> {
               child: Stack(
                 children: [
                   SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(18, 86, 18, 120),
+                    padding: const EdgeInsets.fromLTRB(18, 86, 18, 160),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
-                          hasHistory ? '새로운 마음을\n담아볼까요' : '소원을 담을\n준비가 되셨나요',
-                          style: WrF.display(26, height: 1.3),
+                          'NEW WISH · ${(archiveCount + 1).toString().padLeft(3, '0')}',
+                          style: WrF.mono(),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
                         Text(
-                          '나의 소원을 정성스럽게 적어주세요.',
-                          style: WrF.body(13, color: WrC.muted),
+                          '어떤 소원을\n담아둘까요',
+                          textAlign: TextAlign.center,
+                          style: WrF.display(28, height: 1.3),
                         ),
                         const SizedBox(height: 18),
-                        // [A-3 §2] 소원방 테마 — 문서 순서상 한지 카드보다 먼저. 4열 그리드.
-                        _sec('🌙 소원방 테마'),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            for (var i = 0; i < cat.themes.length; i++) ...[
-                              if (i > 0) const SizedBox(width: 8),
-                              Expanded(child: _themeCard(cat.themes[i])),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Center(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 500),
-                            child: Text(
-                              _curTheme['desc'] as String,
-                              key: ValueKey(_theme.name),
-                              textAlign: TextAlign.center,
-                              style: WrF.body(
-                                12,
-                                color: _hex(_curTheme['color'] as String),
-                              ),
-                            ),
-                          ),
-                        ),
+                        // [S1 재구축] 소원 갈래 — 인장 8개, WC_ORDER 순서로 가로 1줄.
+                        _wishColorRow(),
                         const SizedBox(height: 20),
                         // [v7 통합 — v7.1 예외 경로] 관상/손금 총결과 화면에서
                         // 넘어온 풀이가 있으면, 소원 작성이 끝나는 즉시 함께
-                        // 봉인된다는 것을 미리 보여준다(ReadingArtifact.jsx
-                        // ArtifactChip 1:1 정신 — 사진 없이 인장+요약만).
+                        // 봉인된다는 것을 미리 보여준다.
                         if (widget.pendingReading != null) ...[
-                          _PendingReadingChip(
-                            artifact: widget.pendingReading!,
+                          SizedBox(
+                            width: double.infinity,
+                            child: _PendingReadingChip(
+                              artifact: widget.pendingReading!,
+                            ),
                           ),
                           const SizedBox(height: 14),
                         ],
-                        // [A-3 §3] 한지 카드 — 소원빛깔 그라디언트 + 종이색 배경 + 8색 종이선택 통합.
+                        // [S1 재구축] 한지 카드 — 60자 제한, 테마/종이색은 유지하되
+                        // 날짜·봉인 안내는 제거.
                         _hanjiCard(),
-                        // [버그수정] "함께할 수호자"는 한지 카드(소원 작성) 바로 아래로 위치해야 한다는
-                        // 사용자 피드백 반영 — 기존엔 봉인일/소원빛깔 다음(화면 중하단)에 있었다.
-                        _guardianSection(),
-                        if (_piiWarning)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 14),
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: WrDeco.card.copyWith(
-                                border: Border.all(color: WrC.blossom),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '개인정보로 보일 수 있는 내용이 담겨 있어요',
-                                    style: WrF.body(13, w: FontWeight.w700),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '공개된 소원방에서는 다른 분들이 볼 수 있어요.',
-                                    style: WrF.body(12, color: WrC.muted),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    children: [
-                                      _smallDarkBtn(
-                                        '고쳐 쓸게요',
-                                        () =>
-                                            setState(() => _piiWarning = false),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _smallPinkBtn(
-                                        '그대로 담기',
-                                        () => _submit(force: true),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        // [A-3 §5] 봉인일 선택 — PII 경고 다음, 소원빛깔/수호자보다 앞.
-                        _sec('봉인일 선택'),
-                        const SizedBox(height: 10),
-                        WrSealDatePicker(
-                          value: _sealUntil,
-                          onChange: (d) => setState(() => _sealUntil = d),
-                        ),
-                        // [A-3 §6] 소원의 빛깔 — 4열×2 원형 카드.
-                        _sec('소원의 빛깔'),
-                        const SizedBox(height: 4),
-                        Text(
-                          '같은 빛깔의 아이템을 두면 기운이 1.5배로 닿아요',
-                          style: WrF.body(12, color: WrC.muted),
-                        ),
-                        const SizedBox(height: 12),
-                        _wishColorGrid(),
-                        const SizedBox(height: 10),
-                        Center(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 400),
-                            child: Text(
-                              '"${_curWishColor['desc']}"',
-                              key: ValueKey(_wishColor),
-                              style: WrF.body(
-                                12.5,
-                                color: _hex(_curWishColor['color'] as String),
-                              ),
-                            ),
-                          ),
-                        ),
-                        _sec('공개 범위'),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            _seg('모두에게', Visibility.PUBLIC),
-                            const SizedBox(width: 6),
-                            _seg('링크로만', Visibility.LINK),
-                            const SizedBox(width: 6),
-                            _seg('나만 보기', Visibility.PRIVATE),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _visibilityDesc(_visibility),
-                          style: WrF.body(12, color: WrC.muted, height: 1.6),
-                        ),
+                        if (banner != null)
+                          SizedBox(width: double.infinity, child: banner),
+                        _paperRow(),
+                        _examplesSection(),
                       ],
                     ),
                   ),
-                  // CTA — 하단 고정, 핑크 그라디언트 버튼(WrDeco.btnPink), 상태에 따라 문구가 바뀐다.
+                  // CTA — 하단 고정, 핑크 그라디언트 버튼(WrDeco.btnPink).
                   Positioned(
                     left: 0,
                     right: 0,
@@ -397,48 +371,49 @@ class _ComposeScreenState extends State<ComposeScreen> {
                           stops: [0, .4],
                         ),
                       ),
-                      child: GestureDetector(
-                        onTap: canSubmit
-                            ? () => setState(() => _asking = true)
-                            : null,
-                        child: Opacity(
-                          opacity: canSubmit ? 1 : .45,
-                          child: Container(
-                            height: WrSize.btnH,
-                            alignment: Alignment.center,
-                            decoration: WrDeco.btnPink,
-                            child: _submitting
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    _ctaLabel(),
-                                    style: WrF.body(
-                                      WrSize.btnFont,
-                                      w: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: canSubmit ? _submit : null,
+                            child: Opacity(
+                              opacity: canSubmit ? 1 : .45,
+                              child: Container(
+                                height: WrSize.btnH,
+                                width: double.infinity,
+                                alignment: Alignment.center,
+                                decoration: WrDeco.btnPink,
+                                child: _submitting
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : Text(
+                                        _ctaLabel(),
+                                        style: WrF.body(
+                                          WrSize.btnFont,
+                                          w: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 10),
+                          Text(
+                            '담은 소원은 나만 볼 수 있어요 · 나중에 고칠 수 있어요',
+                            textAlign: TextAlign.center,
+                            style: WrF.body(12, color: WrC.muted),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  if (_asking)
-                    WrSealConfirm(
-                      date: _sealUntil!,
-                      busy: _submitting,
-                      onCancel: () => setState(() => _asking = false),
-                      onOk: () => _submit(),
-                    ),
-                  // [명세위반 수정 — 전수감사] TopBar(NavPill + 중앙 타이틀)가 통째로
-                  // 누락돼 있었다. app2/fx2.jsx TopBar({title}) 1:1: absolute top:52,
-                  // 좌 NavPill, 중앙 disp 18px 타이틀("새로운 소원방 시작"/"소원 작성").
+                  // TopBar(NavPill + 중앙 타이틀) — app2/fx2.jsx TopBar({title}) 1:1.
                   Positioned(
                     left: 0,
                     right: 0,
@@ -454,14 +429,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
                               context,
                             ).popUntil((r) => r.isFirst),
                           ),
-                          Expanded(
+                          const Expanded(
                             child: Center(
-                              child: Text(
-                                hasHistory ? '새로운 소원방 시작' : '소원 작성',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: WrF.display(18),
-                              ),
+                              child: Text('소원 작성'),
                             ),
                           ),
                           const SizedBox(width: 60),
@@ -478,50 +448,87 @@ class _ComposeScreenState extends State<ComposeScreen> {
     );
   }
 
-  Map<String, dynamic> get _curTheme =>
-      WrCatalog.I.themes.firstWhere((t) => t['id'] == _theme.name);
-  Map<String, dynamic> get _curWishColor =>
-      WrCatalog.I.wishColors.firstWhere((w) => w['id'] == _wishColor);
-  Map<String, dynamic> get _curPaper =>
-      WrCatalog.I.papers.firstWhere((p) => p['id'] == _paper);
+  String _ctaLabel() => _submitting ? '촛불에 담는 중…' : '🕯 촛불에 소원 담기';
 
-  /// [A-3 §2] 소원방 테마 카드 — 글리프(선택 시 bob) + 라벨, 선택 시 테마색 테두리·배경·글로우.
-  Widget _themeCard(Map<String, dynamic> t) {
-    final id = t['id'] as String;
-    final sel = _theme.name == id;
-    final color = _hex(t['color'] as String);
+  /// [S1 재구축] 소원 갈래 인장 8개 — app3/start.jsx Write3 1:1
+  /// (`gridTemplateColumns: repeat(8,1fr)`), WC_ORDER 순서.
+  Widget _wishColorRow() {
+    return Row(
+      children: [
+        for (final id in _wcOrder) ...[
+          Expanded(child: _wishColorIcon(id)),
+        ],
+      ],
+    );
+  }
+
+  Widget _wishColorIcon(String id) {
+    final w = WrCatalog.I.wishColors.firstWhere((e) => e['id'] == id);
+    final sel = _wishColor == id;
+    final color = _hex(w['color'] as String);
+    final deep = _hex(w['deep'] as String);
     return GestureDetector(
-      onTap: () => setState(() => _theme = WrTheme.values.byName(id)),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
-        decoration: BoxDecoration(
-          color: sel ? color.withValues(alpha: .14) : WrC.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: sel ? color : WrC.line,
-            width: sel ? 1.5 : 1,
+      onTap: () => setState(() {
+        _wishColor = id;
+        _pulseTick++;
+        _warnAck = false;
+      }),
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutBack,
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            transform: sel
+                ? (Matrix4.identity()
+                    ..translateByDouble(18.0, 18.0, 0, 1)
+                    ..rotateZ(-6 * 3.1415926535 / 180)
+                    ..scaleByDouble(1.08, 1.08, 1.08, 1)
+                    ..translateByDouble(-18.0, -18.0, 0, 1))
+                : Matrix4.identity(),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(9),
+              color: sel ? deep : const Color(0x8C140810),
+              border: Border.all(
+                color: sel ? color : const Color(0x2EFFE6D2),
+              ),
+              boxShadow: sel
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: .6),
+                        blurRadius: 16,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Text(
+              w['hanja'] as String,
+              style: TextStyle(
+                fontFamily: 'NotoSerifKR',
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                color: sel ? const Color(0xFFFFF9E8) : color,
+              ),
+            ),
           ),
-          boxShadow: sel
-              ? [BoxShadow(color: color.withValues(alpha: .4), blurRadius: 18)]
-              : null,
-        ),
-        child: Column(
-          children: [
-            _BobGlyph(glyph: t['glyph'] as String, animate: sel),
-            const SizedBox(height: 6),
-            Text(t['label'] as String, style: WrF.body(12, w: FontWeight.w700)),
-          ],
-        ),
+          const SizedBox(height: 5),
+          Text(
+            _wcShort[id] ?? '',
+            style: WrF.body(
+              11,
+              w: sel ? FontWeight.w700 : FontWeight.w400,
+              color: sel ? WrC.fg : WrC.muted,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// [A-3 §3] 한지 카드 — 소원빛깔 그라디언트 + 종이색 배경, 1행(날짜+8색 종이원), textarea, 하단(글자수+인장).
-  /// [버그수정 — 사용자 피드백] 8가지 종이(한지/벚꽃/연두/하늘/연보라/금박/쪽빛/먹빛)를 고를 수 있는데도
-  /// 글자색이 늘 하드코딩된 갈색(#4A2A1C)이라 어두운 종이(쪽빛/먹빛)에서는 글씨가 거의 안 보이고,
-  /// 밝은 종이를 골라도 전부 "한지 느낌"처럼 보였다. 종이 JSON의 ink(주 글자색)/sub(보조 글자색,
-  /// rgba 문자열)를 실제로 반영해 종이마다 다른 색감이 나도록 한다.
+  /// [S1 재구축] 한지 카드 — app3/start.jsx Write3 두루마리(textarea) 1:1.
+  /// 날짜 표시·봉인 안내 없이, 종이색 배경 + 60자 입력 + 하단(글자수+인장)만 남긴다.
   Widget _hanjiCard() {
     final wc = _curWishColor;
     final wishColor = _hex(wc['color'] as String);
@@ -529,117 +536,143 @@ class _ComposeScreenState extends State<ComposeScreen> {
     final bg = (paper['bg'] as List).cast<String>();
     final ink = _hex(paper['ink'] as String);
     final sub = _rgba(paper['sub'] as String);
+    final focused = _focusNode.hasFocus;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 800),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+      duration: const Duration(milliseconds: 600),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          // [버그수정 — 사용자 피드백 2] 빛깔 틴트가 카드 상단 .5 지점에서 끊겨 글씨 영역
-          // 배경은 종이색 그대로였다 — 종이색을 빛깔과 섞어 카드 전체(글씨 배경 포함)가
-          // 눈에 보이게 변경. 농도 상단 .5 / 중간 lerp .42 / 하단 lerp .28.
-          colors: [
-            wishColor.withValues(alpha: .5),
-            Color.lerp(_hex(bg[0]), wishColor, .42)!,
-            Color.lerp(_hex(bg[1]), wishColor, .28)!,
-          ],
-          stops: const [0, .45, 1],
+          colors: [_hex(bg[0]), _hex(bg[1])],
         ),
-        border: Border.all(color: wishColor.withValues(alpha: .8), width: 2),
+        border: focused
+            ? Border.all(color: wishColor.withValues(alpha: .8), width: 2)
+            : null,
         boxShadow: [
-          BoxShadow(color: wishColor.withValues(alpha: .5), blurRadius: 28),
           const BoxShadow(
-            color: Color(0x66000000),
-            blurRadius: 30,
-            offset: Offset(0, 10),
+            color: Color(0x73000000),
+            blurRadius: 28,
+            offset: Offset(0, 8),
           ),
+          if (focused)
+            BoxShadow(color: wishColor.withValues(alpha: .55), blurRadius: 30),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  '오늘의 소원 · ${_dateLabel()}',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                    color: sub,
-                  ),
-                ),
-              ),
-              // [A-3 §3] 종이 8색 동그라미 20x20 — 선택 시 테두리2px + 빛깔 링 + scale 1.15.
-              Row(
-                children: [
-                  for (final pp in WrCatalog.I.papers) ...[
-                    _paperDot(pp, wishColor),
-                    const SizedBox(width: 6),
-                  ],
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              '${paper['label']} 종이',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 10,
-                color: sub,
-              ),
+          Text(
+            '✎ 내 마음을 내 말로 적어 주세요',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 12,
+              color: sub,
             ),
           ),
           const SizedBox(height: 6),
-          SizedBox(
-            height: 120,
-            child: TextField(
-              controller: _textCtrl,
-              maxLength: 100,
-              maxLines: 4,
-              cursorColor: wishColor,
-              onChanged: (_) => setState(() {}),
-              style: TextStyle(
+          TextField(
+            controller: _textCtrl,
+            focusNode: _focusNode,
+            maxLength: 60,
+            maxLines: 4,
+            minLines: 3,
+            cursorColor: wishColor,
+            onChanged: (_) => setState(() => _warnAck = false),
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 17,
+              height: 1.7,
+              color: ink,
+            ),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText:
+                  '예) ${(WrCatalog.I.wishTemplates[_wishColor] ?? const ['']).first}',
+              hintStyle: TextStyle(
                 fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                height: 1.65,
-                color: ink,
+                fontSize: 15,
+                height: 1.5,
+                color: ink.withValues(alpha: .4),
               ),
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: '마음속 바람을 적어주세요\n예) 우리 가족 모두 건강하고 행복하게 해주세요.',
-                hintStyle: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  height: 1.5,
-                  color: ink.withValues(alpha: .4),
-                ),
-                counterText: '',
-              ),
+              counterText: '',
             ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${_textCtrl.text.length} / 100',
-                style: WrF.mono(size: 10, color: sub),
+                '${_textCtrl.text.length} / 60',
+                style: WrF.mono(size: 11, color: sub),
               ),
-              Opacity(
-                opacity: _textCtrl.text.trim().isEmpty ? .3 : 1,
-                child: WrSealOrOrb(picked: _wishColorPicked, color: wc),
+              TweenAnimationBuilder<double>(
+                key: ValueKey(_pulseTick),
+                tween: Tween(begin: .55, end: 1),
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.elasticOut,
+                builder: (_, v, child) =>
+                    Transform.scale(scale: v, child: child),
+                child: WrSealOrOrb(picked: true, color: wc),
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget? _checkBanner(WrTextCheck? chk, String trimmed) {
+    if (chk == null || trimmed.length < 2) return null;
+    Color bg, border;
+    String prefix;
+    switch (chk.level) {
+      case WrTextCheckLevel.block:
+        bg = const Color(0x2EF2628F);
+        border = const Color(0x80F2628F);
+        prefix = '⚠ ';
+        break;
+      case WrTextCheckLevel.care:
+        bg = const Color(0x249AD8E8);
+        border = const Color(0x739AD8E8);
+        prefix = '🤍 ';
+        break;
+      case WrTextCheckLevel.warn:
+        bg = const Color(0x24F5CF6A);
+        border = const Color(0x73F5CF6A);
+        prefix = 'ⓘ ';
+        break;
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: bg,
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        '$prefix${chk.msg}'
+        '${chk.level == WrTextCheckLevel.warn && _warnAck ? ' · 한 번 더 누르면 그대로 담아요' : ''}',
+        style: WrF.body(12, height: 1.55),
+      ),
+    );
+  }
+
+  Widget _paperRow() {
+    final wishColor = _hex(_curWishColor['color'] as String);
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('종이', style: WrF.body(11.5, color: WrC.muted)),
+          const SizedBox(width: 8),
+          for (final pp in WrCatalog.I.papers) ...[
+            _paperDot(pp, wishColor),
+            const SizedBox(width: 6),
+          ],
         ],
       ),
     );
@@ -655,20 +688,20 @@ class _ComposeScreenState extends State<ComposeScreen> {
         duration: const Duration(milliseconds: 250),
         scale: sel ? 1.15 : 1,
         child: Container(
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(colors: [_hex(bg[0]), _hex(bg[1])]),
             border: Border.all(
-              color: sel ? wishColor : const Color(0x33000000),
+              color: sel ? Colors.white : const Color(0x40FFFFFF),
               width: sel ? 2 : 1,
             ),
             boxShadow: sel
                 ? [
                     BoxShadow(
                       color: wishColor.withValues(alpha: .6),
-                      blurRadius: 6,
+                      blurRadius: 10,
                     ),
                   ]
                 : null,
@@ -678,270 +711,82 @@ class _ComposeScreenState extends State<ComposeScreen> {
     );
   }
 
-  /// [A-3 §7] 함께할 수호자 — 우측 "{테마글리프} {테마} 의상으로 입어요" 라벨.
-  /// [버그수정 — 사용자 피드백] (1) 한지 카드(소원 작성) 바로 아래로 위치 이동.
-  /// (2) 카드 높이가 104(이미지)+4(간격)+이름 텍스트 한 줄(12.5pt 기준 약 18px) ≈ 126px인데
-  /// 바깥 SizedBox가 120px로 고정돼 있어 이름 텍스트 하단이 잘려 안 보였다 — 128px로 확장.
-  Widget _guardianSection() {
-    final cat = WrCatalog.I;
+  /// [S1 재구축] "막막하다면 … 소원 예시에서 골라 고쳐 쓰세요" 토글 패널 —
+  /// app3/start.jsx Write3 1:1, 고른 갈래의 예시 6개만 2열 그리드로 보여준다.
+  Widget _examplesSection() {
+    final list = WrCatalog.I.wishTemplates[_wishColor] ?? const <String>[];
+    final color = _hex(_curWishColor['color'] as String);
     return Padding(
-      padding: const EdgeInsets.only(top: 22),
+      padding: const EdgeInsets.only(top: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          WrGuardianOutfitLauncher(
-            // [자연스러운 복귀 — 사용자 지적 2026-10-14] 작성란은 push로 열려
-            // 스택에 살아있고 샵 구매는 이동 없이 토스트만 있어 사라지지 않는다.
-            // 복귀 순간 갱신해 새로 함께한 수호자·착용 캐릭터가 카드에 바로 반영.
-            onTap: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CharacterShopScreen()),
-              );
-              if (!mounted) return;
-              setState(() {
-                final room = context.read<WishRoomProvider>().room;
-                if (_char == null &&
-                    room != null &&
-                    _myChars.any((c) => c.id == room.char)) {
-                  _char = room.char; // 샵에서 입혀놓은 수호자로 미리보기 정렬
-                }
-              });
-            },
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 128,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _myChars.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final ch = _myChars[i];
-                final sel = _char == ch.id;
-                return GestureDetector(
-                  onTap: () => setState(() => _char = ch.id),
-                  child: Container(
-                    width: 96,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      color: sel ? WrC.card : Colors.transparent,
-                      border: Border.all(
-                        color: sel ? WrC.blossom2 : WrC.line,
-                        width: sel ? 2 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: sel
-                          ? [
-                              const BoxShadow(
-                                color: WrC.blossomShadow,
-                                blurRadius: 18,
-                              ),
-                            ]
-                          : null,
-                    ),
-                    // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
-                    // 이미지 높이가 104px로 고정돼 있어, 글자 확대(1.3배) 시 아래
-                    // 이름 Text의 실제 줄 높이가 남은 공간(128-104-4=20px)보다
-                    // 커져 Column이 세로로 5px 오버플로했다. 이미지를 Expanded로
-                    // 바꿔 카드의 남은 세로 공간을 텍스트 실제 필요 높이만큼 먼저
-                    // 내어주고, 이미지가 나머지를 채우도록 한다(카드 전체 높이·
-                    // 디자인·이미지 비율은 그대로 유지).
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: Image.asset(
-                              cat.charImage(ch.id, _theme),
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          ch.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: WrF.body(12.5, w: FontWeight.w700),
-                        ),
-                      ],
-                    ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _exOpen = !_exOpen),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('✦ ', style: TextStyle(color: color)),
+                Flexible(
+                  child: Text(
+                    '막막하다면 ${_wcShort[_wishColor] ?? ''} 소원 예시에서 골라 고쳐 쓰세요',
+                    textAlign: TextAlign.center,
+                    style: WrF.body(13, color: WrC.muted),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// [A-3 §6] 소원의 빛깔 — 4열×2 카드, 30px 원(radial 그라디언트 + 한자13px) + 라벨11.
-  Widget _wishColorGrid() {
-    final colors = WrCatalog.I.wishColors;
-    return Column(
-      children: [
-        for (var row = 0; row < 2; row++) ...[
-          if (row > 0) const SizedBox(height: 10),
-          Row(
-            children: [
-              for (var col = 0; col < 4; col++) ...[
-                if (col > 0) const SizedBox(width: 8),
-                Expanded(child: _wishColorCard(colors[row * 4 + col])),
+                ),
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  turns: _exOpen ? .5 : 0,
+                  duration: const Duration(milliseconds: 400),
+                  child: Text('⌄', style: WrF.body(13, color: WrC.muted)),
+                ),
               ],
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _wishColorCard(Map<String, dynamic> w) {
-    final id = w['id'] as String;
-    final sel = _wishColor == id;
-    final color = _hex(w['color'] as String);
-    final deep = _hex(w['deep'] as String);
-    return GestureDetector(
-      onTap: () => setState(() {
-        _wishColor = id;
-        _wishColorPicked = true; // [소원빛깔 → 인장 교체] 이 순간부터 구슬로 전환
-      }),
-      child: Column(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [Colors.white, color, deep]),
-              border: sel ? Border.all(color: color, width: 2) : null,
-              boxShadow: sel
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: .6),
-                        blurRadius: 10,
-                      ),
-                    ]
-                  : null,
             ),
-            child: Text(
-              w['hanja'] as String,
-              style: const TextStyle(
-                fontFamily: 'NotoSerifKR',
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
-                color: Color(0xFF2A1F14),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity, height: 0),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 6,
+                crossAxisSpacing: 6,
+                childAspectRatio: 2.5,
+                children: [for (final e in list) _exampleCard(e, color)],
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            w['label'] as String,
-            style: WrF.body(
-              11,
-              w: sel ? FontWeight.w700 : FontWeight.w400,
-              color: sel ? WrC.fg : WrC.muted,
-            ),
+            crossFadeState: _exOpen
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 400),
           ),
         ],
       ),
     );
   }
 
-  String _ctaLabel() {
-    if (_textCtrl.text.trim().isEmpty) return '소원을 먼저 적어주세요';
-    if (_sealUntil == null) return '봉인 날짜를 골라주세요';
-    if (_char == null) return '수호자를 골라주세요';
-    return '🔐 소원 봉인하기';
-  }
-
-  Widget _sec(String label) => Padding(
-    padding: const EdgeInsets.only(top: 22, bottom: 0),
-    child: Text(label, style: WrF.display(16)),
-  );
-
-  Widget _seg(String label, Visibility v) {
-    final sel = _visibility == v;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _visibility = v),
-        child: Container(
-          height: WrSize.tabH,
-          alignment: Alignment.center,
-          decoration: sel
-              ? WrDeco.tabOn
-              : BoxDecoration(
-                  borderRadius: BorderRadius.circular(WrR.tab),
-                  color: WrC.chipBg,
-                ),
-          child: Text(
-            label,
-            style: WrF.body(
-              WrSize.tabFont,
-              w: FontWeight.w700,
-              color: sel ? Colors.white : WrC.muted,
-            ),
-          ),
+  Widget _exampleCard(String text, Color color) {
+    return GestureDetector(
+      onTap: () => _useExample(text),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: const Color(0x991E0C18),
+          border: Border.all(color: color.withValues(alpha: .27)),
+        ),
+        child: Text(
+          text,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: WrF.body(12.5, height: 1.35, color: Colors.white),
         ),
       ),
     );
   }
-
-  String _visibilityDesc(Visibility v) {
-    switch (v) {
-      case Visibility.PUBLIC:
-        return '모두의 소원방에 보여요. 누구나 응원하고 복주머니를 보낼 수 있어요.';
-      case Visibility.LINK:
-        return '모두의 소원방에는 보이지 않아요. 소원방을 만든 뒤 공유 버튼으로 링크를 보내면, 받은 분만 들어와 응원할 수 있어요.';
-      case Visibility.PRIVATE:
-        return '나만 볼 수 있어요. 응원이나 복주머니는 받을 수 없어요.';
-    }
-  }
-
-  Widget _smallDarkBtn(String label, VoidCallback onTap) => Expanded(
-    child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: WrSize.btnSmH,
-        alignment: Alignment.center,
-        decoration: WrDeco.btnDark,
-        child: Text(
-          label,
-          style: WrF.body(WrSize.btnSmFont, w: FontWeight.w700),
-        ),
-      ),
-    ),
-  );
-
-  Widget _smallPinkBtn(String label, VoidCallback onTap) => Expanded(
-    child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: WrSize.btnSmH,
-        alignment: Alignment.center,
-        decoration: WrDeco.btnPink,
-        child: Text(
-          label,
-          style: WrF.body(
-            WrSize.btnSmFont,
-            w: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    ),
-  );
-
-  // golden/10_compose.png 기준 날짜 포맷: YYYY.MM.DD (0패딩, 점 사이 공백 없음)
-  String _dateLabel() {
-    final now = DateTime.now();
-    return '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}';
-  }
-
-  String _fmtIso(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 /// [v7 통합] 대기 중인 풀이를 작성 화면 상단에 미리 보여주는 칩.
@@ -1022,7 +867,6 @@ Color _hex(String h) =>
     Color(int.parse('FF${h.replaceFirst('#', '')}', radix: 16));
 
 /// 종이 JSON의 `sub` 필드("rgba(90,50,30,.6)")를 Color로 변환.
-/// [버그수정 — 소원작성 종이색상] 하드코딩 대신 종이별 보조 글자색을 쓰기 위해 추가.
 Color _rgba(String s) {
   final m = RegExp(
     r'rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)',
@@ -1035,65 +879,10 @@ Color _rgba(String s) {
   return Color.fromRGBO(r, g, b, a);
 }
 
-/// [A-3 §2] 테마 글리프 — 선택 시 `bob 2.6s ∞` (상하 살짝 떠다니는 애니메이션).
-class _BobGlyph extends StatefulWidget {
-  const _BobGlyph({required this.glyph, required this.animate});
-  final String glyph;
-  final bool animate;
-  @override
-  State<_BobGlyph> createState() => _BobGlyphState();
-}
-
-class _BobGlyphState extends State<_BobGlyph>
-    with SingleTickerProviderStateMixin {
-  // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견] 기존에는
-  // `late final _ctrl = AnimationController(...)`로 선언돼 있었다. 선택되지
-  // 않은(animate:false) 테마 카드는 build()에서 _ctrl을 한 번도 쓰지 않으므로
-  // 이 필드가 초기화되지 않은 채로 남아 있다가, 화면을 벗어나 dispose()가
-  // `_ctrl.dispose()`를 호출하는 순간 처음으로 지연 초기화가 실행됐다. 이때
-  // AnimationController 생성자가 vsync(this)를 통해 TickerMode를 조회하려고
-  // BuildContext의 조상 위젯을 찾는데, 이미 비활성화 중인 위젯에서는 이 조회가
-  // 안전하지 않아 "Looking up a deactivated widget's ancestor is unsafe"로
-  // 크래시했다(선택되지 않은 테마 카드가 하나라도 있으면 소원 작성 화면을
-  // 나갈 때마다 재현 — 실기기에서도 동일하게 발생하는 실제 버그).
-  // nullable 지연 생성으로 바꿔 "animate가 한 번도 true였던 적이 없으면
-  // 컨트롤러를 아예 만들지 않는다"는 기존 의도(불필요한 애니메이션 자원 절약)는
-  // 그대로 유지하면서, dispose()에서 처음 생성되는 경우를 없앤다.
-  AnimationController? _ctrl;
-
-  AnimationController _controllerFor(BuildContext context) =>
-      _ctrl ??= AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 2600),
-      )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _ctrl?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Text(widget.glyph, style: const TextStyle(fontSize: 24));
-    if (!widget.animate) return text;
-    final ctrl = _controllerFor(context);
-    return AnimatedBuilder(
-      animation: ctrl,
-      builder: (_, child) => Transform.translate(
-        offset: Offset(0, -3 * ctrl.value),
-        child: child,
-      ),
-      child: text,
-    );
-  }
-}
-
-/// [소원빛깔 → 인장 교체 — 사용자 지시 2026-10-14]
-/// 기본(빛깔 미선택)에는 붉은 '願' 인장을 그대로 보여주고, 사용자가 소원의
-/// 빛깔을 누른 뒤에는 **인장이 사라지고** 선택한 빛깔 구슬(선택 화면의
-/// 원형 구슬 — 방사형 그라디언트 + 선택 테두리·빛 + 한자 각인)이 같은
-/// 자리(WrSize.sealBox)에 그대로 들어간다.
+/// [소원빛깔 → 인장] 선택한 빛깔 구슬(원형 구슬 — 방사형 그라디언트 + 한자 각인).
+/// [S1 재구축] 이제 작성 화면 진입 시점부터 이미 한 갈래(hope)가 선택돼 있으므로
+/// `picked`는 항상 true로 쓰인다 — 클래스 자체는 과거 "선택 전엔 願 인장"
+/// 분기를 그대로 남겨, 다른 화면에서 재사용할 길을 열어둔다.
 class WrSealOrOrb extends StatelessWidget {
   const WrSealOrOrb({super.key, required this.picked, this.color});
   final bool picked;
@@ -1126,33 +915,6 @@ class WrSealOrOrb extends StatelessWidget {
   }
 }
 
-/// [수호자 문구 클릭 — 사용자 지시 2026-10-14]
-/// '함께할 수호자' 옆 문구를 "함께할 수호자 및 자유의상 입어요"로 바꾸고,
-/// 탭하면 캐릭터·의상 화면(CharacterShopScreen)으로 넘어간다.
-class WrGuardianOutfitLauncher extends StatelessWidget {
-  const WrGuardianOutfitLauncher({super.key, required this.onTap});
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: onTap,
-    // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견] 글자 확대
-    // (1.3배) + 좁은 화면(320px) 조합에서 고정 문구 "함께할 수호자 및
-    // 자유의상 입어요"가 Row(mainAxisSize:min) 안에서 가로로 다 들어가지
-    // 못해 RenderFlex overflow가 발생했다. 문구를 Flexible로 감싸 공간이
-    // 부족하면 줄바꿈되도록 한다(문구·아이콘·스타일은 그대로 유지).
-    child: Row(
-      children: [
-        Flexible(
-          child: Text('함께할 수호자 및 자유의상 입어요', style: WrF.display(16)),
-        ),
-        const SizedBox(width: 2),
-        const Icon(Icons.chevron_right, size: 18, color: WrC.muted),
-      ],
-    ),
-  );
-}
-
 /// 한지 카드 우상단 願 인장 — WrDeco.seal 1:1.
 class WrSealGlyph extends StatelessWidget {
   const WrSealGlyph({super.key, required this.glyph});
@@ -1168,6 +930,8 @@ class WrSealGlyph extends StatelessWidget {
 }
 
 /// app2/capsule2.jsx SealGuideCard — 접고 펼 수 있는 "소원 봉인이란" 안내 카드.
+/// [S1 재구축] 작성 화면에서는 더 이상 쓰지 않지만, capsule_screen.dart가
+/// WrSealDatePicker를 통해 참조하므로(REWISH 타임캡슐 플로우) 그대로 둔다.
 /// 접힌 상태(기본)에서는 작은 pill 버튼만 보이고, 탭하면 4단계 설명이 펼쳐진다.
 class WrSealGuideCard extends StatefulWidget {
   const WrSealGuideCard({super.key});
@@ -1355,6 +1119,8 @@ class _WrSealGuideCardState extends State<WrSealGuideCard> {
 }
 
 /// app2/capsule2.jsx SealDatePicker — 네이티브 날짜 선택 + 100일/1년/2년/3년 빠른 선택.
+/// [S1 재구축] 작성 화면에서는 더 이상 쓰지 않는다 — capsule_screen.dart가
+/// REWISH(타임캡슐) 플로우에서 import해서 쓰고 있으므로 그대로 둔다.
 class WrSealDatePicker extends StatelessWidget {
   const WrSealDatePicker({
     super.key,
@@ -1422,14 +1188,6 @@ class WrSealDatePicker extends StatelessWidget {
                     color: const Color(0x14FFDC96),
                   )
                 : WrDeco.card,
-            // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
-            // trailing 안내 텍스트("날짜 직접 선택")가 Flexible/ellipsis 없이
-            // 고정 크기를 요구해, 시스템 글자 확대 2.5배 조합에서 아이콘+
-            // trailing 텍스트의 고정폭 합이 컨테이너 폭(250px)을 넘어
-            // Expanded 중앙 텍스트가 있어도 Row 전체가 오른쪽으로 28px
-            // 넘쳤다(RenderFlex overflowed). trailing 텍스트를 Flexible로
-            // 감싸 공간이 부족하면 줄임표(ellipsis)로 축약되게 한다(문구·
-            // 아이콘·날짜 표시·레이아웃은 그대로 유지).
             child: Row(
               children: [
                 const Text('📅', style: TextStyle(fontSize: 18)),
@@ -1529,6 +1287,8 @@ class WrSealDatePicker extends StatelessWidget {
 }
 
 /// app2/capsule2.jsx SealConfirm — dim 오버레이 + "이 소원을 봉인할까요?" 확인창.
+/// [S1 재구축] 작성 화면에서는 더 이상 쓰지 않는다 — capsule_screen.dart가
+/// REWISH(타임캡슐) 플로우에서 import해서 쓰고 있으므로 그대로 둔다.
 class WrSealConfirm extends StatelessWidget {
   const WrSealConfirm({
     super.key,
@@ -1560,15 +1320,6 @@ class WrSealConfirm extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 28),
             padding: const EdgeInsets.fromLTRB(20, 26, 20, 18),
-            // [버그수정 — 전수조사 중 실제 테스트로 발견] 좁고 짧은 화면
-            // (320x568) + 글자 확대 1.8배 이상(Android 접근성 배율 범위 안)
-            // 조합에서 바깥 Column(mainAxisSize:min) 전체 높이가 화면
-            // 높이를 넘어서 RenderFlex가 세로로 오버플로했다(1.8배에서
-            // 7px, 2.0배에서 259px). 높이에 상한을 두고, 버튼 2개는 항상
-            // 탭 가능하도록 고정한 채 제목·설명·날짜 안내 영역만 내부
-            // 스크롤되도록 한다(character_shop_screen.dart _infoSheet/
-            // _shortageSheet와 동일한 공통 패턴) — 디자인·문구·버튼 동작은
-            // 그대로 유지.
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * .9,
             ),
