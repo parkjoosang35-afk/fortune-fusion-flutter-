@@ -38,7 +38,13 @@ class ComposeScreen extends StatefulWidget {
 class _ComposeScreenState extends State<ComposeScreen> {
   final _textCtrl = TextEditingController();
   String? _char;
-  Visibility _visibility = Visibility.PUBLIC;
+  // [v5 S2 — 사용자 확인 결과] 공유 시트(_ShareSheet) 기본값은 room.visibility를
+  // 그대로 따르므로, 소원을 처음 봉인할 때 고르는 이 초기값이 곧 그 방의
+  // 기본 공개범위가 된다. 매핑표/v5 프로토타입 기준 기본값은 "나만 보기"
+  // (PRIVATE)여야 하는데 기존 코드는 PUBLIC으로 시작해 있었다 — 사용자 확인
+  // 지시에 따라 PRIVATE으로 고친다. 사용자가 작성 화면에서 직접 "모두에게"로
+  // 바꾸면 그 선택이 그대로 반영된다(강제 고정 아님).
+  Visibility _visibility = Visibility.PRIVATE;
   WrTheme _theme = WrTheme.free;
   String _wishColor = 'hope';
 

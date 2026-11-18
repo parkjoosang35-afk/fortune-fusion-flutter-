@@ -92,7 +92,13 @@ class _CareMenuInfoSheet extends StatelessWidget {
               if (lock) Positioned(top: 14, left: 16, child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: const Color(0x73000000), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x66FFDC96))),
-                child: Text('🔒 $need일째에 열려요', style: WrF.body(11.5, w: FontWeight.w700, color: WrC.glow)),
+                // [v5 S2 — 사용자 지시 "잠금 안내창 문구는 날짜 대신 '곧 열려요'로"]
+                // API 미구현 기능(comingSoon)은 날짜 배지("N일째에 열려요") 대신
+                // "곧 열려요"만 보여준다.
+                child: Text(
+                  comingSoon ? '🔒 곧 열려요' : '🔒 $need일째에 열려요',
+                  style: WrF.body(11.5, w: FontWeight.w700, color: WrC.glow),
+                ),
               )),
             ]),
           ),
