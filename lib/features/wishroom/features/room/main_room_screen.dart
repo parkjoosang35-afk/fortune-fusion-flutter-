@@ -1704,15 +1704,40 @@ class _MainRoomScreenState extends State<MainRoomScreen>
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: isDim
-                      ? const [Color(0xFFFFE9A8), Color(0xFFF5C052)]
-                      : (busy || done
-                            ? const [Color(0xFF4A2238), Color(0xFF2A1020)]
-                            : const [Color(0xFFFF9CBC), Color(0xFFF2628F)]),
-                ),
+                // [v5 S2 — 매핑표 05 "완료 Ø76 rgba(40,16,50,.85) + 금테
+                // #f5cf6a" 1:1] 완료 상태는 더 이상 인디고~보라 그라데이션이
+                // 아니라 rgba(40,16,50,.85) 단색 + 금테 보더다. busy("머금는
+                // 중")는 기존 그라데이션을 그대로 유지(완료 전이라 명세
+                // 대상 아님).
+                color: done ? const Color(0xD9281020) : null,
+                gradient: done
+                    ? null
+                    : LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: isDim
+                            ? const [Color(0xFFFFE9A8), Color(0xFFF5C052)]
+                            : (busy
+                                  ? const [Color(0xFF4A2238), Color(0xFF2A1020)]
+                                  : const [
+                                      Color(0xFFFF9CBC),
+                                      Color(0xFFF2628F),
+                                    ]),
+                      ),
+                border: done
+                    ? Border.all(
+                        color: const Color(0xFFF5CF6A).withValues(alpha: .7),
+                        width: 1.5,
+                      )
+                    : null,
+                boxShadow: done
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFC8A0FF).withValues(alpha: .45),
+                          blurRadius: 18,
+                        ),
+                      ]
+                    : null,
               ),
               alignment: Alignment.center,
               // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
@@ -1765,27 +1790,19 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                         ],
                       )
                     : done
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text(
-                            '✓',
-                            style: TextStyle(
-                              fontSize: 17,
-                              color: Colors.white70,
-                              height: 1,
-                            ),
-                          ),
-                          Text(
-                            '오늘 완료',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 9,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
+                    // [v5 S2 — 매핑표 05 "완료 Ø76 rgba(40,16,50,.85) + 금테
+                    // #f5cf6a 「✓ 기도 완료」한 줄" / app3/home.jsx 1:1]
+                    // 기존 "✓" + "오늘 완료" 2줄 고정 문구는 임의값이었다 —
+                    // 한 줄 "✓ {VB} 완료"로 통일(VB는 wrVerb, free만 "기도").
+                    ? Text(
+                        '✓ $verb 완료',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10.5,
+                          color: Colors.white70,
+                        ),
                       )
                     : Column(
                         mainAxisSize: MainAxisSize.min,
@@ -1795,7 +1812,12 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                             style: const TextStyle(fontSize: 20, height: 1),
                           ),
                           Text(
-                            '${ritual['verb']}',
+                            // [v5 S2 — CHECKLIST.md "기도 버튼 2상태" /
+                            // app3 BTN3 1:1] 기존 ritual['verb']는 명사형
+                            // ("정성/기도/치성")이었다. 버튼 라벨은 동작형
+                            // 문구(두 손 모아/기도하기/절 올리기/두 손
+                            // 비비기)를 쓴다 — kPrayBtnLabel 참조.
+                            kPrayBtnLabel[room.theme.name] ?? '두 손 모아',
                             style: const TextStyle(
                               fontFamily: 'Pretendard',
                               fontWeight: FontWeight.w800,
