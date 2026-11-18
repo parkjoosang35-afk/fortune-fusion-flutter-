@@ -217,13 +217,16 @@ class WishRoomProvider extends ChangeNotifier {
   }
 
   /// SCR-02 — 소원 작성. 성공 시 room을 갱신하고 true 반환, 실패 시 false.
+  /// [S1 재구축 — 소원 작성 간소화] 필수 값은 text/wishColor뿐이다. char(수호자)를
+  /// 생략하면 서버가 보유 대표 캐릭터(기본 F00)를 쓰고, sealUntil(봉인일)을
+  /// 생략하면 null로 저장된다(나중에 ⋯ 「타임캡슐로 남기기」에서 설정 가능).
   Future<bool> createRoom({
     required String text,
-    required String char,
-    required String sealUntil,
-    Visibility visibility = Visibility.PUBLIC,
+    String? char,
+    String? sealUntil,
+    Visibility visibility = Visibility.PRIVATE,
     WrTheme theme = WrTheme.free,
-    String wishColor = 'hope',
+    required String wishColor,
     String paper = 'hanji',
     bool force = false,
   }) async {

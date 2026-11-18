@@ -17,7 +17,10 @@ import 'wr_local_cache.dart';
 
 abstract class WrRepository {
   // 소원방
-  Future<WishRoom> createRoom({required String text, required String char, required String sealUntil, Visibility visibility, WrTheme theme, String wishColor, String paper, bool force});   // 1 POST /wish-rooms
+  // [S1 재구축 — 소원 작성 간소화] 필수 값은 text/wishColor 두 개뿐이다.
+  // char(수호자)는 생략하면 서버가 보유 중인 대표 캐릭터(기본 F00)를 쓰고,
+  // sealUntil(봉인일)은 생략하면 서버가 null로 저장한다(선택 사항).
+  Future<WishRoom> createRoom({required String text, String? char, String? sealUntil, Visibility visibility, WrTheme theme, required String wishColor, String paper, bool force});   // 1 POST /wish-rooms
   Future<MyRoomResponse> myRoom();                                                                              // 2 GET  /wish-rooms/me
   Future<WishRoom> room(String id);                                                                             // 3 GET  /wish-rooms/{id}
   Future<DevotionResult> devote(String id, {int? heldMs});                                                      // 4 POST /wish-rooms/{id}/devotions — v5 S1: heldMs(ms) 버튼 누르고 있던 시간, 3초 hold 검증용
@@ -154,8 +157,17 @@ class ApiRepository implements WrRepository {
   Map<String, dynamic> _m(dynamic v) => Map<String, dynamic>.from(v as Map);
   List<T> _l<T>(dynamic v, T Function(Map<String, dynamic>) f) => (v as List).map((x) => f(_m(x))).toList();
 
-  @override Future<WishRoom> createRoom({required String text, required String char, required String sealUntil, Visibility visibility = Visibility.PUBLIC, WrTheme theme = WrTheme.free, String wishColor = 'hope', String paper = 'hanji', bool force = false}) async =>
-      WishRoom.fromJson(_m(await _req('POST', '/wish-rooms', {'text': text, 'char': char, 'sealUntil': sealUntil, 'visibility': visibility.name, 'theme': theme.name, 'wishColor': wishColor, 'paper': paper, 'force': force})));
+  @override Future<WishRoom> createRoom({required String text, String? char, String? sealUntil, Visibility visibility = Visibility.PRIVATE, WrTheme theme = WrTheme.free, required String wishColor, String paper = 'hanji', bool force = false}) async =>
+      WishRoom.fromJson(_m(await _req('POST', '/wish-rooms', {
+        'text': text,
+        if (char != null) 'char': char,
+        if (sealUntil != null) 'sealUntil': sealUntil,
+        'visibility': visibility.name,
+        'theme': theme.name,
+        'wishColor': wishColor,
+        'paper': paper,
+        'force': force,
+      })));
   @override Future<MyRoomResponse> myRoom() async {
     final requestUser = await AuthTokenStore.getCurrentUserId();
     final requestToken = await AuthTokenStore.getToken();
