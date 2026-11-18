@@ -37,9 +37,30 @@ import '../../core/wr_toast.dart';
 import '../compose/compose_screen.dart';
 import '../characters/character_shop_screen.dart';
 import '../decor/decor_screen.dart';
+import '../notifications/notifications_screen.dart';
 import 'unlock_card.dart';
 import 'care_menu_info.dart';
 import 'care_menu_info_sheet.dart';
+
+// [v5 S2 — CHECKLIST.md "기도 버튼 2상태 (Ø96 분홍 → Ø76 보라 「✓ 기도 완료」)"]
+// app3/home.jsx 7줄 BTN3 1:1 — 둥근 기도 버튼에만 쓰는 (라벨, 아이콘) 쌍.
+// RITUAL[theme].verb(= 소원 카드 "N일째 · {동사} N번"에 쓰는 명사형 "정성/기도/
+// 치성/정성")와는 다른 체계로, 버튼 위에는 "~하기/~모아" 동작 지시형 문구를 쓴다.
+// RITUAL.icon과 글자가 다른 테마(god: ✝→✝ 동일, buddha: 🪷→🪷 동일, shaman:
+// 🙌→🙌 동일, free: 🙏→🙏 동일)라 아이콘은 재사용하고 라벨만 이 맵에서 가져온다.
+const Map<String, String> kPrayBtnLabel = {
+  'free': '두 손 모아',
+  'god': '기도하기',
+  'buddha': '절 올리기',
+  'shaman': '두 손 비비기',
+};
+
+// [v5 S2] app3/home.jsx 4줄 VERB3() 1:1 — "자유 방은 '기도'로 통일" 규칙.
+// 소원 카드 "N일째 · {VB} N번"과 완료 버튼 "✓ {VB} 완료"에 공통으로 쓰는
+// 동사로, RITUAL[theme].verb와 달리 free 테마만 "정성" 대신 "기도"로 바뀐다
+// (god/buddha/shaman은 RITUAL.verb 그대로: 기도/치성/정성).
+String wrVerb(String themeId, Map<String, dynamic> ritual) =>
+    themeId == 'free' ? '기도' : (ritual['verb'] as String? ?? '기도');
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -230,7 +251,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
     });
     final cat = WrCatalog.I;
     final ritual = cat.ritual(room.theme);
-    final verb = ritual['verb'] as String? ?? '정성';
+    final verb = wrVerb(room.theme.name, ritual);
     await _devotion.devote(
       room.id,
       heldMs: heldMs,
@@ -703,9 +724,21 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                             key: const ValueKey('navPill'),
                             top: 52,
                             left: 14,
-                            child: WrNavPill(
-                              onBack: () => _onBack(),
-                              onExitHome: () => _onExitHome(),
+                            child: Row(
+                              children: [
+                                WrNavPill(
+                                  onBack: () => _onBack(),
+                                  onExitHome: () => _onExitHome(),
+                                ),
+                                const SizedBox(width: 6),
+                                // [v5 S2 — 매핑표 05-D #11 "알림 탭 (05) → 하단바에서 제거 →
+                                // 상단 ⋯ 또는 홈 상단 벨로 이동 (알림 화면 자체는 유지)" /
+                                // CHECKLIST.md "하단바 6칸 … (알림 → 상단 🔔)"] ⋯ 메뉴는 이미
+                                // 10줄+그밖에2줄로 포화 상태라, 매핑표가 제시한 두 선택지 중
+                                // "홈 상단 벨"을 택해 좌측 NavPill 옆에 44px 원형 벨 버튼을
+                                // 둔다(우측 [👁][🧧][⋯] 3버튼 Row는 B안 그대로 손대지 않음).
+                                _bellBtn(p.unreadCount),
+                              ],
                             ),
                           ),
                           const Positioned(
@@ -1085,7 +1118,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                           // [v5 S2] 소원 전문 펼침 카드 헤더도 _bottomDock과 동일하게 D-day
                           // 표시를 뺀다 — "오늘의 소원 · N일째 · 기도 N번"으로 통일.
                           Text(
-                            '오늘의 소원 · ${room.dayN}일째 · ${cat.ritual(room.theme)['verb'] ?? '정성'} ${room.prayedN}번',
+                            '오늘의 소원 · ${room.dayN}일째 · ${wrVerb(room.theme.name, cat.ritual(room.theme))} ${room.prayedN}번',
                             style: TextStyle(
                               fontFamily: 'Pretendard',
                               fontWeight: FontWeight.w700,
@@ -1336,6 +1369,39 @@ class _MainRoomScreenState extends State<MainRoomScreen>
         ),
       );
 
+  // [v5 S2 — 매핑표 05-D #11 "알림 탭 → 하단바에서 제거 → 상단 ⋯ 또는 홈 상단
+  // 벨로 이동 (알림 화면 자체는 유지)"] 기존 WrNotificationsScreen(알림함)은
+  // 그대로 두고, 진입 경로만 하단바 탭에서 NavPill 옆 44px 원형 벨 버튼으로
+  // 옮긴다. 안 읽은 알림이 있으면(unreadCount>0) 숫자 배지를 보여준다
+  // (notifications_screen.dart의 hasUnread 점 배지보다 한눈에 몇 개인지
+  // 알 수 있도록 숫자로 표시 — 9개 초과는 "9+"로 줄인다).
+  Widget _bellBtn(int unread) => _circleBtn(
+    Icons.notifications_outlined,
+    () => Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WrNotificationsScreen())),
+    badge: unread > 0
+        ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: WrC.blossom,
+            ),
+            child: Text(
+              unread > 9 ? '9+' : '$unread',
+              style: const TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                height: 1,
+              ),
+            ),
+          )
+        : null,
+  );
+
   // [v5 S2] app3/home.jsx `v.pending && <span className="dot"/>` 1:1 — 아직
   // 확인(ack)하지 않은 열림이 있으면 ⋯ 버튼 우상단에 분홍 점 배지.
   Widget _careBtn(WishRoom room) => _circleBtn(
@@ -1429,7 +1495,9 @@ class _MainRoomScreenState extends State<MainRoomScreen>
     // 아닌 선택 사항(⋯ 소원방 돌보기 메뉴)으로 강등됐으므로 이 메인 카드
     // 라벨에서는 더 이상 D-day를 보여주지 않는다 — 봉인 중이어도 다른 방과
     // 동일하게 "N일째 · {의식 동사} N번[ · ✓ 오늘]"로 통일한다.
-    final verb = ritual['verb'] as String? ?? '정성';
+    // [v5 S2] app3/home.jsx VERB3() 1:1 — free 테마만 "정성" 대신 "기도"로
+    // 통일(God/Buddha/Shaman은 RITUAL.verb 그대로).
+    final verb = wrVerb(room.theme.name, ritual);
     String labelText;
     if (room.capsuleDue) {
       labelText = '🎁 소원 봉인이 풀렸어요';
@@ -1601,8 +1669,14 @@ class _MainRoomScreenState extends State<MainRoomScreen>
           onTapUp: (_) => _onHoldUp(),
           onTapCancel: _onHoldUp,
           child: Container(
-            width: 66,
-            height: 66,
+            // [v5 S2 — CHECKLIST.md "기도 버튼 2상태 (Ø96 분홍 → Ø76 보라
+            // 「✓ 기도 완료」)" / app3/home.jsx 121줄 `width: v.prayedToday ? 76 : 96`
+            // 1:1] 기존 66px 고정값은 원본과 다른 임의 값이었다 — 기도 전(평소·
+            // 머금는 중)은 96, 완료 후에만 76으로 줄어든다. 색상·그라데이션·
+            // 그림자는 이번 수정 범위 밖(별도 확인 후 진행)이라 기존 톤을 그대로
+            // 유지한다.
+            width: done ? 76 : 96,
+            height: done ? 76 : 96,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: SweepGradient(
