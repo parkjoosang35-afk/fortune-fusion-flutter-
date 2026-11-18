@@ -307,7 +307,13 @@ class _WishRoomShellState extends State<WishRoomShell> {
   /// 그대로 따른다. 정식 GuideSheet3(그림·1·2·3 안내 카드 등)로의 교체는 Todo #4.
   void _showLockHintSheet(BuildContext context, String key) {
     final room = context.read<WishRoomProvider>().room;
-    final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)[key] as int? ?? 0;
+    // [버그수정 — S2 실사용 검증] app3/shell.jsx goTab() 56줄 1:1 —
+    // 상점 탭의 lock key 자체는 'decor'(오픈 판정은 UNLOCK.decor=3일째 기준)지만,
+    // 안내시트에 보여주는 "N일째에 열려요"는 반드시 'shop'(=14) 키로 리매핑해서
+    // 계산해야 한다. 이 리매핑을 빼먹으면 상점 안내시트가 "3일째"로 잘못 표시된다
+    // (실제 Playwright 검증에서 발견: decor=3으로 잘못 나옴, 정답은 shop=14).
+    final unlockKey = key == 'decor' ? 'shop' : key;
+    final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)[unlockKey] as int? ?? 0;
     final dayN = room?.dayN ?? 1;
     final left = math.max(1, unlockDay - dayN);
     showModalBottomSheet(
