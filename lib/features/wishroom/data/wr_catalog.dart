@@ -38,6 +38,10 @@ class WrCatalog {
   List<Map<String, dynamic>> get themes => _list('THEMES');           // {id,label,glyph,hanja,sub,color,deep,light,desc,room}
   List<Map<String, dynamic>> get wishColors => _list('WISH_COLORS');  // 康 財 緣 …
   List<Map<String, dynamic>> get papers => _list('PAPERS');
+  /// [S1 재구축] 갈래별 예시 48개(8갈래×6개) — app3/start.jsx `WISH_EX` 1:1 포팅.
+  /// 작성 화면에서 "막막하다면 … 소원 예시에서 골라 고쳐 쓰세요"에 쓰인다.
+  Map<String, List<String>> get wishTemplates => (raw['WISH_TEMPLATES'] as Map)
+      .map((k, v) => MapEntry(k as String, List<String>.from(v as List)));
   List<Map<String, dynamic>> get supportRewards => _list('SUPPORT_REWARDS');
   List<Map<String, dynamic>> get earn => _list('EARN');
   Map<String, dynamic> get effectCap => Map<String, dynamic>.from(raw['EFFECT_CAP']);
