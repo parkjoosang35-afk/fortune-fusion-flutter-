@@ -42,6 +42,11 @@ class WrCatalog {
   List<Map<String, dynamic>> get earn => _list('EARN');
   Map<String, dynamic> get effectCap => Map<String, dynamic>.from(raw['EFFECT_CAP']);
   Map<String, dynamic> get outfitPrice => Map<String, dynamic>.from(raw['OUTFIT_PRICE']);
+  /// [S3 신규] POUCH.dispatch 표 — 하루 50 · 사흘 120 · 이레 250(복주머니).
+  /// wishroom-engine.ts entrustPriceFor()와 동일 소스(wishroom_data.json)를 읽는다.
+  Map<String, int> get entrustPrice => Map<String, dynamic>.from(raw['POUCH']['dispatch']).map((k, v) => MapEntry(k, (v as num).toInt()));
+  /// [S3 신규] app3/flow.js RULES.words — 응원(함께 빌기) 고른 한마디 4종.
+  List<String> get dispatchWords => List<String>.from(raw['DISPATCH_WORDS'] ?? const []);
 
   /// 테마별 정성 의식 — verb(기도/치성/정성) · icon · pose · done 문장 · lines(머금는 동안 3문장) · quotes(말씀 카드 [text, source])
   Map<String, dynamic> ritual(WrTheme t) => Map<String, dynamic>.from(raw['RITUAL'][t.name]);

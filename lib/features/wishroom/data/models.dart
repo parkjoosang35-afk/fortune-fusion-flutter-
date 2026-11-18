@@ -63,6 +63,54 @@ class SupportRewardState {
   SupportRewardState.fromJson(Map<String, dynamic> j) : at = j['at'], reward = j['reward'], icon = j['icon'], reached = j['reached'] ?? false, claimed = j['claimed'] ?? false, got = j['got'];
 }
 
+/// [S3 신규] 수호자에게 맡기기(代願) 1건 — wishroom-engine.ts EntrustRow 1:1.
+/// id는 DB 정수 id 그대로(서버가 wre_ 포맷으로 감싸지 않음) — Flutter는 이 id를
+/// API 호출에 쓰지 않는다(맡기기/그만두기/확인 모두 roomId 기준으로만 동작).
+class Entrust {
+  final int id;
+  final String guardian;
+  final int days, price, startDay, endDay;
+  final String status; // active | cancelled | done | acked
+  final int? cancelDay, refund;
+  Entrust.fromJson(Map<String, dynamic> j)
+      : id = (j['id'] as num).toInt(), guardian = j['guardian'] as String? ?? '',
+        days = (j['days'] as num?)?.toInt() ?? 0, price = (j['price'] as num?)?.toInt() ?? 0,
+        startDay = (j['startDay'] as num?)?.toInt() ?? 0, endDay = (j['endDay'] as num?)?.toInt() ?? 0,
+        status = j['status'] as String? ?? 'active',
+        cancelDay = (j['cancelDay'] as num?)?.toInt(), refund = (j['refund'] as num?)?.toInt();
+}
+
+/// [S3 신규] 내 대표 수호자가 지금 다른 방에 파견 나가 있는지 — wishroom-engine.ts
+/// DispatchAwayRow 1:1. roomId도 서버 내부 DB id 그대로(안내 문구 용도일 뿐, 그
+/// 방으로 이동하는 기능은 없음).
+class DispatchAway {
+  final int id, roomId;
+  final String guardian, status; // asked | praying | done | recalled
+  final int days;
+  final int createdAtMs;
+  DispatchAway.fromJson(Map<String, dynamic> j)
+      : id = (j['id'] as num).toInt(), roomId = (j['roomId'] as num).toInt(),
+        guardian = j['guardian'] as String? ?? '', status = j['status'] as String? ?? 'praying',
+        days = (j['days'] as num?)?.toInt() ?? 1, createdAtMs = (j['createdAtMs'] as num).toInt();
+}
+
+/// [S3 신규] 찾아온 수호자(받은 마음) 1건 — GET /me/visitors 응답 1:1.
+/// id('wrd_...')·room('wr_...')은 서버가 이미 공개 포맷으로 감싸 보낸다.
+class VisitorIn {
+  final String id, room, guardian;
+  final String? who, word;
+  final bool anon, thanked;
+  final String status; // praying | asked
+  final DateTime createdAt;
+  VisitorIn.fromJson(Map<String, dynamic> j)
+      : id = j['id'] as String, room = j['room'] as String,
+        guardian = j['guardian'] as String? ?? '', who = j['who'] as String?, word = j['word'] as String?,
+        anon = j['anon'] ?? false, thanked = j['thanked'] ?? false, status = j['status'] as String? ?? 'praying',
+        createdAt = DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num).toInt());
+  VisitorIn._(this.id, this.room, this.guardian, this.who, this.word, this.anon, this.thanked, this.status, this.createdAt);
+  VisitorIn copyWith({bool? thanked}) => VisitorIn._(id, room, guardian, who, word, anon, thanked ?? this.thanked, status, createdAt);
+}
+
 class WishRoom {
   final String id, ownerId, owner, region, text, char;
   final RoomStatus status;
@@ -100,6 +148,13 @@ class WishRoom {
   final List<String> unlocked;
   final String? pendingUnlock;
   final String? lastUnlockAckDay;
+  // [S3 신규] 매핑표 00-C 확장 — wishroom-engine.ts roomView() 1:1.
+  // visitPolicy: 이 방이 "찾아온 수호자(dispatch)"를 어떻게 받을지(off/ask/open).
+  // entrustNow/Next/Done: 내 방일 때만 값이 채워짐(남의 방 조회 시 전부 null).
+  // guardianAway: 내 대표 수호자가 지금 다른 방에 파견 나가 있으면 그 정보(내 방 조회 시만).
+  final String visitPolicy;
+  final Entrust? entrustNow, entrustNext, entrustDone;
+  final DispatchAway? guardianAway;
   final Equip equip;
   final Map<String, LayoutPos> layout;
   final Effects effects;
@@ -135,6 +190,11 @@ class WishRoom {
         unlocked = List<String>.from(j['unlocked'] ?? const []),
         pendingUnlock = j['pendingUnlock'] as String?,
         lastUnlockAckDay = j['lastUnlockAckDay'] as String?,
+        visitPolicy = j['visitPolicy'] as String? ?? 'ask',
+        entrustNow = j['entrustNow'] == null ? null : Entrust.fromJson(Map<String, dynamic>.from(j['entrustNow'])),
+        entrustNext = j['entrustNext'] == null ? null : Entrust.fromJson(Map<String, dynamic>.from(j['entrustNext'])),
+        entrustDone = j['entrustDone'] == null ? null : Entrust.fromJson(Map<String, dynamic>.from(j['entrustDone'])),
+        guardianAway = j['guardianAway'] == null ? null : DispatchAway.fromJson(Map<String, dynamic>.from(j['guardianAway'])),
         equip = Equip.fromJson(Map<String, dynamic>.from(j['equip'] ?? const {})),
         layout = (Map<String, dynamic>.from(j['layout'] ?? const {})).map((k, v) => MapEntry(k, LayoutPos.fromJson(Map<String, dynamic>.from(v)))),
         effects = Effects.fromJson(j['effects'] == null ? null : Map<String, dynamic>.from(j['effects'])),

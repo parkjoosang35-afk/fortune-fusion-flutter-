@@ -48,6 +48,10 @@ class WishRoomProvider extends ChangeNotifier {
   WishRoom? viewedRoom;
   List<WrComment> viewedComments = [];
 
+  // ── [S3 신규] 찾아온 수호자(받은 마음) 목록 ──
+  List<VisitorIn> visitors = [];
+  bool visitorsLoading = false;
+
   // ── 안내서 한 바퀴 둘러보기 ──
   // app2/guide2.jsx › GuideBook의 "✦ 소원방 한 바퀴 둘러보기"는 app.room && 조건만으로
   // 꾸미기/보관함 등 어디서 눌러도 항상 보이고, onClose(); app.go('home');
@@ -1003,6 +1007,140 @@ class WishRoomProvider extends ChangeNotifier {
       await repo.wallpaperLevelNotice(level);
     } catch (_) {
       // fx2.jsx 원본도 .catch(()=>{})로 무시한다 — 연출을 막을 이유가 없다.
+    }
+  }
+
+  // ───────────────────── [S3 신규] 수호자에게 맡기기(Entrust) ─────────────────────
+  /// app3/entrust.jsx Entrust3 "맡기기" 버튼 · flow.js API.pay(kind:'entrust') 1:1.
+  /// 성공 시 room/me를 둘 다 서버 응답으로 갱신한다(복주머니 차감 반영).
+  Future<bool> entrustGuardian(String id, {required int days, bool startsToday = true}) async {
+    lastError = null;
+    try {
+      final (room: r, me: m) = await repo.entrust(id, days: days, startsToday: startsToday);
+      room = r;
+      me = m;
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// app3/entrust.jsx "그만두기" 버튼 · flow.js cancelEntrust() 1:1. 성공 시
+  /// 환급액(복주머니)을 반환해 화면이 토스트로 안내할 수 있게 한다(실패 시 null).
+  Future<int?> cancelEntrust(String id) async {
+    lastError = null;
+    try {
+      final (room: r, me: m, refund: refund) = await repo.cancelEntrust(id);
+      room = r;
+      me = m;
+      notifyListeners();
+      return refund;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// app3/entrust.jsx EntrustBack "마음에 담기" 버튼 · flow.js ackEntrust(id) 1:1.
+  /// 금전 효과 없음 — entrustDone 배너를 닫는 용도.
+  Future<bool> ackEntrust(String id) async {
+    lastError = null;
+    try {
+      final (room: r, me: m) = await repo.ackEntrust(id);
+      room = r;
+      me = m;
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ──────────────── [S3 신규] 수호자 보내기 / 찾아온 수호자(Dispatch) ────────────────
+  /// app3/visit.jsx Visit3 · flow.js API.visit() 1:1 — 다른 방(targetRoomId)에 내
+  /// 수호자를 보낸다. 반환된 ask가 true면 "동의 대기(asked)"로 들어갔다는 뜻이다.
+  /// 타인의 방 화면(viewedRoom)이 보내는 대상이면 room을 덮어쓰지 않는다(gift()와
+  /// 동일한 가드 — 내 방 상태가 타인의 방으로 치환되는 사고를 막는다).
+  Future<({bool ask, String dispatchId})?> dispatchGuardian(String targetRoomId, {required String guardian, bool anon = false, String? word, bool isReply = false}) async {
+    lastError = null;
+    try {
+      final (room: r, me: m, ask: ask, dispatchId: dispatchId) = await repo.dispatchGuardian(targetRoomId, guardian: guardian, anon: anon, word: word, isReply: isReply);
+      if (viewedRoom?.id == targetRoomId) viewedRoom = r;
+      if (room?.id == targetRoomId) room = r;
+      me = m;
+      notifyListeners();
+      return (ask: ask, dispatchId: dispatchId);
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// app3/entrust.jsx Received3 · flow.js API.visitsIn() 1:1 — 내 방에 찾아온
+  /// 수호자(받은 마음) 목록을 불러온다.
+  Future<void> loadVisitors() async {
+    visitorsLoading = true;
+    notifyListeners();
+    try {
+      visitors = await repo.visitors();
+      lastError = null;
+    } on ApiError catch (e) {
+      lastError = e;
+    } finally {
+      visitorsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// "고마워요" 버튼 · flow.js API.thanks(id) 1:1 — 받은 마음에 답하고(1회 한정)
+  /// dispatchRecv 복주머니를 적립받는다. rewarded>0이면 화면이 FX/토스트로 안내.
+  Future<int?> thanksVisitor(String dispatchId) async {
+    lastError = null;
+    try {
+      final (me: m, rewarded: rewarded) = await repo.thanksVisitor(dispatchId);
+      me = m;
+      visitors = [for (final v in visitors) if (v.id == dispatchId) v.copyWith(thanked: true) else v];
+      notifyListeners();
+      return rewarded;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// "돌려보내기" 버튼 · flow.js API.sendBack(id) 1:1 — 목록에서 제거한다.
+  Future<bool> recallVisitor(String dispatchId) async {
+    lastError = null;
+    try {
+      me = await repo.recallVisitor(dispatchId);
+      visitors = visitors.where((v) => v.id != dispatchId).toList();
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// 내가 보낸 수호자의 결과 확인 · flow.js API.ackDispatch(id) 1:1. 금전 효과 없음.
+  Future<bool> ackDispatch(String dispatchId) async {
+    lastError = null;
+    try {
+      await repo.ackDispatch(dispatchId);
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
     }
   }
 }

@@ -77,8 +77,6 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '방이 자라는 건 내가 직접 빈 날만 세어요. 맡긴 날은 촛불과 연속 기록만 지켜요.',
     lockKey: 'guardian',
-    // S3에서 수호자에게 맡기기(entrust) API/화면이 생기면 해제한다.
-    unimplemented: true,
   ),
   CareMenuInfo(
     key: '찾아온 수호자',

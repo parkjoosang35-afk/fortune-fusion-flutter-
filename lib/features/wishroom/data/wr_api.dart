@@ -74,6 +74,18 @@ abstract class WrRepository {
   Future<WallpaperStatus> setWallpaper(String roomId, {required String platform, required String target, required int version}); // W3 PUT /me/wallpaper
   Future<void> clearWallpaper();                                                                                // W4 DELETE /me/wallpaper
   Future<void> wallpaperLevelNotice(int level);                                                                 // W5 POST /me/wallpaper/level-notice
+
+  // ── [S3 신규] 수호자에게 맡기기(Entrust) ──
+  Future<({WishRoom room, Me me})> entrust(String id, {required int days, bool startsToday});                  // POST /wish-rooms/{id}/entrust
+  Future<({WishRoom room, Me me, int refund})> cancelEntrust(String id);                                       // DELETE /wish-rooms/{id}/entrust
+  Future<({WishRoom room, Me me})> ackEntrust(String id);                                                      // POST /wish-rooms/{id}/entrust/ack
+
+  // ── [S3 신규] 수호자 보내기 / 찾아온 수호자(Dispatch) ──
+  Future<({WishRoom room, Me me, bool ask, String dispatchId})> dispatchGuardian(String targetRoomId, {required String guardian, bool anon, String? word, bool isReply}); // POST /wish-rooms/{id}/dispatch
+  Future<List<VisitorIn>> visitors();                                                                           // GET  /me/visitors
+  Future<({Me me, int rewarded})> thanksVisitor(String dispatchId);                                             // POST /me/visitors/{id}/thanks
+  Future<Me> recallVisitor(String dispatchId);                                                                 // POST /me/visitors/{id}/recall
+  Future<void> ackDispatch(String dispatchId);                                                                  // POST /me/dispatches/{id}/ack
 }
 
 class ApiRepository implements WrRepository {
@@ -218,4 +230,31 @@ class ApiRepository implements WrRepository {
       WallpaperStatus.fromJson(_m(await _req('PUT', '/me/wallpaper', {'roomId': roomId, 'platform': platform, 'target': target, 'version': version})));
   @override Future<void> clearWallpaper() async => await _req('DELETE', '/me/wallpaper');
   @override Future<void> wallpaperLevelNotice(int level) async => await _req('POST', '/me/wallpaper/level-notice', {'level': level});
+
+  // ── [S3 신규] 수호자에게 맡기기(Entrust) — route.ts POST/DELETE/ack 응답 {room, me[, refund]} 1:1 ──
+  @override Future<({WishRoom room, Me me})> entrust(String id, {required int days, bool startsToday = true}) async {
+    final d = _m(await _req('POST', '/wish-rooms/$id/entrust', {'days': days, 'startsToday': startsToday}));
+    return (room: WishRoom.fromJson(_m(d['room'])), me: Me.fromJson(_m(d['me'])));
+  }
+  @override Future<({WishRoom room, Me me, int refund})> cancelEntrust(String id) async {
+    final d = _m(await _req('DELETE', '/wish-rooms/$id/entrust'));
+    return (room: WishRoom.fromJson(_m(d['room'])), me: Me.fromJson(_m(d['me'])), refund: (d['refund'] as num?)?.toInt() ?? 0);
+  }
+  @override Future<({WishRoom room, Me me})> ackEntrust(String id) async {
+    final d = _m(await _req('POST', '/wish-rooms/$id/entrust/ack'));
+    return (room: WishRoom.fromJson(_m(d['room'])), me: Me.fromJson(_m(d['me'])));
+  }
+
+  // ── [S3 신규] 수호자 보내기 / 찾아온 수호자(Dispatch) ──
+  @override Future<({WishRoom room, Me me, bool ask, String dispatchId})> dispatchGuardian(String targetRoomId, {required String guardian, bool anon = false, String? word, bool isReply = false}) async {
+    final d = _m(await _req('POST', '/wish-rooms/$targetRoomId/dispatch', {'guardian': guardian, 'anon': anon, if (word != null) 'word': word, 'isReply': isReply}));
+    return (room: WishRoom.fromJson(_m(d['room'])), me: Me.fromJson(_m(d['me'])), ask: d['ask'] == true, dispatchId: d['dispatchId'] as String);
+  }
+  @override Future<List<VisitorIn>> visitors() async => _l(await _req('GET', '/me/visitors'), VisitorIn.fromJson);
+  @override Future<({Me me, int rewarded})> thanksVisitor(String dispatchId) async {
+    final d = _m(await _req('POST', '/me/visitors/$dispatchId/thanks'));
+    return (me: Me.fromJson(_m(d['me'])), rewarded: (d['rewarded'] as num?)?.toInt() ?? 0);
+  }
+  @override Future<Me> recallVisitor(String dispatchId) async => Me.fromJson(_m(_m(await _req('POST', '/me/visitors/$dispatchId/recall'))['me']));
+  @override Future<void> ackDispatch(String dispatchId) async => await _req('POST', '/me/dispatches/$dispatchId/ack');
 }
