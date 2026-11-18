@@ -139,6 +139,37 @@
   </style>
 </head>
 <body>
+  <!-- [버그수정 v2 — 웰컴 화면 좌우 필러박싱, 진짜 원인/수정]
+       1차 수정(아래 flutter-first-frame 스크립트 옆에 있던 resize 이벤트
+       강제 재발행)은 완전히 무효했다. window.dispatchEvent(new
+       Event('resize'))는 DOM에 이벤트가 발생했다고 "흉내"만 낼 뿐,
+       window.innerHeight의 실제 측정값 자체는 전혀 바꾸지 못하기
+       때문이다(사용자 제공 스크린샷 2장 비교로 확인됨).
+
+       진짜 원인: 모바일 Chrome/Safari는 페이지를 처음 열면 주소창이
+       아직 화면을 차지한 채로 렌더링을 시작한다(window.innerHeight가
+       실제보다 작음). 주소창은 "사용자가 스크롤 제스처를 할 때"만
+       브라우저가 자동으로 접는데, 웰컴 화면(_WelcomeScreen)은 스크롤
+       가능한 콘텐츠가 전혀 없는 고정 Stack 레이아웃이라 주소창이 접힐
+       기회가 구조적으로 없다. 그래서 390x844 기준 캔버스를 세로 기준
+       으로 contain 축소하는 WrCanvasScaler가 "진짜로 작은" 높이에
+       맞춰 전체를 줄여 좌우에 여백이 생긴 것이다(다른 화면들은
+       스크롤 가능한 영역이 있어 자연스럽게 주소창이 접힌다).
+
+       진짜 수정: Flutter 엔진이 화면 크기를 측정하기 전에(=이 스크립트는
+       flutter_bootstrap.js보다 먼저, 동기적으로 실행된다) 문서 높이를
+       일시적으로 뷰포트보다 길게 만들어 스크롤 가능한 상태로 만든 뒤
+       강제로 1px 스크롤을 발생시킨다. 이는 모바일 브라우저의 주소창을
+       즉시 접게 만드는 표준 기법이다. 주소창이 접혀 실제
+       window.innerHeight가 커진 뒤 원래 높이/스크롤 위치로 복구한다. -->
+  <script>
+    (function () {
+      try {
+        document.documentElement.style.height = (window.outerHeight + 200) + 'px';
+        window.scrollTo(0, 1);
+      } catch (e) {}
+    })();
+  </script>
   <div id="app-loading"><div class="spinner"></div></div>
   <script>
     // Flutter Web이 첫 프레임을 그리면 'flutter-first-frame' 이벤트를 쏘아준다.
@@ -151,31 +182,26 @@
       setTimeout(function () { el.remove(); }, 220);
     });
 
-    // [버그수정 — 사용자 리포트 "첫 화면만 작게(좌우 필러박싱)"] 모바일
-    // Chrome/Safari는 페이지 로드 직후 주소창이 아직 화면을 차지한
-    // 상태라 window.innerHeight가 실제보다 작게 보고된다. Flutter 엔진은
-    // 이 초기값으로 첫 프레임(웰컴 화면)의 캔버스 크기를 확정해버리고,
-    // 390x844 기준 캔버스를 "폭/높이 중 더 작은 비율"로 맞추는
-    // WrCanvasScaler가 작게 측정된 높이에 맞춰 전체를 축소해 좌우에
-    // 검은 여백이 생겼다. 이후 다른 화면으로 넘어가며 스크롤/탭 등
-    // 상호작용이 발생하면 주소창이 자연히 접혀 innerHeight가 커지지만,
-    // 브라우저가 resize 이벤트를 쏘지 않는 경우가 있어 Flutter가 새
-    // 크기를 반영하지 못했다. 주소창이 접히는 타이밍(대략 수백 ms 이내)
-    // 뒤에 몇 차례 강제로 resize 이벤트를 재발행해, Flutter 엔진이
-    // 최종 안정된 뷰포트 크기로 첫 화면도 다시 계산하도록 한다. 순수
-    // JS 보정이라 Dart 레이아웃 코드·다른 화면 동작에는 영향이 없다.
+    // 주소창이 접힐 시간을 번 뒤(위의 동기 scrollTo 트릭), 문서 높이를
+    // 원래대로 복구하고 스크롤 위치를 0으로 되돌려 실제 콘텐츠 레이아웃에
+    // 영향이 없도록 한다. 복구 후 혹시 모를 레이스 컨디션에 대비해
+    // resize 이벤트도 함께 재발행한다(이번에는 window.innerHeight 실제
+    // 값이 이미 커진 뒤이므로 Flutter가 올바른 크기를 받게 된다).
     (function () {
-      function fireResize() {
-        try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+      function restore() {
+        try {
+          document.documentElement.style.height = '';
+          window.scrollTo(0, 0);
+          window.dispatchEvent(new Event('resize'));
+        } catch (e) {}
       }
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', fireResize);
-      }
-      window.addEventListener('load', function () {
-        [50, 200, 500, 1000].forEach(function (ms) {
-          setTimeout(fireResize, ms);
-        });
+      [0, 50, 150, 300, 600, 1000].forEach(function (ms) {
+        setTimeout(restore, ms);
       });
+      window.addEventListener('load', restore);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', restore);
+      }
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
