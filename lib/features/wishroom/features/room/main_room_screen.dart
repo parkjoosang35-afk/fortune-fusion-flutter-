@@ -34,7 +34,11 @@ import '../wallet/wallet_sheet.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 import '../compose/compose_screen.dart';
+import '../characters/character_shop_screen.dart';
+import '../decor/decor_screen.dart';
 import 'unlock_card.dart';
+import 'care_menu_info.dart';
+import 'care_menu_info_sheet.dart';
 
 class MainRoomScreen extends StatefulWidget {
   const MainRoomScreen({super.key});
@@ -391,7 +395,18 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
 
   void _openCareSheet(WishRoom room) {
     showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-      builder: (_) => _CareSheet(room: room));
+      builder: (_) => _CareSheet(
+        room: room,
+        openGuide: _openGuide,
+        openShare: () => _openShareSheet(room),
+        // [v2.1 §14.4] 웹 전용 "움직임 줄이기" — 기존 pauseBtn과 동일한
+        // _webPaused 플래그를 그대로 토글한다(서버 저장 없음, 이 화면
+        // 로컬 상태). 사용자 지시: "휴대폰의 동작 줄이기 설정도 따르게
+        // 한다" — MediaQuery.disableAnimations(OS 접근성 설정)가 true면
+        // 이미 움직임이 줄어든 상태이므로 토글 기본값도 그에 맞춘다.
+        webPaused: _webPaused,
+        onToggleWebPaused: (v) => setState(() => _webPaused = v),
+      ));
   }
 
   void _openShareSheet(WishRoom room) {
@@ -499,35 +514,30 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
             // 신통방통 홈), 우측 PouchPill. [버그수정 — 전수감사] 기존엔 NavPill이 전체
             // 화면 어디에도 없었고 PouchPill이 좌측에 있었다(원본은 우측).
             Positioned(key: const ValueKey('navPill'), top: 52, left: 14, child: WrNavPill(onBack: () => _onBack(), onExitHome: () => _onExitHome())),
-            Positioned(key: const ValueKey('pouchPill'), top: 52, right: 14, child: _pouchPill(p.me?.pouch ?? 0)),
             const Positioned(key: ValueKey('titleText'), top: 58, left: 0, right: 0, child: Center(child: Text('내 소원방', style: TextStyle(color: Colors.white, fontSize: 20)))),
             // 레벨바
             Positioned(key: const ValueKey('levelBar'), top: 100, left: 14, child: _levelBar(room)),
-            // 우상단 알약 버튼 3개: 안내서 · 방만 보기 · 공유
-            // [버그수정 — 3초 hold 취소 버그] Stack의 직계 자식들(Key 없음)은 리스트 길이·순서가
-            // 바뀌면(if 조건 토글) Flutter가 "위치" 기준으로 Element를 재사용한다. holding이
-            // true가 되어 새 Positioned(기도문)가 중간에 삽입되면 그 뒤에 있던 _bottomDock의
-            // Element가 다른 위젯과 위치가 엇갈려 disposed/recreated됐고, 그 안에서 제스처
-            // 아레나를 쥐고 있던 GestureDetector가 강제로 onTapCancel되어 3초 hold가 500ms
-            // 안팎(헤드리스 환경 첫 프레임 지연 시점)에서 항상 끊겼다(Playwright CDP 테스트로
-            // 실측: pointerdown 후 DOM은 계속 눌려 있는데 Flutter onTapCancel만 527ms에 발생,
-            // AnimationController는 tick#1 이후 멈춤). 모든 조건부 Positioned에 고유 Key를 줘서
-            // Flutter가 위치가 아니라 "정체성"으로 매칭하게 하면 토글 시에도 다른 형제의
-            // Element가 영향받지 않는다 — 비주얼·레이아웃·애니메이션은 전혀 바뀌지 않는다.
-            if (!_devotion.busy && !_rekindling) Positioned(key: const ValueKey('guideBtn'), top: 100, right: 14, child: _pillBtn('안내서', () => _openGuide(), leading: _guideIcon())),
+            // [v5 S2 — CHECKLIST.md "상단 오른쪽 [👁 방만 보기] [⋯] · 🧧 잔액은
+            // 3일째부터" / 사용자 확정 B안 "상단 우측 최종 모습 1~2일째: [👁 방만
+            // 보기][⋯] 2개, 3일째부터: [👁 방만 보기][🧧 잔액][⋯] 3개"] 기존
+            // guideBtn(안내서)·shareBtn(공유)·pauseBtn(움직임 정지) 3개 알약은
+            // 모두 제거하고 ⋯ 메뉴(_CareSheet, 곧 "소원방 돌보기" 10줄 메뉴)
+            // 「그 밖에」로 흡수한다(안내서→소원방 쓰는 법, 공유→함께 빌어달라고
+            // 하기 Row와 통합, 움직임 정지→움직임 줄이기 토글). 우상단은
+            // app3/home.jsx 60~66줄처럼 한 줄(Row)로 재배치한다 — 원본은 44px
+            // 원형 버튼+복주머니 알약+⋯ 44px 원형 버튼 순서.
+            if (!_devotion.busy && !_rekindling) Positioned(key: const ValueKey('topRightRow'), top: 52, right: 14, child: Row(children: [
+              _circleBtn(Icons.remove_red_eye_outlined, () => setState(() => _peek = true)),
+              if (room.isFeatureUnlocked('decor')) ...[
+                const SizedBox(width: 6),
+                _pouchPill(p.me?.pouch ?? 0),
+              ],
+              const SizedBox(width: 6),
+              _careBtn(room),
+            ])),
             // app2/guide2.jsx › FirstVisitChip — 처음 오셨나요 배너(top:140).
             if (_firstVisitReady && !_devotion.busy && !_rekindling)
               Positioned(key: const ValueKey('firstVisitChip'), top: 140, left: 0, right: 0, child: WrFirstVisitChip(onStartTour: () => setState(() => _tour = true))),
-            if (!_devotion.busy && !_rekindling) Positioned(key: const ValueKey('peekBtn'), top: 136, right: 14, child: _pillBtn('◉ 방만 보기', () => setState(() => _peek = true))),
-            if (!_devotion.busy && !_rekindling) Positioned(key: const ValueKey('shareBtn'), top: 172, right: 14, child: _pillBtn('⤴ 공유', () => _openShareSheet(room))),
-            // [v2.1 §14.4] 웹에서만 노출되는 "움직임 재생·정지" 토글 — 이 페이지
-            // 안의 동작(RoomScene의 반복 애니메이션)만 멈추는 로컬 한정 기능이며
-            // 서버에 저장되지 않는다. 앱 빌드에서는 노출되지 않는다.
-            if (kIsWeb && !_devotion.busy && !_rekindling)
-              Positioned(key: const ValueKey('pauseBtn'), top: 208, right: 14, child: _pillBtn(
-                _webPaused ? '▶ 움직임 재생' : '❚❚ 움직임 정지',
-                () => setState(() => _webPaused = !_webPaused),
-              )),
             // 말풍선
             Positioned(key: const ValueKey('speechBubble'), left: 14, top: 400, child: GestureDetector(
               onTap: () => setState(() => _speechIdx++),
@@ -721,19 +731,27 @@ class _MainRoomScreenState extends State<MainRoomScreen> with WidgetsBindingObse
           child: _ShimmerLevelBar(progress: room.levelProgress))),
       ]));
 
-  Widget _pillBtn(String label, VoidCallback onTap, {Widget? leading}) => GestureDetector(onTap: onTap, child: Container(
-      padding: const EdgeInsets.fromLTRB(10, 5, 11, 5),
-      decoration: BoxDecoration(color: WrC.glass, borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
-      child: leading == null
-          ? Text(label, style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg))
-          : Row(mainAxisSize: MainAxisSize.min, children: [leading, const SizedBox(width: 6), Text(label, style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg))]),
+  // [v5 S2] app3/home.jsx 60~66줄 1:1 — 44px 원형 버튼(방만 보기 · ⋯ 메뉴).
+  // 기존 알약(_pillBtn)과 달리 원형이며, glass 배경 + line 테두리로 기존
+  // 톤을 유지한다.
+  Widget _circleBtn(IconData icon, VoidCallback onTap, {Widget? badge}) => GestureDetector(onTap: onTap, child: Container(
+      width: 44, height: 44, alignment: Alignment.center,
+      decoration: BoxDecoration(color: WrC.glass, shape: BoxShape.circle, border: Border.all(color: WrC.line)),
+      child: Stack(clipBehavior: Clip.none, children: [
+        Icon(icon, size: 20, color: Colors.white),
+        if (badge != null) Positioned(top: -2, right: -2, child: badge),
+      ]),
     ));
 
-  // A-4: `? 안내서` — "?" 는 18px 핑크 원(배경 blossom, 글자 흰색) 안에 들어간다.
-  // (원본 screens-a2.jsx: <span style="width:18,height:18,borderRadius:50%,background:blossom">?</span>안내서)
-  Widget _guideIcon() => Container(width: 18, height: 18, alignment: Alignment.center,
-      decoration: const BoxDecoration(shape: BoxShape.circle, color: WrC.blossom),
-      child: const Text('?', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white)));
+  // [v5 S2] app3/home.jsx `v.pending && <span className="dot"/>` 1:1 — 아직
+  // 확인(ack)하지 않은 열림이 있으면 ⋯ 버튼 우상단에 분홍 점 배지.
+  Widget _careBtn(WishRoom room) => _circleBtn(
+        Icons.more_horiz,
+        () => _openCareSheet(room),
+        badge: room.pendingUnlock != null
+            ? Container(width: 9, height: 9, decoration: const BoxDecoration(shape: BoxShape.circle, color: WrC.blossom))
+            : null,
+      );
 
   // A-4 말풍선 문구 규칙(우선순위 순) 1:1 — ①4일+부재(dim) ②다시밝힌 직후 ③머금는 중
   // (충전 단계 0/1/2) ④평상시(3종 순환).
@@ -1329,40 +1347,51 @@ class _RewardOverlay extends StatelessWidget {
   }
 }
 
-/// 소원방 돌보기 시트 — SCR-03 하단 설명.
+/// 소원방 돌보기 시트 — v5 S2 「⋯ 소원방 돌보기」 메뉴. app3/shop.jsx Menu3 1:1 —
+/// menuinfo.js 10개 항목을 원본 순서·문구 그대로 Row로 그리고, 그 아래에
+/// Flutter 전용 「그 밖에」 2줄(소원방 쓰는 법 · 움직임 줄이기)을 더한다
+/// (사용자 확정 B안: "⋯ 버튼을 누르면 기존 _CareSheet가 열린다 — 이
+/// CareSheet가 곧 v5의 「소원방 돌보기」 메뉴. CareSheet 본문 자체를 10줄
+/// 리스트로 바꾼다. 나머지 3개(안내서·공유·움직임정지)는 맨 아래 「그 밖에」
+/// 묶음으로 — 공유는 10줄 중 「함께 빌어달라고 하기」 안의 링크 공유와
+/// 합친다").
+/// [회귀 방지] 기존 ⑦ 완료 버튼(✿ 소원이 이루어졌어요, 2단계 확인)은
+/// menuinfo.js 10줄 어디에도 대응 항목이 없고(app3 원본에서는 Vault3(보관함)
+/// 소속 — flows.jsx Fulfill3) Flutter 쪽에는 보관함에 이 기능의 대체
+/// 구현이 없어, 지금 삭제하면 "소원 완료 처리" 기능 자체가 앱에서 완전히
+/// 사라진다. 10줄 + 그 밖에 2줄 아래에 그대로 유지한다.
 class _CareSheet extends StatefulWidget {
-  const _CareSheet({required this.room});
+  const _CareSheet({
+    required this.room,
+    required this.openGuide,
+    required this.openShare,
+    required this.webPaused,
+    required this.onToggleWebPaused,
+  });
   final WishRoom room;
+  final void Function([String? focus]) openGuide;
+  final VoidCallback openShare;
+  final bool webPaused;
+  final ValueChanged<bool> onToggleWebPaused;
   @override
   State<_CareSheet> createState() => _CareSheetState();
 }
 
 class _CareSheetState extends State<_CareSheet> {
   bool _confirm = false;
-  late Visibility _vis = widget.room.visibility;
-
-  // [명세위반 전면수정 — 전수감사] A-6 RoomMenu 7개 항목 중 4(공개범위 즉시
-  // PATCH)·5(공유버튼)·6(인트로생략 토글)·7(완료 2단계 확인)이 통째로 누락되고,
-  // Sheet 헤더(sub MY WISH ROOM/title 소원방 돌보기 + ✕닫기)도 없었다.
-  // app2/screens-a2.jsx › RoomMenu({app,room,close}) 1:1 재구현.
-  Future<void> _setVis(Visibility v) async {
-    if (v == _vis) return;
-    final p = context.read<WishRoomProvider>();
-    final ok = await p.updateVisibility(widget.room.id, v);
-    if (!mounted || !ok) return;
-    setState(() => _vis = v);
-  }
-
-  void _openShare() {
-    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-      builder: (_) => _ShareSheet(room: widget.room));
-  }
 
   @override
   Widget build(BuildContext context) {
     final room = widget.room;
     final p = context.watch<WishRoomProvider>();
-    final skipIntro = p.me?.skipIntro ?? false;
+    final cat = WrCatalog.I;
+    final reduceMotionOs = MediaQuery.of(context).disableAnimations;
+
+    // app3/shop.jsx Row 2행 부제(s) 1:1 치환 — 서버 데이터가 없는 항목(v.entrustNow
+    // 등 전용 API 없음)은 note 수준의 일반 안내 문구로 대체한다.
+    final guardian = p.characters.where((c) => c.id == room.char).firstOrNull;
+    final themeInfo = cat.themes.where((t) => t['id'] == room.theme.name).firstOrNull;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
       decoration: WrDeco.sheet,
@@ -1381,86 +1410,49 @@ class _CareSheetState extends State<_CareSheet> {
               child: const Icon(Icons.close, size: 13, color: Colors.white)),
           )),
         ]),
-        const SizedBox(height: 16),
-        // 1. 한지 카드 — Lv.n 레벨명 · 성장 {pt}[/{다음기준}] + 소원 14.5 + 인장 願.
-        Container(
-          padding: const EdgeInsets.all(14), decoration: WrDeco.hanji,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Lv.${room.level} ${room.levelName} · 성장 ${room.points.floor()}${room.nextLevelPts != null ? ' / ${room.nextLevelPts}' : ''}',
-                  style: WrF.body(11, w: FontWeight.w700, color: const Color(0x995A321E))),
-              const SizedBox(height: 4),
-              Text(room.text, style: WrF.body(14.5, w: FontWeight.w700, height: 1.5, color: const Color(0xFF3A1A14))),
-            ])),
-            const SizedBox(width: 10),
-            Container(width: 34, height: 34, alignment: Alignment.center,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF8A3A2A)),
-              child: const Text('願', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFFFF4E0)))),
-          ]),
-        ),
-        const SizedBox(height: 10),
-        // 2. 3칸 카드 — 🙏 정성 n · ❤ 응원 n · 福 복주머니 n.
-        Row(children: [
-          _stat('🙏', '정성', room.devotionCount),
-          const SizedBox(width: 8),
-          _stat('❤', '응원', room.supportCount),
-          const SizedBox(width: 8),
-          _stat('福', '복주머니', room.pouchReceived),
-        ]),
-        // 3. 배경화면 진입 카드.
-        WPEntryCard(room: room),
-        const SizedBox(height: 4),
-        // 4. 공개 범위 탭 — 선택 즉시 PATCH.
-        Text('공개 범위', style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
         const SizedBox(height: 8),
-        Row(children: [
-          _visTab('모두에게', Visibility.PUBLIC),
-          const SizedBox(width: 6),
-          _visTab('링크로만', Visibility.LINK),
-          const SizedBox(width: 6),
-          _visTab('나만 보기', Visibility.PRIVATE),
-        ]),
-        // 5. (비공개 아님) 소원방 공유하기 버튼.
-        if (_vis != Visibility.PRIVATE) ...[
-          const SizedBox(height: 10),
-          SizedBox(width: double.infinity, height: 46, child: OutlinedButton(
-            onPressed: _openShare,
-            style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), backgroundColor: WrC.glass),
-            child: Text('⤴ 소원방 공유하기 · 링크 보내기', style: WrF.body(13.5, w: FontWeight.w700, color: Colors.white)),
-          )),
-        ],
-        const SizedBox(height: 12),
-        // 6. 입장 인트로 항상 생략 — 토글 카드.
-        GestureDetector(
-          onTap: () => context.read<WishRoomProvider>().setSkipIntro(!skipIntro),
-          child: Container(
-            width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            decoration: WrDeco.card,
-            // [반응형 화면 규격 통일 — 잘림 현상 수정] 라벨 Text에 Flexible
-            // 보호가 없어, 글자 확대(2.0~2.5배)에서 토글 스위치(44px 고정)를
-            // 밀어내 320x568@2.0에서 40px, @2.5에서 101px 오른쪽 오버플로가
-            // 실측됐다(debugDumpRenderTree()로 확인). Flexible로 감싸 공간이
-            // 부족하면 라벨이 자연스럽게 2줄로 줄바꿈되게 한다 — 평소
-            // 크기에선 한 줄로 기존과 동일하게 보이고, 토글 스위치는 항상
-            // 제자리에 고정폭으로 보인다.
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Flexible(child: Text('입장 인트로 항상 생략', style: WrF.body(13.5, color: Colors.white))),
-              const SizedBox(width: 10),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 400), width: 44, height: 26,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(13), color: skipIntro ? WrC.blossom : Colors.white24),
-                child: AnimatedAlign(
-                  duration: const Duration(milliseconds: 400), curve: const Cubic(.34, 1.56, .64, 1),
-                  alignment: skipIntro ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(width: 20, height: 20, margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
-                ),
+        // app3/shop.jsx `{v.pending && <button>...}` 1:1 — 아직 확인 안 한
+        // 열림이 있으면 배너로 안내(누르면 시트만 닫고 방으로 돌아가 UnlockCard를 보게 한다).
+        if (room.pendingUnlock != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: const Color(0x1AF5CF6A), border: Border.all(color: const Color(0x80F5CF6A))),
+                child: Text('✦ 새로 열린 것이 있어요 · 방으로 돌아가 확인해 보세요', style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)),
               ),
-            ]),
+            ),
           ),
+        // 10줄 — kCareMenuInfos(menuinfo.js INFO) 순서 그대로.
+        for (final info in kCareMenuInfos) _careRow(context, info, room: room, guardian: guardian, themeInfo: themeInfo),
+        const SizedBox(height: 10),
+        Divider(color: WrC.line, height: 1),
+        const SizedBox(height: 10),
+        Text('그 밖에', style: WrF.body(12, w: FontWeight.w700, color: WrC.muted)),
+        // 「그 밖에」 1 — 소원방 쓰는 법(= 기존 guideBtn 안내서, A11 탭 안내).
+        _plainRow(
+          ic: '📖',
+          t: '소원방 쓰는 법',
+          s: '탭 6개 · ⋯ 메뉴 · 각 열리는 날을 한 장으로',
+          onTap: () => widget.openGuide(),
+        ),
+        // 「그 밖에」 2 — 움직임 줄이기(기존 pauseBtn 웹 전용 토글을 흡수).
+        // 사용자 지시: "휴대폰의 동작 줄이기 설정도 따르게 한다" — OS
+        // disableAnimations가 이미 켜져 있으면 이 토글은 항상 켜진 것으로
+        // 보여주고(끌 수 없음), 꺼져 있으면 이 화면 로컬 _webPaused를 토글한다.
+        _toggleRow(
+          ic: '❚❚',
+          t: '움직임 줄이기',
+          s: reduceMotionOs ? '휴대폰 설정으로 항상 켜져 있어요' : '방 안의 움직임을 멈춰요',
+          value: reduceMotionOs || widget.webPaused,
+          enabled: !reduceMotionOs,
+          onChanged: widget.onToggleWebPaused,
         ),
         const SizedBox(height: 16),
-        // 7. 완료 버튼 — 2단계 확인(아직이에요 / 네, 이루어졌어요).
+        // 완료 버튼 — 2단계 확인(아직이에요 / 네, 이루어졌어요). [회귀 방지 유지]
         if (!_confirm)
           SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
             onPressed: () => setState(() => _confirm = true),
@@ -1496,24 +1488,174 @@ class _CareSheetState extends State<_CareSheet> {
     );
   }
 
-  Widget _visTab(String label, Visibility v) {
-    final sel = _vis == v;
-    return Expanded(child: GestureDetector(onTap: () => _setVis(v), child: Container(
-      height: WrSize.tabH, alignment: Alignment.center,
-      decoration: sel ? WrDeco.tabOn : BoxDecoration(borderRadius: BorderRadius.circular(WrR.tab), color: WrC.chipBg),
-      child: Text(label, style: WrF.body(WrSize.tabFont, w: FontWeight.w700, color: sel ? Colors.white : WrC.muted)),
-    )));
+  // app3/shop.jsx Row 1:1 — 아이콘 40x40 + 제목/부제 + ? 안내버튼 + › 화살표.
+  // 잠기면 아이콘 자리에 🔒, 부제 자리에 "N일 뒤에 열려요", 전체 opacity .5.
+  Widget _careRow(BuildContext context, CareMenuInfo info, {required WishRoom room, required dynamic guardian, required Map<String, dynamic>? themeInfo}) {
+    final unlockDay = info.lockKey == null ? 0 : ((WrCatalog.I.raw['UNLOCK'] as Map)[info.lockKey] as int? ?? 0);
+    final isOpen = info.lockKey == null || room.isFeatureUnlocked(info.lockKey!);
+    final dayN = room.dayN;
+    final lockLabel = isOpen ? null : '${math.max(1, unlockDay - dayN)}일 뒤에 열려요';
+    final sub = lockLabel ?? _subFor(info.key, room: room, guardian: guardian, themeInfo: themeInfo);
+
+    void openInfo(VoidCallback onGo) {
+      showCareMenuInfoSheet(context, info: info, lock: !isOpen, need: unlockDay, dayN: dayN, onGo: onGo);
+    }
+
+    void tap() {
+      final onGo = _onGoFor(info.key);
+      if (!isOpen) { openInfo(onGo); return; }
+      if (!GuidePrefs.I.menuInfoSeen(info.key)) {
+        openInfo(() { GuidePrefs.I.markMenuInfoSeen(info.key); onGo(); });
+        return;
+      }
+      onGo();
+    }
+
+    return GestureDetector(
+      onTap: tap,
+      behavior: HitTestBehavior.opaque,
+      child: Opacity(
+        opacity: isOpen ? 1 : .5,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: WrC.line))),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Container(width: 40, height: 40, alignment: Alignment.center,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: WrC.card, border: Border.all(color: WrC.cardBorder)),
+              child: Text(isOpen ? _iconFor(info.key) : '🔒', style: const TextStyle(fontSize: 17))),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(info.title, style: WrF.body(15, w: FontWeight.w700, color: Colors.white)),
+              Text(sub, style: WrF.body(12, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ])),
+            GestureDetector(
+              onTap: () => openInfo(_onGoFor(info.key)),
+              child: Container(width: 26, height: 26, alignment: Alignment.center,
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: WrC.line)),
+                child: Text('?', style: WrF.body(12, w: FontWeight.w700, color: WrC.muted))),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, size: 18, color: WrC.muted),
+          ]),
+        ),
+      ),
+    );
   }
 
-  Widget _stat(String glyph, String label, int v) => Expanded(child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10), decoration: WrDeco.card, alignment: Alignment.center,
-        child: Column(children: [
-          Text(glyph, style: const TextStyle(fontSize: 14)),
-          const SizedBox(height: 2),
-          Text('$v', style: WrF.display(17, color: Colors.white)),
-          Text(label, style: WrF.body(11, color: WrC.muted)),
+  // app3/shop.jsx Row ic 속성 1:1(한글 key → 원본 이모지).
+  String _iconFor(String key) => const {
+        '수호자': '👤', '수호자에게 맡기기': '🙏', '찾아온 수호자': '☾', '옷 갈아입기': '👗',
+        '방 꾸미기': '✿', '방 분위기': '⛩', '배경화면으로 쓰기': '▣', '소원 상점': '🛍',
+        '함께 빌어달라고 하기': '☾', '소원 · 목표 고쳐 쓰기': '✎',
+      }[key] ?? '•';
+
+  // app3/shop.jsx Row s 속성 1:1 치환 — 서버 데이터가 없는 것은 안내 문구로 대체.
+  String _subFor(String key, {required WishRoom room, required dynamic guardian, required Map<String, dynamic>? themeInfo}) {
+    switch (key) {
+      case '수호자':
+        return guardian != null ? '${guardian.name} · 함께 지켜요' : '함께 지켜줄 친구를 만나요';
+      case '수호자에게 맡기기':
+        return '내가 못 오는 날 대신 빌어요';
+      case '찾아온 수호자':
+        return '받은 마음 · 답례';
+      case '옷 갈아입기':
+        return '지금 ${room.outfitNow == room.theme ? '테마 의상' : '기본 의상'}';
+      case '방 꾸미기':
+        return '복주머니로 방을 채워요';
+      case '방 분위기':
+        return themeInfo != null ? '지금 ${themeInfo['glyph']} ${themeInfo['label']}' : '지금 자유 방';
+      case '배경화면으로 쓰기':
+        return '내 소원방을 휴대폰 배경으로';
+      case '소원 상점':
+        return '수호자 · 옷 · 촛불 · 배경 · 특별 효과';
+      case '함께 빌어달라고 하기':
+        return room.visibility != Visibility.PRIVATE ? '공개 중 · ${room.supportCount}명이 함께' : '지금은 나만 봐요';
+      case '소원 · 목표 고쳐 쓰기':
+        return '목표 없음';
+      default:
+        return '';
+    }
+  }
+
+  // app3/shop.jsx Row on={} 1:1 매핑. API/화면이 없는 3개
+  // (수호자에게 맡기기 · 찾아온 수호자 · 소원·목표 고쳐쓰기)는 "준비 중" 토스트로
+  // 임시 처리한다(Flutter에 entrust/visitor/updateWish API가 없음 — wr_api.dart 확인).
+  VoidCallback _onGoFor(String key) {
+    switch (key) {
+      case '수호자':
+      case '옷 갈아입기':
+        return () { Navigator.of(context).pop(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CharacterShopScreen())); };
+      case '방 꾸미기':
+      case '방 분위기':
+        return () { Navigator.of(context).pop(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecorScreen())); };
+      case '배경화면으로 쓰기':
+        return () { Navigator.of(context).pop(); Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WallpaperScreen())); };
+      case '소원 상점':
+        return () { Navigator.of(context).pop(); context.read<WishRoomProvider>().requestTab(3); };
+      case '함께 빌어달라고 하기':
+        return () { Navigator.of(context).pop(); widget.openShare(); };
+      case '수호자에게 맡기기':
+      case '찾아온 수호자':
+      case '소원 · 목표 고쳐 쓰기':
+      default:
+        return () => WrToast.show(context, '곧 만나요 · 아직 준비 중인 기능이에요');
+    }
+  }
+
+  Widget _plainRow({required String ic, required String t, required String s, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: WrC.line))),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Container(width: 40, height: 40, alignment: Alignment.center,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: WrC.card, border: Border.all(color: WrC.cardBorder)),
+            child: Text(ic, style: const TextStyle(fontSize: 17))),
+          const SizedBox(width: 14),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(t, style: WrF.body(15, w: FontWeight.w700, color: Colors.white)),
+            Text(s, style: WrF.body(12, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ])),
+          Icon(Icons.chevron_right, size: 18, color: WrC.muted),
         ]),
-      ));
+      ),
+    );
+  }
+
+  Widget _toggleRow({required String ic, required String t, required String s, required bool value, required bool enabled, required ValueChanged<bool> onChanged}) {
+    return GestureDetector(
+      onTap: enabled ? () => onChanged(!value) : null,
+      behavior: HitTestBehavior.opaque,
+      child: Opacity(
+        opacity: enabled ? 1 : .7,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Container(width: 40, height: 40, alignment: Alignment.center,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: WrC.card, border: Border.all(color: WrC.cardBorder)),
+              child: Text(ic, style: const TextStyle(fontSize: 15))),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t, style: WrF.body(15, w: FontWeight.w700, color: Colors.white)),
+              Text(s, style: WrF.body(12, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ])),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 400), width: 44, height: 26,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(13), color: value ? WrC.blossom : Colors.white24),
+              child: AnimatedAlign(
+                duration: const Duration(milliseconds: 400), curve: const Cubic(.34, 1.56, .64, 1),
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(width: 20, height: 20, margin: const EdgeInsets.symmetric(horizontal: 3),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
 Color _shareHex(String s) { final h = s.replaceFirst('#', ''); return Color(int.parse('FF$h', radix: 16)); }
