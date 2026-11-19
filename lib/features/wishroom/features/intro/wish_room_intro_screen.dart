@@ -767,6 +767,15 @@ class _WelcomeScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: WrC.bg2,
         body: WrCanvasScaler(
+          // [필러박싱 버그 근본 수정] 이 화면의 실제 콘텐츠(NavPill·타이틀·
+          // 버튼 2개)는 캔버스 y=724(버튼 블록 하단, bottom:120)까지만
+          // 차지하고 그 아래 844까지는 배경 장식뿐이다. 844 전체를 기준으로
+          // 배율을 잡으면 주소창 때문에 줄어든 실기기 뷰포트에서 필요
+          // 이상으로 축소되어 좌우 필러박싱이 커진다. 버튼 아래 여유
+          // 20px(724+20=744)만 남기고 그 이하는 화면 밖으로 밀려나도
+          // 무방한 배경 영역이므로, contentHeight를 744로 낮춰 배율을
+          // 끌어올린다 — 좌표·디자인은 전혀 바뀌지 않는다.
+          contentHeight: 744,
           child: Stack(
             fit: StackFit.expand,
             children: [

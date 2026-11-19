@@ -56,30 +56,69 @@ class WrCanvasScaler extends StatelessWidget {
     super.key,
     required this.child,
     this.legacyFitWidth = false,
+    this.contentHeight,
   });
   final Widget child;
   final bool legacyFitWidth;
 
+  /// [필러박싱 버그 근본 수정 — 좁은 뷰포트 대응] 기본값(null)이면 기존과
+  /// 동일하게 디자인 전체 높이(844)를 기준으로 min-scale을 계산한다.
+  ///
+  /// 모바일 브라우저 주소창은 `scrollTo()` 같은 프로그래밍 방식 트릭으로는
+  /// 더 이상 접히지 않는다(최신 Chrome/Samsung Internet은 보안상 실제 사용자
+  /// 스크롤 제스처에만 반응하도록 의도적으로 제한함 — 이전 시도들이 전부
+  /// 효과가 없었던 이유). 즉 "가용 뷰포트 높이가 디자인(844)보다 작게
+  /// 고정된 상태"는 피할 수 없는 전제로 받아들여야 한다.
+  ///
+  /// 화면에 따라 844 전체가 아니라 "실제로 보존해야 하는 콘텐츠 영역"만
+  /// 더 작은 값으로 넘기면(예: 버튼까지만 보이면 되고 그 아래는 여백/배경
+  /// 뿐인 화면), min-scale 계산이 그 값을 기준으로 이뤄져 배율이 커지고
+  /// 좌우 여백이 줄어든다 — 844 중 contentHeight를 넘는 하단 부분은 화면
+  /// 밖으로 밀려나지만, 애초에 그 영역엔 UI가 없으므로 체감상 문제없다.
+  /// 디자인 좌표·스타일은 전혀 바뀌지 않는다(OverflowBox 자식은 여전히
+  /// 844 전체 레이아웃으로 그려지고, 보이는 범위만 줄어든다).
+  final double? contentHeight;
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      if (legacyFitWidth) {
-        final scale = c.maxWidth / wrCanvasW;
+    return LayoutBuilder(
+      builder: (context, c) {
+        if (legacyFitWidth) {
+          final scale = c.maxWidth / wrCanvasW;
+          return ClipRect(
+            child: OverflowBox(
+              minWidth: wrCanvasW,
+              maxWidth: wrCanvasW,
+              minHeight: wrCanvasH,
+              maxHeight: wrCanvasH,
+              child: Transform.scale(
+                scale: scale,
+                alignment: Alignment.topCenter,
+                child: child,
+              ),
+            ),
+          );
+        }
+        final effectiveH = contentHeight ?? wrCanvasH;
+        final scale = math.min(
+          c.maxWidth / wrCanvasW,
+          c.maxHeight / effectiveH,
+        );
         return ClipRect(
           child: OverflowBox(
-            minWidth: wrCanvasW, maxWidth: wrCanvasW, minHeight: wrCanvasH, maxHeight: wrCanvasH,
-            child: Transform.scale(scale: scale, alignment: Alignment.topCenter, child: child),
+            alignment: Alignment.topCenter,
+            minWidth: wrCanvasW,
+            maxWidth: wrCanvasW,
+            minHeight: wrCanvasH,
+            maxHeight: wrCanvasH,
+            child: Transform.scale(
+              scale: scale,
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
           ),
         );
-      }
-      final scale = wrCanvasScaleFor(Size(c.maxWidth, c.maxHeight));
-      return ClipRect(
-        child: OverflowBox(
-          alignment: Alignment.topCenter,
-          minWidth: wrCanvasW, maxWidth: wrCanvasW, minHeight: wrCanvasH, maxHeight: wrCanvasH,
-          child: Transform.scale(scale: scale, alignment: Alignment.topCenter, child: child),
-        ),
-      );
-    });
+      },
+    );
   }
 }
