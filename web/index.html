@@ -163,12 +163,56 @@
        높이 임시 확장만 넉넉한 지연 후 원복하고, 복구 시 resize를
        재발행해 Flutter가 최종적으로 커진 높이로 다시 측정하게 한다. -->
   <script>
-    (function () {
+    // [임시 디버그 — 순수 JS 레벨 원시값 수집] v3 수정(scrollTo(0,0) 자폭
+    // 제거) 이후에도 Flutter가 측정한 높이가 거의 그대로였다(691.7 →
+    // 698.7, 겨우 7px 증가). 이는 (a) scrollTo(0,1) 트릭 자체가 이
+    // 브라우저에서 주소창을 접지 못했거나, (b) window.outerHeight가
+    // 모바일에서 신뢰할 수 없는 값(0 또는 innerHeight와 동일)이라
+    // documentElement.style.height 확장이 의도대로 동작하지 않았을
+    // 가능성이 있다. Dart를 거치지 않고 순수 JS에서 window.innerHeight,
+    // outerHeight, screen.height, visualViewport.height,
+    // documentElement.clientHeight/scrollHeight, scrollY를 직접 여러
+        // 시점에 측정해 서버로 전송한다. 원인 확정 후 전부 제거한다.
+    function reportRaw(label) {
       try {
-        document.documentElement.style.height = (window.outerHeight + 200) + 'px';
-        window.scrollTo(0, 1);
+        var vv = window.visualViewport;
+        var payload = {
+          label: 'RAWJS:' + label,
+          innerW: window.innerWidth,
+          innerH: window.innerHeight,
+          outerW: window.outerWidth,
+          outerH: window.outerHeight,
+          screenH: window.screen ? window.screen.height : null,
+          screenAvailH: window.screen ? window.screen.availHeight : null,
+          vvWidth: vv ? vv.width : null,
+          vvHeight: vv ? vv.height : null,
+          vvScale: vv ? vv.scale : null,
+          docClientH: document.documentElement.clientHeight,
+          docScrollH: document.documentElement.scrollHeight,
+          bodyClientH: document.body ? document.body.clientHeight : null,
+          scrollY: window.scrollY,
+          dpr: window.devicePixelRatio,
+        };
+        var body = JSON.stringify(payload);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/__debug_log', body);
+        } else {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/__debug_log', true);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.send(body);
+        }
       } catch (e) {}
-    })();
+    }
+    reportRaw('before-scroll');
+    try {
+      document.documentElement.style.height = '4000px';
+      window.scrollTo(0, 1);
+    } catch (e) {}
+    reportRaw('after-scroll-sync');
+    [0, 50, 100, 200, 400, 800, 1500, 3000].forEach(function (ms) {
+      setTimeout(function () { reportRaw('t+' + ms + 'ms'); }, ms);
+    });
   </script>
   <div id="app-loading"><div class="spinner"></div></div>
   <script>
@@ -181,25 +225,6 @@
       el.style.opacity = '0';
       setTimeout(function () { el.remove(); }, 220);
     });
-
-    // 주소창 접힘 애니메이션이 끝날 시간을 충분히 준 뒤(수백 ms), 임시로
-    // 늘렸던 문서 높이만 원래대로 되돌린다. 스크롤 위치(1px)는 절대
-    // 건드리지 않는다 — Flutter 화면은 position:fixed라 어차피 안
-    // 보이고, 여기서 0으로 되돌리면 주소창이 다시 펼쳐져 버린다(v2의
-    // 버그 원인). 복구 뒤 resize를 재발행해 Flutter가 최종 뷰포트
-    // 크기로 다시 레이아웃하도록 한다.
-    (function () {
-      function restoreHeightOnly() {
-        try {
-          document.documentElement.style.height = '';
-          window.dispatchEvent(new Event('resize'));
-        } catch (e) {}
-      }
-      // 즉시(0ms)는 넣지 않는다 — 주소창이 접힐 시간을 줘야 한다.
-      [400, 800, 1500, 2500].forEach(function (ms) {
-        setTimeout(restoreHeightOnly, ms);
-      });
-    })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
