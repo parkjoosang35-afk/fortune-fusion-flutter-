@@ -686,6 +686,16 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                 Positioned.fill(
                   key: const ValueKey('roomScene'),
                   child: WrCanvasScaler(
+                    // [필러박싱 버그 수정 — 사용자 리포트 "내 소원방 화면 좌우 비대칭"]
+                    // 웰컴 화면과 동일 원인: 844 전체 기준으로 배율을 잡으면 실기기
+                    // 뷰포트(제스처바 제외 실측)가 844보다 짧아 좌우에 불필요한
+                    // 여백이 생긴다. 이 화면의 실제 콘텐츠 최하단은 정성 버튼
+                    // (top:690, 최대 지름 96 → 786)까지이고, 다른 오버레이(투어21
+                    // 완료 카드 등)의 하단 여유까지 고려해 14px 버퍼를 더한
+                    // contentHeight:800으로 배율을 끌어올린다 —
+                    // 8곳의 WrCanvasScaler(룸·FX·오버레이·투어·레벨업 등)가 전부 같은
+                    // 좌표계를 공유하므로 반드시 동일한 값을 함께 적용해야 한다.
+                    contentHeight: 800,
                     child: GestureDetector(
                       onTap: _peek ? () => setState(() => _peek = false) : null,
                       child: RoomScene(
@@ -719,6 +729,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                     key: const ValueKey('fxOverlay'),
                     child: IgnorePointer(
                       child: WrCanvasScaler(
+                        contentHeight: 800,
                         child: SizedBox(
                           width: 390,
                           height: 844,
@@ -736,6 +747,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                   SafeArea(
                     key: const ValueKey('mainOverlay'),
                     child: WrCanvasScaler(
+                      contentHeight: 800,
                       child: Stack(
                         children: [
                           // TopBar — app2/fx2.jsx › TopBar({nav=true, right}) 1:1: 좌측 NavPill(뒤로가기+
@@ -992,6 +1004,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                     key: const ValueKey('unsealChip'),
                     child: SafeArea(
                       child: WrCanvasScaler(
+                        contentHeight: 800,
                         child: Stack(
                           children: [
                             WrUnsealChip(onOpen: () => _openCapsule(room)),
@@ -1005,6 +1018,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                   Positioned.fill(
                     key: const ValueKey('tour'),
                     child: WrCanvasScaler(
+                      contentHeight: 800,
                       child: WrTour(
                         onDone: () {
                           setState(() => _tour = false);
@@ -1020,6 +1034,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                   Positioned.fill(
                     key: const ValueKey('tour21'),
                     child: WrCanvasScaler(
+                      contentHeight: 800,
                       child: Tour21Screen(
                         onEnd: (remind) {
                           setState(() => _tour21 = false);
@@ -1033,6 +1048,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                 if (_levelUp != null)
                   Positioned.fill(
                     child: WrCanvasScaler(
+                      contentHeight: 800,
                       child: WrLevelUp(
                         level: _levelUp!,
                         wallpaperNotice: _levelUpWpNotice,
@@ -1063,6 +1079,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                   Positioned.fill(
                     key: const ValueKey('unlockCard'),
                     child: WrCanvasScaler(
+                      contentHeight: 800,
                       child: UnlockCard(
                         roomId: room.id,
                         unlockKey: room.pendingUnlock!,
