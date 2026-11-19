@@ -8,12 +8,9 @@
 // 원본 Intro({mode,onDone})의 4단계 React state(st:0→3)를 Flutter에도 동일한 정수
 // state(_st)로 재현하고, setTimeout 체인의 ms 값을 Timer로 1:1 이식한다.
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
 import '../../data/models.dart';
@@ -754,7 +751,7 @@ const _tshadow = [
 /// -------------------- Welcome (소원방 없음) --------------------
 /// 원본 Welcome({app}) 1:1: NavPill(좌상단) + splash.jpg drift 24s + PetalRain(10,8-12s,spread8)
 /// + ink 타이틀블록(부제 2줄) + rise-in 1.2s 버튼 2개.
-class _WelcomeScreen extends StatefulWidget {
+class _WelcomeScreen extends StatelessWidget {
   const _WelcomeScreen({
     required this.onCompose,
     required this.onExplore,
@@ -762,58 +759,6 @@ class _WelcomeScreen extends StatefulWidget {
     required this.onExitHome,
   });
   final VoidCallback onCompose, onExplore, onBack, onExitHome;
-  @override
-  State<_WelcomeScreen> createState() => _WelcomeScreenState();
-}
-
-class _WelcomeScreenState extends State<_WelcomeScreen> {
-  // [임시 디버그 — 필러박싱 원인 실측] 지금까지 두 번의 수정(가짜 resize
-  // 이벤트 재발행, 강제 1px 스크롤)이 모두 사용자 실기기에서 효과가
-  // 없었고, 화면에 찍은 디버그 텍스트도 스크린샷 캡처 애니메이션에 묻혀
-  // 읽을 수 없었다. 더 이상 추측/캡처에 의존하지 않고, 실제 기기에서
-  // Flutter가 측정한 MediaQuery 값을 여러 시점(0/300/1000/2000ms)에
-  // 프리뷰 서버(/__debug_log)로 자동 전송해 서버 로그로 직접 확인한다.
-  // 원인 확정 후 이 블록 전체를 제거한다.
-  final List<String> _sentAt = [];
-  void _reportSize(String label) {
-    if (!kIsWeb) return;
-    if (!mounted) return;
-    final mq = MediaQuery.of(context);
-    final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    final physSize = view.physicalSize;
-    final dpr = view.devicePixelRatio;
-    final payload = {
-      'label': label,
-      'mqWidth': mq.size.width,
-      'mqHeight': mq.size.height,
-      'mqDpr': mq.devicePixelRatio,
-      'padTop': mq.padding.top,
-      'padBottom': mq.padding.bottom,
-      'physicalWidth': physSize.width,
-      'physicalHeight': physSize.height,
-      'viewDpr': dpr,
-      'windowInnerW': physSize.width / dpr,
-      'windowInnerH': physSize.height / dpr,
-    };
-    _sentAt.add(label);
-    http
-        .post(
-          Uri.base.replace(path: '/__debug_log'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(payload),
-        )
-        .catchError((_) => http.Response('', 0));
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _reportSize('initState');
-    WidgetsBinding.instance.addPostFrameCallback((_) => _reportSize('firstFrame'));
-    for (final ms in [300, 800, 1500, 2500, 4000]) {
-      Future.delayed(Duration(milliseconds: ms), () => _reportSize('t+${ms}ms'));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -831,7 +776,7 @@ class _WelcomeScreenState extends State<_WelcomeScreen> {
               Positioned(
                 left: 14,
                 top: 52,
-                child: WrNavPill(onBack: widget.onBack, onExitHome: widget.onExitHome),
+                child: WrNavPill(onBack: onBack, onExitHome: onExitHome),
               ),
               Positioned(
                 left: 0,
@@ -895,7 +840,7 @@ class _WelcomeScreenState extends State<_WelcomeScreen> {
                         width: double.infinity,
                         height: WrSize.btnH,
                         child: GestureDetector(
-                          onTap: widget.onCompose,
+                          onTap: onCompose,
                           child: Container(
                             decoration: WrDeco.btnPink,
                             alignment: Alignment.center,
@@ -915,7 +860,7 @@ class _WelcomeScreenState extends State<_WelcomeScreen> {
                         width: double.infinity,
                         height: WrSize.btnH,
                         child: GestureDetector(
-                          onTap: widget.onExplore,
+                          onTap: onExplore,
                           child: Container(
                             decoration: WrDeco.btnDark,
                             alignment: Alignment.center,
