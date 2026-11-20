@@ -103,12 +103,23 @@ class _MainRoomScreenState extends State<MainRoomScreen>
   // devote() 1.7(RITUAL.done) · 2.3(말씀카드) · rekindle() 2.1(n일만에 다시밝아졌어요) 캡션.
   String? _capText;
   (String, String)? _quoteText; // (문장, 출처) — 빈 출처는 ''
+  // [v5 S2 — 대표 판정 "1일 · 기도 완료 카드 vs 보상 시트 → 고침: 카드 1장으로
+  // 합칩니다. 오늘의 한마디 + 🧧+5 + [마음에 담기]. 보상 시트를 따로 띄우지
+  // 마세요"] app3/home.jsx DoneCard() 1:1 — 원본은 말씀(q)·통계(dayN·prayedN)·
+  // 보상(reward)·닫기버튼이 애초에 카드 1장이었다. Flutter는 onQuote(2.3s)에
+  // 말씀만 먼저 띄우고 onDone(2.9s)에 별도 _reward 오버레이를 또 띄우는
+  // 2장짜리 구조였던 걸 고친다 — onDone에서는 새 오버레이를 만들지 않고, 이미
+  // 떠 있는 같은 말씀카드(_quoteText)에 아래 _devoteDone 데이터만 채워 넣는다
+  // (카드는 1장 그대로, 0.6초 뒤 하단에 통계+보상+버튼이 나타나는 것처럼 보임).
+  (int dayN, int prayedN, int bonus, bool streak)? _devoteDone;
   DevotionGain? _lastGain; // 0.7 단계 아이템 기운 보너스 pill(top 236)
-  // devote() 2.9s 보상시트 — [명세] 원본 jsx `{reward && <RewardSheet.../>}`는 quote와
-  // 독립적인 state라 동시에 공존 가능(quote z-index:95가 reward dim/sheet z-index:88/89보다
-  // 위에 겹쳐 보임). showModalBottomSheet(별도 Route)로는 이 레이어링을 재현할 수 없어
-  // Stack 내부 오버레이로 구현한다.
-  Map<String, dynamic>? _reward; // {title, sub, body, chips}
+  // rekindle() 3.4s 보상시트 전용(다시 밝히기는 기도 완료 카드와 다른 순간이라
+  // 그대로 분리 유지 — 대표 판정 범위는 "1일 · 기도 완료 카드"에 한정됨).
+  // [명세] 원본 jsx `{reward && <RewardSheet.../>}`는 quote와 독립적인 state라
+  // 동시에 공존 가능(quote z-index:95가 reward dim/sheet z-index:88/89보다 위에
+  // 겹쳐 보임). showModalBottomSheet(별도 Route)로는 이 레이어링을 재현할 수
+  // 없어 Stack 내부 오버레이로 구현한다.
+  Map<String, dynamic>? _reward; // {title, sub, body, chips} — rekindle() 전용
   // [버그수정 — 전수감사] fx2.jsx LevelUp()은 showDialog가 아니라 일반 z-85 전체화면
   // 뷰라 다른 오버레이(quote z95 등)와 동일한 Stack 레이어링 안에서 공존해야 한다.
   int? _levelUp;
@@ -386,20 +397,19 @@ class _MainRoomScreenState extends State<MainRoomScreen>
         if (res.leveledUp) {
           _showLevelUp(res.room.level);
         } else {
-          // [v5 S1] dailyLimit은 이제 사실상 1(하루 1회) — "10회째" 판정을 7일
-          // 연속 보너스(res.bonus>0) 유무로만 구분한다. 매핑표 00-A ②"하루한번3초".
-          final streakBonus = res.bonus > 0;
-          // [명세] showModalBottomSheet 대신 Stack 오버레이로 설정 — quote(z95)가 이
-          // reward(z88/89) 위에 겹쳐 보이는 원본 레이어링을 재현하기 위함.
+          // [v5 S2 — 대표 판정 "카드 1장으로 합칩니다"] app3/home.jsx DoneCard()
+          // 1:1 — 별도 보상 오버레이(_reward)를 새로 띄우지 않고, onQuote에서 이미
+          // 뜬 말씀카드(_quoteText)에 통계(🕯dayN·🙏prayedN)+🧧보상 칩을 추가로
+          // 채워 넣는다. _quoteText가 아직 null이면(네트워크가 빨라 2.3s onQuote가
+          // 아직 안 왔을 가능성은 사실상 없지만 방어적으로) 카드 자체가 없을 수
+          // 있으니 그때만 폴백으로 캡션 문구를 쓴다.
           setState(
-            () => _reward = {
-              'title': streakBonus ? '7일 연속 $verb를 채웠어요' : '소원방이 더욱 빛나고 있어요',
-              'sub': 'DEVOTION · ${res.room.prayedN}일째',
-              'body': streakBonus ? '복주머니 +${res.bonus}' : null,
-              'bonus': res.bonus,
-              'cta':
-                  '확인', // A-4 devote() 보상시트 CTA — docs A_인트로…md 134줄(rekindle()의 '오늘도 정성 들이기'와 구분).
-            },
+            () => _devoteDone = (
+              res.room.dayN,
+              res.room.prayedN,
+              res.bonus,
+              res.bonus > 0,
+            ),
           );
         }
       },
@@ -944,24 +954,23 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                             ),
                           ),
 
-                          // devote() 2.9s / rekindle() 3.4s 보상시트 — [명세] quote보다 먼저(=아래) 배치해
+                          // rekindle() 3.4s 전용 보상시트 — [명세] quote보다 먼저(=아래) 배치해
                           // quote(z95)가 이 위에 겹쳐 보이는 원본 레이어링(dim z88/sheet z89 < quote z95)을 재현.
+                          // [v5 S2 — 대표 판정] devote()(일반 기도 완료)는 더 이상 이 오버레이를
+                          // 쓰지 않는다 — _reward는 rekindle()에서만 설정된다.
                           if (_reward != null)
                             Positioned.fill(
                               key: const ValueKey('rewardOverlay'),
                               child: _RewardOverlay(
                                 data: _reward!,
-                                // [J6 Tour21] app3/home.jsx DoneCard.onClose 1:1 훅 포인트.
-                                onClose: () => setState(() {
-                                  _reward = null;
-                                  if (_firstTimeAfterPray) {
-                                    _firstTimeAfterPray = false;
-                                    _tour21 = true;
-                                  }
-                                }),
+                                onClose: () => setState(() => _reward = null),
                               ),
                             ),
-                          // devote() 2.3s 말씀 카드(RITUAL.quotes 랜덤 1개, 테마별 디자인) — 탭하면 닫힘.
+                          // [v5 S2 — 대표 판정 "기도 완료 카드 하나로 합치기"] devote() 2.3s
+                          // 말씀 카드(RITUAL.quotes 랜덤 1개, 테마별 디자인) + 2.9s 통계/보상
+                          // (_devoteDone이 채워지면 카드 안에 함께 나타남) — 탭하면 카드 전체가
+                          // 닫힌다. app3/home.jsx DoneCard() 1:1(말씀+🕯dayN+🙏prayedN+🧧bonus+
+                          // "마음에 담기" 버튼이 카드 1장).
                           if (_quoteText != null)
                             Positioned.fill(
                               key: const ValueKey('quoteCard'),
@@ -970,8 +979,17 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                                 src: _quoteText!.$2,
                                 theme: room.theme,
                                 icon: ritual['icon'] as String? ?? '✿',
-                                onClose: () =>
-                                    setState(() => _quoteText = null),
+                                verb: wrVerb(room.theme.name, ritual),
+                                done: _devoteDone,
+                                onClose: () => setState(() {
+                                  _quoteText = null;
+                                  _devoteDone = null;
+                                  // [J6 Tour21] app3/home.jsx DoneCard.onClose 1:1 훅 포인트.
+                                  if (_firstTimeAfterPray) {
+                                    _firstTimeAfterPray = false;
+                                    _tour21 = true;
+                                  }
+                                }),
                               ),
                             ),
                         ],
@@ -2349,10 +2367,19 @@ class _QuoteCard extends StatefulWidget {
     required this.theme,
     required this.icon,
     required this.onClose,
+    this.verb,
+    this.done,
   });
   final String text, src, icon;
   final WrTheme theme;
   final VoidCallback onClose;
+  // [v5 S2 — 대표 판정 "기도 완료 카드 하나로 합치기"] verb(기도/치성/정성 등
+  // 테마별 동사)와 done((dayN, prayedN, bonus, streak))이 채워지면, 말씀 아래에
+  // app3/home.jsx DoneCard() 1:1인 통계(🕯dayN·🙏prayedN·🧧bonus)와 "마음에
+  // 담기" 버튼이 함께 나타난다. null이면(=onQuote 직후, onDone 전) 기존처럼
+  // "눌러서 닫기" 안내만 보여준다.
+  final String? verb;
+  final (int dayN, int prayedN, int bonus, bool streak)? done;
   @override
   State<_QuoteCard> createState() => _QuoteCardState();
 }
@@ -2485,22 +2512,120 @@ class _QuoteCardState extends State<_QuoteCard>
                         ),
                       ),
                     const SizedBox(height: 16),
-                    Text(
-                      '눌러서 닫기',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 11,
-                        color: inkC.withValues(alpha: .5),
+                    // [v5 S2 — 대표 판정 "카드 1장으로 합치기"] app3/home.jsx DoneCard()
+                    // 1:1 — done이 채워지면(onDone 2.9s 시점) 🕯dayN·🙏prayedN·(bonus>0
+                    // 이면 🧧+bonus) 통계 Row + "마음에 담기" 버튼을 보여준다. 아직
+                    // null이면(onQuote 2.3s~2.9s 사이) 기존처럼 안내 문구만 보인다.
+                    if (widget.done != null) ...[
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 16,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            '🕯 ${widget.done!.$1}일째',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: inkC.withValues(alpha: .8),
+                            ),
+                          ),
+                          Text(
+                            '🙏 ${widget.done!.$2}번',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: inkC.withValues(alpha: .8),
+                            ),
+                          ),
+                          if (widget.done!.$3 > 0)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.asset(
+                                  'assets/wishroom/items/pouch.png',
+                                  width: 16,
+                                  errorBuilder: (_, __, ___) =>
+                                      const Text('🧧', style: TextStyle(fontSize: 13)),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '+${widget.done!.$3}',
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: inkC.withValues(alpha: .8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
-                    ),
+                      if (widget.done!.$4)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0x38F5BE5A),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              '✦ 7일 연속 ${widget.verb ?? '기도'} · 복주머니 보너스',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                color: inkC,
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: widget.onClose,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: WrC.blossom,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            '마음에 담기',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ] else
+                      Text(
+                        '눌러서 닫기',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 11,
+                          color: inkC.withValues(alpha: .5),
+                        ),
+                      ),
                   ],
                 ),
               );
-              if (blur > .1)
+              if (blur > .1) {
                 card = ImageFiltered(
                   imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
                   child: card,
                 );
+              }
               return Positioned(
                 left: 26,
                 right: 26,
