@@ -6,7 +6,7 @@
 // (화면 자체는 유지, 상단 벨 진입은 main_room_screen.dart TopBar 작업에서 별도
 // 연결 예정), 꾸미기 탭은 하단바에서 빠지고 "⋯ 소원방 돌보기" 메뉴의 시트로
 // 들어간다(매핑표 46번 "사기=상점 1곳 · 놓기=꾸미기 시트") — 상점 탭 자리에는
-// 정식 ShopScreen이 아직 없어 임시로 DecorScreen을 연결한다(Todo #5에서 교체).
+// app3/shopscreen.jsx 기준 정식 ShopScreen을 연결한다(결제는 PayScreen 경유 단일화).
 //
 // 매핑표 00-C UNLOCK SPEC · app3/shell.jsx TABS/goTab() 1:1:
 //   TABS = [['home',🕯,'내 소원',null], ['guardians',👤,'수호자','guardian'],
@@ -27,8 +27,8 @@ import 'data/wr_catalog.dart';
 import 'core/wr_nav_pill.dart';
 import 'features/room/main_room_screen.dart';
 import 'features/explore/explore_screen.dart';
-import 'features/decor/decor_screen.dart';
 import 'features/characters/character_shop_screen.dart';
+import 'features/shop/shop_screen.dart';
 import 'features/vault/vault_screen.dart';
 import 'features/guide/guide_prefs.dart';
 
@@ -44,13 +44,13 @@ class _WishRoomShellState extends State<WishRoomShell> {
   late int _index;
 
   // [v5 S2] app3/shell.jsx TABS 배열 1:1 — home(잠금없음)·guardians('guardian')·
-  // together('together')·shop('decor', 임시로 DecorScreen 연결 — Todo #5에서 정식
-  // ShopScreen으로 교체)·vault(잠금없음). 알림/꾸미기는 하단바에서 제거.
+  // together('together')·shop('decor', 정식 ShopScreen 연결)·vault(잠금없음).
+  // 알림/꾸미기는 하단바에서 제거.
   static const _tabs = [
     MainRoomScreen(),
     CharacterShopScreen(),
     ExploreScreen(),
-    DecorScreen(),
+    ShopScreen(),
     VaultScreen(),
   ];
 

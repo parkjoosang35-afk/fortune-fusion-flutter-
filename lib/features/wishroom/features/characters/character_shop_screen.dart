@@ -13,6 +13,7 @@ import '../../core/wr_bottom_nav.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_ad_earn_button.dart';
 import '../../core/wr_toast.dart';
+import '../shop/pay_screen.dart';
 import 'outfit_variants.dart';
 
 class CharacterShopScreen extends StatefulWidget {
@@ -83,39 +84,52 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     _loadOutfits(ch.id);
   }
 
+  // [v5 S2 — "2번 진행할 때 지킬 것" ② "구매 로직은 1벌만"] 이미 보유한 수호자를
+  // 대표로 설정하는 것은 결제가 아니므로 바로 처리하고, 미보유 수호자는 반드시
+  // 상점(shop_screen.dart)과 동일한 PayScreen을 열어 구매한다 — 여기서 직접
+  // buyCharacter()를 호출해 끝내지 않는다(구매 버튼/결제 처리가 두 화면에 따로
+  // 있지 않도록).
   Future<void> _act(WrCharacter c, bool owned) async {
     if (_busy) return;
-    setState(() => _busy = true);
     final p = context.read<WishRoomProvider>();
-    if (!owned) {
-      final ok = await p.buyCharacter(c.id);
+    if (owned) {
+      setState(() => _busy = true);
+      final ok2 = await p.setCharacter(c.id);
+      if (ok2 && p.room != null) await p.loadMyRoom();
       if (!mounted) return;
-      if (!ok) {
-        setState(() => _busy = false);
-        final err = p.lastError;
-        if (err?.code == 'INSUFFICIENT') {
-          setState(() {
-            _shortErr = err;
-            _shortLabel = c.name;
-            _shortGlyph = c.emblem;
-          });
-        } else if (err != null) {
-          WrToast.show(context, err.message);
-        }
-        return;
+      setState(() => _busy = false);
+      if (ok2) {
+        WrToast.show(context, '${c.name}이(가) 소원방을 함께 지켜요');
+      } else if (p.lastError != null) {
+        WrToast.show(context, p.lastError!.message);
       }
+      return;
     }
-    final ok2 = await p.setCharacter(c.id);
-    if (ok2 && p.room != null) await p.loadMyRoom();
-    if (!mounted) return;
-    setState(() => _busy = false);
-    if (ok2) {
-      WrToast.show(context, '${c.name}이(가) 소원방을 함께 지켜요');
-    } else if (p.lastError != null) {
-      WrToast.show(context, p.lastError!.message);
-    }
+    openPayScreen(
+      context,
+      PayOrder(
+        kind: 'char',
+        name: c.name,
+        sub: c.title,
+        glyph: c.emblem,
+        price: c.price ?? 0,
+        doneTitle: '${c.name}이(가) 함께하게 됐어요',
+        afterLabel: null,
+        onConfirmPay: () async {
+          final ok = await p.buyCharacter(c.id);
+          if (!ok) return false;
+          final ok2 = await p.setCharacter(c.id);
+          if (ok2) await p.loadMyRoom();
+          return ok2;
+        },
+      ),
+    );
   }
 
+  // [v5 S2 — "구매 로직은 1벌만"] 이미 보유한 의상을 바로 입는 것은 결제가 아니므로
+  // 즉시 처리하고, 미보유(신규 20벌이든 기존 테마 의상이든) 구매는 전부
+  // openPayScreen()으로 상점과 같은 PayScreen을 연다 — buyOutfit()/
+  // wearNamedOutfit()을 여기서 직접 호출해 끝내지 않는다.
   Future<void> _wearOutfit(WrCharacter c, OutfitOffer o) async {
     if (_busy) return;
     final p = context.read<WishRoomProvider>();
@@ -124,17 +138,30 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         WrToast.show(context, '하린·준 전용 의상이에요');
         return;
       }
+      if (!o.owned) {
+        openPayScreen(
+          context,
+          PayOrder(
+            kind: 'outfit',
+            name: o.name ?? '의상',
+            sub: c.name,
+            glyph: '👗',
+            price: o.price,
+            doneTitle: '${o.name}으로 갈아입었어요',
+            afterLabel: null,
+            onConfirmPay: () => p.wearNamedOutfit(c.id, o),
+          ),
+        );
+        return;
+      }
       setState(() => _busy = true);
       try {
         final ok = await p.wearNamedOutfit(c.id, o);
         if (!mounted) return;
-        if (ok) {
-          WrToast.show(context, '${o.name}으로 갈아입었어요');
-        } else if (p.lastError?.code == 'INSUFFICIENT') {
-          setState(() { _shortErr = p.lastError; _shortLabel = o.name; });
-        } else {
-          WrToast.show(context, p.lastError?.message ?? '의상 적용에 실패했어요');
-        }
+        WrToast.show(
+          context,
+          ok ? '${o.name}으로 갈아입었어요' : (p.lastError?.message ?? '의상 적용에 실패했어요'),
+        );
       } finally {
         if (mounted) setState(() => _busy = false);
       }
@@ -144,52 +171,53 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
       WrToast.show(context, '먼저 이 수호자와 함께해 주세요');
       return;
     }
+    if (!o.owned) {
+      final themeInfo = WrCatalog.I.themes
+          .where((t) => t['id'] == o.theme.name)
+          .toList();
+      final label = themeInfo.isNotEmpty ? themeInfo.first['label'] as String : '';
+      final glyph = themeInfo.isNotEmpty ? themeInfo.first['glyph'] as String? : null;
+      openPayScreen(
+        context,
+        PayOrder(
+          kind: 'outfit',
+          name: '$label 의상',
+          sub: c.name,
+          glyph: glyph ?? '👗',
+          price: o.price,
+          doneTitle: '$label 의상으로 갈아입었어요',
+          afterLabel: null,
+          onConfirmPay: () async {
+            final ok = await p.buyOutfit(c.id, o.theme);
+            if (!ok) return false;
+            await _loadOutfits(c.id);
+            final room = p.room;
+            if (room != null) {
+              if (room.char != c.id && !await p.setCharacter(c.id)) return false;
+              if (!await p.setOutfit(room.id, o.theme)) return false;
+            }
+            return true;
+          },
+        ),
+      );
+      return;
+    }
     setState(() => _busy = true);
     try {
-      if (!o.owned) {
-        final ok = await p.buyOutfit(c.id, o.theme);
-        if (!ok) {
-          if (!mounted) return;
-          setState(() => _busy = false);
-          final err = p.lastError;
-          final themeInfo = WrCatalog.I.themes
-              .where((t) => t['id'] == o.theme.name)
-              .toList();
-          final label = themeInfo.isNotEmpty
-              ? themeInfo.first['label'] as String
-              : '';
-          if (err?.code == 'INSUFFICIENT') {
-            setState(() {
-              _shortErr = err;
-              _shortLabel = '$label 의상';
-              _shortGlyph = themeInfo.isNotEmpty
-                  ? themeInfo.first['glyph'] as String?
-                  : null;
-            });
-          } else if (err != null) {
-            WrToast.show(context, err.message);
-          }
-          return;
-        }
-        await _loadOutfits(c.id);
-      }
       final room = p.room;
       if (room != null) {
         if (room.char != c.id && !await p.setCharacter(c.id)) {
           if (!mounted) return;
-          setState(() => _busy = false);
           WrToast.show(context, p.lastError?.message ?? '수호자 변경에 실패했어요.');
           return;
         }
         if (!await p.setOutfit(room.id, o.theme)) {
           if (!mounted) return;
-          setState(() => _busy = false);
           WrToast.show(context, p.lastError?.message ?? '의상 적용에 실패했어요.');
           return;
         }
       }
       if (!mounted) return;
-      setState(() => _busy = false);
       final themeInfo = WrCatalog.I.themes
           .where((t) => t['id'] == o.theme.name)
           .toList();
@@ -197,7 +225,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           ? themeInfo.first['label'] as String
           : '';
       WrToast.show(context, '${c.name} · $label 의상으로 갈아입었어요');
-    } catch (e) {
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }

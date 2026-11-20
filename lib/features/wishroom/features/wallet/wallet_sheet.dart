@@ -15,6 +15,7 @@ import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../characters/character_shop_screen.dart';
+import '../decor/decor_screen.dart';
 import '../../../ads_test/domain/admob_ad_ids.dart';
 import '../../core/wr_toast.dart';
 
@@ -22,7 +23,6 @@ import '../../core/wr_toast.dart';
 // TabBarView 순서(소원 기록관=0·복주머니=1·응원 보상=2)도 함께 참조한다.
 const int _kTabHome = 0;
 const int _kTabExplore = 1;
-const int _kTabDecor = 3;
 const int _kTabVault = 4;
 const int _kVaultSubPouch = 1;
 
@@ -272,8 +272,13 @@ class _WalletSheetState extends State<WalletSheet> {
               }),
               const SizedBox(width: 6),
               _UseCard(asset: 'assets/wishroom/items/lantern.png', fallback: '🏮', label: '꾸미기', value: '50~200', onTap: () {
+                // [v5 S2 — 탭3이 ShopScreen으로 바뀌며 수정] "꾸미기" 카드는
+                // 상점이 아니라 방 배치 화면(DecorScreen)으로 바로 들어가야
+                // 한다(수호자 카드가 CharacterShopScreen을 직접 push하는 것과
+                // 동일한 패턴). requestTab(옛 _kTabDecor=3)은 이제 ShopScreen을
+                // 열게 되므로 더 이상 쓰지 않는다.
                 Navigator.of(context).pop();
-                context.read<WishRoomProvider>().requestTab(_kTabDecor);
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecorScreen()));
               }),
               const SizedBox(width: 6),
               _UseCard(asset: 'assets/wishroom/items/pouch.png', fallback: '💰', label: '선물하기', value: '자유롭게', onTap: () {

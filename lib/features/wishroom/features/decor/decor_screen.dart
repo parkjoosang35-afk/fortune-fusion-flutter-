@@ -25,6 +25,7 @@ import 'dart:ui' as ui;
 import '../compose/compose_screen.dart';
 import '../../core/wr_toast.dart';
 import '../../core/wr_item_icon.dart';
+import '../shop/shop_screen.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -39,13 +40,10 @@ class _DecorScreenState extends State<DecorScreen> {
   /// 미리보기가 슬림 스트립으로 접히고(소원방은 없애지 않음), 맨 위로
   /// 돌아오거나 스트립을 탭하면 다시 펼쳐진다.
   bool _previewCollapsed = false;
-  WrItem? _preview; // pv — 미보유 아이템 임시 미리보기
-  WrItem? _card; // card — 탭한 아이템(ItemCard 시트)
+  WrItem? _preview; // pv — 미보유 아이템 임시 미리보기(THEME 칩 탭 미리보기용으로 계속 쓰임)
+  WrItem? _card; // card — 탭한 아이템(ItemCard 시트). 그리드가 보유 아이템만 보여주므로 항상 owned.
   _Placed? _placed; // 배치 성공 직후 PlaceFx 연출
   WrItem? _moving; // PlaceMode 진입 아이템
-  ApiError? _shortErr;
-  WrItem?
-  _shortItem; // app2/screens-b2.jsx › Shortage({name, icon}) — 부족한 아이템 자체(아이콘+이름 표시용)
   bool _busy = false;
 
   @override
@@ -134,30 +132,29 @@ class _DecorScreenState extends State<DecorScreen> {
     });
   }
 
-  Future<void> _buy(WrItem it, WishRoom room) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    final p = context.read<WishRoomProvider>();
-    final ok = await p.buyItem(it.id);
-    if (!mounted) return;
-    if (!ok) {
-      setState(() => _busy = false);
-      final err = p.lastError;
-      if (err?.code == 'INSUFFICIENT') {
-        setState(() {
-          _shortErr = err;
-          _shortItem = it;
-        });
-      } else if (err != null) {
-        WrToast.show(context, err.message);
-      }
-      return;
-    }
-    // 구매 성공 → 바로 장착
-    final freshRoom = p.room!;
-    final freshItem = p.items.where((i) => i.id == it.id).firstOrNull ?? it;
-    await _equip(freshItem, freshRoom, bought: true);
-    if (mounted) setState(() => _busy = false);
+  // [v5 S2 — "2번 진행할 때 지킬 것" ③] 구매는 더 이상 이 화면이 직접 하지 않는다.
+  // 미보유 아이템은 그리드 자체에 나타나지 않고(_itemGrid 필터가 owned만 통과),
+  // "🛍 상점에서 더 보기"를 누르면 ShopScreen(공용 PayScreen 경유 구매)으로 이동한다.
+  void _goToShop() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShopScreen()));
+  }
+
+  Widget _shopMoreLink() {
+    return GestureDetector(
+      onTap: _goToShop,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: WrC.card,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: WrC.cardBorder),
+        ),
+        child: Text(
+          '🛍 상점에서 더 보기',
+          style: WrF.body(12.5, w: FontWeight.w700, color: WrC.glow),
+        ),
+      ),
+    );
   }
 
   @override
@@ -746,7 +743,6 @@ class _DecorScreenState extends State<DecorScreen> {
                         }
                       },
                     ),
-                  if (_shortErr != null) _shortageSheet(_shortErr!, _shortItem),
                 ],
               ),
             );
@@ -1000,14 +996,28 @@ class _DecorScreenState extends State<DecorScreen> {
     Slot slot, {
     bool themeOnly = false,
   }) {
+    // [v5 S2 — "가진 물건만"] 미보유(구매 전) 아이템은 더 이상 이 화면에 보이지
+    // 않는다(구매는 ShopScreen 전용). _none 플레이스홀더와 실제 보유 아이템만 표시.
     final items = p.items.where((i) {
       if (i.slot != slot) return false;
-      final visible = i.price != null || i.owned || i.reward != null;
-      if (!visible) return false;
-      if (slot == Slot.THEME)
+      if (!i.owned) return false;
+      if (slot == Slot.THEME) {
         return i.theme?.name == room.theme.name || _isOn(i, room);
+      }
       return true;
     }).toList();
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          children: [
+            Text('아직 가진 물건이 없어요', style: WrF.body(13, color: WrC.muted)),
+            const SizedBox(height: 10),
+            _shopMoreLink(),
+          ],
+        ),
+      );
+    }
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1101,48 +1111,18 @@ class _DecorScreenState extends State<DecorScreen> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (!it.owned && it.price == null)
-                                  Text(
-                                    '❤ 응원 ${it.reward}회',
-                                    style: const TextStyle(
-                                      fontFamily: 'Pretendard',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
-                                      color: WrC.glow,
-                                    ),
-                                  )
-                                else if (!it.owned) ...[
-                                  Image.asset(
-                                    'assets/wishroom/items/pouch.png',
-                                    width: 13,
-                                    height: 13,
-                                    errorBuilder: (_, __, ___) => const Text(
-                                      '💰',
-                                      style: TextStyle(fontSize: 11),
-                                    ),
+                                // [v5 S2 — "가진 물건만"] 그리드에는 이미 보유한
+                                // 아이템만 올라오므로(구매 전 아이템은 ShopScreen
+                                // 전용) 가격/응원 표시는 더 이상 필요 없다.
+                                Text(
+                                  on ? '놓여 있음' : '보유',
+                                  style: const TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    color: WrC.muted,
                                   ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${it.price}',
-                                    style: const TextStyle(
-                                      fontFamily: 'Pretendard',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
-                                      color: WrC.glow,
-                                    ),
-                                  ),
-                                ] else
-                                  Text(
-                                    on
-                                        ? '놓여 있음'
-                                        : (it.reward != null ? '응원 보상' : '보유'),
-                                    style: const TextStyle(
-                                      fontFamily: 'Pretendard',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
-                                      color: WrC.muted,
-                                    ),
-                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -1465,47 +1445,10 @@ class _DecorScreenState extends State<DecorScreen> {
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            if (!it.owned && it.price == null)
-                              Expanded(
-                                child: SizedBox(
-                                  height: 50,
-                                  child: ElevatedButton(
-                                    onPressed: null,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: WrC.darkBtn,
-                                    ),
-                                    child: Text(
-                                      '❤ 응원 ${it.reward}회를 받으면 열려요',
-                                      style: WrF.body(
-                                        13,
-                                        color: Colors.white54,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else if (!it.owned)
-                              Expanded(
-                                child: SizedBox(
-                                  height: 50,
-                                  child: ElevatedButton(
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _buy(it, room),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: WrC.blossom,
-                                    ),
-                                    child: Text(
-                                      '💰 ${it.price} · 방에 들이기',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else if (on) ...[
+                            // [v5 S2 — "구매 버튼 제거"] 이 시트는 이제 항상 보유
+                            // 아이템(owned)에 대해서만 열리므로(그리드 필터 참고)
+                            // 미보유 구매 분기는 제거했다 — 배치/치우기만 남는다.
+                            if (on) ...[
                               if (canPlace)
                                 Expanded(
                                   flex: 2,
@@ -1576,148 +1519,6 @@ class _DecorScreenState extends State<DecorScreen> {
                           ],
                         ),
                       ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // app2/screens-b2.jsx › Shortage({app, name, icon, need, have, onClose}) 1:1 이식.
-  // [버그수정 — 전수감사] 기존엔 ApiError만 받아 부족한 아이템의 아이콘+이름 카드가
-  // 전혀 없었고(바로 "복주머니 n개 필요" 텍스트로 시작), "다른 방법으로 모으기" 버튼도
-  // 그냥 닫기만 했다. 원본은 onClose(); app.openWallet()으로 지갑 시트를 띄운다.
-  Widget _shortageSheet(ApiError e, WrItem? item) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () => setState(() {
-              _shortErr = null;
-              _shortItem = null;
-            }),
-            child: Container(color: const Color(0x80000000)),
-          ),
-        ),
-        Positioned(
-          left: 10,
-          right: 10,
-          bottom: 22,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-            decoration: WrDeco.sheet,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Text('NEED MORE', style: WrF.mono(size: 10.5)),
-                const SizedBox(height: 4),
-                Text(
-                  '복주머니가 조금 부족해요',
-                  style: WrF.display(18, color: Colors.white),
-                ),
-                const SizedBox(height: 14),
-                if (item != null)
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: WrDeco.card,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 64,
-                          child: Center(
-                            child: ColorFiltered(
-                              colorFilter: const ColorFilter.matrix(
-                                _grayscale30,
-                              ),
-                              child: WrItemIcon(it: item, size: 48),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                style: WrF.body(
-                                  14,
-                                  w: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '복주머니 ${e.need ?? '-'}개 필요',
-                                style: WrF.body(12.5, color: WrC.muted),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                SizedBox(height: item != null ? 14 : 0),
-                Text(
-                  '지금 ${e.have ?? 0}개 · ${(e.need ?? 0) - (e.have ?? 0)}개 더 모으면 돼요',
-                  style: WrF.body(14, color: Colors.white, height: 1.7),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: WrC.line,
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                  child: Text(
-                    '복주머니는 신통방통 어디서나 함께 쓰는 재화예요.\n출석, 정성, 짧은 영상으로 조금씩 담깁니다.',
-                    style: WrF.body(13, color: WrC.muted, height: 1.7),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                WrAdEarnButton(
-                  onDone: () => setState(() {
-                    _shortErr = null;
-                    _shortItem = null;
-                  }),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() {
-                        _shortErr = null;
-                        _shortItem = null;
-                      });
-                      openWalletSheet(context);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: WrC.line),
-                    ),
-                    child: Text(
-                      '다른 방법으로 모으기',
-                      style: WrF.body(14, color: Colors.white),
                     ),
                   ),
                 ),
