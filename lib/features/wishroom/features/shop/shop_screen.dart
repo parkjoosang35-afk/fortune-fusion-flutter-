@@ -281,18 +281,29 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   // ── 옷(신규 의상) 탭 ──
+  // [v5 S2 — 대표 재지적] "상점 옷 탭에서는 지금 함께하는 수호자가 입을 수
+  // 있는 옷을 먼저 보여 주세요. 못 입는 옷은 흐리게 하고 「OO 전용 의상이에요」
+  // 표시만 해 주세요. 구매 버튼은 숨깁니다." — 호환 옷을 앞쪽 그룹으로 재정렬하고,
+  // 비호환 타일은 가격(구매 버튼 역할)을 완전히 숨긴 채 전용 안내 라벨만 노출한다.
   Widget _outfitTab(BuildContext context, WishRoomProvider p, WishRoom? room, bool open) {
     final cat = WrCatalog.I;
     final repChar = p.me?.repChar;
     final repGender = repChar == null ? null : (repChar.startsWith('M') ? 'M' : 'F');
-    final list = cat.newOutfits
+    final themeFiltered = cat.newOutfits
         .where((o) => room == null || o['theme'] == room.theme.name)
         .toList();
-    if (list.isEmpty) {
+    if (themeFiltered.isEmpty) {
       return Center(
         child: Text('지금 방 분위기에 맞는 신규 의상이 아직 없어요', style: WrF.body(13, color: WrC.muted)),
       );
     }
+    bool isCompatible(Map<String, dynamic> o) =>
+        repGender == null || repGender == (o['gender'] as String);
+    // 호환 옷(지금 함께하는 수호자가 입을 수 있는 옷)을 먼저, 비호환 옷을 뒤로.
+    final list = [
+      ...themeFiltered.where(isCompatible),
+      ...themeFiltered.where((o) => !isCompatible(o)),
+    ];
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
       itemCount: list.length,
@@ -306,17 +317,20 @@ class _ShopScreenState extends State<ShopScreen> {
         final o = list[i];
         final id = o['id'] as String;
         final gender = o['gender'] as String;
-        final compatible = repGender == null || repGender == gender;
+        final compatible = isCompatible(o);
+        final ownerLabel = gender == 'F' ? '하린' : '준';
         final owned = p.me?.ownedOutfits.contains('${gender == 'F' ? 'F00' : 'M00'}:$id') ?? false;
         final price = (o['price'] as num).toInt();
         return _Tile(
           imgProvider: AssetImage('assets/wishroom/outfits/$id.png'),
           glyph: '👗',
           name: o['name'] as String,
-          sub: compatible ? (o['themeLabel'] as String? ?? '') : '${gender == 'F' ? '하린' : '준'} 전용',
-          price: price,
+          sub: compatible ? (o['themeLabel'] as String? ?? '') : null,
+          // 비호환이면 가격(=구매 버튼) 자체를 숨기고 전용 안내 라벨만 보여준다.
+          price: compatible ? price : null,
           own: owned,
           ownLabel: '보유',
+          lockedLabel: compatible ? null : '$ownerLabel 전용 의상이에요',
           dim: !compatible,
           onClick: () {
             if (!compatible) {
@@ -478,6 +492,7 @@ class _Tile extends StatelessWidget {
     required this.own,
     required this.ownLabel,
     this.dim = false,
+    this.lockedLabel,
     required this.onClick,
   });
 
@@ -490,6 +505,9 @@ class _Tile extends StatelessWidget {
   final bool own;
   final String ownLabel;
   final bool dim;
+  // 다른 수호자 전용이라 지금 함께하는 수호자는 입을 수 없음을 알리는 라벨.
+  // 값이 있으면 가격/구매 버튼 대신 이 라벨만 보여준다(구매 자체를 막기 위함).
+  final String? lockedLabel;
   final VoidCallback onClick;
 
   @override
@@ -556,6 +574,19 @@ class _Tile extends StatelessWidget {
                             fontFamily: 'Pretendard',
                             fontWeight: FontWeight.w700,
                             fontSize: 11,
+                            color: WrC.muted,
+                          ),
+                        )
+                      else if (lockedLabel != null)
+                        // 비호환 의상: 가격/구매 버튼 대신 전용 안내만 노출.
+                        Text(
+                          lockedLabel!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10.5,
                             color: WrC.muted,
                           ),
                         )
