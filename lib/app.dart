@@ -9,6 +9,7 @@ import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/widgets/web_mobile_frame.dart';
+import 'core/widgets/debug_backend_badge.dart';
 import 'core/zoom/global_pinch_zoom_manager.dart';
 import 'core/sound/sintong_sound_service.dart';
 import 'core/sound/sound_navigator_observer.dart';
@@ -455,7 +456,16 @@ class App extends StatelessWidget {
                 // 화면에 무조건 InteractiveViewer를 중복 적용하는 방식은
                 // 금지" 요구사항에 따라, 화면별 중복 적용 대신 이 단일
                 // 전역 지점에서만 적용한다).
-                return GlobalPinchZoomOverlay(child: scaled);
+                // [운영 서버 오접속 재발 방지] 디버그 빌드에서만 현재
+                // 접속 중인 백엔드 주소를 화면 우상단에 작게 표시한다.
+                // 릴리즈 빌드에서는 DebugBackendBadge가 내부적으로
+                // SizedBox.shrink()를 반환해 완전히 비노출.
+                return Stack(
+                  children: [
+                    GlobalPinchZoomOverlay(child: scaled),
+                    const DebugBackendBadge(),
+                  ],
+                );
               },
             );
           },
