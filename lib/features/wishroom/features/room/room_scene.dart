@@ -53,9 +53,13 @@ class RoomScene extends StatefulWidget {
   /// 완료/기록관/봉인 연출에서는 미접속 감쇠(brightness)를 무시하고 항상 최대 밝기로
   /// 보여준다(이미 이룬 소원을 흐릿하게 보여줄 이유가 없음). 원본 param override 1:1.
   final double? brightnessOverride;
+  /// [Stage 3-A — 진입점 ③ "방에서 수호자 누르기"] 방 장면의 수호자 그림을
+  /// 눌렀을 때 호출된다. null이면(기본값) 기존처럼 탭 동작이 없다 — 다른
+  /// 화면(타인의 방 미리보기 등)에서 RoomScene을 재사용할 때 영향 없음.
+  final VoidCallback? onTapGuardian;
   const RoomScene({super.key, required this.room, required this.items, this.pray = false, this.boost = 0, this.gold = 0,
       this.lowFx = false, this.frozen = false, this.hideChar = false, this.charGlow = false, this.entering = false,
-      this.shake = false, this.reveal, this.fx = const [], this.levelOverride, this.brightnessOverride});
+      this.shake = false, this.reveal, this.fx = const [], this.levelOverride, this.brightnessOverride, this.onTapGuardian});
   @override State<RoomScene> createState() => _RoomSceneState();
 }
 
@@ -254,7 +258,15 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, Wi
       if (specialFx != null && specialFx.isNotEmpty)
         Positioned.fill(child: WrSpecialFx(fx: specialFx, density: widget.lowFx ? .5 : 1)),
       // ── L5 캐릭터 ──
-      if (!widget.hideChar) Positioned(left: -2, top: 468, width: 162, height: 226, child: AnimatedBuilder(animation: breathe,
+      // [Stage 3-A — 진입점 ③] onTapGuardian이 주어지면(= 내 소원방 메인
+      // 화면) 수호자 그림 영역 전체에 GestureDetector를 씌운다. 기존 L5
+      // 비주얼(호흡 애니메이션·그라데이션 마스크·FX)은 전혀 건드리지 않고
+      // 바깥에 한 겹 덧씌우기만 한다 — behavior: opaque로 투명 영역(그림
+      // 바깥 여백)도 함께 눌리게 해 작은 캐릭터도 누르기 쉽게 한다.
+      if (!widget.hideChar) Positioned(left: -2, top: 468, width: 162, height: 226, child: GestureDetector(
+        onTap: widget.onTapGuardian,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedBuilder(animation: breathe,
         builder: (_, c) => Transform.scale(alignment: Alignment.bottomCenter, scaleY: 1 + .012 * breathe.value, child: c),
         child: ShaderMask(shaderCallback: (b) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black, Colors.black, Colors.transparent], stops: [0, .7, 1]).createShader(b), blendMode: BlendMode.dstIn,
           child: ColorFiltered(colorFilter: ColorFilter.matrix(_brightness(widget.charGlow ? 1.1 : .4 + .6 * math.min(1, bright))), child: Stack(fit: StackFit.expand, children: [
@@ -266,7 +278,7 @@ class _RoomSceneState extends State<RoomScene> with TickerProviderStateMixin, Wi
             if (widget.pray) Positioned(left: 162 * .64 - 50, top: 226 * .40 - 50, child: IgnorePointer(child: FadeTransition(opacity: Tween(begin: .6, end: 1.0).animate(pulse),
               child: Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0x80FFE1A0), Colors.transparent], stops: [0, .65])))))),
             if (widget.pray) _PoseFx(pose: ritualPose, clock: pulse),
-          ]))))),
+          ])))))),
       // ── 감쇠 비네트 · 황금빛 ──
       Positioned.fill(child: IgnorePointer(child: AnimatedOpacity(duration: const Duration(milliseconds: 1400), opacity: (math.max(0, 1 - bright) * 1.2).clamp(0, 1).toDouble(),
         child: const DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.16), radius: .8, colors: [Colors.transparent, Color(0x99050208)])))))),

@@ -14,6 +14,7 @@ import '../wallet/wallet_sheet.dart';
 import '../../core/wr_ad_earn_button.dart';
 import '../../core/wr_toast.dart';
 import '../shop/pay_screen.dart';
+import '../wardrobe/wardrobe_screen.dart';
 import 'outfit_variants.dart';
 
 class CharacterShopScreen extends StatefulWidget {
@@ -1324,6 +1325,40 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                     ),
                   ),
                 ),
+                // [Stage 3-A — 대표 결정] 수호자 자세히 화면이 아직 따로 없어,
+                // 그 역할을 하는 이 정보 시트에 「👗 옷 갈아입히기」 버튼만
+                // 우선 추가한다(app3/guardians.jsx GuardianDetail cta 1:1 —
+                // 지금 함께하는 수호자일 때만 노출). 자세히 화면 자체를 제대로
+                // 만드는 것은 3-B에서 처리한다.
+                if (context.watch<WishRoomProvider>().room?.char == c.id)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() => _info = false);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const WardrobeScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: WrC.blossom,
+                        ),
+                        child: const Text(
+                          '👗 옷 갈아입히기',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                       ],
                     ),
                   ),

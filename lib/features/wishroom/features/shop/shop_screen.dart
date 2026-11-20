@@ -31,14 +31,18 @@ const List<(Slot, String, String)> _kItemTabs = [
 ];
 
 class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key});
+  const ShopScreen({super.key, this.initialTab});
+  // [Stage 3-A — 옷장 「상점에서 보기」 딥링크] 옷장 화면에서 미보유 의상을
+  // 눌렀을 때 '옷' 탭을 바로 펼친 채로 이 화면을 열기 위한 진입 탭 지정.
+  // null이면 기존처럼 '수호자' 탭(_tab 기본값 'char')으로 시작한다.
+  final String? initialTab;
   @override
   State<ShopScreen> createState() => _ShopScreenState();
 }
 
 class _ShopScreenState extends State<ShopScreen> {
   // char | outfit | DECORATION | FLOWER | CANDLE | BACKGROUND | SPECIAL | SEAL
-  String _tab = 'char';
+  late String _tab = widget.initialTab ?? 'char';
 
   @override
   void initState() {

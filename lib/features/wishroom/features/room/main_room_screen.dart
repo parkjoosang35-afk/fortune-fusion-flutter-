@@ -36,6 +36,7 @@ import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 import '../compose/compose_screen.dart';
 import '../characters/character_shop_screen.dart';
+import '../wardrobe/wardrobe_screen.dart';
 import '../decor/decor_screen.dart';
 import '../notifications/notifications_screen.dart';
 import 'unlock_card.dart';
@@ -756,6 +757,18 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                         // 있다. 앱 빌드에서는 _webPaused가 항상 false로 고정되어 기존
                         // 동작(정성·흔들림 등 실시간 연출)에 영향이 없다.
                         frozen: kIsWeb && _webPaused,
+                        // [Stage 3-A — 진입점 ③ "방에서 수호자 누르기"] 대표 결정:
+                        // 기획상 최종 목적지는 "수호자 자세히"이지만 그 화면이 아직
+                        // 없으므로(3-B에서 신설 예정) 임시로 옷장 화면으로 보낸다.
+                        // '◉ 방만 보기'(_peek) 중이거나 수호자가 아직 숨겨진 상태
+                        // (hideChar)에서는 탭할 대상이 없으므로 콜백을 주지 않는다.
+                        onTapGuardian: (_peek || !room.isFeatureUnlocked('guardian'))
+                            ? null
+                            : () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const WardrobeScreen(),
+                                  ),
+                                ),
                       ),
                     ),
                   ),
@@ -3460,11 +3473,19 @@ class _CareSheetState extends State<_CareSheet> {
   VoidCallback _onGoFor(String key) {
     switch (key) {
       case '수호자':
-      case '옷 갈아입기':
         return () {
           Navigator.of(context).pop();
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const CharacterShopScreen()),
+          );
+        };
+      // [Stage 3-A — 대표 결정] ⋯ 「옷 갈아입기」 진입점 — 기존 CharacterShopScreen
+      // 대신 새로 분리된 WardrobeScreen으로 연결한다.
+      case '옷 갈아입기':
+        return () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const WardrobeScreen()),
           );
         };
       case '방 꾸미기':
