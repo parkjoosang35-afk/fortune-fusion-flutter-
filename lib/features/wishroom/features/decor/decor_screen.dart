@@ -136,7 +136,9 @@ class _DecorScreenState extends State<DecorScreen> {
   // 미보유 아이템은 그리드 자체에 나타나지 않고(_itemGrid 필터가 owned만 통과),
   // "🛍 상점에서 더 보기"를 누르면 ShopScreen(공용 PayScreen 경유 구매)으로 이동한다.
   void _goToShop() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShopScreen()));
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ShopScreen()));
   }
 
   Widget _shopMoreLink() {
@@ -892,33 +894,39 @@ class _DecorScreenState extends State<DecorScreen> {
             return Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(right: 6),
-                child: GestureDetector(
-                  onTap: () => _switchTheme(
-                    room,
-                    t['id'] as String,
-                    t['label'] as String,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      color: on ? WrC.blossom : WrC.chipBg,
-                      border: Border.all(
-                        color: on
-                            ? Colors.transparent
-                            : _hex(t['color'] as String),
-                      ),
+                // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신
+                // 이름표로 누를 수 있도록 identifier 부여. 시각적 변화 없음.
+                child: Semantics(
+                  identifier: 'theme_${t['id']}',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () => _switchTheme(
+                      room,
+                      t['id'] as String,
+                      t['label'] as String,
                     ),
-                    child: Text(
-                      '${t['glyph']} ${t['label']}',
-                      style: WrF.body(
-                        11.5,
-                        w: FontWeight.w700,
-                        color: on ? Colors.white : WrC.fg,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        color: on ? WrC.blossom : WrC.chipBg,
+                        border: Border.all(
+                          color: on
+                              ? Colors.transparent
+                              : _hex(t['color'] as String),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        '${t['glyph']} ${t['label']}',
+                        style: WrF.body(
+                          11.5,
+                          w: FontWeight.w700,
+                          color: on ? Colors.white : WrC.fg,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ),
