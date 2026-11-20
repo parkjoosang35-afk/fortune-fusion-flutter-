@@ -44,9 +44,11 @@ class PayOrder {
   final String? glyph;
   final int price;
   final String doneTitle;
+
   /// null이면 done 화면에 "방에 놓으러 가기" 류 버튼을 보여주지 않는다.
   final String? afterLabel;
   final VoidCallback? after;
+
   /// 실제 구매 API 호출 — 성공 시 true, 실패(복주머니 부족 등) 시 false를 반환해야 한다.
   /// [구매 로직 단일화] 이 콜백 "안쪽"의 provider 메서드만 호출부마다 다르고,
   /// 콜백을 "언제 · 어떻게" 호출하는지는 이 화면이 유일하게 결정한다.
@@ -63,9 +65,9 @@ class PayOrder {
 
 /// 어디서든(수호자 탭 · 상점) 동일하게 호출하는 결제창 오프너.
 void openPayScreen(BuildContext context, PayOrder order) {
-  Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => PayScreen(order: order)),
-  );
+  Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => PayScreen(order: order)));
 }
 
 enum _PayStage { confirm, paying, done }
@@ -268,12 +270,19 @@ class _PayScreenState extends State<PayScreen> {
                       ),
                       child: Text(
                         '🧧 $lack개 충전하기',
-                        style: WrF.body(14, w: FontWeight.w700, color: const Color(0xFFFFE7A0)),
+                        style: WrF.body(
+                          14,
+                          w: FontWeight.w700,
+                          color: const Color(0xFFFFE7A0),
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text('활동으로 모으기', style: WrF.body(12, w: FontWeight.w700, color: WrC.muted)),
+                  Text(
+                    '활동으로 모으기',
+                    style: WrF.body(12, w: FontWeight.w700, color: WrC.muted),
+                  ),
                   const SizedBox(height: 8),
                   WrAdEarnButton(onDone: () => setState(() {})),
                   const SizedBox(height: 8),
@@ -282,28 +291,39 @@ class _PayScreenState extends State<PayScreen> {
                     height: 46,
                     child: OutlinedButton(
                       onPressed: () => openWalletSheet(context),
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
-                      child: Text('다른 방법으로 모으기', style: WrF.body(14, color: Colors.white)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: WrC.line),
+                      ),
+                      child: Text(
+                        '다른 방법으로 모으기',
+                        style: WrF.body(14, color: Colors.white),
+                      ),
                     ),
                   ),
                 ] else
+                  // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신 이름표로
+                  // 결제를 트리거할 수 있도록 identifier 부여. 시각적 변화 없음.
                   SizedBox(
                     width: double.infinity,
                     height: 52,
-                    child: ElevatedButton(
-                      onPressed: () => _pay(before),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: WrC.blossom,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                    child: Semantics(
+                      identifier: 'pay_confirm',
+                      button: true,
+                      child: ElevatedButton(
+                        onPressed: () => _pay(before),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: WrC.blossom,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        '🧧 ${order.price}개로 결제하기',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
+                        child: Text(
+                          '🧧 ${order.price}개로 결제하기',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ),
@@ -316,7 +336,12 @@ class _PayScreenState extends State<PayScreen> {
     );
   }
 
-  Widget _amountRow(String label, String value, {bool emphasize = false, bool warn = false}) {
+  Widget _amountRow(
+    String label,
+    String value, {
+    bool emphasize = false,
+    bool warn = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -326,7 +351,9 @@ class _PayScreenState extends State<PayScreen> {
           style: WrF.body(
             emphasize ? 15 : 13,
             w: emphasize ? FontWeight.w800 : FontWeight.w600,
-            color: warn ? const Color(0xFFFF9CBC) : (emphasize ? WrC.glow : WrC.fg),
+            color: warn
+                ? const Color(0xFFFF9CBC)
+                : (emphasize ? WrC.glow : WrC.fg),
           ),
         ),
       ],
@@ -341,7 +368,10 @@ class _PayScreenState extends State<PayScreen> {
         children: [
           _ShakingPouch(size: 86),
           const SizedBox(height: 18),
-          Text('${order.label} 결제하는 중', style: WrF.display(16, color: Colors.white)),
+          Text(
+            '${order.label} 결제하는 중',
+            style: WrF.display(16, color: Colors.white),
+          ),
           const SizedBox(height: 8),
           Text('주문번호 $_oid', style: WrF.mono(size: 11, color: WrC.muted)),
         ],
@@ -361,11 +391,22 @@ class _PayScreenState extends State<PayScreen> {
             clipBehavior: Clip.none,
             children: [
               _thumb(110),
-              WrBurst(key: ValueKey(_burstKey), x: 55, y: 55, n: 20, glyph: '✨', spread: 120),
+              WrBurst(
+                key: ValueKey(_burstKey),
+                x: 55,
+                y: 55,
+                n: 20,
+                glyph: '✨',
+                spread: 120,
+              ),
             ],
           ),
           const SizedBox(height: 18),
-          Text(order.doneTitle, textAlign: TextAlign.center, style: WrF.display(20, color: Colors.white)),
+          Text(
+            order.doneTitle,
+            textAlign: TextAlign.center,
+            style: WrF.display(20, color: Colors.white),
+          ),
           const SizedBox(height: 22),
           Container(
             width: double.infinity,
@@ -388,21 +429,33 @@ class _PayScreenState extends State<PayScreen> {
           ),
           const SizedBox(height: 22),
           if (order.afterLabel != null)
+            // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신 이름표로
+            // "지금 입혀 보기" 등 after 액션을 트리거할 수 있도록 identifier 부여.
             SizedBox(
               width: double.infinity,
               height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  order.after?.call();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: WrC.blossom,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: Text(
-                  order.afterLabel!,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+              child: Semantics(
+                identifier: 'pay_after',
+                button: true,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    order.after?.call();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: WrC.blossom,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    order.afterLabel!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -412,7 +465,9 @@ class _PayScreenState extends State<PayScreen> {
             height: 46,
             child: OutlinedButton(
               onPressed: () => Navigator.of(context).maybePop(),
-              style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: WrC.line),
+              ),
               child: Text(
                 order.afterLabel != null ? '나중에 할게요' : '확인',
                 style: WrF.body(14, color: Colors.white),
@@ -432,13 +487,18 @@ class _ShakingPouch extends StatefulWidget {
   State<_ShakingPouch> createState() => _ShakingPouchState();
 }
 
-class _ShakingPouchState extends State<_ShakingPouch> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 420))..repeat(reverse: true);
+class _ShakingPouchState extends State<_ShakingPouch>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  )..repeat(reverse: true);
   @override
   void dispose() {
     _c.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -450,7 +510,8 @@ class _ShakingPouchState extends State<_ShakingPouch> with SingleTickerProviderS
           child: Image.asset(
             'assets/wishroom/items/pouch.png',
             width: widget.size,
-            errorBuilder: (_, __, ___) => Text('💰', style: TextStyle(fontSize: widget.size * .6)),
+            errorBuilder: (_, __, ___) =>
+                Text('💰', style: TextStyle(fontSize: widget.size * .6)),
           ),
         );
       },

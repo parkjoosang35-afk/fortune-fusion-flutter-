@@ -178,19 +178,28 @@ class _ShopScreenState extends State<ShopScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         children: tabs.map((t) {
           final sel = _tab == t.$1;
+          // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신 이름표로
+          // 탭을 누를 수 있도록 identifier 부여. 시각적 변화 없음.
           return Padding(
             padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => setState(() => _tab = t.$1),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: sel ? WrDeco.chipOn : WrDeco.chip,
-                child: Text(
-                  t.$2,
-                  style: WrF.body(
-                    12.5,
-                    w: FontWeight.w700,
-                    color: sel ? Colors.white : WrC.fg,
+            child: Semantics(
+              identifier: 'shop_tab_${t.$1}',
+              button: true,
+              child: GestureDetector(
+                onTap: () => setState(() => _tab = t.$1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: sel ? WrDeco.chipOn : WrDeco.chip,
+                  child: Text(
+                    t.$2,
+                    style: WrF.body(
+                      12.5,
+                      w: FontWeight.w700,
+                      color: sel ? Colors.white : WrC.fg,
+                    ),
                   ),
                 ),
               ),
@@ -201,18 +210,31 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  Widget _body(BuildContext context, WishRoomProvider p, WishRoom? room, bool open) {
+  Widget _body(
+    BuildContext context,
+    WishRoomProvider p,
+    WishRoom? room,
+    bool open,
+  ) {
     if (p.characters.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_tab == 'char') return _charTab(context, p, room, open);
     if (_tab == 'outfit') return _outfitTab(context, p, room, open);
-    final slotTab = _kItemTabs.firstWhere((t) => t.$2 == _tab, orElse: () => _kItemTabs.first);
+    final slotTab = _kItemTabs.firstWhere(
+      (t) => t.$2 == _tab,
+      orElse: () => _kItemTabs.first,
+    );
     return _itemTab(context, p, room, open, slotTab.$1);
   }
 
   // ── 수호자 탭 ──
-  Widget _charTab(BuildContext context, WishRoomProvider p, WishRoom? room, bool open) {
+  Widget _charTab(
+    BuildContext context,
+    WishRoomProvider p,
+    WishRoom? room,
+    bool open,
+  ) {
     final cat = WrCatalog.I;
     final list = p.characters;
     return GridView.builder(
@@ -256,7 +278,9 @@ class _ShopScreenState extends State<ShopScreen> {
       if (!context.mounted) return;
       WrToast.show(
         context,
-        ok ? '${c.name}이(가) 소원방을 함께 지켜요' : (p.lastError?.message ?? '설정에 실패했어요'),
+        ok
+            ? '${c.name}이(가) 소원방을 함께 지켜요'
+            : (p.lastError?.message ?? '설정에 실패했어요'),
       );
       return;
     }
@@ -289,16 +313,26 @@ class _ShopScreenState extends State<ShopScreen> {
   // 있는 옷을 먼저 보여 주세요. 못 입는 옷은 흐리게 하고 「OO 전용 의상이에요」
   // 표시만 해 주세요. 구매 버튼은 숨깁니다." — 호환 옷을 앞쪽 그룹으로 재정렬하고,
   // 비호환 타일은 가격(구매 버튼 역할)을 완전히 숨긴 채 전용 안내 라벨만 노출한다.
-  Widget _outfitTab(BuildContext context, WishRoomProvider p, WishRoom? room, bool open) {
+  Widget _outfitTab(
+    BuildContext context,
+    WishRoomProvider p,
+    WishRoom? room,
+    bool open,
+  ) {
     final cat = WrCatalog.I;
     final repChar = p.me?.repChar;
-    final repGender = repChar == null ? null : (repChar.startsWith('M') ? 'M' : 'F');
+    final repGender = repChar == null
+        ? null
+        : (repChar.startsWith('M') ? 'M' : 'F');
     final themeFiltered = cat.newOutfits
         .where((o) => room == null || o['theme'] == room.theme.name)
         .toList();
     if (themeFiltered.isEmpty) {
       return Center(
-        child: Text('지금 방 분위기에 맞는 신규 의상이 아직 없어요', style: WrF.body(13, color: WrC.muted)),
+        child: Text(
+          '지금 방 분위기에 맞는 신규 의상이 아직 없어요',
+          style: WrF.body(13, color: WrC.muted),
+        ),
       );
     }
     bool isCompatible(Map<String, dynamic> o) =>
@@ -323,53 +357,69 @@ class _ShopScreenState extends State<ShopScreen> {
         final gender = o['gender'] as String;
         final compatible = isCompatible(o);
         final ownerLabel = gender == 'F' ? '하린' : '준';
-        final owned = p.me?.ownedOutfits.contains('${gender == 'F' ? 'F00' : 'M00'}:$id') ?? false;
+        final owned =
+            p.me?.ownedOutfits.contains(
+              '${gender == 'F' ? 'F00' : 'M00'}:$id',
+            ) ??
+            false;
         final price = (o['price'] as num).toInt();
-        return _Tile(
-          imgProvider: AssetImage('assets/wishroom/outfits/$id.png'),
-          glyph: '👗',
-          name: o['name'] as String,
-          sub: compatible ? (o['themeLabel'] as String? ?? '') : null,
-          // 비호환이면 가격(=구매 버튼) 자체를 숨기고 전용 안내 라벨만 보여준다.
-          price: compatible ? price : null,
-          own: owned,
-          ownLabel: '보유',
-          lockedLabel: compatible ? null : '$ownerLabel 전용 의상이에요',
-          dim: !compatible,
-          onClick: () {
-            if (!compatible) {
-              WrToast.show(context, '${gender == 'F' ? '하린' : '준'} 전용 의상이에요');
-              return;
-            }
-            final charId = gender == 'F' ? 'F00' : 'M00';
-            if (owned) {
-              _wearNewOutfit(context, p, charId, id, o['name'] as String);
-              return;
-            }
-            if (!open) {
-              _lockToast(context, room);
-              return;
-            }
-            // [v5 S2 — 사용자 재지적] app3/shopscreen.jsx/wardrobe.jsx 1:1 —
-            // 결제는 "구매"만 한다. 입히는 것은 영수증 화면의 "👗 지금 입혀
-            // 보기" 버튼을 눌렀을 때 따로 일어난다(결제 즉시 자동으로 입혀지지
-            // 않는다). wearNamedOutfit()은 여기서 쓰지 않고(그건 보유 의상을
-            // 바로 입는 액션용), buyNamedOutfitOnly()로 구매만 완료한다.
-            openPayScreen(
-              context,
-              PayOrder(
-                kind: 'outfit',
-                name: o['name'] as String,
-                sub: o['themeLabel'] as String?,
-                glyph: '👗',
-                price: price,
-                doneTitle: '${o['name']}, 옷장에 담겼어요',
-                afterLabel: '👗 지금 입혀 보기',
-                after: () => _wearNewOutfit(context, p, charId, id, o['name'] as String),
-                onConfirmPay: () => p.buyNamedOutfitOnly(charId, id),
-              ),
-            );
-          },
+        // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신 이름표로
+        // 구매/착용을 트리거할 수 있도록 identifier 부여. 시각적 변화 없음.
+        return Semantics(
+          identifier: 'shop_outfit_$id',
+          button: true,
+          child: _Tile(
+            imgProvider: AssetImage('assets/wishroom/outfits/$id.png'),
+            glyph: '👗',
+            name: o['name'] as String,
+            sub: compatible ? (o['themeLabel'] as String? ?? '') : null,
+            // 비호환이면 가격(=구매 버튼) 자체를 숨기고 전용 안내 라벨만 보여준다.
+            price: compatible ? price : null,
+            own: owned,
+            ownLabel: '보유',
+            lockedLabel: compatible ? null : '$ownerLabel 전용 의상이에요',
+            dim: !compatible,
+            onClick: () {
+              if (!compatible) {
+                WrToast.show(context, '${gender == 'F' ? '하린' : '준'} 전용 의상이에요');
+                return;
+              }
+              final charId = gender == 'F' ? 'F00' : 'M00';
+              if (owned) {
+                _wearNewOutfit(context, p, charId, id, o['name'] as String);
+                return;
+              }
+              if (!open) {
+                _lockToast(context, room);
+                return;
+              }
+              // [v5 S2 — 사용자 재지적] app3/shopscreen.jsx/wardrobe.jsx 1:1 —
+              // 결제는 "구매"만 한다. 입히는 것은 영수증 화면의 "👗 지금 입혀
+              // 보기" 버튼을 눌렀을 때 따로 일어난다(결제 즉시 자동으로 입혀지지
+              // 않는다). wearNamedOutfit()은 여기서 쓰지 않고(그건 보유 의상을
+              // 바로 입는 액션용), buyNamedOutfitOnly()로 구매만 완료한다.
+              openPayScreen(
+                context,
+                PayOrder(
+                  kind: 'outfit',
+                  name: o['name'] as String,
+                  sub: o['themeLabel'] as String?,
+                  glyph: '👗',
+                  price: price,
+                  doneTitle: '${o['name']}, 옷장에 담겼어요',
+                  afterLabel: '👗 지금 입혀 보기',
+                  after: () => _wearNewOutfit(
+                    context,
+                    p,
+                    charId,
+                    id,
+                    o['name'] as String,
+                  ),
+                  onConfirmPay: () => p.buyNamedOutfitOnly(charId, id),
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -394,18 +444,29 @@ class _ShopScreenState extends State<ShopScreen> {
     if (offer == null) return;
     final ok = await p.wearNamedOutfit(charId, offer);
     if (!context.mounted) return;
-    WrToast.show(context, ok ? '$name으로 갈아입었어요' : (p.lastError?.message ?? '적용에 실패했어요'));
+    WrToast.show(
+      context,
+      ok ? '$name으로 갈아입었어요' : (p.lastError?.message ?? '적용에 실패했어요'),
+    );
   }
 
   // ── 꾸미기(장식/꽃/촛불/창밖/효과/인장) 탭 ──
-  Widget _itemTab(BuildContext context, WishRoomProvider p, WishRoom? room, bool open, Slot slot) {
+  Widget _itemTab(
+    BuildContext context,
+    WishRoomProvider p,
+    WishRoom? room,
+    bool open,
+    Slot slot,
+  ) {
     if (room == null) return const SizedBox.shrink();
     final items = p.items.where((i) {
       if (i.slot != slot) return false;
       return i.price != null || i.owned || i.reward != null;
     }).toList();
     if (items.isEmpty) {
-      return Center(child: Text('아직 물건이 없어요', style: WrF.body(13, color: WrC.muted)));
+      return Center(
+        child: Text('아직 물건이 없어요', style: WrF.body(13, color: WrC.muted)),
+      );
     }
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
@@ -441,7 +502,9 @@ class _ShopScreenState extends State<ShopScreen> {
   ) async {
     if (it.owned) {
       // 이미 보유 — 구매 화면이 아니라 꾸미기 화면에서 배치/치우기를 하도록 안내.
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecorScreen()));
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const DecorScreen()));
       return;
     }
     if (it.price == null) {
@@ -464,7 +527,9 @@ class _ShopScreenState extends State<ShopScreen> {
         doneTitle: '${it.name}을(를) 들였어요',
         afterLabel: '✿ 방에 놓으러 가기',
         after: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecorScreen()));
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const DecorScreen()));
         },
         onConfirmPay: () => p.buyItem(it.id),
       ),
@@ -547,7 +612,10 @@ class _Tile extends StatelessWidget {
                                   ),
                                 ),
                               )
-                            : Text(glyph ?? '✦', style: const TextStyle(fontSize: 30))),
+                            : Text(
+                                glyph ?? '✦',
+                                style: const TextStyle(fontSize: 30),
+                              )),
                 ),
               ),
               Expanded(

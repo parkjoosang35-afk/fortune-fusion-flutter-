@@ -157,28 +157,36 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
                     top: 56,
                     right: 16,
                     child: SafeArea(
-                      child: GestureDetector(
-                        onTap: () {
-                          _skipTimer?.cancel();
-                          _advanceTimer?.cancel();
-                          _enterShell();
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: WrC.glass,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: WrC.line),
-                          ),
-                          child: Text(
-                            '건너뛰기 ›',
-                            style: WrF.body(
-                              14,
-                              w: FontWeight.w900,
-                              color: WrC.fg,
+                      // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 인트로 자체를
+                      // 확인하는 테스트(first_room_intro_done=0 강제 재현)에서
+                      // 좌표 클릭 대신 이 이름표로 누를 수 있도록 함. 시각적
+                      // 변화 없음.
+                      child: Semantics(
+                        identifier: 'intro_skip',
+                        button: true,
+                        child: GestureDetector(
+                          onTap: () {
+                            _skipTimer?.cancel();
+                            _advanceTimer?.cancel();
+                            _enterShell();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: WrC.glass,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: WrC.line),
+                            ),
+                            child: Text(
+                              '건너뛰기 ›',
+                              style: WrF.body(
+                                14,
+                                w: FontWeight.w900,
+                                color: WrC.fg,
+                              ),
                             ),
                           ),
                         ),
