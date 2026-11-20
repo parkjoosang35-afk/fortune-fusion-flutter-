@@ -998,21 +998,42 @@ class WrNavPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _pillBtn(onBack, Icons.arrow_back_ios_new, size: 10),
+          _pillBtn(
+            onBack,
+            Icons.arrow_back_ios_new,
+            size: 10,
+            semanticsId: 'nav_back',
+          ),
           Container(width: 1, height: 16, color: WrC.line),
-          _pillBtn(onExitHome, Icons.home_rounded, size: 16),
+          _pillBtn(
+            onExitHome,
+            Icons.home_rounded,
+            size: 16,
+            semanticsId: 'nav_home',
+          ),
         ],
       ),
     );
   }
 
-  Widget _pillBtn(VoidCallback onTap, IconData icon, {required double size}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 30,
-        height: 30,
-        child: Icon(icon, size: size, color: WrC.fg),
+  // [QA 테스트 보조 — 대표 지시] 웹 미리보기에서 Playwright 등이 좌표 클릭
+  // 대신 이름표로 누를 수 있도록 identifier를 부여한다. 시각적 변화 없음.
+  Widget _pillBtn(
+    VoidCallback onTap,
+    IconData icon, {
+    required double size,
+    required String semanticsId,
+  }) {
+    return Semantics(
+      identifier: semanticsId,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: Icon(icon, size: size, color: WrC.fg),
+        ),
       ),
     );
   }

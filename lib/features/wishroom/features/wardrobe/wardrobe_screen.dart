@@ -153,9 +153,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   // 상점에서 구매하고 돌아오면 보유 현황이 바뀌었을 수 있으므로 복귀 시
   // _loadOutfits()로 다시 불러온다.
   Future<void> _goToShop() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ShopScreen(initialTab: 'outfit')));
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ShopScreen(initialTab: 'outfit')),
+    );
     if (mounted) await _loadOutfits();
   }
 
@@ -216,10 +216,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [
-                                Color(0xFF2A1020),
-                                Color(0xFF12060E),
-                              ],
+                              colors: [Color(0xFF2A1020), Color(0xFF12060E)],
                             ),
                           ),
                         ),
@@ -285,7 +282,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                             key: ValueKey(_newOutfitId ?? outfitTheme.name),
                             height: 320,
                             width: 229,
-                            fit: _newOutfitId == null ? BoxFit.cover : BoxFit.contain,
+                            fit: _newOutfitId == null
+                                ? BoxFit.cover
+                                : BoxFit.contain,
                             alignment: Alignment.bottomCenter,
                             errorBuilder: (_, __, ___) => SizedBox(
                               width: 229,
@@ -368,21 +367,27 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                                   ),
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: _busy ? null : _autoMatchRoom,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: WrC.chipBg,
-                                    borderRadius: BorderRadius.circular(999),
-                                    border: Border.all(color: WrC.line),
-                                  ),
-                                  child: Text(
-                                    '✨ 방 분위기에 맞춰 자동으로 입기',
-                                    style: WrF.body(11, color: WrC.fg),
+                              // [QA 테스트 보조 — 대표 지시] 좌표 클릭 대신 이름표로
+                              // 누를 수 있도록 identifier 부여. 시각적 변화 없음.
+                              Semantics(
+                                identifier: 'wardrobe_auto',
+                                button: true,
+                                child: GestureDetector(
+                                  onTap: _busy ? null : _autoMatchRoom,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: WrC.chipBg,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(color: WrC.line),
+                                    ),
+                                    child: Text(
+                                      '✨ 방 분위기에 맞춰 자동으로 입기',
+                                      style: WrF.body(11, color: WrC.fg),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -435,7 +440,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       decoration: on ? WrDeco.chipOn : WrDeco.chip,
       child: Text(
         label,
-        style: WrF.body(12.5, w: FontWeight.w700, color: on ? Colors.white : WrC.fg),
+        style: WrF.body(
+          12.5,
+          w: FontWeight.w700,
+          color: on ? Colors.white : WrC.fg,
+        ),
       ),
     ),
   );
@@ -450,7 +459,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     // app3/flow.js wardrobeOf(charId) 1:1 구조 — base(4벌) + extra(해당
     // 성별 신규 20벌 중 현재 방 테마와 일치하는 것들, F00/M00에게만).
     final variants = p.outfitOffers
-        .where((offer) => !offer.isNew || offer.theme == (room?.theme ?? WrTheme.free))
+        .where(
+          (offer) =>
+              !offer.isNew || offer.theme == (room?.theme ?? WrTheme.free),
+        )
         .map((offer) => WrOutfitVariant(offer, 0, offer.name ?? '기본', null))
         .toList();
     final shown = _tab == 'all'
@@ -484,162 +496,189 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   .toList();
               final T = themeInfo.isNotEmpty ? themeInfo.first : null;
               if (T == null) return const SizedBox.shrink();
-              final cur = room != null &&
+              final cur =
+                  room != null &&
                   room.char == c.id &&
                   (o.isNew
                       ? room.outfitId == o.id
                       : room.outfitId == null && room.outfitNow == o.theme);
               final pv = o.isNew
                   ? _newOutfitId == o.id
-                  : _newOutfitId == null && _wear == o.theme && _variant == v.index;
+                  : _newOutfitId == null &&
+                        _wear == o.theme &&
+                        _variant == v.index;
               final tColor = _hex(T['color'] as String);
-              return GestureDetector(
-                onTap: () {
-                  if (!o.compatible) {
-                    WrToast.show(context, '${o.gender == 'F' ? '하린' : '준'} 전용 의상이에요');
-                    return;
-                  }
-                  if (o.isNew && !o.owned) {
-                    // 미보유 신규 의상은 바로 미리보기만 전환하지 않고
-                    // 「상점에서 보기」 흐름으로 보낸다(아래 CTA에서 처리).
+              // [QA 테스트 보조 — 대표 지시] 좌표 클릭 대신 이름표로 누를 수
+              // 있도록 outfit_<id> identifier 부여(기본 4벌은 id가 없으므로
+              // 테마명으로 대체).
+              return Semantics(
+                identifier: 'outfit_${o.id ?? o.theme.name}',
+                button: true,
+                child: GestureDetector(
+                  onTap: () {
+                    if (!o.compatible) {
+                      WrToast.show(
+                        context,
+                        '${o.gender == 'F' ? '하린' : '준'} 전용 의상이에요',
+                      );
+                      return;
+                    }
+                    if (o.isNew && !o.owned) {
+                      // 미보유 신규 의상은 바로 미리보기만 전환하지 않고
+                      // 「상점에서 보기」 흐름으로 보낸다(아래 CTA에서 처리).
+                      setState(() {
+                        _wear = o.theme;
+                        _newOutfitId = o.id;
+                        _variant = v.index;
+                      });
+                      return;
+                    }
                     setState(() {
                       _wear = o.theme;
                       _newOutfitId = o.id;
                       _variant = v.index;
                     });
-                    return;
-                  }
-                  setState(() {
-                    _wear = o.theme;
-                    _newOutfitId = o.id;
-                    _variant = v.index;
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: WrC.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: pv || cur ? tColor : WrC.cardBorder,
-                      width: pv || cur ? 1.6 : 1,
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: WrC.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: pv || cur ? tColor : WrC.cardBorder,
+                        width: pv || cur ? 1.6 : 1,
+                      ),
+                      boxShadow: pv
+                          ? [
+                              BoxShadow(
+                                color: tColor.withValues(alpha: .4),
+                                blurRadius: 16,
+                              ),
+                            ]
+                          : const [],
                     ),
-                    boxShadow: pv
-                        ? [
-                            BoxShadow(
-                              color: tColor.withValues(alpha: .4),
-                              blurRadius: 16,
-                            ),
-                          ]
-                        : const [],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      tColor.withValues(alpha: .27),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: Opacity(
-                                opacity: !o.compatible
-                                    ? .35
-                                    : (o.hasArt || o.theme == WrTheme.free ? 1 : .4),
-                                child: Image.asset(
-                                  o.isNew ? o.asset : cat.charImage(c.id, o.theme),
-                                  fit: BoxFit.contain,
-                                  alignment: Alignment.bottomCenter,
-                                  errorBuilder: (_, __, ___) => Center(
-                                    child: Text(
-                                      T['glyph'] as String,
-                                      style: const TextStyle(fontSize: 28),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (!o.hasArt && o.theme != WrTheme.free)
-                              Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: DecoratedBox(
                                   decoration: BoxDecoration(
-                                    color: const Color(0x99000000),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: const Text(
-                                    '그림 준비 중',
-                                    style: TextStyle(
-                                      fontFamily: 'Pretendard',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
-                                      color: Colors.white,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        tColor.withValues(alpha: .27),
+                                        Colors.transparent,
+                                      ],
                                     ),
                                   ),
                                 ),
                               ),
-                            Positioned(
-                              left: 8,
-                              top: 8,
-                              child: Text(
-                                T['glyph'] as String,
-                                style: const TextStyle(fontSize: 18),
+                              Positioned.fill(
+                                child: Opacity(
+                                  opacity: !o.compatible
+                                      ? .35
+                                      : (o.hasArt || o.theme == WrTheme.free
+                                            ? 1
+                                            : .4),
+                                  child: Image.asset(
+                                    o.isNew
+                                        ? o.asset
+                                        : cat.charImage(c.id, o.theme),
+                                    fit: BoxFit.contain,
+                                    alignment: Alignment.bottomCenter,
+                                    errorBuilder: (_, __, ___) => Center(
+                                      child: Text(
+                                        T['glyph'] as String,
+                                        style: const TextStyle(fontSize: 28),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              o.name ?? '${T['label']} 의상',
-                              style: WrF.body(13, w: FontWeight.w700, color: WrC.fg),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              o.isNew
-                                  ? '${o.gender == 'F' ? '하린' : '준'} 전용 · ${T['label']}'
-                                  : T['outfitHint'] as String? ?? '',
-                              style: WrF.body(10.5, color: WrC.muted, height: 1.4),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              !o.compatible
-                                  ? '잠김 · 다른 수호자 전용'
-                                  : cur
-                                  ? '✓ 입는 중'
-                                  : o.owned
-                                  ? '보유'
-                                  : (o.hasArt ? '🧧 ${o.price}' : '곧 만나요'),
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                                color: cur ? tColor : (o.owned ? WrC.muted : WrC.glow),
+                              if (!o.hasArt && o.theme != WrTheme.free)
+                                Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0x99000000),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: const Text(
+                                      '그림 준비 중',
+                                      style: TextStyle(
+                                        fontFamily: 'Pretendard',
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Positioned(
+                                left: 8,
+                                top: 8,
+                                child: Text(
+                                  T['glyph'] as String,
+                                  style: const TextStyle(fontSize: 18),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                o.name ?? '${T['label']} 의상',
+                                style: WrF.body(
+                                  13,
+                                  w: FontWeight.w700,
+                                  color: WrC.fg,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                o.isNew
+                                    ? '${o.gender == 'F' ? '하린' : '준'} 전용 · ${T['label']}'
+                                    : T['outfitHint'] as String? ?? '',
+                                style: WrF.body(
+                                  10.5,
+                                  color: WrC.muted,
+                                  height: 1.4,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                !o.compatible
+                                    ? '잠김 · 다른 수호자 전용'
+                                    : cur
+                                    ? '✓ 입는 중'
+                                    : o.owned
+                                    ? '보유'
+                                    : (o.hasArt ? '🧧 ${o.price}' : '곧 만나요'),
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                  color: cur
+                                      ? tColor
+                                      : (o.owned ? WrC.muted : WrC.glow),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -654,21 +693,27 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
   // app3/wardrobe.jsx 메인 버튼 상태(원본과의 차이는 미보유일 때 "상점에서
   // 보기"로 바뀌는 것뿐 — 대표 결정).
+  // [QA 테스트 보조 — 대표 지시] 좌표 클릭 대신 이름표(wardrobe_cta)로 누를 수
+  // 있도록 모든 분기의 버튼에 동일한 Semantics identifier를 부여한다.
   Widget _ctaButton(WishRoomProvider p, WrCharacter c, WrTheme outfitTheme) {
     final room = p.room;
     final offer = p.outfitOffers
-        .where((o) => _newOutfitId != null
-            ? o.id == _newOutfitId
-            : !o.isNew && o.theme == (_wear ?? WrTheme.free))
+        .where(
+          (o) => _newOutfitId != null
+              ? o.id == _newOutfitId
+              : !o.isNew && o.theme == (_wear ?? WrTheme.free),
+        )
         .firstOrNull;
     if (offer == null) return const SizedBox.shrink();
-    final cur = room != null &&
+    final cur =
+        room != null &&
         room.char == c.id &&
         (offer.isNew
             ? room.outfitId == offer.id
             : room.outfitId == null && room.outfitNow == offer.theme);
+    Widget btn;
     if (cur) {
-      return SizedBox(
+      btn = SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
@@ -677,9 +722,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           child: Text('지금 입고 있어요', style: WrF.body(14, color: Colors.white54)),
         ),
       );
-    }
-    if (!offer.compatible) {
-      return SizedBox(
+    } else if (!offer.compatible) {
+      btn = SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
@@ -691,9 +735,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           ),
         ),
       );
-    }
-    if (!offer.owned) {
-      return SizedBox(
+    } else if (!offer.owned) {
+      btn = SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
@@ -709,24 +752,27 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           ),
         ),
       );
-    }
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: _busy ? null : () => _wearOutfit(c, offer),
-        style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
-        child: Text(
-          '${offer.name ?? '${WrCatalog.I.themes.firstWhere((t) => t['id'] == offer.theme.name)['label']} 의상'} 입기',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
+    } else {
+      btn = SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: _busy ? null : () => _wearOutfit(c, offer),
+          style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
+          child: Text(
+            '${offer.name ?? '${WrCatalog.I.themes.firstWhere((t) => t['id'] == offer.theme.name)['label']} 의상'} 입기',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
+    return Semantics(identifier: 'wardrobe_cta', button: true, child: btn);
   }
 
-  Color _hex(String s) => Color(int.parse('FF${s.replaceFirst('#', '')}', radix: 16));
+  Color _hex(String s) =>
+      Color(int.parse('FF${s.replaceFirst('#', '')}', radix: 16));
 }
