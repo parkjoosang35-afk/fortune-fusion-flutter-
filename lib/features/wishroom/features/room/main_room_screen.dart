@@ -269,6 +269,9 @@ class _MainRoomScreenState extends State<MainRoomScreen>
       _quoteText = null;
       _lastGain = null;
     });
+    debugPrint(
+      '[WR_STATE] _onDevote start → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
+    );
     final cat = WrCatalog.I;
     final ritual = cat.ritual(room.theme);
     final verb = wrVerb(room.theme.name, ritual);
@@ -369,15 +372,26 @@ class _MainRoomScreenState extends State<MainRoomScreen>
         debugPrint('WR_PHASE devote.boost2');
         _addFx(const WrWash(strong: true, durMs: 2000), life: 2000);
         setState(() => _capText = ritual['done'] as String? ?? '');
+        debugPrint(
+          '[WR_STATE] onWashDone(1.7s) → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
+        );
       },
       onQuote: () {
         debugPrint('WR_PHASE devote.quote');
         final quotes = (ritual['quotes'] as List? ?? const []).cast<List>();
-        if (quotes.isEmpty) return;
+        if (quotes.isEmpty) {
+          debugPrint(
+            '[WR_STATE] onQuote(2.3s) → quotes EMPTY for theme=${room.theme}, skip setting _quoteText!',
+          );
+          return;
+        }
         final pick = quotes[math.Random().nextInt(quotes.length)];
         final text = pick[0] as String;
         final src = pick.length > 1 ? (pick[1] as String? ?? '') : '';
         setState(() => _quoteText = (text, src));
+        debugPrint(
+          '[WR_STATE] onQuote(2.3s) → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
+        );
       },
       onDone: (res) {
         debugPrint('WR_PHASE devote.end');
@@ -387,6 +401,9 @@ class _MainRoomScreenState extends State<MainRoomScreen>
           _capText = null;
           _lastGain = null;
         });
+        debugPrint(
+          '[WR_STATE] onDone(2.9s) after capText reset → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone leveledUp=${res.leveledUp}',
+        );
         p.applyDevotionResult(res);
         // [J6 Tour21] app3/home.jsx `cur.prayedN === 1 && !cur.toured && !cur.realFirst`
         // 1:1 — Flutter에는 toured/realFirst 대응 필드가 없으므로(서버 스키마 부재),
@@ -410,6 +427,9 @@ class _MainRoomScreenState extends State<MainRoomScreen>
               res.bonus,
               res.bonus > 0,
             ),
+          );
+          debugPrint(
+            '[WR_STATE] onDone(2.9s) set _devoteDone → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
           );
         }
       },
@@ -981,15 +1001,18 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                                 icon: ritual['icon'] as String? ?? '✿',
                                 verb: wrVerb(room.theme.name, ritual),
                                 done: _devoteDone,
-                                onClose: () => setState(() {
-                                  _quoteText = null;
-                                  _devoteDone = null;
-                                  // [J6 Tour21] app3/home.jsx DoneCard.onClose 1:1 훅 포인트.
-                                  if (_firstTimeAfterPray) {
-                                    _firstTimeAfterPray = false;
-                                    _tour21 = true;
-                                  }
-                                }),
+                onClose: () => setState(() {
+                  debugPrint(
+                    '[WR_STATE] _QuoteCard.onClose (user tapped 마음에 담기/닫기) → before: _quoteText=$_quoteText _devoteDone=$_devoteDone',
+                  );
+                  _quoteText = null;
+                  _devoteDone = null;
+                  // [J6 Tour21] app3/home.jsx DoneCard.onClose 1:1 훅 포인트.
+                  if (_firstTimeAfterPray) {
+                    _firstTimeAfterPray = false;
+                    _tour21 = true;
+                  }
+                }),
                               ),
                             ),
                         ],
