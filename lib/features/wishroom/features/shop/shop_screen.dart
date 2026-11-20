@@ -230,7 +230,8 @@ class _ShopScreenState extends State<ShopScreen> {
           sub: c.title,
           price: c.price,
           own: owned,
-          ownLabel: p.me?.repChar == c.id ? '대표' : '보유',
+          // app3/shopscreen.jsx Tile ownLabel 1:1 — `v.guardian===c.id?'✓ 함께하는 중':'모셨어요'`.
+          ownLabel: p.me?.repChar == c.id ? '✓ 함께하는 중' : '모셨어요',
           onClick: () => _buyCharacter(context, p, room, open, c, owned),
         );
       },
@@ -331,6 +332,11 @@ class _ShopScreenState extends State<ShopScreen> {
               _lockToast(context, room);
               return;
             }
+            // [v5 S2 — 사용자 재지적] app3/shopscreen.jsx/wardrobe.jsx 1:1 —
+            // 결제는 "구매"만 한다. 입히는 것은 영수증 화면의 "👗 지금 입혀
+            // 보기" 버튼을 눌렀을 때 따로 일어난다(결제 즉시 자동으로 입혀지지
+            // 않는다). wearNamedOutfit()은 여기서 쓰지 않고(그건 보유 의상을
+            // 바로 입는 액션용), buyNamedOutfitOnly()로 구매만 완료한다.
             openPayScreen(
               context,
               PayOrder(
@@ -339,25 +345,10 @@ class _ShopScreenState extends State<ShopScreen> {
                 sub: o['themeLabel'] as String?,
                 glyph: '👗',
                 price: price,
-                doneTitle: '${o['name']}으로 갈아입었어요',
-                afterLabel: null,
-                // [구매 로직 단일화] wearNamedOutfit()이 이미 "미보유면 구매→필요하면
-                // 캐릭터 전환→의상 적용"을 전부 한 번에 수행한다(이미 character_shop_
-                // screen.dart의 _wearOutfit도 신규 의상에는 이 메서드를 쓴다) — 여기서
-                // 별도의 구매 호출을 새로 만들지 않고 그대로 재사용한다.
-                onConfirmPay: () => p.wearNamedOutfit(
-                  charId,
-                  OutfitOffer.fromJson({
-                    'theme': o['theme'],
-                    'price': price,
-                    'hasArt': true,
-                    'owned': false,
-                    'compatible': true,
-                    'id': id,
-                    'name': o['name'],
-                    'gender': gender,
-                  }),
-                ),
+                doneTitle: '${o['name']}, 옷장에 담겼어요',
+                afterLabel: '👗 지금 입혀 보기',
+                after: () => _wearNewOutfit(context, p, charId, id, o['name'] as String),
+                onConfirmPay: () => p.buyNamedOutfitOnly(charId, id),
               ),
             );
           },

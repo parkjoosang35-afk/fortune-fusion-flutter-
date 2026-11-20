@@ -487,6 +487,26 @@ class WishRoomProvider extends ChangeNotifier {
   int _outfitRequest = 0;
   List<OutfitOffer> get outfitOffers => _outfitCache;
 
+  /// [v5 S2 — "2번 진행할 때 지킬 것" ②, 사용자 판정 2026-xx-xx 재지적]
+  /// app3/wardrobe.jsx · app3/shopscreen.jsx의 신규 의상 구매 흐름 1:1 —
+  /// 결제는 "구매"만 하고, 실제로 입히는 것은 영수증 화면의 "👗 지금 입혀
+  /// 보기" 버튼을 눌렀을 때 별도로 일어난다(자동으로 입혀지지 않는다).
+  /// wearNamedOutfit()은 구매+전환+착용을 한 번에 묶어 "이미 보유한 의상을
+  /// 즉시 입기" 액션(옷장에서 보유 의상 탭)에 계속 쓰고, 신규 구매는 이
+  /// 메서드로 결제만 완료한다.
+  Future<bool> buyNamedOutfitOnly(String char, String outfitId) async {
+    lastError = null;
+    try {
+      me = await repo.buyNamedOutfit(char, outfitId);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> wearNamedOutfit(String char, OutfitOffer offer) async {
     lastError = null;
     if (room == null) {

@@ -139,6 +139,10 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         return;
       }
       if (!o.owned) {
+        // [v5 S2 — 사용자 재지적] app3/wardrobe.jsx 1:1 — 결제는 "구매"만.
+        // 실제로 입히는 것은 영수증의 "👗 지금 입혀 보기"를 눌렀을 때 따로
+        // 일어난다(wearNamedOutfit()은 여기서 쓰지 않음 — 그건 보유 의상을
+        // 즉시 입는 액션 전용).
         openPayScreen(
           context,
           PayOrder(
@@ -147,9 +151,26 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
             sub: c.name,
             glyph: '👗',
             price: o.price,
-            doneTitle: '${o.name}으로 갈아입었어요',
-            afterLabel: null,
-            onConfirmPay: () => p.wearNamedOutfit(c.id, o),
+            doneTitle: '${o.name}, 옷장에 담겼어요',
+            afterLabel: '👗 지금 입혀 보기',
+            after: () async {
+              // [버그주의] 여기서 캡처된 `o`는 구매 전(owned:false) 상태 그대로다.
+              // 이걸 그대로 wearNamedOutfit()에 넘기면 "미보유"로 판단해 다시
+              // buyNamedOutfit()을 호출해 버린다(이중 결제 위험) — loadOutfits()로
+              // 새로고침해 owned:true가 된 최신 offer를 찾아서 넘긴다
+              // (shop_screen.dart _wearNewOutfit과 동일 패턴).
+              await _loadOutfits(c.id);
+              if (!mounted) return;
+              final fresh = p.outfitOffers.where((x) => x.id == o.id).firstOrNull;
+              if (fresh == null) return;
+              final ok = await p.wearNamedOutfit(c.id, fresh);
+              if (!mounted) return;
+              WrToast.show(
+                context,
+                ok ? '${o.name}으로 갈아입었어요' : (p.lastError?.message ?? '의상 적용에 실패했어요'),
+              );
+            },
+            onConfirmPay: () => p.buyNamedOutfitOnly(c.id, o.id!),
           ),
         );
         return;
