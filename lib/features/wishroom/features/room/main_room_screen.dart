@@ -7,7 +7,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart'
     show Clipboard, ClipboardData, HapticFeedback;
@@ -269,9 +269,11 @@ class _MainRoomScreenState extends State<MainRoomScreen>
       _quoteText = null;
       _lastGain = null;
     });
-    debugPrint(
-      '[WR_STATE] _onDevote start → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[WR_STATE] _onDevote start → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
+      );
+    }
     final cat = WrCatalog.I;
     final ritual = cat.ritual(room.theme);
     final verb = wrVerb(room.theme.name, ritual);
@@ -372,26 +374,32 @@ class _MainRoomScreenState extends State<MainRoomScreen>
         debugPrint('WR_PHASE devote.boost2');
         _addFx(const WrWash(strong: true, durMs: 2000), life: 2000);
         setState(() => _capText = ritual['done'] as String? ?? '');
-        debugPrint(
-          '[WR_STATE] onWashDone(1.7s) → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[WR_STATE] onWashDone(1.7s) → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
+          );
+        }
       },
       onQuote: () {
         debugPrint('WR_PHASE devote.quote');
         final quotes = (ritual['quotes'] as List? ?? const []).cast<List>();
         if (quotes.isEmpty) {
-          debugPrint(
-            '[WR_STATE] onQuote(2.3s) → quotes EMPTY for theme=${room.theme}, skip setting _quoteText!',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              '[WR_STATE] onQuote(2.3s) → quotes EMPTY for theme=${room.theme}, skip setting _quoteText!',
+            );
+          }
           return;
         }
         final pick = quotes[math.Random().nextInt(quotes.length)];
         final text = pick[0] as String;
         final src = pick.length > 1 ? (pick[1] as String? ?? '') : '';
         setState(() => _quoteText = (text, src));
-        debugPrint(
-          '[WR_STATE] onQuote(2.3s) → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[WR_STATE] onQuote(2.3s) → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
+          );
+        }
       },
       onDone: (res) {
         debugPrint('WR_PHASE devote.end');
@@ -401,9 +409,11 @@ class _MainRoomScreenState extends State<MainRoomScreen>
           _capText = null;
           _lastGain = null;
         });
-        debugPrint(
-          '[WR_STATE] onDone(2.9s) after capText reset → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone leveledUp=${res.leveledUp}',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[WR_STATE] onDone(2.9s) after capText reset → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone leveledUp=${res.leveledUp}',
+          );
+        }
         p.applyDevotionResult(res);
         // [J6 Tour21] app3/home.jsx `cur.prayedN === 1 && !cur.toured && !cur.realFirst`
         // 1:1 — Flutter에는 toured/realFirst 대응 필드가 없으므로(서버 스키마 부재),
@@ -414,23 +424,25 @@ class _MainRoomScreenState extends State<MainRoomScreen>
         if (res.leveledUp) {
           _showLevelUp(res.room.level);
         } else {
-          // [v5 S2 — 대표 판정 "카드 1장으로 합칩니다"] app3/home.jsx DoneCard()
-          // 1:1 — 별도 보상 오버레이(_reward)를 새로 띄우지 않고, onQuote에서 이미
-          // 뜬 말씀카드(_quoteText)에 통계(🕯dayN·🙏prayedN)+🧧보상 칩을 추가로
-          // 채워 넣는다. _quoteText가 아직 null이면(네트워크가 빨라 2.3s onQuote가
-          // 아직 안 왔을 가능성은 사실상 없지만 방어적으로) 카드 자체가 없을 수
-          // 있으니 그때만 폴백으로 캡션 문구를 쓴다.
+          // [v5 S2 — 대표 판정 "카드 1장으로 합칩니다" / "보상 숫자 확인"] app3/home.jsx
+          // DoneCard() 1:1 — 별도 보상 오버레이(_reward)를 새로 띄우지 않고, onQuote에서
+          // 이미 뜬 말씀카드(_quoteText)에 통계(🕯dayN·🙏prayedN)+🧧보상 칩을 추가로
+          // 채워 넣는다. 🧧 숫자는 res.bonus(스트릭 보너스분만, 평소엔 0)가 아니라
+          // res.pouchEarned(이번 기도로 실제 적립된 합계 — 평소 +5, 7일째 +25)를
+          // 써야 한다. 4번째 요소(streak 칩 노출 여부)는 7일째인지(res.bonus>0)로 그대로 판정.
           setState(
             () => _devoteDone = (
               res.room.dayN,
               res.room.prayedN,
-              res.bonus,
+              res.pouchEarned,
               res.bonus > 0,
             ),
           );
-          debugPrint(
-            '[WR_STATE] onDone(2.9s) set _devoteDone → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              '[WR_STATE] onDone(2.9s) set _devoteDone → _capText=$_capText _quoteText=$_quoteText _devoteDone=$_devoteDone',
+            );
+          }
         }
       },
       onError: (e) {
@@ -1002,9 +1014,11 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                                 verb: wrVerb(room.theme.name, ritual),
                                 done: _devoteDone,
                 onClose: () => setState(() {
-                  debugPrint(
-                    '[WR_STATE] _QuoteCard.onClose (user tapped 마음에 담기/닫기) → before: _quoteText=$_quoteText _devoteDone=$_devoteDone',
-                  );
+                  if (kDebugMode) {
+                    debugPrint(
+                      '[WR_STATE] _QuoteCard.onClose (user tapped 마음에 담기/닫기) → before: _quoteText=$_quoteText _devoteDone=$_devoteDone',
+                    );
+                  }
                   _quoteText = null;
                   _devoteDone = null;
                   // [J6 Tour21] app3/home.jsx DoneCard.onClose 1:1 훅 포인트.

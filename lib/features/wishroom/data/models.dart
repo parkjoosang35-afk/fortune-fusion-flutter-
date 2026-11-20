@@ -243,8 +243,14 @@ class MyRoomResponse {
 class DevotionResult {
   final WishRoom room; final int prevLevel, bonus; final bool leveledUp; final Me me;
   final DevotionGain? gain;
+  /// [v5 S2 — 대표 판정 "보상 숫자 확인"] 이번 기도로 실제 적립된 복주머니 합계
+  /// (평소 +5(pray) · 7일째 +25(pray 5+streak7 20)). 통합 카드(🧧 표시)는 이
+  /// 값을 써야 한다 — `bonus`는 스트릭 보너스분(streak7)만 담아 평소엔 0이라
+  /// 기본 지급(+5)이 누락되어 보이는 문제가 있었다.
+  final int pouchEarned;
   DevotionResult.fromJson(Map<String, dynamic> j)
-      : room = WishRoom.fromJson(j['room']), prevLevel = j['prevLevel'], leveledUp = j['leveledUp'], bonus = j['bonus'] ?? 0, me = Me.fromJson(j['me']),
+      : room = WishRoom.fromJson(j['room']), prevLevel = j['prevLevel'], leveledUp = j['leveledUp'], bonus = j['bonus'] ?? 0,
+        pouchEarned = j['pouchEarned'] ?? (j['bonus'] ?? 0), me = Me.fromJson(j['me']),
         gain = j['gain'] == null ? null : DevotionGain.fromJson(Map<String, dynamic>.from(j['gain']));
 }
 
