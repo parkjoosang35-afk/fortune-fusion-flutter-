@@ -230,3 +230,34 @@ app3 `extras.js Fulfill3.go()` 원본은 放 선택 시 `CompleteScreen`(축하�
 - [ ] 후기·완료 알림 미발송 확인
 - [ ] 이룬 소원 통계에서 放 제외 확인
 - [ ] "완성" 라벨 불일치 — 대표님 verdict 필요 (옵션 3개, 위 섹션 참고)
+
+### 4-B 放 — 함께 빌기 제외 · 후기/알림 미발생 · "이룬 소원 통계" 검토 (코드 검증, 이 세션 마무리)
+
+러닝 환경(sandbox)이 이번 세션 끝 무렵 응답이 느려져(이터레이션 한도), 남은 3개 항목은
+**실제 UI 재생 대신 서버 코드 레벨로 교차검증**했다. 모두 코드상 이미 올바르게 동작하도록
+짜여 있음을 확인(런타임 재확인은 다음 세션 과제로 남김):
+
+- **함께 빌기(explore) 목록 제외 — 코드상 확인, 정상**:
+  `wish-rooms/explore/route.ts` 26행 `where: { visibility: "PUBLIC", status: { not: "ARCHIVED" }, ... }`.
+  放 완료→봉인된 room 13은 `status=ARCHIVED`이므로 이 필터에서 항상 제외된다(visibility가
+  PRIVATE인 것과 무관하게 status 필터만으로도 이중 차단). DB 확인:
+  `13|455|ARCHIVED|RELEASED|IN_PROGRESS|PRIVATE|가족 모두 건강하고 평안하게 지내기를`.
+- **후기 CTA 미노출 — 코드상 확인, 정상**: `review/route.ts` 74행
+  `if (room.wishStatus !== "ACHIEVED") throw ... "NOT_ACHIEVED"`. 放은 `wishStatus=IN_PROGRESS`로
+  유지되므로(成만 ACHIEVED) 서버가 애초에 후기 등록을 막고, 클라이언트도
+  `explore_screen.dart canWrite`가 `wishStatus==ACHIEVED`를 요구해 CTA 자체를 안 그린다.
+- **완료 알림 미발생 — 코드상 확인, 정상**: `complete/route.ts` 83행, `outcome/route.ts` 83행
+  모두 `if (outcome === "FULFILLED") { await createNotification(...) }`로만 감싸여 있어
+  RELEASED 경로는 알림 발송 코드 자체를 타지 않는다.
+- **"이룬 소원 통계"에서 放 제외 — 해당 기능 자체를 못 찾음**: Flutter(`lib/`)와 원본
+  app3(`*.jsx`/`*.js`) 전체를 검색했으나 "총 이룬 소원 개수/통계"를 집계해서 보여주는
+  화면·위젯·API가 존재하지 않음(마이페이지·소원방 어디에도 없음). 추정컨대 대표님이
+  말씀하신 "통계"는 위 "후기 CTA"·"ACHIEVED 카운트가 쓰이는 유일한 곳들"(review 작성 가능
+  여부, explore의 canWrite)을 가리키는 것으로 보이며, 이 둘은 이미 放을 올바르게 제외하고
+  있음을 위에서 확인함. **별도의 "통계" 화면이 실제로 존재하는지, 어디를 가리키는 것인지
+  대표님께 재확인 필요** — 화면 스크린샷이나 메뉴 명칭을 알려주시면 그 지점을 정확히
+  검증하겠음.
+
+**放 검증 체크리스트 — 최종 상태**: 대표님 표의 6개 항목 중 5개 코드/DB/런타임으로 확인 완료
+(보관함 표시, 새 소원 가능, 함께 빌기 제외, 후기·알림 미발생), 통계 항목만 "기능 소재
+재확인 필요"로 보류.
