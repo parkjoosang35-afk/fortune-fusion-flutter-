@@ -140,3 +140,34 @@
 충전 버튼 활성화 · 충전/받은 구분 기능은 "신통방통 본 지갑 서버"(매핑표 K10) 소관이며,
 소원방 쪽에서 별도로 만들지 않는다. 현재 `pay_screen.dart`의 충전 placeholder를 그대로 유지한다
 (소원방 쪽 추가 작업 없음).
+
+### 4-B 放 동작 검증 (Playwright, 이 세션)
+
+**치명적 버그 발견 및 수정**: `schema.prisma`에 `note` 필드를 추가했지만 `npx prisma generate`를
+재실행하지 않아 Prisma Client(`src/generated/prisma`, gitignore 대상이라 커밋에는 안 잡힘)가
+구버전이었음. 그 결과 放 완료 요청이 전부 `Unknown argument note` 500 에러로 실패했음
+(화면엔 "잠시 후 다시 시도해주세요" 토스트만 뜨고 원인 불명).
+→ `npx prisma generate` 재실행 + dev 서버 재시작으로 해결. **배포 시 반드시
+`prisma generate`를 빌드 스텝에 포함해야 함** (보통 `npm run build`나 `postinstall`에
+들어있는지 확인 필요 — 로컬 dev에서는 수동 재기동 전까지 반영 안 됨).
+
+**확인 완료**:
+- [x] 放 선택 → 메모 입력 → 1차 탭(경고 문구 노출, 버튼 라벨 "放 네, 내려놓을게요"로 변경) →
+      2차 탭 → DB 반영 확인: `status=COMPLETED, outcome=RELEASED, note='放 최종확인',
+      wish_status=IN_PROGRESS` (설계대로 ACHIEVED로 바뀌지 않음) — **정상**
+- [x] 2차 탭 후 화면 전환: CompleteScreen 放 봉인 애니메이션 정상 표시
+
+**미확인 (다음 세션에서 이어서 확인 필요)**:
+- [ ] 放 완료 직후 `/#/wish-room` 재진입 화면(`60_after_release_newroom.png`)이 기존 소원
+      ("가족 모두 건강하고 평안하게 지내기를", 15일째·기도20번)을 그대로 보여줌 —
+      **새 소원 작성 화면으로 전환되는지, 아니면 별도 진입점(버튼 등)이 있는지 확인 필요**.
+      대표님 기대 동작("새 소원 1일째부터 다시 시작")과 일치하는지 재확인 요망.
+- [ ] 보관함 放 도장 카드 표시
+- [ ] 함께 빌기 목록에서 제외 여부
+- [ ] 후기/완료 알림 미발생 확인
+- [ ] 이룬 소원 통계에서 放 제외 확인
+- [ ] 수호자/옷/구매물건 유지 확인
+
+테스트 스크립트: `/home/user/wr_compare/flutter_4b/explore_14~19.py` (디스포저블, 앱 소스 아님).
+스크린샷: 같은 폴더 `40_after_real_2nd_tap.png`(이전 잘못된 좌표 — 시트 닫힘),
+`51_after_click_300_768.png`(放 봉인 애니메이션, 성공), `60_after_release_newroom.png`(재진입 화면).
