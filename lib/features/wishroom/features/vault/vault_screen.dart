@@ -4,8 +4,9 @@
 // 2개(소원 기록관·응원 보상)로 축소. "복주머니"(적립/사용 내역)는 🧧 지갑 시트
 // (wallet_sheet.dart)로 옮겼고, 우상단 "캐릭터" 칩은 제거했다(수호자 진입은 지갑
 // 시트 "소원방에서 쓰는 곳" 카드로 들어감). 소원 기록관은 기존 진행중/완료 필터
-// 칩 토글 대신 "지금 밝히는 소원" 카드를 항상 보여준다. 기록 카드(_ArchiveCard)는
-// 이번 커밋에서는 成 도장만 표시(放 도장은 4-B).
+// 칩 토글 대신 "지금 밝히는 소원" 카드를 항상 보여준다. 기록 카드(_ArchiveCard)와
+// 재생 오버레이(_ReplayOverlay)는 room.outcome에 따라 成/放 도장을 구분 표시한다
+// (4-B — CHECKLIST.md 대표님 판정).
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
@@ -247,6 +248,8 @@ class _ArchiveCard extends StatelessWidget {
   String _d(DateTime? t) => t == null ? '' : '${t.year}.${t.month.toString().padLeft(2, '0')}.${t.day.toString().padLeft(2, '0')}';
   @override
   Widget build(BuildContext context) {
+    // [4-B 신규] 放(RELEASED) 완료 기록은 도장을 成과 다른 색/글자로 표시.
+    final isRelease = room.outcome == Outcome.RELEASED;
     return GestureDetector(onTap: onTap, child: Container(
       decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0x66F5CF6A))),
       padding: const EdgeInsets.all(10),
@@ -267,8 +270,8 @@ class _ArchiveCard extends StatelessWidget {
               RoomThumb(room: room, items: items, w: c.maxWidth, h: c.maxHeight, focus: .22, zoom: 1.5, brightnessOverride: 1)))),
           Positioned(right: 4, top: 4, child: Transform.rotate(angle: -6 * 3.14159 / 180, child: Container(
             width: 28, height: 28, alignment: Alignment.center,
-            decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
-            child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))))),
+            decoration: BoxDecoration(color: isRelease ? const Color(0xFF7A6A9A) : WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: isRelease ? const Color(0xFF7A6A9A).withValues(alpha: .5) : const Color(0x80C94A3B), blurRadius: 8)]),
+            child: Text(isRelease ? '放' : '成', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))))),
         ])),
         const SizedBox(height: 6),
         Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -311,6 +314,8 @@ class _ReplayOverlay extends StatelessWidget {
   String _d(DateTime? t) => t == null ? '' : '${t.year}.${t.month.toString().padLeft(2, '0')}.${t.day.toString().padLeft(2, '0')}';
   @override
   Widget build(BuildContext context) {
+    // [4-B 신규] 放(RELEASED) 완료 기록은 도장을 成과 다른 색/글자로 표시.
+    final isRelease = room.outcome == Outcome.RELEASED;
     return Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: Stack(children: [
       // [버그수정 — 전수감사] app2/screens-c2.jsx › ArchivePlayer(): `<Room room={{...r,
       // ...s, brightness:1}} gold={.25} entering/>` — frozen 지정이 없다(= 평소처럼
@@ -338,8 +343,8 @@ class _ReplayOverlay extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(width: 28, height: 28, alignment: Alignment.center,
-              decoration: const BoxDecoration(color: WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x80C94A3B), blurRadius: 8)]),
-              child: const Text('成', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))),
+              decoration: BoxDecoration(color: isRelease ? const Color(0xFF7A6A9A) : WrC.accent, shape: BoxShape.circle, boxShadow: [BoxShadow(color: isRelease ? const Color(0xFF7A6A9A).withValues(alpha: .5) : const Color(0x80C94A3B), blurRadius: 8)]),
+              child: Text(isRelease ? '放' : '成', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))),
             const SizedBox(width: 10),
             // [반응형 화면 규격 통일 — 잘림 현상 수정] 좁은 화면(320px대)+글자
             // 확대(1.3배) 조합에서 이 날짜 문구가 Row 폭을 넘어 가로로

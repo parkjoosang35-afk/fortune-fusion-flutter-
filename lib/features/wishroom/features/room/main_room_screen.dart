@@ -3023,6 +3023,11 @@ class _CareSheet extends StatefulWidget {
 
 class _CareSheetState extends State<_CareSheet> {
   bool _confirm = false;
+  // [4-B 신규 — CHECKLIST.md 대표님 판정] 소원 마무리 선택(成/放) + 한 줄 메모.
+  // 기준 원본: app3/extras.js Fulfill3 (mode: 'done'|'let', note maxLength).
+  Outcome _finishMode = Outcome.FULFILLED;
+  final _noteCtrl = TextEditingController();
+  bool _releaseAsk = false; // 放 선택 시 2차 확인("정말 내려놓을까요") 노출 여부
   // [버그수정] showModalBottomSheet의 builder는 한 번만 호출되고 이 시트는
   // Overlay 경로의 별도 Route라서, 부모(_MainRoomScreenState)의 setState만으로는
   // 이미 열려 있는 이 시트가 리빌드되지 않는다(클릭 자체는 부모 상태에 반영되지만
@@ -3035,6 +3040,12 @@ class _CareSheetState extends State<_CareSheet> {
   // 실패 시 토글이 원래대로 되돌아가야 하므로 Provider의 me.skipIntro를 신뢰하되
   // 통신 중에는 이 로컬 값으로 즉시 토글 모양을 보여준다).
   bool? _skipIntroOverride;
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3187,7 +3198,7 @@ class _CareSheetState extends State<_CareSheet> {
               },
             ),
             const SizedBox(height: 16),
-            // 완료 버튼 — 2단계 확인(아직이에요 / 네, 이루어졌어요). [회귀 방지 유지]
+            // 완료 버튼 — 2단계 확인(아직이에요 / 다음 단계: 成/放 선택). [회귀 방지 유지]
             if (!_confirm)
               SizedBox(
                 width: double.infinity,
@@ -3205,72 +3216,236 @@ class _CareSheetState extends State<_CareSheet> {
                 ),
               )
             else
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: WrDeco.card,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '정말 이루어졌나요.',
-                      style: WrF.body(14, height: 1.6, color: Colors.white),
-                    ),
-                    Text(
-                      '완료 후 7일 동안은 되돌릴 수 있어요.',
-                      style: WrF.body(12.5, color: WrC.muted),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 40,
-                            child: OutlinedButton(
-                              onPressed: () => setState(() => _confirm = false),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: WrC.line),
-                              ),
-                              child: Text(
-                                '아직이에요',
-                                style: WrF.body(13, color: WrC.fg),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: SizedBox(
-                            height: 40,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        CompleteScreen(roomId: room.id),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: WrC.glow,
-                              ),
-                              child: const Text(
-                                '네, 이루어졌어요',
-                                style: TextStyle(
-                                  color: Color(0xFF4A2A10),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              _buildFinishPanel(context, room, p),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// [4-B 신규 — CHECKLIST.md 대표님 판정] 소원 마무리(成/放) 2분기 선택 +
+  /// 한 줄 메모(최대 40자). 기준 원본: app3/extras.js Fulfill3 1:1 —
+  /// 成(FULFILLED)/放(RELEASED) 카드 2개 + textarea + 하단 안내문. 放 선택 시
+  /// 원본과 동일하게 "정말 내려놓을까요" 2차 확인을 한 번 더 거친다.
+  Widget _buildFinishPanel(
+    BuildContext context,
+    WishRoom room,
+    WishRoomProvider p,
+  ) {
+    final isRelease = _finishMode == Outcome.RELEASED;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: WrDeco.card,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '이 소원을 마무리할까요',
+            style: WrF.body(14, w: FontWeight.w700, height: 1.6, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _finishModeCard(
+                  identifier: 'finish_mode_fulfilled',
+                  selected: !isRelease,
+                  seal: '成',
+                  sealColor: const Color(0xFFC9602A),
+                  title: '이루어졌어요',
+                  sub: '꽃비와 함께 보관함으로',
+                  onTap: () => setState(() {
+                    _finishMode = Outcome.FULFILLED;
+                    _releaseAsk = false;
+                  }),
                 ),
               ),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: _finishModeCard(
+                  identifier: 'finish_mode_released',
+                  selected: isRelease,
+                  seal: '放',
+                  sealColor: const Color(0xFF7A6A9A),
+                  title: '마음을 내려놓을게요',
+                  sub: '지우지 않고 고이 담아요',
+                  onTap: () => setState(() {
+                    _finishMode = Outcome.RELEASED;
+                    _releaseAsk = false;
+                  }),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            isRelease
+                ? '${room.dayN}일 동안 ${room.prayedN}번 빈 마음은 그대로 남아요. 새 소원은 1일째부터, 수호자 · 옷 · 산 물건은 그대로예요.'
+                : '한 줄 남기면 기록관에서 다시 볼 수 있어요 (선택)',
+            style: WrF.body(12.5, color: WrC.muted, height: 1.6),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: WrDeco.hanji,
+            child: Semantics(
+              identifier: 'finish_note_field',
+              textField: true,
+              child: TextField(
+                controller: _noteCtrl,
+                maxLength: 40,
+                maxLines: 2,
+                style: const TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 14,
+                  color: WrC.hanjiInk,
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  counterText: '',
+                  hintText: isRelease ? '예) 지금은 다른 마음을 담고 싶어요' : '예) 엄마가 건강하게 퇴원하셨어요',
+                  hintStyle: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    color: WrC.hanjiInk.withValues(alpha: .4),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (isRelease && _releaseAsk)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                '내려놓은 소원은 다시 이어서 빌 수 없어요. 정말 내려놓을까요',
+                style: WrF.body(12.5, color: WrC.muted, height: 1.5),
+              ),
+            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: Semantics(
+                    identifier: 'finish_not_yet',
+                    button: true,
+                    child: OutlinedButton(
+                      onPressed: () => setState(() {
+                        _confirm = false;
+                        _releaseAsk = false;
+                      }),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: WrC.line),
+                      ),
+                      child: Text('아직이에요', style: WrF.body(13, color: WrC.fg)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: Semantics(
+                    identifier: 'finish_confirm',
+                    button: true,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // 放 — app3 Fulfill3 go() 1:1: 첫 클릭은 확인만, 두 번째
+                        // 클릭에서 실제로 진행한다.
+                        if (isRelease && !_releaseAsk) {
+                          setState(() => _releaseAsk = true);
+                          return;
+                        }
+                        final note = _noteCtrl.text.trim();
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => CompleteScreen(
+                              roomId: room.id,
+                              outcome: _finishMode,
+                              note: note.isEmpty ? null : note,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isRelease ? WrC.darkBtn : WrC.glow,
+                      ),
+                      child: Text(
+                        isRelease
+                            ? (_releaseAsk ? '放 네, 내려놓을게요' : '마음을 내려놓을게요')
+                            : '네, 이루어졌어요',
+                        style: TextStyle(
+                          color: isRelease ? Colors.white : const Color(0xFF4A2A10),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _finishModeCard({
+    required String identifier,
+    required bool selected,
+    required String seal,
+    required Color sealColor,
+    required String title,
+    required String sub,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      identifier: identifier,
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: selected ? const Color(0x24F2628F) : WrC.card,
+            border: Border.all(
+              color: selected ? WrC.blossom2 : WrC.line,
+              width: selected ? 1.4 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: sealColor, shape: BoxShape.circle),
+                child: Text(
+                  seal,
+                  style: const TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: Color(0xFFFFF9E8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: WrF.body(13.5, w: FontWeight.w700, color: Colors.white),
+              ),
+              const SizedBox(height: 2),
+              Text(sub, style: WrF.body(11, color: WrC.muted), textAlign: TextAlign.center),
+            ],
+          ),
         ),
       ),
     );

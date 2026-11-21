@@ -65,6 +65,60 @@
 
 ---
 
+## 4-B — 완료 (放 내려놓기 + 한 줄 메모)
+
+구현 범위 (대표님 판정 1번, 기준 원본 `app3/extras.js` Fulfill3):
+
+**서버 (admin_web)**:
+- `outcome` 허용값에 `RELEASED` 추가 (`outcome/route.ts`, `complete/route.ts`). 기존
+  `outcome` 컬럼이 자유 문자열(`String?`)이라 컬럼 변경 없이 값만 추가.
+- `note TEXT` 컬럼 신설 (`prisma/schema.prisma` + 신규 마이그레이션
+  `20261121070000_add_wishroom_outcome_note`). 최대 길이는 **40자** — app3 원본(60자)과
+  다르게 대표님 지시로 40자를 서버가 `.slice(0, 40)`으로 강제.
+- `complete/route.ts`: `outcome` 파라미터 생략 시 기존 호환을 위해 `FULFILLED`로 간주
+  (기존 `vault_screen.dart`의 "✿ 소원이 이루어졌어요" 버튼은 成 전용이라 그대로 outcome
+  없이 호출해도 회귀 없음).
+- **RELEASED(放) 설계**: FULFILLED와 달리 (1) 완료 알림을 보내지 않고 (2) `wishStatus`를
+  `ACHIEVED`로 바꾸지 않음(`IN_PROGRESS` 유지). 이 설계 덕분에 "이루어진 소원에만 후기 작성"
+  가드(`review/route.ts`, `explore_screen.dart`의 `canWrite`)가 별도 분기 추가 없이 그대로
+  放 방의 후기 작성 CTA를 자동으로 막아줌.
+- `wishroom-engine.ts`의 `roomView()`에 `note` 필드 전달 추가.
+- 취소(`cancel:true`) 시 `outcome`/`note`도 함께 null로 되돌림.
+
+**⚠️ 별도 보고 필요 — 기존에 있던 문제 발견**: 이번 세션과 무관하게 이미 깨져 있던 Prisma
+마이그레이션 `20261106021511_shrine_v3_talisman_tables`가 "table already exists" 에러로
+`prisma migrate deploy`를 막고 있음(그 마이그레이션 자체 주석에도 사전 드리프트로 기록돼
+있었음, 이번 세션이 만든 문제 아님). 이번 세션은 이를 우회해 `sqlite3`로 `note` 컬럼을 직접
+추가하고 `_prisma_migrations`에 수동 기록했음 — **원본 깨진 마이그레이션 자체의 수정은
+범위 밖이라 손대지 않았고, 대표님께 별도로 플래그 필요**.
+
+**Flutter 앱**:
+- `models.dart`: `Outcome` enum에 `RELEASED` 추가, `WishRoom.note` 필드 추가.
+- `wr_api.dart`/`wishroom_provider.dart`: `outcome()`/`complete()`에 `note`(및 `complete`엔
+  `outcome`) 파라미터 추가.
+- `main_room_screen.dart` `_CareSheet`: "⋯ → 소원 마무리 시트"에 成/放 2카드 선택 UI
+  (`_buildFinishPanel`/`_finishModeCard`) + 한 줄 메모 `TextField(maxLength: 40)` 추가.
+  放 선택 시 app3 `Fulfill3.go()`와 동일하게 2단계 확인("정말 내려놓을까요" 경고 → 재탭 시
+  실제 진행).
+- `complete_screen.dart`: `CompleteScreen`에 `outcome`/`note` 파라미터 추가해 전달. 도장
+  표시 3곳(`_SealingOverlay`, `_BottomCard`, `_SealedBody`)을 모두 `room.outcome ==
+  Outcome.RELEASED` 조건으로 成(주황, `WrC.accent`)/放(보라, `0xFF7A6A9A`) 구분 표시.
+- `vault_screen.dart`: 기록 카드(`_ArchiveCard`)와 재생 오버레이(`_ReplayOverlay`)의 도장도
+  동일하게 成/放 조건부 표시로 변경(4-A에서 "成 도장만"이던 것을 4-B 범위로 확장).
+  `_CurrentWishCard._confirmFulfill()`("✿ 소원이 이루어졌어요" 버튼)은 의도적으로 成 전용
+  그대로 유지 — 성격상 放과 무관.
+- Semantics identifier 신규 7개: `finish_mode_fulfilled`, `finish_mode_released`,
+  `finish_note_field`, `finish_not_yet`, `finish_confirm` (+ `_finishModeCard`가 받는
+  `identifier` 파라미터로 위 2개 카드 포함).
+
+**검증**: `flutter analyze` 전체 프로젝트 — 이번 변경으로 인한 신규 에러/경고 없음(기존
+`guardian_outfit_launcher_test.dart` 무관 에러 2건만 잔존, 이전 세션부터 존재). `build_local.sh`
+빌드 성공(`build/web` 생성 확인). **주의**: 이번 세션은 코드 정적 검증(analyze)과 빌드 성공까지만
+완료했고, Playwright를 통한 실제 클릭 플로우 녹화/캡처 및 app3와의 화면 대조는 세션 종료로 인해
+**아직 수행하지 못함** — 다음 세션에서 이어서 진행 필요.
+
+---
+
 ## 4-B — 다음 단계 (아직 시작 안 함)
 
 범위:

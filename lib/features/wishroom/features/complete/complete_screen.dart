@@ -24,12 +24,25 @@ import '../../../../core/util/original_result_capture.dart';
 import '../../../../core/util/save_filename.dart';
 
 class CompleteScreen extends StatefulWidget {
-  const CompleteScreen({super.key, required this.roomId, this.already = false});
+  const CompleteScreen({
+    super.key,
+    required this.roomId,
+    this.already = false,
+    this.outcome,
+    this.note,
+  });
   final String roomId;
 
   /// capsule2.jsx `app.go('complete', {already:true})` — 이미 ACHIEVED/COMPLETED 상태에서
   /// 진입(연출 재생 없이 바로 최종 상태로 보여줌). 원본 `Complete({already})` 의 st 초기값 로직.
   final bool already;
+
+  /// [4-B 신규 — CHECKLIST.md 대표님 판정] "⋯ → 소원 마무리 시트"(_CareSheet)에서
+  /// 고른 成(FULFILLED)/放(RELEASED) + 한 줄 메모. null이면 기존 호환으로 서버가
+  /// FULFILLED로 간주(complete/route.ts 참고) — vault_screen.dart의 "✿ 소원이
+  /// 이루어졌어요" 버튼처럼 成 단일 경로만 있는 호출부는 그대로 null로 둔다.
+  final Outcome? outcome;
+  final String? note;
   @override
   State<CompleteScreen> createState() => _CompleteScreenState();
 }
@@ -77,7 +90,11 @@ class _CompleteScreenState extends State<CompleteScreen> {
       setState(() => _st = 6);
       return;
     }
-    final ok = await p.complete(widget.roomId);
+    final ok = await p.complete(
+      widget.roomId,
+      outcome: widget.outcome,
+      note: widget.note,
+    );
     if (!mounted) return;
     if (!ok) {
       if (p.lastError != null) WrToast.show(context, p.lastError!.message);
@@ -303,7 +320,11 @@ class _CompleteScreenState extends State<CompleteScreen> {
                       ),
                     ),
                   ),
-                  if (_seal > 0 && _seal < 3) _SealingOverlay(sealing: _seal),
+                  if (_seal > 0 && _seal < 3)
+                    _SealingOverlay(
+                      sealing: _seal,
+                      isRelease: room.outcome == Outcome.RELEASED,
+                    ),
                   // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 Column(닫기
                   // 버튼 Row + 제목/부제 블록 + 기존 Spacer())은 Stack이
                   // 부여하는 568px 높이 제약 안에 있었는데, 좁은 화면
@@ -565,8 +586,10 @@ class _LotusPopState extends State<_LotusPop>
 }
 
 class _SealingOverlay extends StatelessWidget {
-  const _SealingOverlay({required this.sealing});
+  const _SealingOverlay({required this.sealing, this.isRelease = false});
   final int sealing; // 1 수축 중 · 2 stamp
+  // [4-B 신규] outcome==RELEASED(放)일 때 成 대신 放 도장·색을 보여준다.
+  final bool isRelease;
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
@@ -581,15 +604,23 @@ class _SealingOverlay extends StatelessWidget {
                 height: 130,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFC94A3B),
+                  color: isRelease
+                      ? const Color(0xFF7A6A9A)
+                      : const Color(0xFFC94A3B),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0xB3C94A3B), blurRadius: 40),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isRelease
+                              ? const Color(0xFF7A6A9A)
+                              : const Color(0xFFC94A3B))
+                          .withValues(alpha: .7),
+                      blurRadius: 40,
+                    ),
                   ],
                 ),
-                child: const Text(
-                  '成',
-                  style: TextStyle(
+                child: Text(
+                  isRelease ? '放' : '成',
+                  style: const TextStyle(
                     fontFamily: 'NotoSerifKR',
                     fontWeight: FontWeight.w900,
                     fontSize: 70,
@@ -646,6 +677,8 @@ class _BottomCard extends StatelessWidget {
     // 되돌리기 버튼이 거의 항상 숨겨지는 버그가 있었다. 원본은 "이 방에 타임캡슐
     // 봉인일(sealUntil)이 설정돼 있지 않은 경우"만 되돌리기를 허용한다.
     final canUndo = !reviewed && room.sealUntil == null;
+    // [4-B 신규] 成/放 도장 — room.outcome==RELEASED(放)이면 내려놓기 도장·색으로.
+    final isRelease = room.outcome == Outcome.RELEASED;
     return Column(
       children: [
         Container(
@@ -653,13 +686,15 @@ class _BottomCard extends StatelessWidget {
           decoration: WrDeco.hanji,
           child: Row(
             children: [
-              const Text(
-                '成',
+              Text(
+                isRelease ? '放' : '成',
                 style: TextStyle(
                   fontFamily: 'NotoSerifKR',
                   fontWeight: FontWeight.w900,
                   fontSize: 42,
-                  color: Color(0xFFC94A3B),
+                  color: isRelease
+                      ? const Color(0xFF7A6A9A)
+                      : const Color(0xFFC94A3B),
                 ),
               ),
               const SizedBox(width: 10),
@@ -719,7 +754,7 @@ class _BottomCard extends StatelessWidget {
             Expanded(
               flex: 20,
               child: _actionBtn(
-                '成 소원방 봉인하기',
+                isRelease ? '放 소원방 봉인하기' : '成 소원방 봉인하기',
                 WrDeco.btnPink,
                 Colors.white,
                 onSeal,
@@ -806,6 +841,9 @@ class _SealedBody extends StatelessWidget {
   final VoidCallback onSave, onShare;
   @override
   Widget build(BuildContext context) {
+    // [4-B 신규] 放(RELEASED)일 때 모서리 도장을 成과 다른 색/글자로 표시 —
+    // _SealingOverlay/_BottomCard와 동일한 패턴.
+    final isRelease = room.outcome == Outcome.RELEASED;
     // 원본 `.blur-room { backgroundImage: room-lv10.jpg }` — 배경은 정적 Lv10 일러스트를 흐리게.
     // (RoomThumb 라이브 렌더는 카드 쪽에서만, 배경까지 RoomScene 2중 렌더하면 애니메이션 비용이 커진다.)
     return Stack(
@@ -895,19 +933,25 @@ class _SealedBody extends StatelessWidget {
                                 width: 46,
                                 height: 46,
                                 alignment: Alignment.center,
-                                decoration: const BoxDecoration(
-                                  color: WrC.accent,
+                                decoration: BoxDecoration(
+                                  color: isRelease
+                                      ? const Color(0xFF7A6A9A)
+                                      : WrC.accent,
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Color(0x80C94A3B),
+                                      color: isRelease
+                                          ? const Color(
+                                              0xFF7A6A9A,
+                                            ).withValues(alpha: .5)
+                                          : const Color(0x80C94A3B),
                                       blurRadius: 8,
                                     ),
                                   ],
                                 ),
-                                child: const Text(
-                                  '成',
-                                  style: TextStyle(
+                                child: Text(
+                                  isRelease ? '放' : '成',
+                                  style: const TextStyle(
                                     fontFamily: 'NotoSerifKR',
                                     fontWeight: FontWeight.w900,
                                     fontSize: 24,
