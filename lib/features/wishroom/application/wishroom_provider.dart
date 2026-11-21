@@ -315,13 +315,17 @@ class WishRoomProvider extends ChangeNotifier {
   Future<Map<String, dynamic>?> support(String id) async {
     lastError = null;
     try {
-      final (r, reward) = await repo.support(id);
+      final (r, reward, m) = await repo.support(id);
       // [전수검수 2026-10-12 — CRITICAL] 응원 대상이 타인의 방이면 내 방
       // 상태를 절대 덮어쓰지 않는다. 기존엔 무조건 `room = r`라서 탐색 탭에서
       // 응원 한 번으로 IndexedStack에 살아있는 내 소원방(탭 0)이 타인의 방으로
       // 치환됐고, 이후 치성(POST /devote)이 타인의 room id로 나가는 데이터
       // 오염으로 이어졌다. gift()의 `if (room?.id == id)` 가드와 동일하게 맞춘다.
       if (room?.id == id) room = r;
+      // [버그수정 — "함께 빌기" 복주머니 지급] 서버가 매 응원마다 POUCH.cheer(+1,
+      // 1일 cheerMax=5회 상한)를 지급하도록 고쳐졌으므로, me도 항상 최신으로
+      // 갱신해 지갑 pill·지갑 시트 등에 즉시 반영되게 한다(gift()와 동일 패턴).
+      me = m;
       notifyListeners();
       return reward;
     } on ApiError catch (e) {

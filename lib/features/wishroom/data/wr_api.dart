@@ -24,7 +24,11 @@ abstract class WrRepository {
   Future<MyRoomResponse> myRoom();                                                                              // 2 GET  /wish-rooms/me
   Future<WishRoom> room(String id);                                                                             // 3 GET  /wish-rooms/{id}
   Future<DevotionResult> devote(String id, {int? heldMs});                                                      // 4 POST /wish-rooms/{id}/devotions — v5 S1: heldMs(ms) 버튼 누르고 있던 시간, 3초 hold 검증용
-  Future<(WishRoom, Map<String, dynamic>?)> support(String id);                                                 // 5 POST /wish-rooms/{id}/supports
+  // [버그수정 — "함께 빌기" 복주머니 지급] 서버가 cheerEarned/me를 응답에 추가함에
+  // 따라(POUCH.cheer 매 응원 +1 · 1일 cheerMax=5회 상한) 여기서도 Me를 함께
+  // 반환해, 호출부가 WishRoomProvider.me를 갱신하고 화면의 복주머니 표시가
+  // 바로 반영되도록 한다(gift()의 (WishRoom, Me) 패턴과 동일).
+  Future<(WishRoom, Map<String, dynamic>?, Me)> support(String id);                                            // 5 POST /wish-rooms/{id}/supports
   Future<List<WrComment>> comments(String id);                                                                  // 6 GET  /wish-rooms/{id}/comments
   Future<WrComment> postComment(String id, String text);                                                        // 6 POST /wish-rooms/{id}/comments
   Future<(WishRoom, Me)> gift(String id, int amount);                                                           // 7 POST /wish-rooms/{id}/gifts
@@ -188,7 +192,7 @@ class ApiRepository implements WrRepository {
   @override Future<WishRoom> room(String id) async => WishRoom.fromJson(_m(await _req('GET', '/wish-rooms/$id')));
   @override Future<DevotionResult> devote(String id, {int? heldMs}) async =>
       DevotionResult.fromJson(_m(await _req('POST', '/wish-rooms/$id/devotions', heldMs == null ? null : {'heldMs': heldMs})));
-  @override Future<(WishRoom, Map<String, dynamic>?)> support(String id) async { final d = _m(await _req('POST', '/wish-rooms/$id/supports')); return (WishRoom.fromJson(_m(d['room'])), d['reward'] == null ? null : _m(d['reward'])); }
+  @override Future<(WishRoom, Map<String, dynamic>?, Me)> support(String id) async { final d = _m(await _req('POST', '/wish-rooms/$id/supports')); return (WishRoom.fromJson(_m(d['room'])), d['reward'] == null ? null : _m(d['reward']), Me.fromJson(_m(d['me']))); }
   @override Future<List<WrComment>> comments(String id) async => _l(await _req('GET', '/wish-rooms/$id/comments'), WrComment.fromJson);
   @override Future<WrComment> postComment(String id, String text) async => WrComment.fromJson(_m(await _req('POST', '/wish-rooms/$id/comments', {'text': text})));
   @override Future<(WishRoom, Me)> gift(String id, int amount) async { final d = _m(await _req('POST', '/wish-rooms/$id/gifts', {'amount': amount})); return (WishRoom.fromJson(_m(d['room'])), Me.fromJson(_m(d['me']))); }
