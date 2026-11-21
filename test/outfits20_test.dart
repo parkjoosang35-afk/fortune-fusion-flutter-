@@ -27,7 +27,7 @@ class Repo implements WrRepository {
   @override Future<List<OutfitOffer>> outfits(String char) async => [
     for (final t in WrTheme.values) OutfitOffer.fromJson({'theme': t.name, 'owned': true, 'hasArt': true}),
   ];
-  @override Future<Me> buyNamedOutfit(String char, String outfitId) async {
+  @override Future<Me> buyNamedOutfit(String char, String outfitId, {String? idempotencyKey}) async {
     purchases++;
     return user(outfits: ['$char:$outfitId']);
   }

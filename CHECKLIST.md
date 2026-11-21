@@ -564,3 +564,98 @@ done(영수증) 단계 도달 ✅ · 서버 DB 반영 확인 ✅ · 기존 버�
 **S5 남은 작업(미착수)**: 동일 결제 중복 처리 방지, 광고 보상 SSV + 1일 5회
 상한, 복주머니 보상 "v5" 수치(기도 +5·7일 연속 +20·함께 빌기 +1×5·광고 +2×5)
 전수 재확인, 출석/미션 보상 완전 제거.
+
+---
+
+## S5 경제 — "동일 결제 중복 처리 방지" (이번 세션)
+
+- **배경**: 위 "맡기기도 공용 결제창으로" 작업 완료 보고 직후 대표님 "진행" 지시로
+  착수. app3 원본(`flow.js` `API.once(reqId,fn)` · `pay(order,reqId)`)과
+  admin_web 기존 선례(`BokjuCouponRedemption.requestId`,
+  `OpenPassAdRewardLog.idempotencyKey`)를 참고해 설계 — 클라이언트가 이미 만들고
+  있던 주문번호(`pay_screen.dart`의 `_oid`, `'WR'+timestamp.toRadixString(36)`)를
+  그대로 서버 멱등키로 재사용한다.
+- **핵심 판단**: 캐릭터/아이템/옷은 이미 `@@unique([userId, ...])` 제약이 있어
+  "같은 걸 두 번 사면 OWNED 409"로 막혀 있다(이중 지급 위험 자체가 낮음). 반면
+  **맡기기(entrust)는 "같은 걸 여러 번 사는 게 정상"**이라 그런 유니크 제약을
+  걸 수 없어, 버튼 연타·네트워크 재전송 시 진짜로 중복 결제가 날 수 있다 —
+  따라서 entrust가 가장 시급하고, 나머지 3곳은 일관성 차원에서 같은 패턴을
+  적용했다(에러 대신 "재전송이면 최초 성공 결과를 그대로 반환"하는 사용자
+  경험 개선 목적).
+
+### 서버(admin_web) 작업
+- **Prisma**: `WishRoomEntrust`/`WishRoomCharacterOwned`/`WishRoomItemOwned`/
+  `WishRoomOutfitOwned` 4개 테이블에 `idempotencyKey String? @unique` 컬럼
+  추가. 마이그레이션 `20261121130000_add_wishroom_purchase_idempotency_key`
+  작성 → `dev.db` 적용 + `prisma generate` 완료.
+- **4개 route.ts 전부 동일 패턴 적용**(`wish-rooms/[id]/entrust`,
+  `items/[id]/purchase`, `characters/[id]/purchase`, `outfits/purchase`):
+  1) body에서 `idempotencyKey` 추출 → 있으면 먼저 `findUnique`로 재전송 여부
+     확인, 있으면 복주머니 재차감 없이 최초 결과를 `idempotent: true`로 그대로
+     반환. 2) 신규 처리 시 생성 row에 키 저장. 3) 동시 요청 레이스는 `P2002`
+     (UNIQUE 위반)를 잡아 409 `ALREADY_PROCESSED`로 응답(SQLite 트랜잭션
+     직렬화 전제 — `bokju-coupon-service.ts` `redeemCoupon()`과 동일 설계).
+- **타입체크**: `npx tsc --noEmit` 전체 통과(0 에러).
+- **서버 검증(curl, 실제 DB 확인)**:
+  - entrust 동일 키 재요청(순차 2~3회): 1회차만 복주머니 차감(270→220),
+    2·3회차는 `idempotent:true`로 220 그대로 유지, `wish_room_entrusts`
+    row는 정확히 1개만 생성됨을 SQLite로 직접 확인.
+  - **entrust 진짜 동시 레이스**(`curl ... & curl ... & wait`로 완전 병렬
+    발사): 두 요청 모두 200대 응답, 하나는 성공(220→170), 다른 하나는
+    `idempotent:true`, row는 여전히 1개만 생성 — 레이스 컨디션 방어 확인.
+  - items 구매(`c_lotus`, 60개)도 동일 패턴 재검증: 1회차만 차감
+    (170→110), 2회차 `idempotent:true`로 110 유지, `wish_room_items_owned`
+    row 1개만 생성.
+  - (주의 — 세션 중 1회 발견/해결: `prisma generate` 직후에도 이미 떠
+    있던 `next dev` 프로세스가 구 Prisma Client를 메모리에 캐싱해
+    `Unknown argument idempotencyKey` 에러가 발생했다. `next dev` 재시작으로
+    해결 — 앞으로 Prisma 스키마 변경 시 `prisma generate` 뒤 dev 서버
+    재시작을 빠뜨리지 말 것.)
+
+### 클라이언트(Flutter) 작업
+- `wr_api.dart`: `WrRepository` 인터페이스의 5개 구매 메서드
+  (`buyItem`/`buyCharacter`/`buyOutfit`/`buyNamedOutfit`/`entrust`)에
+  `{String? idempotencyKey}` 파라미터 추가, `ApiRepository` 구현부에서
+  body에 `if (idempotencyKey != null) 'idempotencyKey': idempotencyKey`로 전달.
+- `wishroom_provider.dart`: `buyItem`/`buyCharacter`/`buyOutfit`/
+  `buyNamedOutfitOnly`/`entrustGuardian` 5개 메서드에 동일 파라미터 추가해
+  리포지토리로 그대로 관통.
+- `pay_screen.dart`: `PayOrder.onConfirmPay` 시그니처를
+  `Future<bool> Function()` → `Future<bool> Function(String idempotencyKey)`로
+  변경, `_pay()`에서 화면이 이미 갖고 있던 `_oid`(영수증 "주문번호"로 표시되는
+  값)를 그대로 콜백에 전달 — app3 `F.pay(order, oid)`와 동일하게 "화면에
+  보이는 주문번호 = 서버 멱등키" 원칙을 지킴.
+- **5개 `onConfirmPay:` 호출부 전부 수정**: `guardian_detail_sheet.dart`,
+  `entrust_sheet.dart`, `shop_screen.dart`×3(캐릭터 탭·옷 탭·꾸미기 탭).
+- **테스트 파일 2곳 시그니처 동기화**(인터페이스 변경의 직접 결과):
+  `character_shop_screen_overflow_test.dart`의 가짜 `buyCharacter`,
+  `outfits20_test.dart`의 가짜 `buyNamedOutfit`에 `{String? idempotencyKey}`
+  파라미터 추가.
+- `flutter analyze` 전체 프로젝트 기준 **에러 0건**(기존부터 있던
+  `WrGuardianOutfitLauncher` undefined 에러 2건은 본 작업과 무관 — 사전에
+  `git log`로 확인).
+- `build_local.sh --debug`(타임아웃 600000ms) 빌드 **성공**(167초).
+
+### UI 단 종단 검증(Playwright, 네트워크 요청 캡처)
+- `/home/user/wr_compare/flutter_idempotency_verify.py` 작성 — 로그인 →
+  돌보기 메뉴 → 수호자에게 맡기기 → PayScreen → 결제하기 버튼까지
+  `flt-semantics-identifier` 로케이터로 클릭하면서, Playwright
+  `page.on("request", ...)`로 `/entrust` POST 요청의 실제 body를 가로채
+  콘솔에 출력.
+- **결과**: 캡처된 요청 body가 정확히
+  `{"days":3,"startsToday":true,"idempotencyKey":"WRMWQMD749"}` —
+  화면에 표시되는 주문번호와 서버로 전송되는 멱등키가 동일한 값임을 직접
+  확인. `paying`→`done` 전환도 정상(poll 2.0s에 `done` 도달).
+- 서버 DB 재확인: `wish_room_entrusts` row(`id=5`)의
+  `idempotency_key='WRMWQMD749'`, `price=120`으로 UI 클릭이 실제로 이
+  멱등키와 함께 persist됐음을 교차 검증.
+- 테스트로 변경된 지갑 잔액/구매 기록은 전부 되돌려 원래 문서화된 기준값
+  (복주머니 190, room 14 entrust 없음)으로 복원 완료.
+
+**검증 요약 — 3중 확인(서버 curl 단위 테스트 → 서버 curl 동시성 테스트 →
+브라우저 UI 종단 네트워크 캡처)으로 "같은 결제를 두 번 보내도 한 번만
+처리된다"를 confirmed — PASS.**
+
+**다음 세션에 이어갈 것**: S5 나머지 — 광고 보상 SSV + 1일 5회 상한,
+복주머니 보상 "v5" 수치 전수 재확인, 출석/미션 보상 완전 제거. S6 마무리는
+완전 미착수.

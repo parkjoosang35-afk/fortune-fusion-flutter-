@@ -89,7 +89,7 @@ class _FakeWrRepository implements WrRepository {
   // _shortageSheet 테스트를 위해 구매 시도 시 항상 복주머니 부족 에러를 던진다.
   // price(200) > pouch(50)로 사전에 수치가 맞춰져 있어 실제 '부족' 흐름과 일치한다.
   @override
-  Future<Me> buyCharacter(String id) async =>
+  Future<Me> buyCharacter(String id, {String? idempotencyKey}) async =>
       throw ApiError(409, 'INSUFFICIENT', '복주머니가 조금 부족해요', {'need': 200, 'have': 50});
   @override
   Future<MyRoomResponse> myRoom() async => MyRoomResponse.fromJson({
