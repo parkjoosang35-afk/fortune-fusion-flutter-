@@ -63,7 +63,9 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
           .toList();
       if (hit.isNotEmpty) return hit.first['name'] as String? ?? '사복';
     }
-    final hit = cat.themes.where((t) => t['id'] == room.outfitNow.name).toList();
+    final hit = cat.themes
+        .where((t) => t['id'] == room.outfitNow.name)
+        .toList();
     return hit.isNotEmpty ? (hit.first['label'] as String? ?? '사복') : '사복';
   }
 
@@ -273,19 +275,17 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                                           right: 6,
                                         ),
                                         child: Semantics(
-                                          identifier:
-                                              'guardian_filter_${f.$1}',
+                                          identifier: 'guardian_filter_${f.$1}',
                                           button: true,
                                           child: GestureDetector(
-                                            onTap: () => setState(
-                                              () => _filter = f.$1,
-                                            ),
+                                            onTap: () =>
+                                                setState(() => _filter = f.$1),
                                             child: Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                horizontal: 13,
-                                                vertical: 7,
-                                              ),
+                                                    horizontal: 13,
+                                                    vertical: 7,
+                                                  ),
                                               decoration: _filter == f.$1
                                                   ? WrDeco.chipOn
                                                   : WrDeco.chip,
@@ -315,9 +315,7 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                                         vertical: 8,
                                       ),
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(
-                                          12,
-                                        ),
+                                        borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                           color: WrC.line,
                                           style: BorderStyle.solid,
@@ -355,11 +353,11 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                           sliver: SliverGrid(
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 8,
-                              crossAxisSpacing: 8,
-                              childAspectRatio: .72,
-                            ),
+                                  crossAxisCount: 3,
+                                  mainAxisSpacing: 8,
+                                  crossAxisSpacing: 8,
+                                  childAspectRatio: .72,
+                                ),
                             delegate: SliverChildBuilderDelegate(
                               (_, i) => _guardianCard(p, room, list[i]),
                               childCount: list.length,
@@ -381,154 +379,173 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
   Widget _curGuardianCard(WishRoom room, WrCharacter cur) {
     final cat = WrCatalog.I;
     final unlocked = room.isFeatureUnlocked('wardrobe');
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: WrC.card,
-        border: Border.all(color: WrC.blossom2.withValues(alpha: .4)),
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(-.6, .9),
-                  radius: 1.1,
-                  colors: [
-                    WrC.blossom.withValues(alpha: .28),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: 128,
-                height: 156,
-                child: Image.asset(
-                  cat.charImage(cur.id, room.outfitNow, outfitId: room.outfitId),
-                  fit: BoxFit.contain,
-                  alignment: Alignment.bottomCenter,
-                  errorBuilder: (_, __, ___) => Center(
-                    child: Text(
-                      cur.emblem,
-                      style: const TextStyle(fontSize: 40, color: Colors.white54),
-                    ),
+    // [버그수정 — 실제 런타임 검증으로 발견: "BoxConstraints forces an
+    // infinite height" → RenderFlex/RenderBox가 전부 NEEDS-PAINT로 멈춰
+    // 화면이 완전히 빈 채로 보이던 근본 원인] 이 카드는 SliverToBoxAdapter
+    // (= 세로 unbounded 제약) 안에 놓이는데, 바깥 Container에 height가
+    // 없으면 내부 Stack → Row(crossAxisAlignment: stretch)가 무한 높이로
+    // 늘어나려 해서 레이아웃이 깨진다. 명시적 높이를 주어 제약을 유한하게
+    // 만든다(이전에 시도한 ListView→CustomScrollView 전환은 이 문제와
+    // 무관했다 — 둘 다 세로 unbounded를 준다).
+    return SizedBox(
+      height: 156,
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: WrC.card,
+          border: Border.all(color: WrC.blossom2.withValues(alpha: .4)),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(-.6, .9),
+                    radius: 1.1,
+                    colors: [
+                      WrC.blossom.withValues(alpha: .28),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '함께하는 중',
-                        style: WrF.mono(size: 9.5, color: WrC.blossom2),
-                      ),
-                      const SizedBox(height: 2),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: cur.name,
-                              style: WrF.display(20, color: Colors.white),
-                            ),
-                            TextSpan(
-                              text: '  ${cur.title}',
-                              style: WrF.body(12, color: WrC.muted),
-                            ),
-                          ],
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 128,
+                  height: 156,
+                  child: Image.asset(
+                    cat.charImage(
+                      cur.id,
+                      room.outfitNow,
+                      outfitId: room.outfitId,
+                    ),
+                    fit: BoxFit.contain,
+                    alignment: Alignment.bottomCenter,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text(
+                        cur.emblem,
+                        style: const TextStyle(
+                          fontSize: 40,
+                          color: Colors.white54,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '지금 옷 · ${_outfitName(room)}',
-                        style: WrF.body(12, color: WrC.muted),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Semantics(
-                              identifier: 'guardian_top_wardrobe',
-                              button: true,
-                              child: SizedBox(
-                                height: 36,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    if (!unlocked) {
-                                      WrToast.show(
-                                        context,
-                                        '옷장은 ${_leftDays(room, 'wardrobe')}일 뒤에 열려요',
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '함께하는 중',
+                          style: WrF.mono(size: 9.5, color: WrC.blossom2),
+                        ),
+                        const SizedBox(height: 2),
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: cur.name,
+                                style: WrF.display(20, color: Colors.white),
+                              ),
+                              TextSpan(
+                                text: '  ${cur.title}',
+                                style: WrF.body(12, color: WrC.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '지금 옷 · ${_outfitName(room)}',
+                          style: WrF.body(12, color: WrC.muted),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Semantics(
+                                identifier: 'guardian_top_wardrobe',
+                                button: true,
+                                child: SizedBox(
+                                  height: 36,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      if (!unlocked) {
+                                        WrToast.show(
+                                          context,
+                                          '옷장은 ${_leftDays(room, 'wardrobe')}일 뒤에 열려요',
+                                        );
+                                        return;
+                                      }
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const WardrobeScreen(),
+                                        ),
                                       );
-                                      return;
-                                    }
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const WardrobeScreen(),
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WrC.blossom,
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    child: Text(
+                                      unlocked ? '👗 옷 갈아입히기' : '🔒 옷장',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12.5,
                                       ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: WrC.blossom,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: Text(
-                                    unlocked ? '👗 옷 갈아입히기' : '🔒 옷장',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12.5,
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Semantics(
-                            identifier: 'guardian_top_detail',
-                            button: true,
-                            child: SizedBox(
-                              height: 36,
-                              child: OutlinedButton(
-                                onPressed: () =>
-                                    showGuardianDetailSheet(context, cur.id),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: WrC.line),
-                                  backgroundColor: WrC.darkBtn,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
+                            const SizedBox(width: 6),
+                            Semantics(
+                              identifier: 'guardian_top_detail',
+                              button: true,
+                              child: SizedBox(
+                                height: 36,
+                                child: OutlinedButton(
+                                  onPressed: () =>
+                                      showGuardianDetailSheet(context, cur.id),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: WrC.line),
+                                    backgroundColor: WrC.darkBtn,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  '자세히',
-                                  style: WrF.body(
-                                    12.5,
-                                    w: FontWeight.w700,
-                                    color: Colors.white,
+                                  child: Text(
+                                    '자세히',
+                                    style: WrF.body(
+                                      12.5,
+                                      w: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -577,7 +594,10 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                   child: Opacity(
                     opacity: own ? 1 : .75,
                     child: Image.asset(
-                      cat.charImage(c.id, on ? (room?.outfitNow ?? WrTheme.free) : WrTheme.free),
+                      cat.charImage(
+                        c.id,
+                        on ? (room?.outfitNow ?? WrTheme.free) : WrTheme.free,
+                      ),
                       fit: BoxFit.cover,
                       width: double.infinity,
                       errorBuilder: (_, __, ___) => Center(
