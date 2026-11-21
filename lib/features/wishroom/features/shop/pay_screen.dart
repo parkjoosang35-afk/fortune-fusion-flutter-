@@ -52,7 +52,10 @@ class PayOrder {
   /// 실제 구매 API 호출 — 성공 시 true, 실패(복주머니 부족 등) 시 false를 반환해야 한다.
   /// [구매 로직 단일화] 이 콜백 "안쪽"의 provider 메서드만 호출부마다 다르고,
   /// 콜백을 "언제 · 어떻게" 호출하는지는 이 화면이 유일하게 결정한다.
-  final Future<bool> Function() onConfirmPay;
+  /// [S5 경제 — 동일 결제 중복 처리 방지] 파라미터로 이 화면의 주문번호(_oid)를 그대로
+  /// 전달한다 — 호출부는 받은 키를 provider의 해당 구매 메서드 `idempotencyKey:`로
+  /// 그대로 넘기기만 하면 된다(app3/pay.jsx `F.pay(order, oid)` 1:1).
+  final Future<bool> Function(String idempotencyKey) onConfirmPay;
 
   static const Map<String, String> _kindLabel = {
     'char': '수호자',
@@ -104,7 +107,10 @@ class _PayScreenState extends State<PayScreen> {
     await Future.delayed(const Duration(milliseconds: 1500));
     bool ok;
     try {
-      ok = await widget.order.onConfirmPay();
+      // [S5 경제] 이 화면의 주문번호(_oid)를 멱등키로 그대로 전달 — 1.5초 연출 중
+      // 사용자가 뒤로 가기 후 재진입하거나 네트워크가 재시도해도 서버가 같은 _oid로
+      // 재전송임을 식별해 한 번만 처리한다.
+      ok = await widget.order.onConfirmPay(_oid);
     } catch (_) {
       ok = false;
     }

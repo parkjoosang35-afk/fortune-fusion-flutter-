@@ -34,9 +34,13 @@ abstract class WrRepository {
   Future<WishRoom> seal(String id);                                                                             // 11 POST /wish-rooms/{id}/seal
   Future<List<WishRoom>> archive();                                                                             // 12 GET  /archive
   Future<List<WrItem>> items();                                                                                 // 13 GET  /items
-  Future<Me> buyItem(String id);                                                                                // 14 POST /items/{id}/purchase
+  // [S5 경제 — 동일 결제 중복 처리 방지] idempotencyKey는 pay_screen.dart의 주문번호
+  // (_oid)를 그대로 재사용한다(app3/flow.js API.once(reqId,fn) 1:1) — 버튼 연타·네트워크
+  // 재전송으로 같은 요청이 두 번 와도 서버가 한 번만 처리하도록. null이면 서버가 멱등
+  // 체크를 건너뛰고 그냥 처리한다(PayScreen 바깥의 기존 호출부 호환).
+  Future<Me> buyItem(String id, {String? idempotencyKey});                                                      // 14 POST /items/{id}/purchase
   Future<List<WrCharacter>> characters();                                                                       // 15 GET  /characters
-  Future<Me> buyCharacter(String id);                                                                           // 16 POST /characters/{id}/purchase
+  Future<Me> buyCharacter(String id, {String? idempotencyKey});                                                 // 16 POST /characters/{id}/purchase
   Future<Me> setCharacter(String id);                                                                           // 17 PATCH /me/character
   Future<List<WrNotification>> notifications();                                                                 // 18 GET  /notifications
   Future<int> readNotifications({String? id});                                                                  // 18 POST /notifications
@@ -56,8 +60,8 @@ abstract class WrRepository {
   Future<WishRoom> setPaper(String id, String paper);                                                           // PATCH /wish-rooms/{id}/paper
   Future<WishRoom> setTheme(String id, WrTheme theme);                                                          // T1 PATCH /wish-rooms/{id}/theme
   Future<List<OutfitOffer>> outfits(String char);                                                               // T2 GET /outfits?char=
-  Future<Me> buyOutfit(String char, WrTheme theme);                                                             // T3 POST /outfits/purchase
-  Future<Me> buyNamedOutfit(String char, String outfitId) => throw ApiError(409, 'NOT_READY', '신규 의상 서버 연결이 필요해요');
+  Future<Me> buyOutfit(String char, WrTheme theme, {String? idempotencyKey});                                   // T3 POST /outfits/purchase
+  Future<Me> buyNamedOutfit(String char, String outfitId, {String? idempotencyKey}) => throw ApiError(409, 'NOT_READY', '신규 의상 서버 연결이 필요해요');
   Future<WishRoom> setNamedOutfit(String id, String outfitId) => throw ApiError(409, 'NOT_READY', '신규 의상 서버 연결이 필요해요');
   Future<WishRoom> setOutfit(String id, WrTheme? theme);                                                        // T4 PATCH /wish-rooms/{id}/outfit
   Future<WishRoom> unseal(String id);                                                                           // C1 POST /wish-rooms/{id}/unseal
@@ -79,7 +83,7 @@ abstract class WrRepository {
   Future<void> wallpaperLevelNotice(int level);                                                                 // W5 POST /me/wallpaper/level-notice
 
   // ── [S3 신규] 수호자에게 맡기기(Entrust) ──
-  Future<({WishRoom room, Me me})> entrust(String id, {required int days, bool startsToday});                  // POST /wish-rooms/{id}/entrust
+  Future<({WishRoom room, Me me})> entrust(String id, {required int days, bool startsToday, String? idempotencyKey});                  // POST /wish-rooms/{id}/entrust
   Future<({WishRoom room, Me me, int refund})> cancelEntrust(String id);                                       // DELETE /wish-rooms/{id}/entrust
   Future<({WishRoom room, Me me})> ackEntrust(String id);                                                      // POST /wish-rooms/{id}/entrust/ack
 
@@ -194,9 +198,9 @@ class ApiRepository implements WrRepository {
   @override Future<WishRoom> seal(String id) async => WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/seal')));
   @override Future<List<WishRoom>> archive() async => _l(await _req('GET', '/archive'), WishRoom.fromJson);
   @override Future<List<WrItem>> items() async => _l(await _req('GET', '/items'), WrItem.fromJson);
-  @override Future<Me> buyItem(String id) async => Me.fromJson(_m(_m(await _req('POST', '/items/$id/purchase'))['me']));
+  @override Future<Me> buyItem(String id, {String? idempotencyKey}) async => Me.fromJson(_m(_m(await _req('POST', '/items/$id/purchase', {if (idempotencyKey != null) 'idempotencyKey': idempotencyKey}))['me']));
   @override Future<List<WrCharacter>> characters() async => _l(await _req('GET', '/characters'), WrCharacter.fromJson);
-  @override Future<Me> buyCharacter(String id) async => Me.fromJson(_m(_m(await _req('POST', '/characters/$id/purchase'))['me']));
+  @override Future<Me> buyCharacter(String id, {String? idempotencyKey}) async => Me.fromJson(_m(_m(await _req('POST', '/characters/$id/purchase', {if (idempotencyKey != null) 'idempotencyKey': idempotencyKey}))['me']));
   @override Future<Me> setCharacter(String id) async => Me.fromJson(_m(await _req('PATCH', '/me/character', {'id': id})));
   @override Future<List<WrNotification>> notifications() async => _l(await _req('GET', '/notifications'), WrNotification.fromJson);
   @override Future<int> readNotifications({String? id}) async => (_m(await _req('POST', '/notifications', {if (id != null) 'id': id}))['unread'] as num).toInt();
@@ -216,9 +220,9 @@ class ApiRepository implements WrRepository {
   @override Future<WishRoom> setPaper(String id, String paper) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/paper', {'paper': paper})));
   @override Future<WishRoom> setTheme(String id, WrTheme theme) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/theme', {'theme': theme.name})));
   @override Future<List<OutfitOffer>> outfits(String char) async => _l(await _req('GET', '/outfits?char=$char'), OutfitOffer.fromJson);
-  @override Future<Me> buyNamedOutfit(String char, String outfitId) async => Me.fromJson(_m(_m(await _req('POST', '/outfits/purchase', {'char': char, 'outfitId': outfitId}))['me']));
+  @override Future<Me> buyNamedOutfit(String char, String outfitId, {String? idempotencyKey}) async => Me.fromJson(_m(_m(await _req('POST', '/outfits/purchase', {'char': char, 'outfitId': outfitId, if (idempotencyKey != null) 'idempotencyKey': idempotencyKey}))['me']));
   @override Future<WishRoom> setNamedOutfit(String id, String outfitId) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/outfit', {'outfitId': outfitId})));
-  @override Future<Me> buyOutfit(String char, WrTheme theme) async => Me.fromJson(_m(_m(await _req('POST', '/outfits/purchase', {'char': char, 'theme': theme.name}))['me']));
+  @override Future<Me> buyOutfit(String char, WrTheme theme, {String? idempotencyKey}) async => Me.fromJson(_m(_m(await _req('POST', '/outfits/purchase', {'char': char, 'theme': theme.name, if (idempotencyKey != null) 'idempotencyKey': idempotencyKey}))['me']));
   @override Future<WishRoom> setOutfit(String id, WrTheme? theme) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/outfit', {'theme': theme?.name})));
   @override Future<WishRoom> unseal(String id) async => WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/unseal')));
   @override Future<WishRoom> outcome(String id, Outcome o, {String? text, String? sealUntil, String? note}) async =>
@@ -244,8 +248,8 @@ class ApiRepository implements WrRepository {
   @override Future<void> wallpaperLevelNotice(int level) async => await _req('POST', '/me/wallpaper/level-notice', {'level': level});
 
   // ── [S3 신규] 수호자에게 맡기기(Entrust) — route.ts POST/DELETE/ack 응답 {room, me[, refund]} 1:1 ──
-  @override Future<({WishRoom room, Me me})> entrust(String id, {required int days, bool startsToday = true}) async {
-    final d = _m(await _req('POST', '/wish-rooms/$id/entrust', {'days': days, 'startsToday': startsToday}));
+  @override Future<({WishRoom room, Me me})> entrust(String id, {required int days, bool startsToday = true, String? idempotencyKey}) async {
+    final d = _m(await _req('POST', '/wish-rooms/$id/entrust', {'days': days, 'startsToday': startsToday, if (idempotencyKey != null) 'idempotencyKey': idempotencyKey}));
     return (room: WishRoom.fromJson(_m(d['room'])), me: Me.fromJson(_m(d['me'])));
   }
   @override Future<({WishRoom room, Me me, int refund})> cancelEntrust(String id) async {

@@ -494,10 +494,10 @@ class WishRoomProvider extends ChangeNotifier {
   /// wearNamedOutfit()은 구매+전환+착용을 한 번에 묶어 "이미 보유한 의상을
   /// 즉시 입기" 액션(옷장에서 보유 의상 탭)에 계속 쓰고, 신규 구매는 이
   /// 메서드로 결제만 완료한다.
-  Future<bool> buyNamedOutfitOnly(String char, String outfitId) async {
+  Future<bool> buyNamedOutfitOnly(String char, String outfitId, {String? idempotencyKey}) async {
     lastError = null;
     try {
-      me = await repo.buyNamedOutfit(char, outfitId);
+      me = await repo.buyNamedOutfit(char, outfitId, idempotencyKey: idempotencyKey);
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -577,10 +577,10 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> buyOutfit(String char, WrTheme theme) async {
+  Future<bool> buyOutfit(String char, WrTheme theme, {String? idempotencyKey}) async {
     lastError = null;
     try {
-      me = await repo.buyOutfit(char, theme);
+      me = await repo.buyOutfit(char, theme, idempotencyKey: idempotencyKey);
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -639,10 +639,10 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> buyItem(String id) async {
+  Future<bool> buyItem(String id, {String? idempotencyKey}) async {
     lastError = null;
     try {
-      me = await repo.buyItem(id);
+      me = await repo.buyItem(id, idempotencyKey: idempotencyKey);
       await loadCatalog();
       return true;
     } on ApiError catch (e) {
@@ -652,10 +652,10 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> buyCharacter(String id) async {
+  Future<bool> buyCharacter(String id, {String? idempotencyKey}) async {
     lastError = null;
     try {
-      me = await repo.buyCharacter(id);
+      me = await repo.buyCharacter(id, idempotencyKey: idempotencyKey);
       await loadCatalog();
       return true;
     } on ApiError catch (e) {
@@ -1036,10 +1036,10 @@ class WishRoomProvider extends ChangeNotifier {
   // ───────────────────── [S3 신규] 수호자에게 맡기기(Entrust) ─────────────────────
   /// app3/entrust.jsx Entrust3 "맡기기" 버튼 · flow.js API.pay(kind:'entrust') 1:1.
   /// 성공 시 room/me를 둘 다 서버 응답으로 갱신한다(복주머니 차감 반영).
-  Future<bool> entrustGuardian(String id, {required int days, bool startsToday = true}) async {
+  Future<bool> entrustGuardian(String id, {required int days, bool startsToday = true, String? idempotencyKey}) async {
     lastError = null;
     try {
-      final (room: r, me: m) = await repo.entrust(id, days: days, startsToday: startsToday);
+      final (room: r, me: m) = await repo.entrust(id, days: days, startsToday: startsToday, idempotencyKey: idempotencyKey);
       room = r;
       me = m;
       notifyListeners();

@@ -118,8 +118,8 @@ class _GuardianDetailSheetState extends State<GuardianDetailSheet> {
           ).push(MaterialPageRoute(builder: (_) => const WardrobeScreen()));
         }
       },
-      onConfirmPay: () async {
-        final ok = await p.buyCharacter(c.id);
+      onConfirmPay: (idempotencyKey) async {
+        final ok = await p.buyCharacter(c.id, idempotencyKey: idempotencyKey);
         if (!ok) return false;
         final ok2 = await p.setCharacter(c.id);
         if (ok2) await p.loadMyRoom();

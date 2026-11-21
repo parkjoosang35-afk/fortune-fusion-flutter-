@@ -298,8 +298,8 @@ class _ShopScreenState extends State<ShopScreen> {
         price: c.price ?? 0,
         doneTitle: '${c.name}이(가) 함께하게 됐어요',
         afterLabel: null,
-        onConfirmPay: () async {
-          final ok = await p.buyCharacter(c.id);
+        onConfirmPay: (idempotencyKey) async {
+          final ok = await p.buyCharacter(c.id, idempotencyKey: idempotencyKey);
           if (!ok) return false;
           await p.setCharacter(c.id);
           return true;
@@ -415,7 +415,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     id,
                     o['name'] as String,
                   ),
-                  onConfirmPay: () => p.buyNamedOutfitOnly(charId, id),
+                  onConfirmPay: (idempotencyKey) => p.buyNamedOutfitOnly(charId, id, idempotencyKey: idempotencyKey),
                 ),
               );
             },
@@ -531,7 +531,7 @@ class _ShopScreenState extends State<ShopScreen> {
             context,
           ).push(MaterialPageRoute(builder: (_) => const DecorScreen()));
         },
-        onConfirmPay: () => p.buyItem(it.id),
+        onConfirmPay: (idempotencyKey) => p.buyItem(it.id, idempotencyKey: idempotencyKey),
       ),
     );
   }

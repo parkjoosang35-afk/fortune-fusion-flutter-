@@ -78,7 +78,7 @@ class _EntrustSheetState extends State<EntrustSheet> {
       doneTitle: '$name${_josa(name, '이', '가')} 당신의 소원을 지켜요',
       afterLabel: '🙏 소원방으로',
       after: () {}, // app3 `after: () => app.go('home')` — 이미 소원방 화면 위에서 열렸으므로 pop만으로 충분.
-      onConfirmPay: () => p.entrustGuardian(room.id, days: days, startsToday: startsToday),
+      onConfirmPay: (idempotencyKey) => p.entrustGuardian(room.id, days: days, startsToday: startsToday, idempotencyKey: idempotencyKey),
     );
     Navigator.of(context).pop(); // 시트 닫기
     openPayScreen(context, order);
