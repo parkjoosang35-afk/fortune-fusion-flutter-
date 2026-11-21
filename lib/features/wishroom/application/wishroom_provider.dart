@@ -346,10 +346,10 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> complete(String id, {bool cancel = false}) async {
+  Future<bool> complete(String id, {bool cancel = false, Outcome? outcome, String? note}) async {
     lastError = null;
     try {
-      room = await repo.complete(id, cancel: cancel);
+      room = await repo.complete(id, cancel: cancel, outcome: outcome, note: note);
       notifyListeners();
       return true;
     } on ApiError catch (e) {
@@ -385,10 +385,10 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> outcome(String id, Outcome o, {String? text, String? sealUntil}) async {
+  Future<bool> outcome(String id, Outcome o, {String? text, String? sealUntil, String? note}) async {
     lastError = null;
     try {
-      room = await repo.outcome(id, o, text: text, sealUntil: sealUntil);
+      room = await repo.outcome(id, o, text: text, sealUntil: sealUntil, note: note);
       notifyListeners();
       return true;
     } on ApiError catch (e) {

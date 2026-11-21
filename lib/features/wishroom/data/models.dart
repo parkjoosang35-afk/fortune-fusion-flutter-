@@ -14,7 +14,10 @@ enum WrTheme { free, god, buddha, shaman }
 enum Pose { pray, bow, rub }
 /// 타임캡슐(봉인일) 상태
 enum Capsule { LOCKED, OPENED }
-enum Outcome { FULFILLED, ONGOING, REWISH }
+// [4-B 신규 — CHECKLIST.md 대표님 판정] RELEASED(放·내려놓기) — app3/extras.js
+// Fulfill3 "마음을 내려놓을게요" 1:1. FULFILLED(成)와 달리 완료 알림이 없고
+// 도장 표시가 放으로 갈린다(vault_screen.dart/complete_screen.dart 참고).
+enum Outcome { FULFILLED, ONGOING, REWISH, RELEASED }
 enum WishStatus { IN_PROGRESS, ACHIEVED }
 
 T _enum<T extends Enum>(List<T> v, String? s, T fallback) => v.firstWhere((e) => e.name == s, orElse: () => fallback);
@@ -165,6 +168,8 @@ class WishRoom {
   final int? sealDaysLeft, sealTotalDays;
   final bool capsuleDue;
   final Outcome? outcome;
+  // [4-B 신규] 소원 마무리(成/放) 한 줄 메모, 최대 40자 — CHECKLIST.md 대표님 판정.
+  final String? note;
   final WishStatus? wishStatus;
   final String? shareToken;
   final Map<String, dynamic>? snapshot;    // SEALED/ARCHIVED 시 보존 (§14.2)
@@ -203,6 +208,7 @@ class WishRoom {
         capsule = j['capsule'] == null ? null : _enum(Capsule.values, j['capsule'], Capsule.LOCKED),
         sealDaysLeft = j['sealDaysLeft'], sealTotalDays = j['sealTotalDays'], capsuleDue = j['capsuleDue'] ?? false,
         outcome = j['outcome'] == null ? null : _enum(Outcome.values, j['outcome'], Outcome.ONGOING),
+        note = j['note'] as String?,
         wishStatus = j['wishStatus'] == null ? null : _enum(WishStatus.values, j['wishStatus'], WishStatus.IN_PROGRESS),
         shareToken = j['shareToken'], snapshot = j['snapshot'];
 

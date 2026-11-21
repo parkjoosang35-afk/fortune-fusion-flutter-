@@ -30,7 +30,7 @@ abstract class WrRepository {
   Future<(WishRoom, Me)> gift(String id, int amount);                                                           // 7 POST /wish-rooms/{id}/gifts
   Future<List<WishRoom>> explore({String? cursor});                                                             // 8 GET  /wish-rooms/explore
   Future<WishRoom> equip(String roomId, String itemId);                                                         // 9 PATCH /wish-rooms/{id}/decorations
-  Future<WishRoom> complete(String id, {bool cancel});                                                          // 10 POST /wish-rooms/{id}/complete
+  Future<WishRoom> complete(String id, {bool cancel, Outcome? outcome, String? note});                          // 10 POST /wish-rooms/{id}/complete
   Future<WishRoom> seal(String id);                                                                             // 11 POST /wish-rooms/{id}/seal
   Future<List<WishRoom>> archive();                                                                             // 12 GET  /archive
   Future<List<WrItem>> items();                                                                                 // 13 GET  /items
@@ -61,7 +61,7 @@ abstract class WrRepository {
   Future<WishRoom> setNamedOutfit(String id, String outfitId) => throw ApiError(409, 'NOT_READY', '신규 의상 서버 연결이 필요해요');
   Future<WishRoom> setOutfit(String id, WrTheme? theme);                                                        // T4 PATCH /wish-rooms/{id}/outfit
   Future<WishRoom> unseal(String id);                                                                           // C1 POST /wish-rooms/{id}/unseal
-  Future<WishRoom> outcome(String id, Outcome o, {String? text, String? sealUntil});                            // C2 POST /wish-rooms/{id}/outcome
+  Future<WishRoom> outcome(String id, Outcome o, {String? text, String? sealUntil, String? note});               // C2 POST /wish-rooms/{id}/outcome
   Future<({String token, String url})> shareLink(String id, {bool reissue});                                    // S1
   Future<WishRoom> roomByToken(String token);                                                                   // S2 GET /share/{token}
   Future<Map<String, dynamic>> claimSupportReward(String id, int at);                                           // R1
@@ -190,7 +190,7 @@ class ApiRepository implements WrRepository {
   @override Future<(WishRoom, Me)> gift(String id, int amount) async { final d = _m(await _req('POST', '/wish-rooms/$id/gifts', {'amount': amount})); return (WishRoom.fromJson(_m(d['room'])), Me.fromJson(_m(d['me']))); }
   @override Future<List<WishRoom>> explore({String? cursor}) async => _l(await _req('GET', '/wish-rooms/explore${cursor != null ? '?cursor=$cursor' : ''}'), WishRoom.fromJson);
   @override Future<WishRoom> equip(String roomId, String itemId) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$roomId/decorations', {'itemId': itemId})));
-  @override Future<WishRoom> complete(String id, {bool cancel = false}) async => WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/complete', {'cancel': cancel})));
+  @override Future<WishRoom> complete(String id, {bool cancel = false, Outcome? outcome, String? note}) async => WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/complete', {'cancel': cancel, if (outcome != null) 'outcome': outcome.name, if (note != null) 'note': note})));
   @override Future<WishRoom> seal(String id) async => WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/seal')));
   @override Future<List<WishRoom>> archive() async => _l(await _req('GET', '/archive'), WishRoom.fromJson);
   @override Future<List<WrItem>> items() async => _l(await _req('GET', '/items'), WrItem.fromJson);
@@ -221,8 +221,8 @@ class ApiRepository implements WrRepository {
   @override Future<Me> buyOutfit(String char, WrTheme theme) async => Me.fromJson(_m(_m(await _req('POST', '/outfits/purchase', {'char': char, 'theme': theme.name}))['me']));
   @override Future<WishRoom> setOutfit(String id, WrTheme? theme) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id/outfit', {'theme': theme?.name})));
   @override Future<WishRoom> unseal(String id) async => WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/unseal')));
-  @override Future<WishRoom> outcome(String id, Outcome o, {String? text, String? sealUntil}) async =>
-      WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/outcome', {'outcome': o.name, if (text != null) 'text': text, if (sealUntil != null) 'sealUntil': sealUntil})));
+  @override Future<WishRoom> outcome(String id, Outcome o, {String? text, String? sealUntil, String? note}) async =>
+      WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/outcome', {'outcome': o.name, if (text != null) 'text': text, if (sealUntil != null) 'sealUntil': sealUntil, if (note != null) 'note': note})));
   @override Future<({String token, String url})> shareLink(String id, {bool reissue = false}) async { final d = _m(await _req('POST', '/wish-rooms/$id/share-link', {'reissue': reissue})); return (token: d['token'] as String, url: d['url'] as String); }
   @override Future<WishRoom> roomByToken(String token) async => WishRoom.fromJson(_m(await _req('GET', '/share/$token')));
   @override Future<Map<String, dynamic>> claimSupportReward(String id, int at) async => _m(await _req('POST', '/wish-rooms/$id/support-rewards/$at/claim'));
