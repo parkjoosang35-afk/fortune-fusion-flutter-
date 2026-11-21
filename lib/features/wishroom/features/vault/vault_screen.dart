@@ -316,7 +316,13 @@ class _ReplayOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     // [4-B 신규] 放(RELEASED) 완료 기록은 도장을 成과 다른 색/글자로 표시.
     final isRelease = room.outcome == Outcome.RELEASED;
-    return Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: Stack(children: [
+    // [버그수정 — 실기기 검증(放 보관함 재생 확인 중 발견)] Dialog의 child로 바로
+    // Stack을 두면, 모든 자식이 Positioned뿐이라(비-Positioned 자식 없음) Stack이
+    // 크기를 정할 기준이 없어 Dialog가 주는 loose constraints 하에서 최소 크기로
+    // 쪼그라든다(실측: 390×844 화면에 작은 네모만 뜨고 전체화면 재생 연출이
+    // 전혀 보이지 않음). fit: StackFit.expand로 부모가 준 제약을 꽉 채우도록
+    // 강제한다 — 디자인/좌표는 전혀 바뀌지 않음(SizedBox.expand와 동일 효과).
+    return Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: Stack(fit: StackFit.expand, children: [
       // [버그수정 — 전수감사] app2/screens-c2.jsx › ArchivePlayer(): `<Room room={{...r,
       // ...s, brightness:1}} gold={.25} entering/>` — frozen 지정이 없다(= 평소처럼
       // drift/pulse/파티클이 계속 흐르는 채로 재생, 추가로 카메라인 2.2s 입장 연출)
@@ -354,6 +360,16 @@ class _ReplayOverlay extends StatelessWidget {
           ]),
           const SizedBox(height: 10),
           Text(room.text, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 16, color: WrC.hanjiInk, height: 1.5)),
+          // [버그수정 — 실기기 검증(放 보관함 재생 확인 중 발견)] 원본
+          // app3/flows.jsx ArchivePlayer(): `{play.note && <div>"{play.note}"</div>}`
+          // — 소원 마무리 시 남긴 한 줄 메모(成/放 공통)를 이 재생 오버레이에서
+          // 보여줘야 하는데, 이식 시 통째로 누락되어 있었다. note가 있을 때만
+          // 소원 문구 바로 아래에 큰따옴표로 감싸 표시한다(1:1, 색상/크기 동일
+          // 패턴으로 room.hanjiInk 계열 사용).
+          if (room.note != null && room.note!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text('"${room.note}"', style: const TextStyle(fontFamily: 'Pretendard', fontSize: 13, color: WrC.hanjiInk, height: 1.4)),
+          ],
           const SizedBox(height: 10),
           // [반응형 화면 규격 통일 — 잘림 현상 수정] 레벨/정성/응원/福 4개
           // 고정폭 항목이 Flexible·스크롤 보호 없는 Row에 그대로 들어있어,
