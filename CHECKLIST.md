@@ -511,3 +511,56 @@ isRelease 분기로 수정 완료. 모두 스크린샷으로 수정 전/후 대�
 
 **3-B 통과 조건 충족 여부**: 디버그 콘솔 에러 0건 ✅ · 캡처 2장(수호자 탭·
 자세히 시트) 서비스판과 나란히 ✅ · 커밋 1개(이 문서 갱신) ✅ — **PASS**.
+
+## S5 경제 — "맡기기(entrust)도 공용 결제창으로 통일" (이번 세션)
+
+- **작업**: `entrust_sheet.dart`의 "맡기기" 버튼이 직접 `entrustGuardian()`을
+  호출하던 것을 app3 원본(`entrust.jsx go()` → `app.checkout({kind:'entrust',...})`)과
+  동일하게 공용 `PayScreen`(`openPayScreen`)을 거치도록 리팩토링. `pay_screen.dart`
+  `PayOrder._kindLabel`에 `'entrust': '대신 기도'` 키 추가.
+- **"보내기"(visit) 범위 확정**: app3 `flow.js` `visit()`은 `price: 0`(무료)으로
+  디스패치 객체를 생성하며 `kind: 'visit'`로 `entrust`/`char`/`outfit`/`dispatch`/
+  `item`과 별도 분류된다. **보내기는 app3 원본에서 무료 기능이므로 S5 "공용
+  결제창 통일" 대상에서 제외한다** — 현재 Flutter 구현도 보내기에 결제창을
+  붙이지 않은 상태이며 이는 원본과 일치함. 추가 조치 불필요.
+- **부수 발견·수정(버그)**: `care_menu_info_sheet.dart`의 168px 히어로 이미지가
+  `margin: EdgeInsets.symmetric(horizontal: -18)`(음수 마진)로 바깥 Container의
+  좌우 padding을 상쇄해 폭 전체를 채우려 했는데, Flutter `Container`는
+  `assert(margin == null || margin.isNonNegative)`로 음수 마진을 금지해 돌보기
+  메뉴 10개 항목(수호자/맡기기/찾아온 수호자/옷/꾸미기/분위기/배경화면/상점/
+  함께빌기/고쳐쓰기) 공용 안내 시트를 열 때마다("?" 아이콘 또는 잠긴 행 탭)
+  항상 "Assertion failed" 크래시가 났다. 바깥 Container 좌우 padding을 제거하고
+  히어로 아래 콘텐츠만 별도 `Padding(horizontal: 18)`으로 감싸 음수 마진 없이
+  동일한 시각 결과를 재현. 같은 파일의 "기다릴게요"/"닫기"/"바로 가기" 버튼에도
+  Semantics identifier(`care_info_wait`/`care_info_close`/`care_info_go`) 부여.
+- **검증(Playwright, `flutter_entrust_payscreen5.py`)**: `flt-semantics-identifier`
+  기반 클릭(`care_info_go` → `entrust_checkout` → `pay_confirm`)으로 로그인
+  테스트 계정(`wr_compare_test@test.local`, room 14)에서 전체 흐름을 끝까지
+  실행. 결과:
+  - 안내 시트 정상 렌더링(크래시 없음, `pageerror` 0건) — 버그 수정 확인.
+  - entrust 폼 → "맡기기" 버튼 클릭 시 `PayScreen` confirm 화면
+    (`PAY · 대신 기도`, 복주머니 내역 310/120/190) 정상 진입.
+  - "결제하기" 클릭 → `paying`(1.5초 연출) → **`done` 단계 정확히 도달**
+    (poll 2.0s에 전환 확인): 영수증 "하린이 당신의 소원을 지켜요", 주문번호
+    WRMWQK4FJV, 사용한 복주머니 🧧120, 남은 복주머니 🧧190.
+  - 서버 DB(`wish_room_entrusts`) 직접 조회로 실제 레코드 생성 확인:
+    `id=2, room_id=14, days=3, price=120, start_day=1, end_day=4, status=active`
+    — `onConfirmPay()`(`entrustGuardian()`) API 호출이 서버에서 실제로
+    성공 처리됨을 최종 확인.
+  - (테스트 중 1회, 이전 세션이 남긴 `wish_room_entrusts`의 `cancelled` 레코드가
+    `CONSECUTIVE` 서버 검증에 걸려 409로 confirm 롤백되는 것을 관찰 — 이는
+    버그가 아니라 설계된 에러 롤백 흐름이 정상 동작한 것. 테스트 DB에서 해당
+    레코드를 삭제한 뒤 재실행해 done까지 도달함을 재확인.)
+- **flutter analyze**: 수정 3개 파일 모두 `No issues found!`.
+- **빌드**: `./build_local.sh --debug` 2회 성공(각 약 167초, `timeout 600000ms`
+  필요 — 기본 120000ms로는 타임아웃).
+- **커밋**: `pay_screen.dart`, `entrust_sheet.dart`, `care_menu_info_sheet.dart`
+  3개 파일 + 이 CHECKLIST.md 갱신을 함께 커밋한다(아래).
+
+**S5 "맡기기 공용 결제창 통일" 통과 조건 충족 여부**: PayScreen 진입 ✅ ·
+done(영수증) 단계 도달 ✅ · 서버 DB 반영 확인 ✅ · 기존 버그(안내 시트 크래시)
+발견·수정 ✅ · flutter analyze 통과 ✅ — **PASS**.
+
+**S5 남은 작업(미착수)**: 동일 결제 중복 처리 방지, 광고 보상 SSV + 1일 5회
+상한, 복주머니 보상 "v5" 수치(기도 +5·7일 연속 +20·함께 빌기 +1×5·광고 +2×5)
+전수 재확인, 출석/미션 보상 완전 제거.

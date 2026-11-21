@@ -44,16 +44,25 @@ class _CareMenuInfoSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pct = need > 0 ? (dayN / need * 100).clamp(0, 100).round() : 100;
+    // [S5 조사 중 발견 — 기존 버그 수정, 이 시트 전체(돌보기 메뉴 10개 모두 공용)]
+    // 이전에는 바깥 Container에 좌우 padding 18을 주고, 168px 히어로가 시트
+    // 폭 전체를 채우도록 margin: EdgeInsets.symmetric(horizontal: -18)(음수
+    // 마진)로 그 padding을 상쇄했다. Flutter Container는
+    // `assert(margin == null || margin.isNonNegative)`로 음수 마진을 금지하므로
+    // 이 안내창을 열 때마다(돌보기 메뉴의 "?" 아이콘 또는 잠긴 행 탭) 항상
+    // "Assertion failed" 크래시가 났다. 바깥 Container의 좌우 padding을 없애고
+    // (히어로가 자연히 폭 전체를 차지), 히어로 아래 나머지 콘텐츠만 별도
+    // Padding(horizontal: 18)으로 감싸는 구조로 바꿔 음수 마진 없이 동일한
+    // 시각 결과(히어로만 폭 전체, 본문은 18px 여백)를 낸다.
     return Container(
       margin: const EdgeInsets.fromLTRB(10, 0, 10, 22),
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+      padding: const EdgeInsets.only(bottom: 24),
       decoration: WrDeco.sheet,
       child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        // 168px 히어로 — 좌우 네거티브 마진(-18)으로 시트 폭 전체를 채운다.
+        // 168px 히어로 — 바깥 Container에 좌우 padding이 없으므로 그대로 폭 전체를 채운다.
         ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: -18),
             height: 168,
             decoration: const BoxDecoration(
               gradient: RadialGradient(center: Alignment(0, .7), radius: .9, colors: [Color(0x61FFBE96), Colors.transparent]),
@@ -103,66 +112,72 @@ class _CareMenuInfoSheet extends StatelessWidget {
             ]),
           ),
         ),
-        const SizedBox(height: 12),
-        Center(child: Text(lock ? 'COMING SOON' : 'HOW IT WORKS', style: WrF.mono(size: 10, color: WrC.blossom2))),
-        const SizedBox(height: 4),
-        Center(child: Text(info.title, style: WrF.display(22, color: Colors.white))),
-        const SizedBox(height: 4),
-        Center(child: Text(info.tag, style: WrF.body(13.5, color: WrC.muted))),
-        const SizedBox(height: 16),
-        for (var i = 0; i < info.steps.length; i++) ...[
-          if (i > 0) const SizedBox(height: 8),
-          _StepCard(step: info.steps[i], index: i + 1),
-        ],
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x4DFFDCB4), width: 1, style: BorderStyle.solid)),
-          child: Text('💡 ${info.note}', style: WrF.body(12.5, height: 1.65, color: WrC.muted)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Center(child: Text(lock ? 'COMING SOON' : 'HOW IT WORKS', style: WrF.mono(size: 10, color: WrC.blossom2))),
+            const SizedBox(height: 4),
+            Center(child: Text(info.title, style: WrF.display(22, color: Colors.white))),
+            const SizedBox(height: 4),
+            Center(child: Text(info.tag, style: WrF.body(13.5, color: WrC.muted))),
+            const SizedBox(height: 16),
+            for (var i = 0; i < info.steps.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              _StepCard(step: info.steps[i], index: i + 1),
+            ],
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x4DFFDCB4), width: 1, style: BorderStyle.solid)),
+              child: Text('💡 ${info.note}', style: WrF.body(12.5, height: 1.65, color: WrC.muted)),
+            ),
+            if (lock && comingSoon) ...[
+              const SizedBox(height: 14),
+              Center(child: Text('준비하고 있어요 · 준비되는 대로 알려 드릴게요', style: WrF.body(12, color: WrC.muted))),
+            ] else if (lock) ...[
+              const SizedBox(height: 14),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text('오늘 $dayN일째', style: WrF.body(12, w: FontWeight.w700, color: WrC.muted)),
+                Text('${(need - dayN).clamp(1, 999)}일 뒤 열려요', style: WrF.body(12, w: FontWeight.w700, color: WrC.glow)),
+              ]),
+              const SizedBox(height: 6),
+              ClipRRect(borderRadius: BorderRadius.circular(999), child: SizedBox(height: 7, child: Stack(children: [
+                Container(color: Colors.white.withValues(alpha: .08)),
+                FractionallySizedBox(widthFactor: pct / 100, child: Container(
+                  decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFFFF9CBC), Color(0xFFF5CF6A)])))),
+              ]))),
+              const SizedBox(height: 8),
+              Center(child: Text('하루 한 번 기도하면 하나씩 가까워져요', style: WrF.body(12, color: WrC.muted))),
+            ],
+            const SizedBox(height: 14),
+            // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신 이름표로
+            // 안내 시트 버튼을 트리거할 수 있도록 identifier 부여. 시각적 변화 없음.
+            if (lock)
+              SizedBox(width: double.infinity, height: 50, child: Semantics(identifier: 'care_info_wait', button: true, child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                child: Text('기다릴게요', style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
+              )))
+            else
+              Row(children: [
+                SizedBox(width: 96, height: 50, child: Semantics(identifier: 'care_info_close', button: true, child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  child: Text('닫기', style: WrF.body(13, color: WrC.fg)),
+                ))),
+                const SizedBox(width: 8),
+                Expanded(child: SizedBox(height: 50, child: Semantics(identifier: 'care_info_go', button: true, child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    onGo();
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  child: Text('바로 가기 ›', style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
+                )))),
+              ]),
+          ]),
         ),
-        if (lock && comingSoon) ...[
-          const SizedBox(height: 14),
-          Center(child: Text('준비하고 있어요 · 준비되는 대로 알려 드릴게요', style: WrF.body(12, color: WrC.muted))),
-        ] else if (lock) ...[
-          const SizedBox(height: 14),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('오늘 $dayN일째', style: WrF.body(12, w: FontWeight.w700, color: WrC.muted)),
-            Text('${(need - dayN).clamp(1, 999)}일 뒤 열려요', style: WrF.body(12, w: FontWeight.w700, color: WrC.glow)),
-          ]),
-          const SizedBox(height: 6),
-          ClipRRect(borderRadius: BorderRadius.circular(999), child: SizedBox(height: 7, child: Stack(children: [
-            Container(color: Colors.white.withValues(alpha: .08)),
-            FractionallySizedBox(widthFactor: pct / 100, child: Container(
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFFFF9CBC), Color(0xFFF5CF6A)])))),
-          ]))),
-          const SizedBox(height: 8),
-          Center(child: Text('하루 한 번 기도하면 하나씩 가까워져요', style: WrF.body(12, color: WrC.muted))),
-        ],
-        const SizedBox(height: 14),
-        if (lock)
-          SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-            child: Text('기다릴게요', style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
-          ))
-        else
-          Row(children: [
-            SizedBox(width: 96, height: 50, child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(side: const BorderSide(color: WrC.line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-              child: Text('닫기', style: WrF.body(13, color: WrC.fg)),
-            )),
-            const SizedBox(width: 8),
-            Expanded(child: SizedBox(height: 50, child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onGo();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-              child: Text('바로 가기 ›', style: WrF.body(14, w: FontWeight.w700, color: Colors.white)),
-            ))),
-          ]),
       ])),
     );
   }
