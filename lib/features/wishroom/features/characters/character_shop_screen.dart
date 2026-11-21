@@ -21,7 +21,18 @@ import '../wardrobe/wardrobe_screen.dart';
 import '../../core/wr_toast.dart';
 
 class CharacterShopScreen extends StatefulWidget {
-  const CharacterShopScreen({super.key});
+  const CharacterShopScreen({super.key, this.embedded = false});
+  // [버그수정 — 실제 스크린샷 검증으로 발견: 하단 내비게이션 바 2중 렌더링]
+  // 이 화면은 두 가지 경로로 쓰인다: ① main_room_screen.dart/wallet_sheet.dart/
+  // vault_screen.dart에서 Navigator.push로 독립 진입(이때는 바깥에 다른
+  // 하단바가 없으므로 이 화면 자신의 Scaffold.bottomNavigationBar가 필요함),
+  // ② wishroom_shell.dart의 IndexedStack 탭(인덱스 1)으로 내장(이때는 바깥
+  // WishRoomShell 자신이 이미 똑같은 하단바를 그리고 있어서, 이 화면도 자신의
+  // bottomNavigationBar를 그리면 두 하단바가 겹쳐 두 줄로 보인다 — Playwright
+  // 스크린샷(FINAL1_guardian_tab.png)에서 실측 확인됨). [embedded]=true일 때는
+  // 이 화면 자신의 bottomNavigationBar를 생략해 바깥 셸의 하단바 하나만
+  // 보이게 한다(wishroom_shell.dart에서만 true로 전달).
+  final bool embedded;
   @override
   State<CharacterShopScreen> createState() => _CharacterShopScreenState();
 }
@@ -75,11 +86,13 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
       data: wrThemeData(),
       child: Scaffold(
         backgroundColor: WrC.bg2,
-        bottomNavigationBar: wrBottomNavBar(
-          context,
-          currentIndex: 1,
-          onTabTap: (i) => wrReturnToTab(context, i),
-        ),
+        bottomNavigationBar: widget.embedded
+            ? null
+            : wrBottomNavBar(
+                context,
+                currentIndex: 1,
+                onTabTap: (i) => wrReturnToTab(context, i),
+              ),
         body: Consumer<WishRoomProvider>(
           builder: (context, p, __) {
             if (p.characters.isEmpty) {

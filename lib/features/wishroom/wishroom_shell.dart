@@ -48,7 +48,11 @@ class _WishRoomShellState extends State<WishRoomShell> {
   // 알림/꾸미기는 하단바에서 제거.
   static const _tabs = [
     MainRoomScreen(),
-    CharacterShopScreen(),
+    // [버그수정 — 하단 내비게이션 바 2중 렌더링] 이 화면이 셸의 IndexedStack
+    // 탭으로 내장될 때는 embedded:true를 줘서 화면 자신의
+    // bottomNavigationBar를 생략한다(바로 아래 바깥 Scaffold의 하단바와
+    // 겹쳐 두 줄로 보이는 문제 수정 — character_shop_screen.dart 주석 참고).
+    CharacterShopScreen(embedded: true),
     ExploreScreen(),
     ShopScreen(),
     VaultScreen(),
