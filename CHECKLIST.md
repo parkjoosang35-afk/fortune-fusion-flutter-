@@ -312,3 +312,78 @@ Playwright로 실제 放 완료된 계정에서 새 소원을 끝까지 작성�
 수정·검증 완료. "이룬 소원 통계"(보관함 헤더/함께 빌기 이루어진 이야기/신통방통 홈 카드,
 3곳 모두 `outcome=FULFILLED`만 세는지)와 "완성" 라벨 스크린샷(대표님 요청)은 다음
 세션에서 이어서 확인.
+
+### "이룬 소원 통계" 3곳 검증 + "완성" 라벨 스크린샷 (이번 세션, 대표님 item 2·3 verdict 후속)
+
+대표님이 지정한 3곳을 코드와 실행 화면으로 모두 확인. 결과: **3곳 중 1곳(보관함 헤더)이
+放까지 같이 세고 있어 FAIL** — 수정 필요. 나머지 2곳은 PASS.
+
+**(a) 보관함 헤더 "소원 기록관 N" — ❌ FAIL (放도 같이 셈, 수정 필요)**
+- `vault_screen.dart` `_ArchiveTabState.build()` 153행:
+  `final done = rooms.where((r) => r.status == RoomStatus.SEALED || r.status == RoomStatus.ARCHIVED).toList();`
+  → `Text('${done.length}', ...)`. `status`(SEALED/ARCHIVED)만 보고 `outcome`
+  (FULFILLED/RELEASED)은 전혀 걸러내지 않는다 — 放으로 끝난 소원도 그대로 카운트에
+  포함됨.
+- 실제 화면으로 확인: 테스트 계정(放 1건만 보유, 成 0건)에서 "소원 기록관 **1**"로
+  표시됨(放인데 1로 집계) — 스크린샷
+  `/home/user/wr_compare/item3_screenshot/A1_vault_archive_tab.png`.
+- 원본 `app3/flows.jsx` `Vault3()` 125행도 `v.archive.length`로 동일하게 放/成
+  구분 없이 센다 — **원본도 처음부터 이 구분이 없었다**(00-A 기준으로는 "프로토타입이
+  해당 기능 자체를 구현 안 한 것"과 "대표님이 원하는 스펙"이 다를 수 있는 지점). 매핑표
+  00-C는 "잠금"에 대한 조항이라 이 통계 항목과는 무관함 — 별도 판단 필요.
+- **대표님 verdict 필요**: "이 헤더가 outcome=FULFILLED만 세도록 고칠지, 아니면 '전체
+  기록관(放+成 모두 보관됨)' 개수로 두고 그대로 둘지" 둘 중 하나 확정해주시면 바로 반영.
+  (참고: 대표님 원래 기준 — "outcome=FULFILLED만 센다면 PASS" — 이 자리는 현재
+  FULFILLED만 세지 않으므로 엄밀히는 FAIL.)
+
+**(b) 함께 빌기 "이루어진 이야기" — ✅ PASS**
+- `explore_screen.dart` 413행 `canWrite`가 `room.wishStatus == WishStatus.ACHIEVED`를
+  요구(放은 `wishStatus=IN_PROGRESS`로 유지되므로 자동 제외).
+- 서버 `review/route.ts` 74행 `if (room.wishStatus !== "ACHIEVED") throw ...
+  "NOT_ACHIEVED"` — 放 소원은 애초에 후기 등록 자체가 서버에서 막힘.
+- 후기 목록 API(`GET /wishroom/reviews`)는 `wish_room_review` 테이블(후기가 실제
+  작성된 건)만 조회하므로, 애초에 放 소원은 후기를 못 남겨 이 피드에 나타날 수조차
+  없음 — 放 혼입 가능성이 구조적으로 차단됨. **PASS**.
+
+**(c) 신통방통 홈 카드 문구 — ✅ PASS (해당 기능 없음 = 집계 로직 자체가 없음)**
+- `lib/features/home/` 전체와 `all_categories_screen.dart`·
+  `sintong_home_v2_data.dart`·`sintong_engine_card_grid.dart`·`my_screen.dart`의
+  "소원방"/願 타일을 모두 확인 — 전부 고정 마케팅 카피("간절한 마음을 종이에 담고
+  촛불 위에 조용히 봉인합니다" 등)이거나 `WishRoomIntroScreen`으로의 단순 이동
+  버튼이며, "이룬 소원 N개" 같은 숫자 집계 텍스트는 어디에도 없음.
+- `home_page_renderer.dart`의 `_WishPreviewBlock`(소원방 인기글 미리보기)은 관리자
+  정적 문구 + `/wish-wall` 핫포스트 1건만 보여주는 **다른(구) 기능**("Wish Wall")이며,
+  이번 세션에서 다루는 WishRoom(소원방)의 "이룬 소원" 집계와는 무관함.
+- 집계 자체가 존재하지 않으므로 放을 잘못 세는 코드도 없음 — 대표님 verdict 기준
+  ("집계 로직이 없으면 PASS")대로 **PASS**로 처리.
+
+**"완성" 라벨 불일치 — 스크린샷 확보 완료, 실제로 2곳에서 발견**:
+1. **보관함 그리드 카드**(`vault_screen.dart` 278행) — 放(RELEASED)인 방인데도 카드
+   하단에 "완성"이라는 고정 텍스트가 그대로 표시됨. 카드 우상단 도장은 올바르게
+   "放"(보라색)으로 뜨는데, 바로 아래 텍스트는 成/放 구분 없이 항상 "완성"이라 서로
+   모순된 정보를 보여줌. 스크린샷:
+   `/home/user/wr_compare/item3_screenshot/A1_vault_archive_tab.png` (放 도장 + "완성"
+   텍스트가 한 카드 안에 공존하는 장면).
+2. **재생 오버레이(`_ReplayOverlay`)**: 이쪽은 "완성"이라는 단어 자체는 없고 대신
+   도장 色(보라/放)과 메모 텍스트("放 최종확인")는 정확히 分岐되어 있어 문제없음 —
+   스크린샷 `/home/user/wr_compare/item3_screenshot/B1_replay_overlay.png`에서 "放"
+   도장 + 메모 "放 최종확인" 정상 표시 확인(이 메모는 사용자가 放 선택 시 직접 입력한
+   한 줄이라 "최종확인"이라는 단어 자체는 문구 버그가 아니라 테스트 중 입력한 임의
+   텍스트임 — 참고용).
+- **원본 app3 대조**: `flows.jsx` `Vault3()` 그리드 카드(125-134행)에는애초에
+  "완성"이라는 텍스트 자체가 없다(소원 문구 + "N일 · N번"만 있음, 도장만 成/放 공용
+  로직으로 분기돼 있었다면 放 색상도 같이 넣었을 것이나 원본엔 放 케이스 자체가
+  이 화면에 없었음 — 放 개념 자체가 이번 Flutter 포팅에서 신규 추가된 기능이라
+  원본에 "放일 때 완성이 아니게 하라"는 참고 코드가 없음).
+- **정리하면**: 버그 위치는 `vault_screen.dart:278`
+  `Text('완성', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.glow))` 1줄이며,
+  `isRelease`(252행에 이미 계산되어 있음) 분기를 안 타고 하드코딩되어 있다. 재생
+  오버레이 쪽은 이미 올바르게 분기되어 있으므로 동일 패턴을 그대로 가져다 쓰면 됨.
+- **대표님 verdict 필요** (CHECKLIST.md 기존 메모의 3개 선택지 유효):
+  ① 라벨 완전 제거(원본 1:1) ② 放일 때만 "완성" 대신 다른 문구(예: "放·내려놓음")로
+  분기 ③ 현행 유지(放에도 "완성" 그대로). 스크린샷 2장 모두 위 경로에 보관.
+
+**다음 순서(대표님 "4" 항목)로 이동 전 남은 자체 보고 사항**:
+- (a) 보관함 헤더 FAIL 1건 + "완성" 라벨 불일치 1건 — 둘 다 대표님 verdict 대기,
+  verdict 오는 대로 바로 수정 가능한 상태(코드 위치 특정 완료).
+- (b)(c)는 PASS로 확정, 추가 조치 불필요.
