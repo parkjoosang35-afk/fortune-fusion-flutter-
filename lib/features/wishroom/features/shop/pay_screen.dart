@@ -18,7 +18,6 @@ import '../../application/wishroom_provider.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../../core/wr_toast.dart';
-import '../../core/wr_ad_earn_button.dart';
 import '../wallet/wallet_sheet.dart';
 
 /// 결제창에 전달하는 "주문" 정보 — app3/pay.jsx `order` prop 1:1.
@@ -292,8 +291,6 @@ class _PayScreenState extends State<PayScreen> {
                     '활동으로 모으기',
                     style: WrF.body(12, w: FontWeight.w700, color: WrC.muted),
                   ),
-                  const SizedBox(height: 8),
-                  WrAdEarnButton(onDone: () => setState(() {})),
                   const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,

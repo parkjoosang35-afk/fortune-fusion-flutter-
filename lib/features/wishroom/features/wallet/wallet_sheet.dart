@@ -1,6 +1,12 @@
 // 지갑 시트 — app2/pouch2.jsx › WalletSheet() 1:1. 어디서든(복주머니 pill 탭) 열 수
-// 있는 공용 지갑 바텀시트. "짧은 영상 보기"(AdMob RewardedAd) + 5개 일일 미션 +
-// 사용처 바로가기 + 전체 내역(보관함 복주머니 탭)으로 이동하는 구조.
+// 있는 공용 지갑 바텀시트. 5개 일일 미션 + 사용처 바로가기 + 전체 내역(보관함
+// 복주머니 탭)으로 이동하는 구조.
+//
+// [대표님 지시 — 소원방 "광고 보고 복주머니" 기능 삭제] 기존에 있던 "짧은 영상
+// 보기"(AdMob RewardedAd) 카드와 그 호출 경로를 전부 제거했다. 복주머니 획득처
+// 카탈로그(wishroom_data.json EARN[])에는 'ad' 항목이 여전히 존재하지만(서버
+// 쪽 데이터 파일은 별도 사유로 수정 금지 대상), 화면에는 노출하지 않도록
+// `earn.where((e) => e['id'] != 'ad')`로 계속 걸러낸다.
 //
 // [버그수정 — 전수 감사로 발견] 상단 복주머니 pill(main_room_screen.dart › _pouchPill)이
 // 탭 핸들러가 전혀 없는 정적 위젯이었다. 원본은 PouchPill({onClick: app.openWallet})로
@@ -9,14 +15,12 @@
 // (사용처 바로가기 3개 그리드 추가가 원본과의 차이점).
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../application/wishroom_provider.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../characters/character_shop_screen.dart';
 import '../decor/decor_screen.dart';
-import '../../../ads_test/domain/admob_ad_ids.dart';
 import '../../core/wr_toast.dart';
 
 // 바텀탭 인덱스(wishroom_shell.dart `_tabs` 순서) 1:1 대응.
@@ -34,7 +38,7 @@ void openWalletSheet(BuildContext context) {
 }
 
 const Map<String, String> _kEarnIcon = {
-  'ad': '▶', 'attend': '✓', 'devo10': '🙏', 'm_visit': '☾', 'm_cheer': '❤', 'm_msg': '💬',
+  'attend': '✓', 'devo10': '🙏', 'm_visit': '☾', 'm_cheer': '❤', 'm_msg': '💬',
 };
 const Map<String, String> _kEarnGo = {
   'm_visit': 'explore', 'm_cheer': 'explore', 'm_msg': 'explore', 'devo10': 'home',
@@ -47,7 +51,6 @@ class WalletSheet extends StatefulWidget {
 }
 
 class _WalletSheetState extends State<WalletSheet> {
-  bool _adLoading = false;
   int _gotKey = 0;
   int _gotAmount = 0;
 
@@ -65,10 +68,6 @@ class _WalletSheetState extends State<WalletSheet> {
 
   Future<void> _tap(Map<String, dynamic> src) async {
     final id = src['id'] as String;
-    if (id == 'ad') {
-      await _watchAd();
-      return;
-    }
     final go = _kEarnGo[id];
     final p = context.read<WishRoomProvider>();
     final today = p.me?.earnToday ?? const <String, int>{};
@@ -98,40 +97,6 @@ class _WalletSheetState extends State<WalletSheet> {
       return;
     }
     await _doEarn(id);
-  }
-
-  Future<void> _watchAd() async {
-    if (!AdmobAdIds.isSupportedPlatform) {
-      WrToast.show(context, '이 플랫폼에서는 광고 시청을 지원하지 않아요');
-      return;
-    }
-    if (_adLoading) return;
-    setState(() => _adLoading = true);
-    await RewardedAd.load(
-      adUnitId: AdmobAdIds.rewardedUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          bool rewarded = false;
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) async {
-              ad.dispose();
-              if (mounted) setState(() => _adLoading = false);
-              if (rewarded) await _doEarn('ad');
-            },
-            onAdFailedToShowFullScreenContent: (ad, _) {
-              ad.dispose();
-              if (mounted) setState(() => _adLoading = false);
-            },
-          );
-          ad.show(onUserEarnedReward: (ad, reward) { rewarded = true; });
-        },
-        onAdFailedToLoad: (_) {
-          if (mounted) setState(() => _adLoading = false);
-          if (mounted) WrToast.show(context, '지금은 광고를 불러올 수 없어요');
-        },
-      ),
-    );
   }
 
   Future<void> _doEarn(String source) async {
@@ -184,10 +149,6 @@ class _WalletSheetState extends State<WalletSheet> {
       final cat = WrCatalog.I;
       final today = me?.earnToday ?? const <String, int>{};
       final earn = cat.earn;
-      final adSrc = earn.firstWhere((e) => e['id'] == 'ad', orElse: () => const {'amount': 30, 'limit': 10});
-      final adN = today['ad'] ?? 0;
-      final adLim = (adSrc['limit'] as num).toInt();
-      final adAmt = (adSrc['amount'] as num).toInt();
 
       return DraggableScrollableSheet(
         initialChildSize: .84, minChildSize: .5, maxChildSize: .92, expand: false,
@@ -225,45 +186,6 @@ class _WalletSheetState extends State<WalletSheet> {
                 borderRadius: BorderRadius.circular(12), border: Border.all(color: WrC.line, style: BorderStyle.solid)),
               child: Text('신통방통 어디서 모은 복주머니든 소원방에서 그대로 쓸 수 있어요. 돈으로는 살 수 없어요.',
                 style: WrF.body(11.5, color: WrC.muted, height: 1.6))),
-            const SizedBox(height: 12),
-            // 광고 — 가장 크게
-            GestureDetector(
-              onTap: adN >= adLim || _adLoading ? null : () => _tap(adSrc),
-              child: Opacity(opacity: adN >= adLim ? .5 : 1, child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(16),
-                  gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x47785CFF), Color(0x2EF2628F)]),
-                  border: Border.all(color: const Color(0x73B496FF))),
-                child: Row(children: [
-                  Container(width: 46, height: 46, alignment: Alignment.center,
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(14),
-                      gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF9A6AFF), Color(0xFF6A3AD8)])),
-                    child: _adLoading
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('▶', style: TextStyle(color: Colors.white, fontSize: 18))),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('짧은 영상 보고 복주머니 받기', style: WrF.body(14, w: FontWeight.w700, color: WrC.fg)),
-                    const SizedBox(height: 5),
-                    // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
-                    // 일일 한도만큼(최대 10개) 그려지는 진행도 점(dot)들과 "오늘
-                    // N/M" 텍스트가 고정 Row로 배치돼, 좁은 화면(360px 이하)에서
-                    // 점 10개 폭(120px)만으로도 Expanded 칼럼 폭을 넘어 87px
-                    // RenderFlex overflow가 발생했다. Wrap으로 바꿔 점들이
-                    // 줄바꿈될 수 있게 한다(점 모양·간격·색상·텍스트는 그대로
-                    // 유지).
-                    Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 0, runSpacing: 4, children: [
-                      for (var i = 0; i < adLim; i++)
-                        Container(width: 9, height: 4, margin: const EdgeInsets.only(right: 3),
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), color: i < adN ? const Color(0xFFB89AFF) : Colors.white24)),
-                      const SizedBox(width: 6),
-                      Text('오늘 $adN/$adLim', style: WrF.body(10.5, color: WrC.muted)),
-                    ]),
-                  ])),
-                  Text('+$adAmt', style: WrF.display(15, color: WrC.glow)),
-                ]),
-              )),
-            ),
             const SizedBox(height: 18),
             Text('오늘 모을 수 있는 복', style: WrF.display(14)),
             Text('자정에 다시 채워져요', style: WrF.body(11, color: WrC.muted)),

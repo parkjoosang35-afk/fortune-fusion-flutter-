@@ -26,14 +26,9 @@ const Map<String, GuideItem> kGuide = {
   ], tip: '성장 점수 = 정성 + 응원 × 0.5 + 받은 복주머니 × 10'),
   'pouch': GuideItem(icon: 'pouch', title: '복주머니', sub: '신통방통 공용 재화', body: [
     '신통방통 앱 어디서나 함께 쓰는 복주머니예요. 소원방에서 모은 것도, 쓴 것도 모두 같은 주머니예요.',
-    '출석 · 정성 10회 · 짧은 영상 · 미션으로 모으고',
+    '출석 · 정성 10회 · 미션으로 모으고',
     '캐릭터 · 꾸미기 · 다른 분께 선물하는 데 써요.',
   ], tip: '복주머니는 돈으로 살 수 없어요. 복은 사고파는 게 아니니까요'),
-  'ad': GuideItem(icon: 'gift', title: '짧은 영상', sub: '하루 10번 · 복주머니 +30', body: [
-    '짧은 영상을 끝까지 보면 복주머니 30개가 담겨요.',
-    '하루 10번까지, 자정이 지나면 다시 채워져요.',
-    '복주머니가 조금 모자랄 때 가장 빠른 방법이에요.',
-  ], tip: '영상을 중간에 닫으면 복주머니는 담기지 않아요'),
   'character': GuideItem(icon: 'lotus', title: '수호자', sub: '방을 지켜주는 분', body: [
     '당신이 없는 동안 소원방을 대신 지켜주는 분이에요.',
     '여성 10분, 남성 10분. 처음 두 분은 무료로 함께해요.',
@@ -68,7 +63,7 @@ const Map<String, GuideItem> kGuide = {
   ], tip: '봉인하고 나면 새로운 소원방을 열 수 있어요'),
 };
 
-const List<String> kGuideOrder = ['seal', 'candle', 'devotion', 'level', 'pouch', 'ad', 'character', 'wish', 'support', 'decor', 'archive'];
+const List<String> kGuideOrder = ['seal', 'candle', 'devotion', 'level', 'pouch', 'character', 'wish', 'support', 'decor', 'archive'];
 
 /// app2/guide2.jsx › TOUR — 메인 화면(SCR-03) 좌표 기준 6단계 코치마크.
 class TourStep {

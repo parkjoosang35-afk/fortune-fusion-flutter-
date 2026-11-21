@@ -20,7 +20,6 @@ import '../room/room_layout.dart' as layout;
 import '../guide/guide_sheet.dart';
 import '../../core/wr_nav_pill.dart';
 import '../wallet/wallet_sheet.dart';
-import '../../core/wr_ad_earn_button.dart';
 import 'dart:ui' as ui;
 import '../compose/compose_screen.dart';
 import '../../core/wr_toast.dart';

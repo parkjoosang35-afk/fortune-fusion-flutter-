@@ -516,7 +516,7 @@ class _GuardianDetailSheetState extends State<GuardianDetailSheet> {
                         Padding(
                           padding: const EdgeInsets.only(top: 10),
                           child: Text(
-                            '복주머니는 기도 · 함께 빌기 · 짧은 영상으로 적립돼요',
+                            '복주머니는 기도 · 함께 빌기로 적립돼요',
                             textAlign: TextAlign.center,
                             style: WrF.body(11, color: WrC.muted),
                           ),
