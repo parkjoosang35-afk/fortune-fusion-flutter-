@@ -659,3 +659,113 @@ done(영수증) 단계 도달 ✅ · 서버 DB 반영 확인 ✅ · 기존 버�
 **다음 세션에 이어갈 것**: S5 나머지 — 광고 보상 SSV + 1일 5회 상한,
 복주머니 보상 "v5" 수치 전수 재확인, 출석/미션 보상 완전 제거. S6 마무리는
 완전 미착수.
+
+---
+
+## S5 경제 — "광고 보상 SSV + 1일 5회 상한" 조사 → "소원방 광고 보고
+## 복주머니 기능 삭제"로 전환 (이번 세션)
+
+- **배경**: "진행" 지시로 위 체크리스트의 다음 항목("광고 보상 SSV + 1일
+  5회 상한")에 착수. 조사 결과를 대표님께 보고했으나, 대표님이 이 방향
+  자체를 기각하고 기능을 통째로 삭제하라고 지시 — 이 섹션은 그 조사
+  결과와 이어진 삭제 작업을 함께 기록한다.
+
+### 1단계 — 조사 결과 (SSV는 보류/폐기, 1일 5회 상한은 이미 정상)
+- **"1일 5회" 일일 상한**: `me/earn/route.ts`가 `wish_room_earn_logs`의
+  `(userId, source, dateKey)` 카운팅을 `$transaction` 안에서 수행 —
+  이미 올바르게 구현되어 있었다.
+  - 순차 테스트: 6회 호출 중 5회만 성공(복주머니 190→200), 6회차는
+    `EARN_LIMIT`으로 정상 거부.
+  - **동시성 레이스 테스트**(신규 검증): curl 7개를 완전 병렬(`&`/`wait`)로
+    발사 — 정확히 5개만 성공, 2개는 거부, DB에 정확히 5행만 생성됨을
+    확인. 레이스 컨디션에도 안전함을 이번에 처음 확인.
+- **진짜 AdMob SSV(Google 공식 암호화 서버 콜백 검증)**: 코드베이스
+  어디에도 구현되어 있지 않음(별개 시스템인 `fortune-ad-service.ts`의
+  "FortuneAd"도 세션 기반 PENDING→COMPLETED 재전송 방지일 뿐, 진짜
+  암호화 SSV는 아님). 앱이 아직 테스트용 광고 단위 ID를 쓰고 있어 실제
+  SSV 도입이 검증하기 어려운 대규모 작업이라는 점과 함께 3가지 대안을
+  제시 → **대표님이 이 방향 전체를 기각**하고 기능 삭제를 지시.
+
+### 2단계 — "소원방 광고 보고 복주머니" 기능 삭제 (대표님 지시로 전환)
+- **제약**: `wishroom_data.json`(admin_web `src/data/`, flutter_app
+  `assets/wishroom/data/` 양쪽 다 동일, 바이트 단위로 diff 확인)의
+  `EARN[]`에 있는 `{id:'ad', ...}` 항목과 `POUCH.ad/adMax`는 **이 파일
+  자체가 수정 금지 대상**이라 데이터에서 제거할 수 없음. 따라서
+  "데이터는 그대로 두고 서버 라우트 레벨에서 차단 + 클라이언트에서
+  호출/노출 경로 전부 제거"하는 방식으로 설계.
+
+#### 서버(admin_web) — `me/earn/route.ts`
+- `DISABLED_EARN_SOURCES = new Set(['ad'])` 블록리스트 추가, 기존
+  카탈로그 조회(`WR.EARN.find(...)`)보다 먼저 `source==='ad'`를
+  `404 NOT_FOUND`("더 이상 지원하지 않는 획득처예요")로 거부.
+- 검증: `npx tsc --noEmit` 0 에러. curl로 `{"source":"ad"}` 요청 →
+  `404 NOT_FOUND` 확인, 지갑 잔액(190)·`wish_room_earn_logs` 모두
+  변동 없음 확인. 회귀 테스트로 `{"source":"pray"}`(auto 항목) 호출 →
+  기존과 동일하게 `400 AUTO` 응답, 정상 동작에 영향 없음 확인.
+- 커밋 `5d3d5b24` — `git status --short`/`git diff --cached --stat`로
+  이 1개 파일만 staged됐음을 커밋 전후 재확인, 5개 수정 금지 파일은
+  그대로 unstaged 보존.
+
+#### 클라이언트(flutter_app) — 6개 파일
+- `wr_ad_earn_button.dart` **삭제**(재사용 버튼 위젯 전체, `git rm`).
+- `pay_screen.dart`: `WrAdEarnButton` import·호출 제거("활동으로
+  모으기" 라벨과 "다른 방법으로 모으기"(WalletSheet 열기) 버튼은
+  유지).
+- `decor_screen.dart`: 실제로 쓰이지 않던 죽은 import 제거.
+- `wallet_sheet.dart`(가장 큰 변경): 광고 카드 UI 블록(그라데이션
+  컨테이너, "짧은 영상 보고 복주머니 받기" 문구, 진행도 점, "+2" 뱃지
+  등 약 38줄) 전체 삭제, `_watchAd()` 메서드(RewardedAd load/show/
+  콜백, 약 33줄) 삭제, `google_mobile_ads`/`AdmobAdIds` import 삭제,
+  `_adLoading` 상태 삭제, `_kEarnIcon` 맵의 `'ad'` 항목 삭제. 일일
+  미션 목록 렌더링에 이미 있던
+  `earn.where((e) => e['id'] != 'ad')` 필터는 그대로 유지 —
+  `wishroom_data.json`에 'ad'가 남아있어도 화면에 노출되지 않게 하는
+  유일한 장치로 남음.
+- `guide_data.dart`: `kGuide['ad']` 항목, `kGuideOrder`의 `'ad'` 삭제,
+  `'pouch'` 안내 문구에서 "짧은 영상" 언급 제거.
+- `guardian_detail_sheet.dart`: "복주머니는 기도 · 함께 빌기 · 짧은
+  영상으로 적립돼요" → "복주머니는 기도 · 함께 빌기로 적립돼요".
+- `test/wallet_sheet_overflow_test.dart`: 삭제된 광고 카드 텍스트
+  ("짧은 영상 보고 복주머니 받기")를 찾아 스크롤하던 검증 단계를
+  제거하고, 그 자리의 "일일 미션" 첫 항목 텍스트("오늘 모을 수 있는
+  복")로 대체.
+- **스코프 확인(그렙으로 확정, 변경 안 함)**: `character_shop_screen.dart`는
+  애초에 `WrAdEarnButton`/'ad' 참조가 없음. `pouch_box/.../
+  pouch_ad_overlay.dart`는 "행운상자"라는 완전히 별개 기능의 강제
+  대기 광고 오버레이로, 소원방과 무관 — 범위 밖으로 확정하고 건드리지
+  않음.
+- **검증**:
+  - `flutter analyze`: 118 issues 중 신규 에러 0건, 기존부터 있던
+    `WrGuardianOutfitLauncher` undefined 에러 2건만 그대로(본 작업과
+    무관, `git stash`로 이전 커밋 기준 재현 확인).
+  - 그렙 재스윕: `lib/features/wishroom` 전체에서 `'ad'`/`"ad"` 검색 시
+    `wallet_sheet.dart`의 주석 2줄 + 필터 코드 1줄만 남음(의도된 잔존).
+    `WrAdEarnButton`/`RewardedAd`/`AdmobAdIds` 실제 사용 코드는
+    전무(주석 언급 제외).
+  - `flutter test test/wallet_sheet_overflow_test.dart`: 5개 중 4개
+    테스트가 `_FakeWrRepository`의 `ledger` getter 미모킹으로 실패 —
+    `git stash`로 확인한 결과 **이번 변경 전(커밋 e1345647)부터 이미
+    동일하게 실패하던 사전 존재 버그**(`WalletSheet.initState()`가
+    `loadLedger()`를 호출하는데 가짜 레포지토리가 `noSuchMethod`로
+    막혀 있음). 본 작업 범위 밖의 별도 이슈로 남겨둠(수정하지 않음,
+    텍스트 치환만 정확히 반영됐는지가 본 작업의 책임 범위).
+  - `build_local.sh --debug`: 빌드 성공(156.3초), 프리뷰 서버(`:5060`)
+    재기동 후 HTTP 200 확인.
+- 커밋 `3bee5c72`(6개 소스 + 1개 테스트 파일, 25 insertions(+),
+  206 deletions(-)).
+
+**검증 요약 — 서버 404 차단 확인(curl) + 서버 회귀 없음 확인(curl) +
+flutter analyze 신규 에러 0건 + 그렙 재스윕으로 잔존 참조 없음 확인 +
+빌드 성공 — PASS. (단, wallet_sheet_overflow_test.dart의 4개 테스트
+실패는 본 작업과 무관한 사전 존재 버그로 별도 과제로 남음.)**
+
+**중요 — 이 섹션으로 위의 "S5 남은 작업"의 "광고 보상 SSV + 1일 5회
+상한" 항목은 폐기/대체된다.** 기능 자체가 삭제됐으므로 SSV를 추가로
+구현할 필요가 없어졌다. 아래 "다음 세션에 이어갈 것"에서 해당 항목을
+제거하고 갱신한다.
+
+**다음 세션에 이어갈 것(갱신)**: S5 나머지 — 복주머니 보상 "v5" 수치
+전수 재확인(기도 +5 · 7일 연속 +20 · 함께 빌기 +1×5 — **광고 +2×5
+항목은 기능 삭제로 이 체크리스트에서 제외**), 출석/미션 보상 완전
+제거(`luck-pouch-engine.ts`의 `ACTIVITY_SCORE_WEIGHTS.attendance: 1`
+미조사 상태). S6 마무리는 완전 미착수.
