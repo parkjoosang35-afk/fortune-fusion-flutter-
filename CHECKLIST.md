@@ -841,3 +841,65 @@ curl 단위 테스트(지급·상한 모두 확인) → 클라이언트 반영 �
 (`luck-pouch-engine.ts`의 `ACTIVITY_SCORE_WEIGHTS.attendance: 1`
 미조사 상태, "복주머니 보상 v5 수치 전수 재확인" 자체는 이 세션으로
 완료 — PASS). S6 마무리는 완전 미착수.
+
+---
+
+## S5 경제 — "출석/미션 보상 완전 제거" 조사·조치 (이번 세션)
+
+- **배경**: "진행" 지시로 위 "다음 세션에 이어갈 것"의 마지막 항목
+  "출석/미션 보상 완전 제거"에 착수.
+
+### 조사 결과 — CHECKLIST의 기존 단서는 오귀인(誤歸因)이었음
+- 이 항목이 가리키던 `luck-pouch-engine.ts`의
+  `ACTIVITY_SCORE_WEIGHTS.attendance: 1`을 전체 코드와 함께 조사한
+  결과, 이것은 **소원방과 무관한 별도의 사이트 전역 활동점수
+  시스템**(출석 외에도 `fortune_first_view`/`community_post` 등
+  다양한 활동에 점수를 매겨 `maybeGrantActivityTierBonus()`로
+  3/5/8/12점 구간 보너스를 주는 기능)임을 확인 — 소원방의 구
+  "출석/미션" 보상과는 전혀 다른, 지금도 정상 운영 중인 기능이므로
+  **손대지 않는 것이 맞다**.
+- `attendance/checkin/route.ts`(사이트 전역 일일 출석 체크인,
+  `attendanceRewardRule` 1~30일 테이블)도 마찬가지로 별도의 정상
+  기능 — 소원방 전용 구 미션과 무관함을 확인.
+- `git log -S "attend/devo10"`로 실제 이력을 추적한 결과, 소원방의
+  구 EARN 카탈로그(`attend`/`devo10`/`m_visit`/`m_cheer`/`m_msg` —
+  출석/정성10회/이동형 미션 3종)는 이미 이전 세션의 v5 S1 전환
+  커밋(`1738749a`, "정성→기도 전환")에서 서버·데이터
+  (`wishroom_data.json` EARN[])가 `pray`/`streak7`/`cheer`/`ad`/
+  `welcome`/`dispatchRecv`로 완전히 교체 완료된 상태였다.
+  `wishroom_data.json` 재확인 + admin_web 소스 전체 그렙 모두
+  구 ID 0건.
+- 실제 남아있던 것은 **flutter_app `wallet_sheet.dart`에만 있던
+  죽은 코드** 4곳 — 카탈로그 어느 항목과도 매칭되지 않아 평생
+  실행될 수 없는 분기였다(`_kEarnGo` 맵에 현재 카탈로그 ID가 하나도
+  없어 `go`가 항상 `null`이었음).
+
+### 조치 — `wallet_sheet.dart` 죽은 코드 제거 (커밋 `68038de5`)
+- `_kEarnIcon`/`_kEarnGo` 상수 맵 삭제(구 ID만 키로 가짐).
+- `_tap()`의 "이동형 미션" 분기(`go != null` 분기 전체, devo10
+  삼항토스트·1.8초 지연 자동적립 포함) 삭제 — `_doEarn()` 단일
+  경로로 정리.
+- 카드 렌더링에서 `_kEarnIcon[id]`/`_kEarnGo[id] != null` 참조 제거,
+  기본 아이콘(`•`)과 단순 `+금액` 표시로 정리.
+- 더 이상 쓰이지 않는 `_kTabHome` 상수 삭제.
+- **검증**: `flutter analyze` 신규 이슈 0건(기존 무관
+  `WrGuardianOutfitLauncher` 에러 2건만 잔존, 이전 세션에 git
+  stash로 무관함 재확인). `flutter test
+  test/wallet_sheet_overflow_test.dart`는 수정 전/후 `git stash`로
+  비교해 동일하게 4/5 실패(`ledger` mock 미구현 — 기존 버그, 회귀
+  아님 확인). `build_local.sh --debug` 143.7초 성공. `:5060`
+  HTTP 200 / `:3100` HTTP 307 확인. admin_web 수정 금지 5개 파일은
+  이번 작업과 무관(이번 작업은 flutter_app 단독 수정이며, 작업 전후
+  `git status --short`로 5개 파일 그대로임을 재확인).
+
+**검증 요약 — CHECKLIST의 기존 단서(`ACTIVITY_SCORE_WEIGHTS`)는
+별도 시스템으로 확인되어 제외, 실제 잔존 문제(`wallet_sheet.dart`
+죽은 코드)를 찾아 제거 → 분석·테스트·빌드 전부 통과 — PASS.
+이로써 "S5 나머지" 리스트(동일 결제 중복 처리 방지 ✅, 광고 보상
+SSV + 1일 5회 상한 ✅-기능삭제로대체, 복주머니 보상 v5 수치 전수
+재확인 ✅, 출석/미션 보상 완전 제거 ✅) 전 항목이 종료됐다.**
+
+**다음 세션에 이어갈 것(갱신)**: S5 경제 항목은 전부 종료. 남은 것은
+**S6 마무리**(21일 미리보기, 소원 수정 제한, 46개 안내 팝업, 어뷰징
+체크, 9단계 플로우 테스트) — 완전 미착수. 그 외 미전달 6장 스크린샷
+(`/home/user/wr_compare/DELIVERY_6SHOTS/`)도 그대로 대기 중.
