@@ -1,7 +1,12 @@
-// SCR-05 캐릭터 선택/상점 `/vault/guardians` — app2/screens-b2.jsx › CharShop() 1:1 이식
-// 무대(흉상 + 방사광선 + 등급칩 + 대사) + 탭(여자/남자/👕 의상) + 5열 그리드(캐릭터) / 2열 그리드(의상)
-// + 정보 시트(직업·성향·좋아하는 것·수호 기운·등급·성격·동작) + 복주머니 부족 시트
-import 'dart:math' as math;
+// SCR-05 수호자 탭 `/vault/guardians` — app3/guardians.jsx › GuardiansScreen 1:1 이식
+// [Stage 3-B — 대표 판정 "3-A 옷장 완료 승인 → 3-B 수호자 자세히를 시작하세요"]
+// 기존(3-A까지) 구조 — 큰 무대(흉상)+여자/남자/👕 의상 3탭+5열 그리드+하단 CTA —를
+// 전면 재구성한다. 의상 탭/그리드(_outfitGrid·_wearOutfit)는 옷장 화면
+// (wardrobe/wardrobe_screen.dart)으로 이미 분리됐으므로 이 화면에서는 완전히
+// 제거하고, app3/guardians.jsx 1:1로 다음 구조만 남긴다:
+//   1) 맨 위 「함께하는 수호자」 카드 — 큰 그림·이름·[👗 옷 갈아입히기][자세히]
+//   2) 거르기 칩(전체/내 수호자/여성/남성)
+//   3) 22명 그리드 — 탭하면 전부 「수호자 자세히」 시트(guardian_detail_sheet.dart)로
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
@@ -11,11 +16,9 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_bottom_nav.dart';
 import '../wallet/wallet_sheet.dart';
-import '../../core/wr_ad_earn_button.dart';
-import '../../core/wr_toast.dart';
-import '../shop/pay_screen.dart';
+import 'guardian_detail_sheet.dart';
 import '../wardrobe/wardrobe_screen.dart';
-import 'outfit_variants.dart';
+import '../../core/wr_toast.dart';
 
 class CharacterShopScreen extends StatefulWidget {
   const CharacterShopScreen({super.key});
@@ -24,263 +27,52 @@ class CharacterShopScreen extends StatefulWidget {
 }
 
 class _CharacterShopScreenState extends State<CharacterShopScreen> {
-  String _gender = 'F';
-  String? _selId; // sel
-  String _ptab = 'char'; // char | outfit
-    WrTheme? _wear; // 의상 미리보기(아직 저장 안함)
-  String? _newOutfitId;
-  int _variant = 0; // 실제 의상 카드 선택 인덱스
-  bool _busy = false;
-  bool _info = false;
-  ApiError? _shortErr;
-  String? _shortLabel;
-  String?
-  _shortGlyph; // app2/screens-b2.jsx › Shortage({icon}) — 캤릭토/의상 아이콘(글프) 표시용
+  // app3/guardians.jsx `g` 1:1 — all | mine | F | M.
+  String _filter = 'all';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _initializeShop();
+      if (mounted) _init();
     });
   }
 
-  Future<void> _initializeShop() async {
+  Future<void> _init() async {
     final p = context.read<WishRoomProvider>();
     if (!p.catalogLoaded) await p.loadCatalog();
     if (!mounted) return;
     if (p.me == null) await p.loadMyRoom();
-    if (!mounted || p.characters.isEmpty) return;
-    // [버그수정 — 코드방 2026-10-14, "캐릭터 빈 화면"] repChar가 null이 아니기만
-    // 하면 그대로 썼기 때문에, 서버가 보내준 repChar 값이 현재 캐릭터 카탈로그에
-    // 더 이상 존재하지 않는 경우(예: 캐릭터 목록 변경, 오래된 로컬 캐시 등) 그
-    // 유효하지 않은 id가 _selId에 고정됐다. build()의 `c`(선택된 캐릭터) 조회가
-    // 계속 null이 되어 무대(캐릭터 그림·이름·칭호·대사)와 CTA 버튼이 전부
-    // SizedBox.shrink()로 사라지는 빈 화면 증상으로 이어진다. repChar가 실제
-    // 카탈로그에 존재하는지 검증한 뒤에만 사용하고, 아니면 보유 목록의 첫 캐릭터로
-    // 안전하게 폴백한다.
-    final repChar = p.me?.repChar;
-    final repCharValid =
-        repChar != null && p.characters.any((ch) => ch.id == repChar);
-    final id = repCharValid ? repChar : p.characters.first.id;
-    setState(() {
-      _selId = id;
-      _gender = id.startsWith('M') ? 'M' : 'F';
-      _wear = p.room?.char == id ? p.room!.outfitNow : WrTheme.free;
-      _newOutfitId = p.room?.char == id ? p.room?.outfitId : null;
-    });
-    await p.loadOutfits(id);
+    final room = p.room;
+    if (!mounted || room == null) return;
+    await p.loadOutfits(room.char);
   }
 
-  Future<void> _loadOutfits(String char) async {
-    await context.read<WishRoomProvider>().loadOutfits(char);
+  int _leftDays(WishRoom? room, String key) {
+    final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)[key] as int? ?? 0;
+    final dayN = room?.dayN ?? 1;
+    return (unlockDay - dayN) < 1 ? 1 : (unlockDay - dayN);
   }
 
-  void _selectChar(WrCharacter ch) {
-    setState(() {
-      _selId = ch.id;
-      _wear = null;
-      _newOutfitId = null;
-    });
-    _loadOutfits(ch.id);
-  }
-
-  // [v5 S2 — "2번 진행할 때 지킬 것" ② "구매 로직은 1벌만"] 이미 보유한 수호자를
-  // 대표로 설정하는 것은 결제가 아니므로 바로 처리하고, 미보유 수호자는 반드시
-  // 상점(shop_screen.dart)과 동일한 PayScreen을 열어 구매한다 — 여기서 직접
-  // buyCharacter()를 호출해 끝내지 않는다(구매 버튼/결제 처리가 두 화면에 따로
-  // 있지 않도록).
-  Future<void> _act(WrCharacter c, bool owned) async {
-    if (_busy) return;
-    final p = context.read<WishRoomProvider>();
-    if (owned) {
-      setState(() => _busy = true);
-      final ok2 = await p.setCharacter(c.id);
-      if (ok2 && p.room != null) await p.loadMyRoom();
-      if (!mounted) return;
-      setState(() => _busy = false);
-      if (ok2) {
-        WrToast.show(context, '${c.name}이(가) 소원방을 함께 지켜요');
-      } else if (p.lastError != null) {
-        WrToast.show(context, p.lastError!.message);
-      }
-      return;
-    }
-    openPayScreen(
-      context,
-      PayOrder(
-        kind: 'char',
-        name: c.name,
-        sub: c.title,
-        glyph: c.emblem,
-        price: c.price ?? 0,
-        doneTitle: '${c.name}이(가) 함께하게 됐어요',
-        afterLabel: null,
-        onConfirmPay: () async {
-          final ok = await p.buyCharacter(c.id);
-          if (!ok) return false;
-          final ok2 = await p.setCharacter(c.id);
-          if (ok2) await p.loadMyRoom();
-          return ok2;
-        },
-      ),
-    );
-  }
-
-  // [v5 S2 — "구매 로직은 1벌만"] 이미 보유한 의상을 바로 입는 것은 결제가 아니므로
-  // 즉시 처리하고, 미보유(신규 20벌이든 기존 테마 의상이든) 구매는 전부
-  // openPayScreen()으로 상점과 같은 PayScreen을 연다 — buyOutfit()/
-  // wearNamedOutfit()을 여기서 직접 호출해 끝내지 않는다.
-  Future<void> _wearOutfit(WrCharacter c, OutfitOffer o) async {
-    if (_busy) return;
-    final p = context.read<WishRoomProvider>();
-    if (o.isNew) {
-      if (!o.compatible) {
-        WrToast.show(context, '하린·준 전용 의상이에요');
-        return;
-      }
-      if (!o.owned) {
-        // [v5 S2 — 사용자 재지적] app3/wardrobe.jsx 1:1 — 결제는 "구매"만.
-        // 실제로 입히는 것은 영수증의 "👗 지금 입혀 보기"를 눌렀을 때 따로
-        // 일어난다(wearNamedOutfit()은 여기서 쓰지 않음 — 그건 보유 의상을
-        // 즉시 입는 액션 전용).
-        openPayScreen(
-          context,
-          PayOrder(
-            kind: 'outfit',
-            name: o.name ?? '의상',
-            sub: c.name,
-            glyph: '👗',
-            price: o.price,
-            doneTitle: '${o.name}, 옷장에 담겼어요',
-            afterLabel: '👗 지금 입혀 보기',
-            after: () async {
-              // [버그주의] 여기서 캡처된 `o`는 구매 전(owned:false) 상태 그대로다.
-              // 이걸 그대로 wearNamedOutfit()에 넘기면 "미보유"로 판단해 다시
-              // buyNamedOutfit()을 호출해 버린다(이중 결제 위험) — loadOutfits()로
-              // 새로고침해 owned:true가 된 최신 offer를 찾아서 넘긴다
-              // (shop_screen.dart _wearNewOutfit과 동일 패턴).
-              await _loadOutfits(c.id);
-              if (!mounted) return;
-              final fresh = p.outfitOffers.where((x) => x.id == o.id).firstOrNull;
-              if (fresh == null) return;
-              final ok = await p.wearNamedOutfit(c.id, fresh);
-              if (!mounted) return;
-              WrToast.show(
-                context,
-                ok ? '${o.name}으로 갈아입었어요' : (p.lastError?.message ?? '의상 적용에 실패했어요'),
-              );
-            },
-            onConfirmPay: () => p.buyNamedOutfitOnly(c.id, o.id!),
-          ),
-        );
-        return;
-      }
-      setState(() => _busy = true);
-      try {
-        final ok = await p.wearNamedOutfit(c.id, o);
-        if (!mounted) return;
-        WrToast.show(
-          context,
-          ok ? '${o.name}으로 갈아입었어요' : (p.lastError?.message ?? '의상 적용에 실패했어요'),
-        );
-      } finally {
-        if (mounted) setState(() => _busy = false);
-      }
-      return;
-    }
-    if (!(p.me?.ownedChars.contains(c.id) ?? false) && c.price != 0) {
-      WrToast.show(context, '먼저 이 수호자와 함께해 주세요');
-      return;
-    }
-    if (!o.owned) {
-      final themeInfo = WrCatalog.I.themes
-          .where((t) => t['id'] == o.theme.name)
+  // app3/guardians.jsx `outfitName` 1:1 — 지금 입은 의상의 표시 이름.
+  String _outfitName(WishRoom room) {
+    final cat = WrCatalog.I;
+    if (room.outfitId != null) {
+      final hit = cat.newOutfits
+          .where((o) => o['id'] == room.outfitId)
           .toList();
-      final label = themeInfo.isNotEmpty ? themeInfo.first['label'] as String : '';
-      final glyph = themeInfo.isNotEmpty ? themeInfo.first['glyph'] as String? : null;
-      openPayScreen(
-        context,
-        PayOrder(
-          kind: 'outfit',
-          name: '$label 의상',
-          sub: c.name,
-          glyph: glyph ?? '👗',
-          price: o.price,
-          doneTitle: '$label 의상으로 갈아입었어요',
-          afterLabel: null,
-          onConfirmPay: () async {
-            final ok = await p.buyOutfit(c.id, o.theme);
-            if (!ok) return false;
-            await _loadOutfits(c.id);
-            final room = p.room;
-            if (room != null) {
-              if (room.char != c.id && !await p.setCharacter(c.id)) return false;
-              if (!await p.setOutfit(room.id, o.theme)) return false;
-            }
-            return true;
-          },
-        ),
-      );
-      return;
+      if (hit.isNotEmpty) return hit.first['name'] as String? ?? '사복';
     }
-    setState(() => _busy = true);
-    try {
-      final room = p.room;
-      if (room != null) {
-        if (room.char != c.id && !await p.setCharacter(c.id)) {
-          if (!mounted) return;
-          WrToast.show(context, p.lastError?.message ?? '수호자 변경에 실패했어요.');
-          return;
-        }
-        if (!await p.setOutfit(room.id, o.theme)) {
-          if (!mounted) return;
-          WrToast.show(context, p.lastError?.message ?? '의상 적용에 실패했어요.');
-          return;
-        }
-      }
-      if (!mounted) return;
-      final themeInfo = WrCatalog.I.themes
-          .where((t) => t['id'] == o.theme.name)
-          .toList();
-      final label = themeInfo.isNotEmpty
-          ? themeInfo.first['label'] as String
-          : '';
-      WrToast.show(context, '${c.name} · $label 의상으로 갈아입었어요');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    final hit = cat.themes.where((t) => t['id'] == room.outfitNow.name).toList();
+    return hit.isNotEmpty ? (hit.first['label'] as String? ?? '사복') : '사복';
   }
 
   @override
   Widget build(BuildContext context) {
-    final cat = WrCatalog.I;
-    // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 화면의 bottomNavigationBar
-    // (5개 탭 라벨, fontSize:10)는 wishroom_shell.dart의 소원방 모듈 공통
-    // textScaler 1.3배 상한 정책(IndexedStack 안 탭 5종에만 적용) 서브트리
-    // "밖"에서 Navigator.push로 열려 그 보호를 받지 못했다. 그 결과 글자
-    // 확대(2.0~2.5배)에서 bottomNavigationBar 실제 높이가 56px→109px로
-    // 커지면서 body의 "목록 패널"(Expanded) 가용 높이를 짓눌러, 안쪽 탭
-    // Row(56px 고정)+CTA 버튼(52px+패딩, 고정)의 합이 남은 공간을 넘어
-    // 320x568@2.0에서 14px 하단 오버플로가 실측됐다(debugDumpRenderTree()로
-    // 확인). 새 패딩을 더하는 대신, 같은 모듈에 이미 있는 공통 정책
-    // (textScaler 1.3배 상한)을 이 화면에도 동일하게 적용해 근본 원인을
-    // 없앤다 — 1.3배까지는 완전히 동일하게 보이고, 그 이상만 시각적으로
-    // 더 커지지 않는다(축소<1.0은 그대로 허용).
-    final mq = MediaQuery.of(context);
-    final clampedScale = math.min(mq.textScaler.scale(1.0), 1.3);
-    return MediaQuery(
-      data: mq.copyWith(textScaler: TextScaler.linear(clampedScale)),
-      child: Theme(
+    return Theme(
       data: wrThemeData(),
       child: Scaffold(
         backgroundColor: WrC.bg2,
-        // [v5 S2 — 사용자 지시 "5탭 하단바를 지우고 공용 6탭 하단바로 통일"]
-        // 기존 자체 5탭(내소원방/소원방/알림/꾸미기/보관함, 구 셸 인덱스 체계)을
-        // wishroom_shell.dart와 완전히 동일한 공용 바텀탭(神 홈버튼 + 내 소원·
-        // 수호자·함께 빌기·상점·보관함)으로 교체한다. 이 화면 자신이 "수호자"
-        // 탭(인덱스 1)에 해당하므로 currentIndex: 1로 하이라이트하고, 탭을
-        // 누르면 wrReturnToTab()으로 셸로 복귀시켜 해당 탭을 연다.
         bottomNavigationBar: wrBottomNavBar(
           context,
           currentIndex: 1,
@@ -289,1314 +81,511 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
         body: Consumer<WishRoomProvider>(
           builder: (context, p, __) {
             if (p.characters.isEmpty) {
-              return SafeArea(child: Column(children: [
-                Padding(padding: const EdgeInsets.all(14), child: Row(children: [
-                  WrNavPill(onBack: () => Navigator.of(context).maybePop(), onExitHome: () => wrExitHome(context)),
-                  const SizedBox(width: 16),
-                  const Text('소원방 캐릭터', style: TextStyle(color: Colors.white)),
-                ])),
-                Expanded(child: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(
-                  mainAxisSize: MainAxisSize.min,
+              return SafeArea(
+                child: Column(
                   children: [
-                    if (p.catalogError == null) const CircularProgressIndicator()
-                    else ...[
-                      const Text('캐릭터 정보를 불러오지 못했어요', style: TextStyle(color: Colors.white, fontSize: 18)),
-                      const SizedBox(height: 12),
-                      Text(p.catalogError!.message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
-                      const SizedBox(height: 16),
-                      FilledButton(onPressed: _initializeShop, child: const Text('다시 불러오기')),
-                    ],
-                  ],
-                )))),
-              ]));
-            }
-            final genderList = p.characters
-                .where((ch) => ch.gender == _gender)
-                .toList();
-            // [버그수정 — 코드방 2026-10-14, "캐릭터 빈 화면"] _selId/repChar
-            // 둘 다 "null이 아니면 그대로 신뢰"하는 체인이었다. 두 값 모두 null이
-            // 아니어도 현재 카탈로그(p.characters)에 없는 id일 수 있고(캐릭터 목록
-            // 변경, 오래된 상태값 등), 그 경우 아래 `c`가 계속 null이 되어 무대·CTA
-            // 영역이 전부 SizedBox.shrink()로 사라진다. 각 후보가 실제 캐릭터
-            // 목록에 존재하는지 검증한 뒤에만 채택하고, 전부 무효하면 제네더 목록 →
-            // 전체 목록 순으로 안전하게 폴백한다.
-            final selIdValid =
-                _selId != null && p.characters.any((ch) => ch.id == _selId);
-            final repChar = p.me?.repChar;
-            final repCharValid =
-                repChar != null && p.characters.any((ch) => ch.id == repChar);
-            final id = selIdValid
-                ? _selId
-                : (repCharValid
-                      ? repChar
-                      : (genderList.isNotEmpty
-                            ? genderList.first.id
-                            : (p.characters.isNotEmpty
-                                  ? p.characters.first.id
-                                  : null)));
-            final c = p.characters.where((ch) => ch.id == id).firstOrNull;
-            final owned =
-                c != null &&
-                (p.me?.ownedChars.contains(c.id) ?? (c.price == 0));
-            final room = p.room;
-            final outfitTheme =
-                _wear ??
-                (room != null && c != null && room.char == c.id
-                    ? room.outfitNow
-                    : WrTheme.free);
-
-            return Stack(
-              children: [
-                Column(
-                  children: [
-                    // ── 무대 ──
-                    SizedBox(
-                      height: 330,
-                      child: Stack(
-                        clipBehavior: Clip.hardEdge,
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
                         children: [
-                          Positioned.fill(
-                            child: DecoratedBox(
+                          WrNavPill(
+                            onBack: () => Navigator.of(context).maybePop(),
+                            onExitHome: () => wrExitHome(context),
+                          ),
+                          const SizedBox(width: 16),
+                          const Text(
+                            '소원방을 지켜줄 수호자',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (p.catalogError == null)
+                                const CircularProgressIndicator()
+                              else ...[
+                                const Text(
+                                  '수호자 정보를 불러오지 못했어요',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  p.catalogError!.message,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                                const SizedBox(height: 16),
+                                FilledButton(
+                                  onPressed: _init,
+                                  child: const Text('다시 불러오기'),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            final room = p.room;
+            final cur = p.characters
+                .where((c) => c.id == room?.char)
+                .firstOrNull;
+            final shopOpen = room?.isFeatureUnlocked('shop') ?? false;
+            final list = p.characters.where((c) {
+              switch (_filter) {
+                case 'mine':
+                  return p.me?.ownedChars.contains(c.id) ?? (c.price == 0);
+                case 'F':
+                case 'M':
+                  return c.gender == _filter;
+                default:
+                  return true;
+              }
+            }).toList();
+            return SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+                    child: Row(
+                      children: [
+                        WrNavPill(
+                          onBack: () => Navigator.of(context).maybePop(),
+                          onExitHome: () => wrExitHome(context),
+                        ),
+                        const Expanded(
+                          child: Center(
+                            child: Text(
+                              '소원방 수호자',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => openWalletSheet(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: WrC.glass,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.asset(
+                                  'assets/wishroom/items/pouch.png',
+                                  width: 16,
+                                  height: 16,
+                                  errorBuilder: (_, __, ___) => const Text(
+                                    '💰',
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '${p.me?.pouch ?? 0}',
+                                  style: const TextStyle(
+                                    fontFamily: 'NotoSerifKR',
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 110),
+                      children: [
+                        Text(
+                          'GUARDIANS · ${p.me?.ownedChars.length ?? 0} / ${p.characters.length}',
+                          textAlign: TextAlign.center,
+                          style: WrF.mono(size: 10.5),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          '소원방을 지켜줄\n수호자',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'NotoSerifKR',
+                            fontWeight: FontWeight.w900,
+                            fontSize: 25,
+                            height: 1.3,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // ── 함께하는 수호자 ──
+                        if (cur != null && room != null) _curGuardianCard(room, cur),
+                        const SizedBox(height: 18),
+                        // ── 거르기 ──
+                        Row(
+                          children: [
+                            for (final f in const [
+                              ('all', '전체'),
+                              ('mine', '내 수호자'),
+                              ('F', '여성'),
+                              ('M', '남성'),
+                            ])
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Semantics(
+                                  identifier: 'guardian_filter_${f.$1}',
+                                  button: true,
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _filter = f.$1),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 13,
+                                        vertical: 7,
+                                      ),
+                                      decoration: _filter == f.$1
+                                          ? WrDeco.chipOn
+                                          : WrDeco.chip,
+                                      child: Text(
+                                        f.$2,
+                                        style: WrF.body(
+                                          12,
+                                          w: FontWeight.w700,
+                                          color: _filter == f.$1
+                                              ? Colors.white
+                                              : WrC.muted,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (!shopOpen)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0xFF2A1020),
-                                    Color(0xFF12060E),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: WrC.line,
+                                  style: BorderStyle.solid,
+                                ),
+                              ),
+                              child: Text.rich(
+                                TextSpan(
+                                  style: WrF.body(12, color: WrC.muted),
+                                  children: [
+                                    const TextSpan(text: '🔒 새 수호자는 '),
+                                    TextSpan(
+                                      text:
+                                          '${_leftDays(room, 'shop')}일 뒤',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                      text: ' 상점이 열리면 복주머니로 모실 수 있어요. 지금은 구경만 할 수 있어요.',
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
                           ),
-                          // 방사 광선
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            top: 40,
-                            height: 290,
-                            child: IgnorePointer(
-                              child: Stack(
-                                alignment: Alignment.bottomCenter,
-                                children: [
-                                  ...List.generate(14, (i) {
-                                    final angle = i * 25.7 * 3.14159 / 180;
-                                    return Transform.rotate(
-                                      angle: angle,
-                                      alignment: Alignment.bottomCenter,
-                                      child: Container(
-                                        width: 2,
-                                        height: 180,
-                                        decoration: const BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [
-                                              Color(0x99FFC8DC),
-                                              Colors.transparent,
-                                            ],
-                                          ),
-                                        ),
+                        const SizedBox(height: 12),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: list.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                            childAspectRatio: .72,
+                          ),
+                          itemBuilder: (_, i) => _guardianCard(
+                            p,
+                            room,
+                            list[i],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _curGuardianCard(WishRoom room, WrCharacter cur) {
+    final cat = WrCatalog.I;
+    final unlocked = room.isFeatureUnlocked('wardrobe');
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: WrC.card,
+        border: Border.all(color: WrC.blossom2.withValues(alpha: .4)),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(-.6, .9),
+                  radius: 1.1,
+                  colors: [
+                    WrC.blossom.withValues(alpha: .28),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 128,
+                height: 156,
+                child: Image.asset(
+                  cat.charImage(cur.id, room.outfitNow, outfitId: room.outfitId),
+                  fit: BoxFit.contain,
+                  alignment: Alignment.bottomCenter,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Text(
+                      cur.emblem,
+                      style: const TextStyle(fontSize: 40, color: Colors.white54),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '함께하는 중',
+                        style: WrF.mono(size: 9.5, color: WrC.blossom2),
+                      ),
+                      const SizedBox(height: 2),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: cur.name,
+                              style: WrF.display(20, color: Colors.white),
+                            ),
+                            TextSpan(
+                              text: '  ${cur.title}',
+                              style: WrF.body(12, color: WrC.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '지금 옷 · ${_outfitName(room)}',
+                        style: WrF.body(12, color: WrC.muted),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Semantics(
+                              identifier: 'guardian_top_wardrobe',
+                              button: true,
+                              child: SizedBox(
+                                height: 36,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (!unlocked) {
+                                      WrToast.show(
+                                        context,
+                                        '옷장은 ${_leftDays(room, 'wardrobe')}일 뒤에 열려요',
+                                      );
+                                      return;
+                                    }
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const WardrobeScreen(),
                                       ),
                                     );
-                                  }),
-                                  Container(
-                                    width: 280,
-                                    height: 60,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: RadialGradient(
-                                        colors: [
-                                          Color(0x80FFA0BE),
-                                          Colors.transparent,
-                                        ],
-                                      ),
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: WrC.blossom,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  child: Text(
+                                    unlocked ? '👗 옷 갈아입히기' : '🔒 옷장',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12.5,
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                          if (c != null)
-                            Positioned(
-                              right: 6,
-                              bottom: 0,
-                              child: GestureDetector(
-                                onTap: () => setState(() => _info = true),
-                                child: Opacity(
-                                  opacity: owned ? 1 : .6,
-                                  child: Image.asset(
-                                    cat.charImage(c.id, outfitTheme, outfitId: _newOutfitId),
-                                    height: 320,
-                                     width: 229,
-                                     fit: _newOutfitId == null ? BoxFit.cover : BoxFit.contain,
-                                     alignment: Alignment.bottomCenter,
-                                    errorBuilder: (_, __, ___) => SizedBox(
-                                      width: 229,
-                                      height: 320,
-                                      child: Center(
-                                        child: Text(
-                                          c.emblem,
-                                          style: const TextStyle(
-                                            fontSize: 64,
-                                            color: Colors.white54,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                          const SizedBox(width: 6),
+                          Semantics(
+                            identifier: 'guardian_top_detail',
+                            button: true,
+                            child: SizedBox(
+                              height: 36,
+                              child: OutlinedButton(
+                                onPressed: () =>
+                                    showGuardianDetailSheet(context, cur.id),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: WrC.line),
+                                  backgroundColor: WrC.darkBtn,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
                                   ),
                                 ),
-                              ),
-                            ),
-                          if (c != null)
-                            Positioned(
-                              left: 20,
-                              top: 30,
-                              width: 200,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (c.grade == 'rare')
-                                    _gradeChip('레어', const [
-                                      Color(0xFFB88AFF),
-                                      Color(0xFFFF8FB1),
-                                    ])
-                                  else if (c.grade == 'event')
-                                    _gradeChip('이벤트', const [
-                                      Color(0xFFF5CF6A),
-                                      Color(0xFFFF8FB1),
-                                    ])
-                                  else
-                                    _gradeChip('기본', null),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    c.name,
-                                    style: const TextStyle(
-                                      fontFamily: 'NotoSerifKR',
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 30,
-                                      color: Colors.white,
-                                    ),
+                                child: Text(
+                                  '자세히',
+                                  style: WrF.body(
+                                    12.5,
+                                    w: FontWeight.w700,
+                                    color: Colors.white,
                                   ),
-                                  Text(
-                                    c.title,
-                                    style: WrF.body(13, color: WrC.muted),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: GestureDetector(
-                                      onTap: () => setState(() => _info = true),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0x59000000),
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'ⓘ 기본 정보 보기',
-                                          style: WrF.body(
-                                            11.5,
-                                            w: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Text(
-                                      '"${c.line}"',
-                                      style: WrF.body(
-                                        12.5,
-                                        color: Colors.white,
-                                        height: 1.55,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          // app2/screens-b2.jsx › CharShop() TopBar(title="소원방 캐릭터") nav 기본값
-                          // true로 NavPill(뒤로가기+신통방통 홈)이 좌측에 온다. [버그수정 — 전수감사]
-                          // 기존엔 단순 뒤로가기 아이콘만 있고 "신통방통 홈" 버튼이 없었다.
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: SafeArea(
-                              bottom: false,
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  14,
-                                  10,
-                                  14,
-                                  0,
-                                ),
-                                child: Row(
-                                  children: [
-                                    WrNavPill(
-                                      onBack: () =>
-                                          Navigator.of(context).maybePop(),
-                                      onExitHome: () => wrExitHome(context),
-                                    ),
-                                    const Expanded(
-                                      child: Center(
-                                        child: Text(
-                                          '소원방 캐릭터',
-                                          style: TextStyle(
-                                            fontFamily: 'Pretendard',
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 15,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    // app2/screens-b2.jsx › CharShop() TopBar right={<PouchPill ... />} [버그수정 — 전수감사]
-                                    // 기존엔 탭 핸들러가 전혀 없는 정적 Container였다.
-                                    GestureDetector(
-                                      onTap: () => openWalletSheet(context),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: WrC.glass,
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Image.asset(
-                                              'assets/wishroom/items/pouch.png',
-                                              width: 16,
-                                              height: 16,
-                                              errorBuilder: (_, __, ___) =>
-                                                  const Text(
-                                                    '💰',
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                            ),
-                                            const SizedBox(width: 5),
-                                            Text(
-                                              '${p.me?.pouch ?? 0}',
-                                              style: const TextStyle(
-                                                fontFamily: 'NotoSerifKR',
-                                                fontWeight: FontWeight.w900,
-                                                fontSize: 13,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    // ── 목록 패널 ──
-                    Expanded(
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xF53A1628), Color(0xFF1A0812)],
-                          ),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(24),
-                          ),
-                          border: Border(
-                            top: BorderSide(color: Color(0x40FFBED2)),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-                              child: Row(
-                                children: [
-                                  _tab(
-                                    '여자',
-                                    _ptab == 'char' && _gender == 'F',
-                                    () => setState(() {
-                                      _ptab = 'char';
-                                      _gender = 'F';
-                                    }),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  _tab(
-                                    '남자',
-                                    _ptab == 'char' && _gender == 'M',
-                                    () => setState(() {
-                                      _ptab = 'char';
-                                      _gender = 'M';
-                                    }),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  _tab(
-                                    '👕 의상',
-                                    _ptab == 'outfit',
-                                    () => setState(() => _ptab = 'outfit'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: _ptab == 'outfit'
-                                  ? _outfitGrid(p, c)
-                                  : _charGrid(p, genderList, id),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                14,
-                                10,
-                                14,
-                                24,
-                              ),
-                              child: _ctaButton(p, c, owned, outfitTheme),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_info && c != null) _infoSheet(c),
-                if (_shortErr != null)
-                  _shortageSheet(_shortErr!, _shortLabel ?? '', _shortGlyph),
-              ],
-            );
-          },
-        ),
-      ),
-      ),
-    );
-  }
-
-  Widget _tab(String label, bool on, VoidCallback onTap) => Expanded(
-    child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 34,
-        alignment: Alignment.center,
-        decoration: on
-            ? WrDeco.tabOn
-            : BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: WrC.tabsBg,
-              ),
-        child: Text(
-          label,
-          style: WrF.body(
-            13,
-            w: FontWeight.w700,
-            color: on ? Colors.white : WrC.muted,
-          ),
-        ),
-      ),
-    ),
-  );
-
-  Widget _gradeChip(String label, List<Color>? colors) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      gradient: colors != null ? LinearGradient(colors: colors) : null,
-      color: colors == null ? WrC.chipBg : null,
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(
-      label,
-      style: const TextStyle(
-        fontFamily: 'Pretendard',
-        fontWeight: FontWeight.w700,
-        fontSize: 10.5,
-        color: Colors.white,
-      ),
-    ),
-  );
-
-  Widget _charGrid(WishRoomProvider p, List<WrCharacter> list, String? selId) {
-    final cat = WrCatalog.I;
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-      itemCount: list.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
-        mainAxisSpacing: 7,
-        crossAxisSpacing: 7,
-        childAspectRatio: .72,
-      ),
-      itemBuilder: (_, i) {
-        final ch = list[i];
-        final isOwned = p.me?.ownedChars.contains(ch.id) ?? (ch.price == 0);
-        final isSel = selId == ch.id;
-        return GestureDetector(
-          onTap: () => _selectChar(ch),
-          child: Container(
-            decoration: BoxDecoration(
-              color: WrC.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSel ? WrC.blossom2 : WrC.cardBorder,
-                width: isSel ? 1.6 : 1,
-              ),
-              boxShadow: isSel
-                  ? const [BoxShadow(color: Color(0x40F2628F), blurRadius: 14)]
-                  : const [],
-            ),
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(11),
-                    ),
-                    child: Opacity(
-                      opacity: isOwned ? 1 : .65,
-                      child: Image.asset(
-                        cat.charImage(ch.id, WrTheme.free),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (_, __, ___) => Center(
-                          child: Text(
-                            ch.emblem,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              color: Colors.white54,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  ch.name,
-                  style: WrF.body(10.5, w: FontWeight.w700, color: WrC.fg),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  p.me?.repChar == ch.id
-                      ? '대표'
-                      : isOwned
-                      ? '보유'
-                      : (ch.grade == 'event' ? '이벤트' : '${ch.price ?? 0}'),
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 9.5,
-                    color: isOwned ? WrC.blossom2 : WrC.glow,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _outfitGrid(WishRoomProvider p, WrCharacter? c) {
-    final cat = WrCatalog.I;
-    // 실제 제공되는 의상만 노출한다. 같은 그림에 색조를 씌운 카드를
-    // 별도 의상처럼 중복 표시하지 않는다.
-    final variants = p.outfitOffers
-        .where((offer) => !offer.isNew || offer.theme == (p.room?.theme ?? WrTheme.free))
-        .map((offer) => WrOutfitVariant(offer, 0, offer.name ?? '기본', null))
-        .toList();
-    final room = p.room;
-    if (c == null) return const SizedBox.shrink();
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RichText(
-            text: TextSpan(
-              style: WrF.body(12, color: WrC.muted, height: 1.6),
-              children: [
-                TextSpan(
-                  text: c.name,
-                  style: WrF.body(12, w: FontWeight.w700, color: WrC.fg),
-                ),
-                const TextSpan(
-                   text: '의 의상 · 신규 20벌은 하린·준 전용이며 현재 방 테마의 5벌을 표시해요',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: variants.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 9,
-              crossAxisSpacing: 9,
-               childAspectRatio: .64,
-            ),
-            itemBuilder: (_, i) {
-              final v = variants[i];
-              final o = v.offer;
-              final themeInfo = cat.themes
-                  .where((t) => t['id'] == o.theme.name)
-                  .toList();
-              final T = themeInfo.isNotEmpty ? themeInfo.first : null;
-              if (T == null) return const SizedBox.shrink();
-              final cur =
-                  room != null &&
-                  room.char == c.id &&
-                   (o.isNew ? room.outfitId == o.id : room.outfitId == null && room.outfitNow == o.theme);
-               final pv = o.isNew ? _newOutfitId == o.id : _newOutfitId == null && _wear == o.theme && _variant == v.index;
-              final tColor = _hex(T['color'] as String);
-              return GestureDetector(
-                 onTap: () {
-                   if (!o.compatible) {
-                     WrToast.show(context, '${o.gender == 'F' ? '하린' : '준'} 전용 의상이에요');
-                     return;
-                   }
-                   setState(() {
-                     _wear = o.theme;
-                     _newOutfitId = o.id;
-                     _variant = v.index;
-                   });
-                 },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: WrC.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: pv || cur ? tColor : WrC.cardBorder,
-                      width: pv || cur ? 1.6 : 1,
-                    ),
-                    boxShadow: pv
-                        ? [
-                            BoxShadow(
-                              color: tColor.withValues(alpha: .4),
-                              blurRadius: 16,
-                            ),
-                          ]
-                        : const [],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      tColor.withValues(alpha: .27),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: Opacity(
-                                 opacity: !o.compatible ? .35 : (o.hasArt || o.theme == WrTheme.free ? 1 : .4),
-                                 child: Image.asset(
-                                   o.isNew ? o.asset : cat.charImage(c.id, o.theme),
-                                   fit: BoxFit.contain,
-                                   alignment: Alignment.bottomCenter,
-                                  errorBuilder: (_, __, ___) => Center(
-                                    child: Text(
-                                      T['glyph'] as String,
-                                      style: const TextStyle(fontSize: 28),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (!o.hasArt && o.theme != WrTheme.free)
-                              Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0x99000000),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: const Text(
-                                    '그림 준비 중',
-                                    style: TextStyle(
-                                      fontFamily: 'Pretendard',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (v.tint != null)
-                              Positioned.fill(
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        v.tint!.withValues(alpha: .30),
-                                        v.tint!.withValues(alpha: .10),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                            Positioned(
-                              left: 8,
-                              top: 8,
-                              child: Text(
-                                T['glyph'] as String,
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                               o.name ?? '${T['label']} 의상',
-                              style: WrF.body(
-                                13,
-                                w: FontWeight.w700,
-                                color: WrC.fg,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                               o.isNew ? '${o.gender == 'F' ? '하린' : '준'} 전용 · ${T['label']}' : T['outfitHint'] as String? ?? '',
-                              style: WrF.body(
-                                10.5,
-                                color: WrC.muted,
-                                height: 1.4,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                               !o.compatible
-                                   ? '잠김 · 다른 수호자 전용'
-                                   : cur
-                                   ? '✓ 입고 있어요'
-                                  : o.owned
-                                  ? '보유'
-                                  : (o.hasArt ? '🧧 ${o.price}' : '곧 만나요'),
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                                color: cur
-                                    ? tColor
-                                    : (o.owned ? WrC.muted : WrC.glow),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _ctaButton(
-    WishRoomProvider p,
-    WrCharacter? c,
-    bool owned,
-    WrTheme outfitTheme,
-  ) {
-    if (c == null) return const SizedBox.shrink();
-    if (_ptab == 'outfit') {
-      final offer = p.outfitOffers
-           .where((o) => _newOutfitId != null ? o.id == _newOutfitId : !o.isNew && o.theme == (_wear ?? WrTheme.free))
-          .firstOrNull;
-      if (offer == null) return const SizedBox.shrink();
-      final themeInfo = WrCatalog.I.themes
-          .where((t) => t['id'] == offer.theme.name)
-          .toList();
-      final T = themeInfo.isNotEmpty ? themeInfo.first : null;
-      if (T == null) return const SizedBox.shrink();
-      if (!offer.hasArt && offer.theme != WrTheme.free) {
-        return SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: null,
-            style: ElevatedButton.styleFrom(backgroundColor: WrC.darkBtn),
-            child: Text(
-              '${T['glyph']} ${T['label']} 의상은 준비 중이에요',
-              style: WrF.body(14, color: Colors.white54),
+  Widget _guardianCard(WishRoomProvider p, WishRoom? room, WrCharacter c) {
+    final cat = WrCatalog.I;
+    final own = p.me?.ownedChars.contains(c.id) ?? (c.price == 0);
+    final on = room?.char == c.id;
+    final statusLabel = on
+        ? '✓ 함께하는 중'
+        : own
+        ? '내 수호자'
+        : c.grade == 'event'
+        ? '이벤트로 만나요'
+        : '🧧 ${c.price ?? 0}';
+    final statusColor = on
+        ? WrC.blossom2
+        : own
+        ? WrC.muted
+        : (c.price == null ? const Color(0xFFFFB0D0) : WrC.glow);
+    return Semantics(
+      identifier: 'guardian_card_${c.id}',
+      button: true,
+      child: GestureDetector(
+        onTap: () => showGuardianDetailSheet(context, c.id),
+        child: Container(
+          decoration: BoxDecoration(
+            color: WrC.card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: on ? WrC.blossom2 : WrC.cardBorder,
+              width: on ? 1.6 : 1,
             ),
+            boxShadow: on
+                ? const [BoxShadow(color: Color(0x40F2628F), blurRadius: 14)]
+                : const [],
           ),
-        );
-      }
-      return SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: ElevatedButton(
-          onPressed: _busy ? null : () => _wearOutfit(c, offer),
-          style: ElevatedButton.styleFrom(backgroundColor: WrC.blossom),
-          child: Text(
-            offer.owned
-                 ? '${offer.name ?? '${T['label']} 의상'} 입기'
-                 : '🧧 ${offer.price} · ${offer.name ?? '${T['label']} 의상'} 입기',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-            ),
-          ),
-        ),
-      );
-    }
-    if (p.me?.repChar == c.id) {
-      return SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: ElevatedButton(
-          onPressed: null,
-          style: ElevatedButton.styleFrom(backgroundColor: WrC.darkBtn),
-          child: Text(
-            '지금 소원방을 지키는 중',
-            style: WrF.body(14, color: Colors.white54),
-          ),
-        ),
-      );
-    }
-    if (c.grade == 'event' && !owned) {
-      return SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: ElevatedButton(
-          onPressed: null,
-          style: ElevatedButton.styleFrom(backgroundColor: WrC.darkBtn),
-          child: Text(
-            '이벤트 미션으로 만날 수 있어요',
-            style: WrF.body(14, color: Colors.white54),
-          ),
-        ),
-      );
-    }
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: _busy ? null : () => _act(c, owned),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: owned ? WrC.blossom : WrC.glow,
-        ),
-        child: Text(
-          owned ? '대표 캐릭터로 설정' : '💰 ${c.price ?? 0} · 함께하기',
-          style: TextStyle(
-            color: owned ? Colors.white : const Color(0xFF4A2A10),
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
+          child: Column(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(11),
+                  ),
+                  child: Opacity(
+                    opacity: own ? 1 : .75,
+                    child: Image.asset(
+                      cat.charImage(c.id, on ? (room?.outfitNow ?? WrTheme.free) : WrTheme.free),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(
+                          c.emblem,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                c.name,
+                style: WrF.body(11.5, w: FontWeight.w700, color: WrC.fg),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                statusLabel,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 9.5,
+                  color: statusColor,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-
-  Widget _infoSheet(WrCharacter c) {
-    final cat = WrCatalog.I;
-    final w = cat.wishColors.where((x) => x['id'] == c.aura).toList();
-    final W = w.isNotEmpty ? w.first : null;
-    const behaviorLabel = {
-      Behavior.gaze: '촛불 바라보기',
-      Behavior.pray: '두 손 모으기',
-      Behavior.flower: '꽃 바라보기',
-      Behavior.pouch: '복주머니 받기',
-      Behavior.celebrate: '소원 완료 축하',
-      Behavior.idle: '',
-    };
-    const gradeLabel = {
-      'basic': '기본',
-      'normal': '일반',
-      'rare': '레어',
-      'event': '이벤트',
-    };
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () => setState(() => _info = false),
-            child: Container(color: const Color(0x80000000)),
-          ),
-        ),
-        Positioned(
-          left: 10,
-          right: 10,
-          bottom: 22,
-          // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 정보 시트는 Positioned
-          // (bottom:22)로만 배치되고 상단 제약이 전혀 없는 Column(mainAxisSize:
-          // min)이라, 콘텐츠(직업·성향·성격 설명·동작 칩 등)가 길어지면 시트
-          // 전체가 위로 그대로 자라나 화면 상단 밖으로 밀려날 수 있었다.
-          // RenderFlex 오버플로 예외는 안 뜨지만(세로 제약이 없어 예외 자체가
-          // 없음) flutter test로 실측한 결과, 현실적인 길이의 성격 설명
-          // 2문장만으로도 360x640·320x568 화면에서 상단 "GUARDIAN · id" 라벨이
-          // 화면 밖(y<0)으로 올라가는 조용한 버그를 확인했다. other_room_screen
-          // .dart·guide_sheet.dart가 이미 쓰는 공통 패턴(Container에 maxHeight를
-          // 화면 비율로 제한 + 내부를 Flexible+SingleChildScrollView로 스크롤)을
-          // 적용해, 시트 높이를 화면의 80%로 제한하고 넘치는 내용은 시트
-          // "안"에서 스크롤로 보게 한다(디자인·문구·색상 변경 없음).
-          child: Container(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .8),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            decoration: WrDeco.sheet,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                Text('GUARDIAN · ${c.id}', style: WrF.mono(size: 10.5)),
-                const SizedBox(height: 4),
-                Text(
-                  '${c.name} · ${c.title}',
-                  style: WrF.display(18, color: Colors.white),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 96,
-                      height: 128,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: WrC.line),
-                        gradient: const RadialGradient(
-                          colors: [Color(0x59FFA0BE), Colors.transparent],
-                        ),
-                      ),
-                      child: Image.asset(
-                        cat.charImage(c.id, WrTheme.free),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Center(
-                          child: Text(
-                            c.emblem,
-                            style: const TextStyle(
-                              fontSize: 32,
-                              color: Colors.white54,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _infoRow('직업', c.job ?? '—'),
-                          _infoRow('성향', c.type ?? '—'),
-                          _infoRow('좋아하는 것', c.likes ?? '—'),
-                          _infoRow(
-                            '수호 기운',
-                            W != null ? '${W['hanja']} · ${W['label']}' : '—',
-                            color: W != null
-                                ? _hex(W['color'] as String)
-                                : null,
-                          ),
-                          _infoRow(
-                            '등급',
-                            '${gradeLabel[c.grade] ?? c.grade}${(c.price ?? 0) > 0 ? ' · 복주머니 ${c.price}' : ' · 무료'}',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  margin: const EdgeInsets.only(top: 14),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: WrDeco.card,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '성격',
-                        style: WrF.mono(size: 10, color: WrC.blossom2),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        c.personality ?? '',
-                        style: WrF.body(
-                          13.5,
-                          color: Colors.white,
-                          height: 1.65,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (c.behaviors.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: c.behaviors
-                          .map(
-                            (b) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: WrDeco.chip,
-                              child: Text(
-                                '✦ ${behaviorLabel[b] ?? ''}',
-                                style: WrF.body(11, color: WrC.fg),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Center(
-                    child: Text(
-                      '"${c.line}"',
-                      style: const TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: Color(0xFFFFE6D0),
-                      ),
-                    ),
-                  ),
-                ),
-                // [Stage 3-A — 대표 결정] 수호자 자세히 화면이 아직 따로 없어,
-                // 그 역할을 하는 이 정보 시트에 「👗 옷 갈아입히기」 버튼만
-                // 우선 추가한다(app3/guardians.jsx GuardianDetail cta 1:1 —
-                // 지금 함께하는 수호자일 때만 노출). 자세히 화면 자체를 제대로
-                // 만드는 것은 3-B에서 처리한다.
-                if (context.watch<WishRoomProvider>().room?.char == c.id)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() => _info = false);
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const WardrobeScreen(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: WrC.blossom,
-                        ),
-                        child: const Text(
-                          '👗 옷 갈아입히기',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _infoRow(String k, String v, {Color? color}) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 70,
-          child: Text(k, style: WrF.body(12.5, color: WrC.muted)),
-        ),
-        Expanded(
-          child: Text(
-            v,
-            style: WrF.body(
-              12.5,
-              w: FontWeight.w700,
-              color: color ?? Colors.white,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  // app2/screens-b2.jsx › Shortage({app, name, icon, need, have, onClose}) 1:1 이식.
-  // [버그수정 — 전수감사] 기존엔 원본 Shortage 대바 전역축소되어 있었다: 아이콘 없음,
-  // 점선 안내문 없음, 교개대 없음, 지갑 연결단끼세(단일 "복주머니 모으러 가기" 버튼이
-  // 그냥 닫어버림). decor_screen.dart의 _AdEarnButton(기능 동얼한 위젯)을 원본에 맞추어
-  // 전반 재생성했다.
-  Widget _shortageSheet(ApiError e, String name, String? glyph) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () => setState(() {
-              _shortErr = null;
-              _shortLabel = null;
-              _shortGlyph = null;
-            }),
-            child: Container(color: const Color(0x80000000)),
-          ),
-        ),
-        Positioned(
-          left: 10,
-          right: 10,
-          bottom: 22,
-          // [버그수정 — 반응형 화면 규격 통일] _infoSheet와 동일한 구조적 결함.
-          // `bottom:22`로만 배치되고 상단 제약이 전혀 없는 `Column(mainAxisSize: min)`
-          // 이라, 콘텐츠(필요 개수 안내·재화 설명 카드·광고 시청 버튼 등)가 길어지면
-          // 시트 전체가 위로 그대로 자라나 화면 상단 밖으로 밀려날 수 있었다.
-          // flutter test 실측 결과(현실적인 캐릭터 1명 기준):
-          //   390x844@1.0 → top=311 (정상)
-          //   360x640@1.3 → top=-46 (화면 밖으로 밀려남)
-          //   320x568@1.5 → top=-259 (화면 밖으로 밀려남)
-          // other_room_screen.dart·guide_sheet.dart·_infoSheet가 이미 쓰는 공통
-          // 패턴(`Container(constraints: BoxConstraints(maxHeight: 화면높이*.8))` +
-          // `Flexible(child: SingleChildScrollView(...))`)을 그대로 적용한다.
-          // 드래그 핸들(상단 작은 바)만 고정 헤더로 남기고 나머지 전체를 스크롤
-          // 영역으로 묶었다 — 디자인·문구·색상·버튼 동작은 전혀 바꾸지 않았다.
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * .8,
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-            decoration: WrDeco.sheet,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('NEED MORE', style: WrF.mono(size: 10.5)),
-                        const SizedBox(height: 4),
-                        Text(
-                          '복주머니가 조금 부족해요',
-                          style: WrF.display(18, color: Colors.white),
-                        ),
-                        const SizedBox(height: 14),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: WrDeco.card,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 64,
-                                child: Center(
-                                  child: ColorFiltered(
-                                    colorFilter: const ColorFilter.matrix(
-                                      _grayscale30,
-                                    ),
-                                    child: Text(
-                                      glyph ?? '✦',
-                                      style: const TextStyle(fontSize: 36),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: WrF.body(
-                                        14,
-                                        w: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '복주머니 ${e.need ?? '-'}개 필요',
-                                      style: WrF.body(12.5, color: WrC.muted),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          '지금 ${e.have ?? 0}개 · ${(e.need ?? 0) - (e.have ?? 0)}개 더 모으면 돼요',
-                          style: WrF.body(
-                            14,
-                            color: Colors.white,
-                            height: 1.7,
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(top: 12),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: WrC.line,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: Text(
-                            '복주머니는 신통방통 어디서나 함께 쓰는 재화예요.\n출석, 정성, 짧은 영상으로 조금씩 담깁니다.',
-                            style: WrF.body(13, color: WrC.muted, height: 1.7),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        WrAdEarnButton(
-                          onDone: () => setState(() {
-                            _shortErr = null;
-                            _shortLabel = null;
-                            _shortGlyph = null;
-                          }),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 46,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setState(() {
-                                _shortErr = null;
-                                _shortLabel = null;
-                                _shortGlyph = null;
-                              });
-                              openWalletSheet(context);
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: WrC.line),
-                            ),
-                            child: Text(
-                              '다른 방법으로 모으기',
-                              style: WrF.body(14, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
-
-Color _hex(String s) {
-  final h = s.replaceFirst('#', '');
-  return Color(int.parse('FF$h', radix: 16));
-}
-
-// CSS filter: grayscale(.3) 근사 행렬 — Shortage 시트의 아이콘에 적용(app2/screens-b2.jsx 1:1, decor_screen.dart와 동일)
-const List<double> _grayscale30 = [
-  .76378,
-  .21456,
-  .02166,
-  0,
-  0,
-  .06378,
-  .91456,
-  .02166,
-  0,
-  0,
-  .06378,
-  .21456,
-  .72166,
-  0,
-  0,
-  0,
-  0,
-  0,
-  1,
-  0,
-];

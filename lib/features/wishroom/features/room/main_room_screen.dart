@@ -36,6 +36,7 @@ import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 import '../compose/compose_screen.dart';
 import '../characters/character_shop_screen.dart';
+import '../characters/guardian_detail_sheet.dart';
 import '../wardrobe/wardrobe_screen.dart';
 import '../decor/decor_screen.dart';
 import '../notifications/notifications_screen.dart';
@@ -757,18 +758,15 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                         // 있다. 앱 빌드에서는 _webPaused가 항상 false로 고정되어 기존
                         // 동작(정성·흔들림 등 실시간 연출)에 영향이 없다.
                         frozen: kIsWeb && _webPaused,
-                        // [Stage 3-A — 진입점 ③ "방에서 수호자 누르기"] 대표 결정:
-                        // 기획상 최종 목적지는 "수호자 자세히"이지만 그 화면이 아직
-                        // 없으므로(3-B에서 신설 예정) 임시로 옷장 화면으로 보낸다.
+                        // [Stage 3-B — 대표 판정 "3. 방에서 수호자를 누르면 옷장 대신
+                        // 자세히 시트가 열리도록 바꿉니다"] 3-A까지는 자세히 화면이
+                        // 없어 임시로 옷장을 열었으나, 이제 guardian_detail_sheet.dart의
+                        // 정식 「수호자 자세히」 시트로 연결한다.
                         // '◉ 방만 보기'(_peek) 중이거나 수호자가 아직 숨겨진 상태
                         // (hideChar)에서는 탭할 대상이 없으므로 콜백을 주지 않는다.
                         onTapGuardian: (_peek || !room.isFeatureUnlocked('guardian'))
                             ? null
-                            : () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const WardrobeScreen(),
-                                  ),
-                                ),
+                            : () => showGuardianDetailSheet(context, room.char),
                       ),
                     ),
                   ),
