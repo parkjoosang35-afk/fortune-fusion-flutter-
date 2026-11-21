@@ -3,6 +3,10 @@
 // 방 성장·기도 횟수·오늘의 복은 직접 빈 날만 쌓임). room.entrustNow/entrustNext가
 // 있으면 "맡겨 둔 기간" 뷰로, 없으면 "맡길까요" 선택 뷰로 분기한다(flow.js view()와
 // 동일한 분기 — Flutter 쪽은 room 필드로 이미 서버가 계산해 내려준다).
+// [S5 — 공용 결제창 통일] "맡기기" 버튼은 더 이상 직접 entrustGuardian()을 호출하지
+// 않고, app3 원본(entrust.jsx go() → app.checkout({kind:'entrust',...}))과 동일하게
+// 공용 PayScreen(openPayScreen)을 거친다 — pay_screen.dart 상단 주석 "구매 로직은
+// 1벌만" 지시를 수호자/옷/꾸미기 탭뿐 아니라 맡기기에도 적용한다.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
@@ -10,6 +14,7 @@ import '../../data/models.dart';
 import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/wr_toast.dart';
+import '../shop/pay_screen.dart';
 
 /// 어디서든(소원방 돌보기 메뉴 "수호자에게 맡기기") 호출 가능한 오프너.
 void openEntrustSheet(BuildContext context) {
@@ -53,19 +58,30 @@ class _EntrustSheetState extends State<EntrustSheet> {
     _startsToday = !(room != null && room.devotionsToday > 0);
   }
 
-  Future<void> _submit(WishRoom room) async {
-    if (_busy) return;
-    setState(() => _busy = true);
+  // [S5 — 공용 결제창 통일] app3/entrust.jsx `go()`가 app.checkout({kind:'entrust',...})을
+  // 호출하는 것과 1:1 — 더 이상 이 시트가 직접 entrustGuardian()을 호출하지 않는다.
+  // 시트를 먼저 닫고(app.sheet(null)) PayScreen을 연다 — guardian_detail_sheet.dart의
+  // Navigator.pop() → openPayScreen() 패턴과 동일하다.
+  void _checkout(BuildContext context, WishRoom room, String name, WrCatalog cat) {
     final p = context.read<WishRoomProvider>();
-    final ok = await p.entrustGuardian(room.id, days: _days, startsToday: _startsToday);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    if (ok) {
-      Navigator.of(context).pop();
-      WrToast.show(context, '맡기기를 시작했어요');
-    } else if (p.lastError != null) {
-      WrToast.show(context, p.lastError!.message);
-    }
+    final price = cat.entrustPrice[_days.toString()] ?? 0;
+    final pose = const {WrTheme.buddha: Pose.bow, WrTheme.shaman: Pose.rub}[room.theme] ?? Pose.pray;
+    final img = cat.poseImage(room.char, room.theme, pose) ?? cat.charImage(room.char, room.outfitNow, outfitId: room.outfitId);
+    final days = _days;
+    final startsToday = _startsToday;
+    final order = PayOrder(
+      kind: 'entrust',
+      name: '$name에게 ${const {1: '하루', 3: '사흘', 7: '이레'}[days]} 맡기기',
+      sub: '${startsToday ? '오늘' : '내일'}부터 · "${room.text}"',
+      img: img,
+      price: price,
+      doneTitle: '$name${_josa(name, '이', '가')} 당신의 소원을 지켜요',
+      afterLabel: '🙏 소원방으로',
+      after: () {}, // app3 `after: () => app.go('home')` — 이미 소원방 화면 위에서 열렸으므로 pop만으로 충분.
+      onConfirmPay: () => p.entrustGuardian(room.id, days: days, startsToday: startsToday),
+    );
+    Navigator.of(context).pop(); // 시트 닫기
+    openPayScreen(context, order);
   }
 
   Future<void> _cancel(WishRoom room) async {
@@ -235,12 +251,14 @@ class _EntrustSheetState extends State<EntrustSheet> {
         SizedBox(
           width: double.infinity,
           height: WrSize.btnH,
-          child: ElevatedButton(
-            onPressed: (_busy || (_startsToday && devotedToday)) ? null : () => _submit(room),
-            style: ElevatedButton.styleFrom(backgroundColor: WrC.glow, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-            child: _busy
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4A2A10)))
-                : Text('🧧 ${price[_days.toString()] ?? 0} · $name에게 맡기기', style: const TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700)),
+          child: Semantics(
+            identifier: 'entrust_checkout',
+            button: true,
+            child: ElevatedButton(
+              onPressed: (_startsToday && devotedToday) ? null : () => _checkout(context, room, name, cat),
+              style: ElevatedButton.styleFrom(backgroundColor: WrC.glow, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              child: Text('🧧 ${price[_days.toString()] ?? 0} · $name에게 맡기기', style: const TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700)),
+            ),
           ),
         ),
       ],

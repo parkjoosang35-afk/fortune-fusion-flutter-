@@ -59,6 +59,9 @@ class PayOrder {
     'outfit': '옷',
     'item': '꾸미기',
     'dispatch': '대신 기도',
+    // [S5 — 공용 결제창 통일] app3/entrust.jsx go()가 app.checkout({kind:'entrust',...})로
+    // 호출하는 것과 이름을 맞춘다(entrust_sheet.dart가 이 kind로 openPayScreen을 연다).
+    'entrust': '대신 기도',
   };
   String get label => _kindLabel[kind] ?? kind;
 }
