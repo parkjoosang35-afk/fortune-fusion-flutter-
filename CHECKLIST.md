@@ -769,3 +769,75 @@ flutter analyze 신규 에러 0건 + 그렙 재스윕으로 잔존 참조 없음
 항목은 기능 삭제로 이 체크리스트에서 제외**), 출석/미션 보상 완전
 제거(`luck-pouch-engine.ts`의 `ACTIVITY_SCORE_WEIGHTS.attendance: 1`
 미조사 상태). S6 마무리는 완전 미착수.
+
+---
+
+## S5 경제 — "복주머니 보상 v5 수치 전수 재확인" → "함께 빌기(cheer)
+## 복주머니 미지급 버그" 발견·수정 (이번 세션)
+
+- **배경**: "진행" 지시로 위 "다음 세션에 이어갈 것"의 "v5 수치 전수
+  재확인" 항목에 착수. 카탈로그(`wishroom_data.json`) 값과 실제 지급
+  코드를 하나씩 대조 검증.
+
+### 검증 결과
+| 항목 | 카탈로그 값 | 실제 지급 로직 | 결과 |
+|---|---|---|---|
+| 기도 | `pray: 5` | `devotions/route.ts` — pouchOn 조건에서 정확히 지급 | ✅ 정상 |
+| 7일 연속 | `streak7: 20` | 같은 라우트 — `newStreak>=DEVOTION_RULE.streakAt(7)`일 때 `streakBonus(20)+fx.pouch` 지급 | ✅ 정상 |
+| 함께 빌기 | `cheer: 1, cheerMax: 5` | `/wish-rooms/{id}/supports` — `supportCount` 증가 + 마일스톤 아이템 보상(`SUPPORT_REWARDS`)만 체크, **cheer 복주머니 지급 코드 자체가 없음** | ❌ **버그** |
+
+### 🐛 발견한 버그 — "함께 빌기" 복주머니 평생 미지급
+- `me/earn/route.ts` 주석에는 "cheer는 S4(함께 빌기) 전용 엔드포인트가
+  직접 지급한다"고 적혀 있었지만, 실제 `/supports` 라우트를 열어보니
+  그 지급 코드가 전혀 존재하지 않았다.
+- curl로 실측: 응원 1회 보내서 `supportCount` 0→1 증가 확인했지만
+  지갑 잔액은 190→190 그대로, `wish_room_earn_logs`에도 `cheer` 기록
+  없음 — 응원(하루 최대 `cheerMax`=5회)을 아무리 해도 복주머니 +1×5가
+  **한 번도 지급된 적이 없는** 상태였음을 확인(테스트 흔적은 원복).
+- 대표님께 보고 후 **"고쳐"** 지시로 즉시 수정 진행.
+
+### 수정 내용
+
+#### 서버(admin_web) — `/wish-rooms/{id}/supports/route.ts` (커밋 `20e5527d`)
+- `devotions/route.ts`(기도 pray/streak7)와 동일한 패턴으로
+  `earnLuckPouch()` + `wishRoomEarnLog.create(source:'cheer')` 추가.
+- 일일 상한: `wish_room_earn_logs`의 `(userId, source='cheer', dateKey)`
+  카운트가 `POUCH.cheerMax(5)` 미만일 때만 지급 — 상한 도달 후에도
+  응원 자체(`supportCount` 증가·마일스톤 카운트)는 계속 가능하되
+  복주머니만 지급 중단.
+- 응답에 `cheerEarned`/`me` 필드 추가(클라이언트가 바로 pouch 갱신
+  반영 가능하도록 — `devotions`의 `pouchEarned`, `gifts`의 `me`와
+  동일한 설계 원칙).
+- **검증(curl, 실제 DB)**: 1회차 `cheerEarned:1`, 지갑 190→191.
+  서로 다른 방 4곳에 추가 응원 → 191→195까지 정상 누적(5회 전부
+  `cheerEarned:1`). 6회차(6번째 방) → `cheerEarned:0`, 지갑 195
+  그대로(상한 정상 동작), `support` 자체는 계속 성공.
+  `npx tsc --noEmit` 0 에러. 테스트 흔적 전부 원복(지갑 190,
+  `wish_room_earn_logs` 0건, 각 방 `support_count`/`points`/`level`
+  원상복구, `wish_room_supports` 삭제) — 단 `point_histories`는
+  append-only 트리거라 과거 테스트 5건이 원장에 남으나 운영 로직에는
+  영향 없음(삭제 자체가 설계상 불가능한 원장 테이블).
+- `wishroom_data.json` 등 5개 수정 금지 파일은 이번 커밋에 포함되지
+  않음(git status/diff --cached로 확인).
+
+#### 클라이언트(flutter_app) — 커밋 `4bb97d3f`
+- `wr_api.dart`: `WrRepository.support()` 반환 타입을
+  `(WishRoom, Map<String,dynamic>?)` → `(WishRoom, Map<String,dynamic>?, Me)`
+  3-tuple로 확장(`gift()`의 `(WishRoom, Me)` 패턴과 동일).
+- `wishroom_provider.dart`: `support()`에서 서버가 돌려준 `me`로
+  `WishRoomProvider.me`를 갱신 — 응원할 때마다 지급되는 복주머니가
+  지갑 pill·지갑 시트 등 `me.pouch`를 구독하는 모든 화면에 즉시
+  반영되도록 함.
+- **검증**: `flutter analyze` 신규 에러 0건(기존 무관 에러 2건만
+  그대로). 모든 `_FakeWrRepository`/`Repo` 테스트 더블은
+  `noSuchMethod` 폴백이라 시그니처 변경 영향 없음(그렙으로 확인).
+  `build_local.sh --debug` 빌드 성공(151.7초), 프리뷰 재기동 확인.
+
+**검증 요약 — 카탈로그-코드 대조로 3개 항목 중 1개 버그 발견 → 서버
+curl 단위 테스트(지급·상한 모두 확인) → 클라이언트 반영 → 빌드 성공
+— PASS.**
+
+**다음 세션에 이어갈 것(갱신)**: S5 나머지 — 출석/미션 보상 완전 제거
+(`luck-pouch-engine.ts`의 `ACTIVITY_SCORE_WEIGHTS.attendance: 1`
+미조사 상태, "복주머니 보상 v5 수치 전수 재확인" 자체는 이 세션으로
+완료 — PASS). S6 마무리는 완전 미착수.
