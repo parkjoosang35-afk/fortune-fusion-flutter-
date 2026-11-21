@@ -219,124 +219,151 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
                     ),
                   ),
                   Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 110),
-                      children: [
-                        Text(
-                          'GUARDIANS · ${p.me?.ownedChars.length ?? 0} / ${p.characters.length}',
-                          textAlign: TextAlign.center,
-                          style: WrF.mono(size: 10.5),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          '소원방을 지켜줄\n수호자',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'NotoSerifKR',
-                            fontWeight: FontWeight.w900,
-                            fontSize: 25,
-                            height: 1.3,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        // ── 함께하는 수호자 ──
-                        if (cur != null && room != null) _curGuardianCard(room, cur),
-                        const SizedBox(height: 18),
-                        // ── 거르기 ──
-                        Row(
-                          children: [
-                            for (final f in const [
-                              ('all', '전체'),
-                              ('mine', '내 수호자'),
-                              ('F', '여성'),
-                              ('M', '남성'),
-                            ])
-                              Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: Semantics(
-                                  identifier: 'guardian_filter_${f.$1}',
-                                  button: true,
-                                  child: GestureDetector(
-                                    onTap: () =>
-                                        setState(() => _filter = f.$1),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 13,
-                                        vertical: 7,
+                    // [버그수정 — "Assertion failed: RenderBox was not laid
+                    // out: RenderIndexedSemantics ... NEEDS-PAINT"] 바깥
+                    // ListView 안에 shrinkWrap:true + NeverScrollableScrollPhysics
+                    // GridView.builder를 중첩하면, Provider가 알려주는 리스트
+                    // (list.length)가 room/catalog 로딩 직후 바뀔 때 시맨틱스
+                    // 인덱싱이 레이아웃보다 먼저 계산되어 크래시한다(릴리즈에선
+                    // 빈 화면으로만 보이고 콘솔에 'Another exception was
+                    // thrown: Assertion failed'만 반복 출력됨). 중첩 스크롤뷰를
+                    // 없애고 CustomScrollView + Sliver 하나로 합쳐 근본적으로
+                    // 해결한다.
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                          sliver: SliverToBoxAdapter(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  'GUARDIANS · ${p.me?.ownedChars.length ?? 0} / ${p.characters.length}',
+                                  textAlign: TextAlign.center,
+                                  style: WrF.mono(size: 10.5),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  '소원방을 지켜줄\n수호자',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'NotoSerifKR',
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 25,
+                                    height: 1.3,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // ── 함께하는 수호자 ──
+                                if (cur != null && room != null)
+                                  _curGuardianCard(room, cur),
+                                const SizedBox(height: 18),
+                                // ── 거르기 ──
+                                Row(
+                                  children: [
+                                    for (final f in const [
+                                      ('all', '전체'),
+                                      ('mine', '내 수호자'),
+                                      ('F', '여성'),
+                                      ('M', '남성'),
+                                    ])
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 6,
+                                        ),
+                                        child: Semantics(
+                                          identifier:
+                                              'guardian_filter_${f.$1}',
+                                          button: true,
+                                          child: GestureDetector(
+                                            onTap: () => setState(
+                                              () => _filter = f.$1,
+                                            ),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 13,
+                                                vertical: 7,
+                                              ),
+                                              decoration: _filter == f.$1
+                                                  ? WrDeco.chipOn
+                                                  : WrDeco.chip,
+                                              child: Text(
+                                                f.$2,
+                                                style: WrF.body(
+                                                  12,
+                                                  w: FontWeight.w700,
+                                                  color: _filter == f.$1
+                                                      ? Colors.white
+                                                      : WrC.muted,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      decoration: _filter == f.$1
-                                          ? WrDeco.chipOn
-                                          : WrDeco.chip,
-                                      child: Text(
-                                        f.$2,
-                                        style: WrF.body(
+                                  ],
+                                ),
+                                if (!shopOpen)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 10),
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(
                                           12,
-                                          w: FontWeight.w700,
-                                          color: _filter == f.$1
-                                              ? Colors.white
-                                              : WrC.muted,
+                                        ),
+                                        border: Border.all(
+                                          color: WrC.line,
+                                          style: BorderStyle.solid,
+                                        ),
+                                      ),
+                                      child: Text.rich(
+                                        TextSpan(
+                                          style: WrF.body(12, color: WrC.muted),
+                                          children: [
+                                            const TextSpan(text: '🔒 새 수호자는 '),
+                                            TextSpan(
+                                              text:
+                                                  '${_leftDays(room, 'shop')}일 뒤',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                            const TextSpan(
+                                              text:
+                                                  ' 상점이 열리면 복주머니로 모실 수 있어요. 지금은 구경만 할 수 있어요.',
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        if (!shopOpen)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: WrC.line,
-                                  style: BorderStyle.solid,
-                                ),
-                              ),
-                              child: Text.rich(
-                                TextSpan(
-                                  style: WrF.body(12, color: WrC.muted),
-                                  children: [
-                                    const TextSpan(text: '🔒 새 수호자는 '),
-                                    TextSpan(
-                                      text:
-                                          '${_leftDays(room, 'shop')}일 뒤',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const TextSpan(
-                                      text: ' 상점이 열리면 복주머니로 모실 수 있어요. 지금은 구경만 할 수 있어요.',
-                                    ),
-                                  ],
-                                ),
-                              ),
+                                const SizedBox(height: 12),
+                              ],
                             ),
                           ),
-                        const SizedBox(height: 12),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: list.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                            childAspectRatio: .72,
-                          ),
-                          itemBuilder: (_, i) => _guardianCard(
-                            p,
-                            room,
-                            list[i],
+                        ),
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 110),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: .72,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (_, i) => _guardianCard(p, room, list[i]),
+                              childCount: list.length,
+                            ),
                           ),
                         ),
                       ],
