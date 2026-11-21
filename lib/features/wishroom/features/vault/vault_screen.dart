@@ -137,6 +137,10 @@ class _ArchiveTabState extends State<_ArchiveTab> {
       final rooms = p.archiveRooms;
       final cur = p.room; // 현재 소원방(진행 중)은 provider.room, 보관함 리스트는 완성/봉인분
       final done = rooms.where((r) => r.status == RoomStatus.SEALED || r.status == RoomStatus.ARCHIVED).toList();
+      // [대표님 판정 — "이룬 소원 통계"는 outcome=FULFILLED(成)만 센다, 放은 제외]
+      // 그리드(done)는 成/放 기록을 모두 그대로 보여주지만(放도 "영원히 보관"되는
+      // 기록이라는 설계 그대로 유지), 헤더 숫자만 "이룬 소원" 통계이므로 成만 센다.
+      final fulfilledCount = done.where((r) => r.outcome == Outcome.FULFILLED).length;
       return RefreshIndicator(onRefresh: () => p.loadArchive(), child: CustomScrollView(slivers: [
         // [4-A — 대표 판정] 진행중/완료 필터 칩 토글 대신 "지금 밝히는 소원" 카드를
         // 항상 맨 위에 보여준다(app3/flows.jsx Vault3 1:1 — 단, 14일 칸·목표 남은
@@ -150,7 +154,7 @@ class _ArchiveTabState extends State<_ArchiveTab> {
         SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 20, 16, 10), child: Row(children: [
           Text('소원 기록관', style: WrF.display(16)),
           const SizedBox(width: 6),
-          Text('${done.length}', style: WrF.body(12, color: WrC.muted)),
+          Text('$fulfilledCount', style: WrF.body(12, color: WrC.muted)),
         ]))),
         if (done.isEmpty) SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           child: Container(
@@ -274,8 +278,13 @@ class _ArchiveCard extends StatelessWidget {
             child: Text(isRelease ? '放' : '成', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFFFF9E8)))))),
         ])),
         const SizedBox(height: 6),
+        // [대표님 판정 — "완성" 라벨 불일치] "소원방 완성"은 50일째 방 단계
+        // 이름(flow.js LEVELS[50].name)일 때만 쓰는 말이고, 소원이 이뤄진 것은
+        // 항상 "이루어졌어요 · 成"으로 쓴다(放은 성/완성이 아니므로 "내려놓았어요
+        // · 放"으로 구분). 기존엔 isRelease와 무관하게 "완성"이 하드코딩되어
+        // 放 카드에도 成과 똑같이 "완성"이 떠서 우상단 放 도장과 모순됐다.
         Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          Text('완성', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.glow)),
+          Text(isRelease ? '내려놓았어요 · 放' : '이루어졌어요 · 成', style: WrF.body(12.5, w: FontWeight.w700, color: isRelease ? const Color(0xFF7A6A9A) : WrC.glow)),
           const SizedBox(height: 2),
           Text(room.text, style: WrF.body(11.5, color: WrC.fg), maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
@@ -339,10 +348,12 @@ class _ReplayOverlay extends StatelessWidget {
           child: const Icon(Icons.close, size: 15, color: Colors.white))),
         const Spacer(),
       ]))),
-      const Positioned(left: 0, right: 0, top: 58, child: Center(child: Column(children: [
-        Text('이루어진 소원방', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white)),
-        SizedBox(height: 1),
-        Text('그날의 모습 그대로', style: TextStyle(fontFamily: 'Pretendard', fontSize: 11, color: Color(0xA8FFECDC))),
+      // [대표님 판정 — "완성" 라벨 불일치] 재생 오버레이 제목도 放일 때 "이루어진
+      // 소원방"이라 쓰면 안 된다(放은 이뤄진 게 아니므로) — isRelease 분기 추가.
+      Positioned(left: 0, right: 0, top: 58, child: Center(child: Column(children: [
+        Text(isRelease ? '내려놓은 소원방' : '이루어진 소원방', style: const TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white)),
+        const SizedBox(height: 1),
+        const Text('그날의 모습 그대로', style: TextStyle(fontFamily: 'Pretendard', fontSize: 11, color: Color(0xA8FFECDC))),
       ]))),
       Positioned(left: 16, right: 16, bottom: 44, child: Container(
         padding: const EdgeInsets.all(16), decoration: WrDeco.hanji,

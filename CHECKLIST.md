@@ -387,3 +387,50 @@ Playwright로 실제 放 완료된 계정에서 새 소원을 끝까지 작성�
 - (a) 보관함 헤더 FAIL 1건 + "완성" 라벨 불일치 1건 — 둘 다 대표님 verdict 대기,
   verdict 오는 대로 바로 수정 가능한 상태(코드 위치 특정 완료).
 - (b)(c)는 PASS로 확정, 추가 조치 불필요.
+
+### 대표님 2차 verdict 반영 — 이룬 소원 통계(放 제외) + "완성" 라벨 실제 수정 완료
+
+대표님이 1번(잠금 사용자 단위 — 이미 지난 세션에 구현·커밋·CHECKLIST.md 기록
+완료, 이번엔 동일 내용 재확인 차 재전달됨), 2번(outcome=FULFILLED만 세면 통과),
+3번("완성"은 50일째 방 단계 이름에만, 소원이 이뤄진 건 "이루어졌어요 · 成") 판정
+기준을 명확히 주셔서, 위에서 "verdict 대기"로 남겨뒀던 2건을 바로 수정했다.
+
+- **(a) 보관함 헤더 "소원 기록관 N" — 수정 완료**: `vault_screen.dart`
+  `_ArchiveTabState.build()`에 `fulfilledCount = done.where((r) => r.outcome ==
+  Outcome.FULFILLED).length`를 추가해 헤더 숫자만 FULFILLED(成)로 한정했다.
+  그리드(done) 자체는 이전처럼 成/放 기록 모두 보여준다(放도 "영원히 보관"되는
+  설계는 그대로 유지 — 대표님 판정은 "통계 숫자"에서만 放을 빼라는 것). 런타임
+  검증: 放 1건만 있는 테스트 계정에서 수정 전 "소원 기록관 1" → 수정 후
+  **"소원 기록관 0"**으로 정확히 바뀜(스크린샷
+  `/home/user/wr_compare/item3_screenshot/C1_vault_header_fixed.png`,
+  `D1_vault_header_final.png`).
+- **"완성" 라벨 — 3곳 모두 isRelease 분기 추가, 수정 완료**:
+  1. `vault_screen.dart:282`(보관함 그리드 카드) — `'완성'` 고정 텍스트를
+     `isRelease ? '내려놓았어요 · 放' : '이루어졌어요 · 成'`로 교체(색상도 放일 때
+     보라색 계열로 함께 분기). 런타임 확인: 放 카드에 이제 "**내려놓았어요 · 放**"
+     표시(수정 전 "완성"이었음) — `C1_vault_header_fixed.png`.
+  2. `vault_screen.dart:352`(재생 오버레이 제목) — 원래 성/放 구분 없이 항상
+     "이루어진 소원방"이었던 것을 `isRelease ? '내려놓은 소원방' : '이루어진
+     소원방'`으로 분기(이 자리는 "완성"이라는 단어는 아니었지만 放에 "이루어진"을
+     쓰는 것도 같은 라벨 불일치 범주라 함께 수정). 런타임 확인: 放 기록 재생 시
+     "**내려놓은 소원방**" 정상 표시 —
+     `/home/user/wr_compare/item3_screenshot/D2_replay_title_fixed.png`.
+  3. `complete_screen.dart:973`(_SealedBody 안내 문구) — "완성된 소원은 보관하고,
+     이제 새로운 소원을 시작할 수 있어요"가 成/放 공통으로 뜨던 것을
+     `isRelease ? '내려놓은 소원도 이곳에 고이 담기고, ...' : '이루어진 소원은
+     보관하고, ...'`로 분기(이 화면은 isRelease가 이미 846행에 계산되어 있었으나
+     이 문구에만 적용이 안 돼 있었음).
+  - 그대로 둔 것: `complete_screen.dart:968` "소원 기록관에\n영원히 머뭅니다"는
+    成/放 어느 쪽에도 의미상 맞는 중립 문구라 분기하지 않음. `flow.js`의 50일째
+    방 단계 이름 "완성된 소원방"(`WrCatalog.I.levels`를 통해 `vault_screen.dart`
+    `_CurrentWishCard`가 그대로 사용하는 자리, `cat.levels[room.stage]['name']`)은
+    대표님이 명시한 대로 "방 단계 이름"이므로 변경하지 않음.
+- **검증 방법**: `flutter analyze lib/features/wishroom/features/vault/vault_screen.dart
+  lib/features/wishroom/features/complete/complete_screen.dart` → "No issues
+  found!". `build_local.sh`로 로컬 재빌드 후 Playwright로 테스트 계정(放 1건)
+  보관함 화면·재생 오버레이를 다시 열어 위 스크린샷들로 최종 확인.
+- **커밋**: 아래(이번 메시지 처리 완료 직후).
+
+**이룬 소원 통계 + "완성" 라벨 — 최종 상태**: 대표님이 지정한 3곳 중 FAIL이던
+(a) 보관함 헤더를 FULFILLED 전용 카운트로 수정 완료, "완성" 라벨 불일치 3곳 모두
+isRelease 분기로 수정 완료. 모두 스크린샷으로 수정 전/후 대조 확인함.

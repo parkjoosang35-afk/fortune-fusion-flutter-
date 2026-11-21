@@ -970,8 +970,14 @@ class _SealedBody extends StatelessWidget {
                         style: WrF.display(26, color: Colors.white, height: 1.35),
                       ),
                       const SizedBox(height: 10),
+                      // [대표님 판정 — "완성" 라벨 불일치] "완성"은 50일째 방 단계
+                      // 이름(소원방 완성)에만 쓰고, 소원이 이뤄진/내려놓은 것은
+                      // "완성"이라 쓰지 않는다. isRelease(846행)로 이미 成/放을
+                      // 구분하고 있으므로 이 안내 문구도 같은 분기를 적용한다.
                       Text(
-                        '완성된 소원은 보관하고,\n이제 새로운 소원을 시작할 수 있어요',
+                        isRelease
+                            ? '내려놓은 소원도 이곳에 고이 담기고,\n이제 새로운 소원을 시작할 수 있어요'
+                            : '이루어진 소원은 보관하고,\n이제 새로운 소원을 시작할 수 있어요',
                         textAlign: TextAlign.center,
                         style: WrF.body(13.5, color: WrC.muted, height: 1.7),
                       ),
