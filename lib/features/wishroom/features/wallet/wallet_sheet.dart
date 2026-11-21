@@ -13,6 +13,13 @@
 // 탭하면 이 시트가 열려야 한다. vault_screen.dart의 _PouchTab(보관함 탭의 "복주머니
 // 모으기" 전체화면)과 로직은 동일하되, 여기서는 모달 시트 레이아웃으로 축약 재구현한다
 // (사용처 바로가기 3개 그리드 추가가 원본과의 차이점).
+//
+// [대표님 지시 — 출석/미션 보상 완전 제거] v5 S1 전환(구 EARN 카탈로그 attend/
+// devo10/m_visit/m_cheer/m_msg → pray/streak7/cheer/ad/welcome/dispatchRecv)이
+// 서버·데이터(wishroom_data.json) 쪽에서는 이미 끝나 있었지만, 이 화면에만 당시의
+// 구 ID를 참조하는 죽은 코드(어느 현재 카탈로그 항목과도 매칭되지 않아 실행될 수
+// 없는 분기)가 남아 있었다. 전부 제거했다 — 이제 모든 적립 카드는 `_doEarn()`
+// 하나로만 처리된다(이동형 미션 분기 없음).
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
@@ -24,7 +31,6 @@ import '../decor/decor_screen.dart';
 import '../../core/wr_toast.dart';
 
 // 바텀탭 인덱스(wishroom_shell.dart `_tabs` 순서) 1:1 대응.
-const int _kTabHome = 0;
 const int _kTabExplore = 1;
 
 /// 어디서든 호출 가능한 지갑 시트 오프너. app2 `app.openWallet()` 1:1 대응.
@@ -36,13 +42,6 @@ void openWalletSheet(BuildContext context) {
     builder: (_) => const WalletSheet(),
   );
 }
-
-const Map<String, String> _kEarnIcon = {
-  'attend': '✓', 'devo10': '🙏', 'm_visit': '☾', 'm_cheer': '❤', 'm_msg': '💬',
-};
-const Map<String, String> _kEarnGo = {
-  'm_visit': 'explore', 'm_cheer': 'explore', 'm_msg': 'explore', 'devo10': 'home',
-};
 
 class WalletSheet extends StatefulWidget {
   const WalletSheet({super.key});
@@ -68,34 +67,6 @@ class _WalletSheetState extends State<WalletSheet> {
 
   Future<void> _tap(Map<String, dynamic> src) async {
     final id = src['id'] as String;
-    final go = _kEarnGo[id];
-    final p = context.read<WishRoomProvider>();
-    final today = p.me?.earnToday ?? const <String, int>{};
-    final limit = (src['limit'] as num).toInt();
-    if (go != null && (today[id] ?? 0) < limit) {
-      // pop() 직후 이 시트의 context는 dispose되므로, 참조는 pop 이전에 미리 잡아둔다.
-      final overlay = Overlay.maybeOf(context, rootOverlay: true);
-      Navigator.of(context).pop();
-      if (go == 'home') {
-        p.requestTab(_kTabHome);
-      } else {
-        p.requestTab(_kTabExplore);
-      }
-      if (overlay != null) {
-        WrToast.showWithOverlay(overlay, id == 'devo10' ? '정성을 10번 채우면 자동으로 담겨요' : '미션을 마치면 복주머니가 담겨요');
-      }
-      // [버그수정 — 전수감사] app2/pouch2.jsx `tap()`: devo10을 제외한 이동형
-      // 미션(m_visit/m_cheer/m_msg)은 "미션을 마치면 복주머니가 담겨요" 토스트를
-      // 띄운 뒤 `setTimeout(() => earn(src.id), 1800)`로 1.8초 뒤 자동으로 적립
-      // API를 호출한다(실제로는 이동한 화면에서 조건을 채웠는지와 무관하게 서버가
-      // 최종 검증). devo10은 정성 10회 완료 시 서버가 자동 지급하므로 제외.
-      // 시트는 이미 pop()됐어도 Provider는 위젯 트리 상위에서 계속 살아있으므로
-      // context 없이 p(이미 캡쳐된 WishRoomProvider)로 안전하게 호출 가능하다.
-      if (id != 'devo10') {
-        Future.delayed(const Duration(milliseconds: 1800), () => p.earn(id));
-      }
-      return;
-    }
     await _doEarn(id);
   }
 
@@ -211,13 +182,13 @@ class _WalletSheetState extends State<WalletSheet> {
                   child: Row(children: [
                     Container(width: 30, height: 30, alignment: Alignment.center,
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(9), color: done ? Colors.white10 : const Color(0x40F2628F)),
-                      child: Text(done ? '✓' : (_kEarnIcon[id] ?? '•'), style: const TextStyle(fontSize: 13))),
+                      child: Text(done ? '✓' : '•', style: const TextStyle(fontSize: 13))),
                     const SizedBox(width: 10),
                     Expanded(child: Text(src['label'] as String? ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)
                       .copyWith(decoration: done ? TextDecoration.lineThrough : null))),
                     const SizedBox(width: 6),
-                    Flexible(child: Text(done ? '받음' : '+$amount${_kEarnGo[id] != null ? ' ›' : ''}',
+                    Flexible(child: Text(done ? '받음' : '+$amount',
                       textAlign: TextAlign.right,
                       style: WrF.body(12, w: FontWeight.w700, color: done ? WrC.muted : WrC.glow))),
                   ]),
