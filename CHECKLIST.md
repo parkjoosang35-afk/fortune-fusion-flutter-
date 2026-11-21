@@ -434,3 +434,80 @@ Playwright로 실제 放 완료된 계정에서 새 소원을 끝까지 작성�
 **이룬 소원 통계 + "완성" 라벨 — 최종 상태**: 대표님이 지정한 3곳 중 FAIL이던
 (a) 보관함 헤더를 FULFILLED 전용 카운트로 수정 완료, "완성" 라벨 불일치 3곳 모두
 isRelease 분기로 수정 완료. 모두 스크린샷으로 수정 전/후 대조 확인함.
+
+### 대표님 3차 verdict 반영 — (1) 잠금 사용자 단위 재확인 + (2) 3-B 수호자 탭 디버그 검증·캡처 완료
+
+대표님이 이번 verdict에서 두 가지를 다시 확인해 달라고 하셨다: ① "잠금은
+사용자 단위로 유지"가 실제로 되어 있는지(放 후 새 소원 1일째에 기존에 열었던
+기능이 전부 열려 있어야 함), ② 수호자 탭 "빈 화면 버그" 수정이 커밋됐는지 —
+디버그 콘솔 에러 0건, 커밋 1개, 캡처 2장(수호자 탭·자세히 시트)을 서비스판과
+나란히 보여달라는 통과 조건.
+
+**① 잠금 사용자 단위 유지 — 서버·DB·API 3중으로 이미 완료돼 있음을 재확인**
+(지난 세션에 구현·커밋까지 끝난 내용이라 이번엔 새로 구현한 것은 없고, 대표님이
+요청한 정확한 검증 시나리오로 다시 확인만 했다):
+- `admin_web` 저장소(`/home/user/admin_web`, 커밋 `f6b20531`)에 이미
+  `WishRoomUserState` 모델(`unlocked_json`, `last_unlock_ack_day`)과
+  `computeUnlockView()`/`getUserUnlockState()` 함수가 구현돼 있고
+  `buildRoomView()`에 연결돼 있음을 코드로 재확인.
+- DB 직접 조회(`dev.db`, sqlite3): 테스트 계정(user_id=455)의
+  `wish_room_user_states.unlocked_json`에
+  `["guardian","decor","together","wardrobe","theme","shop"]` 6개 전부 저장돼
+  있고, `wish_rooms`는 room 13(ARCHIVED/RELEASED·放)과 room 14(ACTIVE, 放 이후
+  새로 생성된 방) 두 개가 있음을 확인.
+- API 직접 호출(`GET /api/public/wishroom/wish-rooms/me`, Bearer 토큰):
+  room 14(放 이후 새 방, `dayN: 1`)의 응답이
+  `"unlocked": ["guardian","decor","together","wardrobe","theme","shop"]`로
+  **1일째인데도 6개 기능 모두 열려 있음을 확인** — 대표님이 말씀하신 검증
+  방법("放 후 새 소원 1일째에도 탭이 모두 열려 있어야 한다")을 그대로
+  충족한다.
+- Flutter UI 레벨에서도 동일 계정·room 14로 로그인해 수호자 탭을 직접 열어
+  정상 렌더링 확인(아래 ② 항목 캡처와 동일 세션에서 확인됨).
+- **결론**: 잠금 사용자 단위 유지는 서버·DB·API·UI 4개 레벨 모두에서 이미
+  정상 동작 중이며 추가 구현이 필요 없다. 이번 세션은 "새로 고친 것"이 아니라
+  "대표님이 요청한 정확한 시나리오로 증거를 다시 모아 확인한 것"이다.
+
+**② 3-B 수호자 탭 빈 화면 버그 — 코드는 이미 커밋돼 있었고, 디버그 검증만
+새로 수행**:
+- `character_shop_screen.dart`의 `CustomScrollView` + `Sliver` 전환(중첩
+  스크롤뷰로 인한 `RenderBox was not laid out` 크래시 수정)은 git log 확인
+  결과 커밋 `80a4b304`, `14606f9b`로 **이미 커밋돼 있었다**(현재 HEAD
+  `dc9bd8af`의 조상임을 `git merge-base --is-ancestor`로 확인). 즉 대표님이
+  "보류/미커밋"으로 알고 계셨던 것과 달리 이미 적용·저장된 상태였다.
+- 대표님이 요구하신 통과 조건을 디버그 빌드로 다시 검증:
+  - `build_local.sh --debug`로 디버그 빌드(화면 좌상단에
+    "LOCAL·http://localhost:3100" 배지로 디버그 빌드임을 시각적으로 확인 가능).
+  - Playwright로 로그인 → 수호자 탭 클릭 → "자세히" 시트 열기까지 진행하며
+    콘솔 에러(`pageerror`/`console.error`)를 베이스라인 클리어 후 집계.
+  - **결과: 수호자 탭 오픈 0건, 자세히 시트 오픈 0건 — 총 콘솔 에러 0건.**
+  - 캡처: `item3_screenshot/I1_guardian_tab_debug.png`(수호자 탭),
+    `item3_screenshot/I3_guardian_detail_sheet_debug.png`(자세히 시트).
+- **app3 서비스판 비교 캡처 — 버튼 셀렉터 버그 2건 수정 후 성공**: app3는
+  `dev.day()`/`dev.prayDays()`가 백엔드 상태만 바꾸고 화면 전환(`scr` state)은
+  안 바꾸기 때문에 실제 소원 작성 → 촛불 선택 → 기도 버튼 3초 홀드까지 진짜
+  UI 흐름을 그대로 재현해야 했다. 이 과정에서 두 가지 버그를 찾아 고쳤다:
+  1. 기도 버튼은 `onPointerDown`/`onPointerUp`(React Pointer Event)을 쓰는데
+     Playwright `mouse.down()/up()`이 헤드리스 환경에서 포인터 이벤트로
+     합성되지 않아 기도가 전혀 등록되지 않고 있었다 → `PointerEvent`를 JS로
+     직접 디스패치하도록 수정해 해결(수정 후 `S.prayed`에 정상 기록됨).
+  2. 하단 네비게이션 "수호자" 버튼을 찾을 때 셀렉터가 `.nav button, button`으로
+     돼 있어 홈 화면 "돌보기 메뉴" 목록의 동명 "수호자" 항목(클릭 시
+     `MenuInfo3` 잠금 안내 팝업만 뜸)을 먼저 집어버려 항상 잠금 화면만
+     보였다 → `.nav` 컨테이너 안에서만 찾도록 셀렉터 한정해 해결.
+  - 수정 후 app3에서 실제 수호자 탭(캐릭터 그리드: 하린/준/월하/설화/홍연/청아,
+    필터 전체/내 수호자/여성/남성)과 "자세히" 상세 시트(프로필·성향·성격·좋아하는
+    것·지켜주는 소원)가 정상적으로 캡처됨:
+    `app3/M01_guardian_tab_20261121_1406.png`,
+    `app3/M02_guardian_detail_sheet_20261121_1406.png`.
+- **최종 비교 이미지(대표님 제출용)**:
+  `/home/user/wr_compare/FINAL_compare_guardian_tab.png`,
+  `/home/user/wr_compare/FINAL_compare_guardian_detail.png` — Flutter(디버그
+  빌드, 콘솔 에러 0건 확인됨)와 app3 서비스판을 나란히 배치. 레이아웃·캐릭터
+  목록·상세 정보 텍스트(이름/직업/성향/성격/좋아하는 것/지켜주는 소원 문구까지)
+  모두 일치함을 육안으로 확인.
+- **커밋**: 코드 자체는 이미 커밋돼 있어 새로 커밋할 코드 변경은 없음. 이번
+  검증·캡처 결과를 기록한 이 CHECKLIST.md 갱신을 "통과 조건의 커밋 1개"로
+  갈음해 커밋한다(아래).
+
+**3-B 통과 조건 충족 여부**: 디버그 콘솔 에러 0건 ✅ · 캡처 2장(수호자 탭·
+자세히 시트) 서비스판과 나란히 ✅ · 커밋 1개(이 문서 갱신) ✅ — **PASS**.
