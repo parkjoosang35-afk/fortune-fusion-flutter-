@@ -19,12 +19,9 @@ import '../decor/decor_screen.dart';
 import '../../../ads_test/domain/admob_ad_ids.dart';
 import '../../core/wr_toast.dart';
 
-// 바텀탭 인덱스(wishroom_shell.dart `_tabs` 순서) 1:1 대응. VaultScreen(탭4) 내부
-// TabBarView 순서(소원 기록관=0·복주머니=1·응원 보상=2)도 함께 참조한다.
+// 바텀탭 인덱스(wishroom_shell.dart `_tabs` 순서) 1:1 대응.
 const int _kTabHome = 0;
 const int _kTabExplore = 1;
-const int _kTabVault = 4;
-const int _kVaultSubPouch = 1;
 
 /// 어디서든 호출 가능한 지갑 시트 오프너. app2 `app.openWallet()` 1:1 대응.
 void openWalletSheet(BuildContext context) {
@@ -53,6 +50,18 @@ class _WalletSheetState extends State<WalletSheet> {
   bool _adLoading = false;
   int _gotKey = 0;
   int _gotAmount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // [4-A — 대표 판정] "적립·사용 내역"이 이 시트 안에 바로 보여야 하므로
+    // (vault_screen.dart의 복주머니 탭이 없어지며 이곳이 유일한 내역 화면이
+    // 됐다) 시트가 열릴 때마다 최신 내역을 불러온다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<WishRoomProvider>().loadLedger();
+    });
+  }
 
   Future<void> _tap(Map<String, dynamic> src) async {
     final id = src['id'] as String;
@@ -135,6 +144,37 @@ class _WalletSheetState extends State<WalletSheet> {
       final msg = p.lastError!.code == 'EARN_LIMIT' ? '오늘은 모두 받았어요' : p.lastError!.message;
       WrToast.show(context, msg);
     }
+  }
+
+  // vault_screen.dart `_PouchTabState._agoLedger`/내역 행 1:1 — 복주머니 탭 삭제로
+  // 이 시트가 유일한 내역 화면이 되며 그대로 옮겨왔다.
+  Widget _ledgerRow(Map<String, dynamic> e, {bool last = false}) {
+    final amount = ((e['amount'] ?? 0) as num).toInt();
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: last ? null : const BoxDecoration(border: Border(bottom: BorderSide(color: WrC.line))),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text((e['label'] ?? e['reason'] ?? '').toString(), style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)),
+          const SizedBox(height: 2),
+          Text(_agoLedger(e['at']), style: WrF.body(11, color: WrC.muted)),
+        ])),
+        Text('${amount > 0 ? '+' : ''}$amount', style: WrF.body(14, w: FontWeight.w700, color: amount > 0 ? WrC.glow : WrC.fg)),
+      ]),
+    );
+  }
+
+  String _agoLedger(dynamic at) {
+    if (at == null) return '';
+    DateTime? t;
+    if (at is num) t = DateTime.fromMillisecondsSinceEpoch(at.toInt());
+    if (at is String) t = DateTime.tryParse(at);
+    if (t == null) return '';
+    final m = DateTime.now().difference(t).inMinutes;
+    if (m < 1) return '지금';
+    if (m < 60) return '$m분 전';
+    final h = m ~/ 60;
+    return h < 24 ? '$h시간 전' : '${h ~/ 24}일 전';
   }
 
   @override
@@ -286,14 +326,23 @@ class _WalletSheetState extends State<WalletSheet> {
                 context.read<WishRoomProvider>().requestTab(_kTabExplore);
               }),
             ]),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.read<WishRoomProvider>().requestTab(_kTabVault, vaultSubTab: _kVaultSubPouch);
-              },
-              child: Text('전체 내역 보기 ›', style: WrF.body(12, color: WrC.muted)),
-            ),
+            const SizedBox(height: 18),
+            // [4-A — 대표 판정] vault_screen.dart의 복주머니 탭이 없어지며, "적립·
+            // 사용 내역"은 이 지갑 시트 안에서 바로 보여야 한다(전체 내역 화면으로
+            // 이동하는 버튼 대신 최근 내역을 인라인 리스트로 직접 렌더링).
+            Text('적립·사용 내역', style: WrF.display(14)),
+            const SizedBox(height: 8),
+            if (p.ledger.isEmpty)
+              Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Center(
+                child: Text('아직 내역이 없어요', style: WrF.body(12, color: WrC.muted))))
+            else
+              Container(
+                decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Column(children: [
+                  for (final (i, e) in p.ledger.take(10).indexed) _ledgerRow(e, last: i == p.ledger.take(10).length - 1),
+                ]),
+              ),
           ]),
         ),
       );

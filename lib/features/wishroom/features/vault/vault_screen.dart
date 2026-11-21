@@ -1,6 +1,11 @@
 // SCR-09 보관함 `/vault` (탭5) — docs/SCREENS.md §SCR-09 · app2/screens-c2.jsx › Vault()/Archive()/
-// ArchivePlayer()/PouchTab()/RewardTab() 1:1 이식. 탭 3개: 소원 기록관 · 복주머니 · 응원 보상.
-// 우상단 "캐릭터" 칩 → SCR-05.
+// ArchivePlayer()/RewardTab() 1:1 이식.
+// [4-A — 대표 판정, CHECKLIST.md 참고] 탭 3개(소원 기록관·복주머니·응원 보상) →
+// 2개(소원 기록관·응원 보상)로 축소. "복주머니"(적립/사용 내역)는 🧧 지갑 시트
+// (wallet_sheet.dart)로 옮겼고, 우상단 "캐릭터" 칩은 제거했다(수호자 진입은 지갑
+// 시트 "소원방에서 쓰는 곳" 카드로 들어감). 소원 기록관은 기존 진행중/완료 필터
+// 칩 토글 대신 "지금 밝히는 소원" 카드를 항상 보여준다. 기록 카드(_ArchiveCard)는
+// 이번 커밋에서는 成 도장만 표시(放 도장은 4-B).
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/wishroom_provider.dart';
@@ -10,12 +15,10 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../../core/wr_canvas.dart';
 import '../room/room_scene.dart';
-import '../characters/character_shop_screen.dart';
 import '../compose/compose_screen.dart';
+import '../complete/complete_screen.dart';
 import '../guide/guide_sheet.dart';
 import '../../core/wr_nav_pill.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import '../../../ads_test/domain/admob_ad_ids.dart';
 import '../../core/wr_toast.dart';
 
 class VaultScreen extends StatefulWidget {
@@ -30,7 +33,7 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 2, vsync: this);
     final p = context.read<WishRoomProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // [버그수정 — 사용자 리포트: "복주머니는 아예 안보이고"] 이 화면은
@@ -55,8 +58,10 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    // wallet_sheet.dart "전체 내역 보기"(복주머니 탭) 요청을 소비해 내부 TabBarView를
-    // 전환한다. tourRequested와 동일한 "Provider 플래그 → Shell/화면이 대신 처리" 패턴.
+    // [4-A] wallet_sheet.dart의 "전체 내역 보기"(구 복주머니 탭 이동) 호출은 이제
+    // 지갑 시트 내 인라인 내역 리스트로 대체되어 더 이상 이 플래그를 세우지 않는다.
+    // 메커니즘 자체(tourRequested와 동일한 "Provider 플래그 → 화면이 대신 전환"
+    // 패턴)는 향후 보관함 내부 탭 전환이 다시 필요할 경우를 위해 남겨둔다.
     final subTab = context.select<WishRoomProvider, int?>((p) => p.requestedVaultSubTab);
     if (subTab != null && subTab != _tabs.index) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -78,15 +83,8 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
           Positioned(left: 16, top: 0, bottom: 0, child: Center(child:
             WrNavPill(onBack: () => wrBackOrAskExit(context), onExitHome: () => wrExitHome(context)))),
           Positioned(right: 16, top: 0, bottom: 0, child: Center(child: Row(children: [
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CharacterShopScreen())),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0x991E0C18), borderRadius: BorderRadius.circular(999), border: Border.all(color: WrC.line)),
-                child: Text('캐릭터', style: WrF.body(12, color: WrC.fg)),
-              ),
-            ),
-            const SizedBox(width: 8),
+            // [4-A — 대표 판정] 우상단 "캐릭터" 칩 제거. 수호자 진입은 🧧 지갑
+            // 시트(wallet_sheet.dart) "소원방에서 쓰는 곳" 카드로 통합됐다.
             // app2/screens-c2.jsx › TopBar right › app.openGuide('archive') 1:1.
             // GuideBook의 "한 바퀴 둘러보기"는 app.room && 조건만 보므로 보관함에서도 항상
             // 노출되고, 누르면 app.go('home') 후 startTour() — requestTour()로 셸이 대신한다.
@@ -109,11 +107,14 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
             indicator: BoxDecoration(borderRadius: BorderRadius.circular(WrR.tab), gradient: const LinearGradient(colors: [WrC.blossom2, WrC.blossom])),
             labelColor: Colors.white, unselectedLabelColor: WrC.muted,
             labelStyle: WrF.body(13, w: FontWeight.w700), unselectedLabelStyle: WrF.body(13, w: FontWeight.w600),
-            tabs: const [Tab(text: '소원 기록관'), Tab(text: '복주머니'), Tab(text: '응원 보상')],
+            tabs: [
+              Tab(child: Semantics(identifier: 'vault_tab_archive', button: true, child: const Text('소원 기록관'))),
+              Tab(child: Semantics(identifier: 'vault_tab_rewards', button: true, child: const Text('응원 보상'))),
+            ],
           ),
         )),
         Expanded(child: TabBarView(controller: _tabs, children: const [
-          _ArchiveTab(), _PouchTab(), _RewardTab(),
+          _ArchiveTab(), _RewardTab(),
         ])),
       ])),
     ));
@@ -129,8 +130,6 @@ class _ArchiveTab extends StatefulWidget {
 }
 
 class _ArchiveTabState extends State<_ArchiveTab> {
-  bool _ongoing = false; // 원본 기본 탭 = 'done'(이루어진 소원)
-
   @override
   Widget build(BuildContext context) {
     return Consumer<WishRoomProvider>(builder: (context, p, __) {
@@ -138,58 +137,38 @@ class _ArchiveTabState extends State<_ArchiveTab> {
       final cur = p.room; // 현재 소원방(진행 중)은 provider.room, 보관함 리스트는 완성/봉인분
       final done = rooms.where((r) => r.status == RoomStatus.SEALED || r.status == RoomStatus.ARCHIVED).toList();
       return RefreshIndicator(onRefresh: () => p.loadArchive(), child: CustomScrollView(slivers: [
-        // [반응형 화면 규격 통일] 기존엔 두 칩이 Expanded/Flexible 없이 고정폭으로
-        // Row에 바로 들어있어, textScale이 커지면("진행 중 (N)"/"이루어진 소원 (N)"
-        // 문자열이 늘어나) Row 가용폭(화면폭-32)을 초과해 가로로 넘쳤다(실측
-        // 320x568@2.0, 62px 초과 — TabBarView가 탭들을 모두 유지해 빌드하는
-        // 특성상 보관함의 다른 탭("응원 보상" 등)으로 전환만 해도 발생). 가로
-        // 스크롤이 가능한 SingleChildScrollView로 감싸, 평소(짧은 라벨)엔 그대로
-        // 보이고 넘칠 때만 옆으로 스크롤되게 해 가로 오버플로를 방지한다.
-        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 10), child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(children: [
-            _chip('진행 중 (${cur != null ? 1 : 0})', true),
-            const SizedBox(width: 8),
-            _chip('이루어진 소원 (${done.length})', false),
-          ]),
-        ))),
-        if (_ongoing)
-          SliverPadding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: .74),
-            delegate: SliverChildListDelegate([
-              if (cur != null) _CurrentRoomCard(room: cur, items: p.items)
-              else GestureDetector(onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())), child: const DottedBox()),
-            ]),
-          ))
+        // [4-A — 대표 판정] 진행중/완료 필터 칩 토글 대신 "지금 밝히는 소원" 카드를
+        // 항상 맨 위에 보여준다(app3/flows.jsx Vault3 1:1 — 단, 14일 칸·목표 남은
+        // 횟수는 서버 데이터가 아직 없어 이번 커밋에서는 제외, CHECKLIST.md 참고).
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: cur != null ? _CurrentWishCard(room: cur) : GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())),
+            child: const DottedBox(),
+          ),
+        )),
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 20, 16, 10), child: Row(children: [
+          Text('소원 기록관', style: WrF.display(16)),
+          const SizedBox(width: 6),
+          Text('${done.length}', style: WrF.body(12, color: WrC.muted)),
+        ]))),
+        if (done.isEmpty) SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 22),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.line, width: 1.4, style: BorderStyle.solid)),
+            alignment: Alignment.center,
+            child: Text('이루어진 소원은 이곳에 영원히 머물러요', textAlign: TextAlign.center, style: WrF.body(12.5, color: WrC.muted, height: 1.7)),
+          )))
         else
           SliverPadding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: .74),
             delegate: SliverChildBuilderDelegate((_, i) {
-              if (i == done.length) {
-                return GestureDetector(
-                  onTap: () => cur != null
-                      ? WrToast.show(context, '진행 중인 소원이 이루어지면 새 소원방을 열 수 있어요')
-                      : Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComposeScreen())),
-                  child: const DottedBox(),
-                );
-              }
               final room = done[i];
-              return _ArchiveCard(room: room, items: p.items, onTap: () => _openReplay(context, room, p.items));
-            }, childCount: done.length + 1),
+              return Semantics(identifier: 'archive_card_${room.id}', button: true,
+                child: _ArchiveCard(room: room, items: p.items, onTap: () => _openReplay(context, room, p.items)));
+            }, childCount: done.length),
           )),
-        if (!_ongoing && done.isEmpty) SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(top: 16),
-          child: Text('이루어진 소원방은 이곳에 영원히 머뭅니다', textAlign: TextAlign.center, style: WrF.body(12.5, color: WrC.muted, height: 1.7)))),
       ]));
     });
-  }
-
-  Widget _chip(String label, bool ongoing) {
-    final sel = _ongoing == ongoing;
-    return GestureDetector(onTap: () => setState(() => _ongoing = ongoing), child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: sel ? WrDeco.chipOn : WrDeco.chip,
-      child: Text(label, style: WrF.body(12, w: FontWeight.w700, color: sel ? Colors.white : WrC.fg)),
-    ));
   }
 
   void _openReplay(BuildContext context, WishRoom room, List<WrItem> items) {
@@ -197,44 +176,68 @@ class _ArchiveTabState extends State<_ArchiveTab> {
   }
 }
 
-/// 진행 중인 현재 소원방 카드 — 원본 Archive() 58-61줄.
-class _CurrentRoomCard extends StatelessWidget {
-  const _CurrentRoomCard({required this.room, required this.items});
-  final WishRoom room; final List<WrItem> items;
+/// "지금 밝히는 소원" 카드 — app3/flows.jsx Vault3 1:1(願 인장 + 소원 문구 +
+/// 🕯dayN·🙏prayedN·✦단계 통계줄 + 완료 버튼). [4-A 스코프 제외 — CHECKLIST.md 기록]
+/// 원본의 "최근 14일" 점등 칸과 "N일 기도 목표 · N번 남음" 문구는 뒷받침하는 서버
+/// 데이터(일자별 기도 로그 · 목표 설정)가 아직 없어 이번 커밋에서는 넣지 않는다.
+class _CurrentWishCard extends StatelessWidget {
+  const _CurrentWishCard({required this.room});
+  final WishRoom room;
   @override
   Widget build(BuildContext context) {
-    // app2/screens-c2.jsx › Archive() f==='cur' 카드 onClick={() => app.go('home')} 1:1.
-    // [버그수정 — 전수감사] 기존엔 popUntil(isFirst)이라, Vault가 IndexedStack 탭(탭4)
-    // 안에 있을 땐 화면 스택만 pop될 뿐 바텀탭이 메인(탭0)으로 전환되지 않았다.
-    return GestureDetector(
-      onTap: () => context.read<WishRoomProvider>().requestTab(0),
-      child: Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: WrC.blossom2)),
-        clipBehavior: Clip.antiAlias,
-        // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 카드는
-        // childAspectRatio:.74 그리드 셀(화면 폭에 비례해 전체 높이가 정해짐)
-        // 안에 있는데, 썸네일이 고정 150px + 그 아래 텍스트 블록까지 항상
-        // 자연 높이를 그대로 요구해, 320x568 화면에서 textScale 2.0부터
-        // 91~117px까지 `RenderFlex overflowed`가 났다(실측). 썸네일을
-        // Expanded로 바꿔 셀이 좁을 때 유연하게 줄어들게 하고, 텍스트
-        // 블록은 Flexible+FittedBox(scaleDown)로 감싸 공간이 부족할 때만
-        // 비율대로 살짝 작아지게 했다 — 평소(textScale 1.0 등 공간 충분)
-        // 케이스는 기존 모습 그대로다. 디자인·문구·색상 변경 없음.
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // [버그수정 — 전수감사] app2/screens-c2.jsx › Archive(): `<RoomThumb room={app.room}
-          // w={164} h={150} focus={.42}/>` — G-4 공용 썸네일(RoomThumb)이어야 하는데
-          // WrCanvasScaler+RoomScene(focus 없이 상단 고정 크롭)을 그대로 쓰고 있었다.
-          // 같은 파일의 _ArchiveCard는 이미 RoomThumb로 교체됐는데 이 카드만 누락된 것.
-          Expanded(child: LayoutBuilder(builder: (context, c) =>
-            RoomThumb(room: room, items: items, w: c.maxWidth, h: c.maxHeight, focus: .42))),
-          Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.fromLTRB(10, 8, 10, 10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text('현재 소원방', style: WrF.body(12.5, w: FontWeight.w700, color: WrC.fg)),
+    final cat = WrCatalog.I;
+    final stageName = room.stage >= 0 && room.stage < cat.levels.length
+        ? cat.levels[room.stage]['name'] as String
+        : '정성 전';
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: WrDeco.hanji,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const WrSealGlyph(glyph: '願'),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('지금 밝히는 소원', style: TextStyle(fontFamily: 'Pretendard', fontSize: 12, color: WrC.hanjiInk.withValues(alpha: .6))),
             const SizedBox(height: 2),
-            Text(room.text, style: WrF.body(11.5, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
-          ])))),
+            Text(room.text, style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 17, color: WrC.hanjiInk, height: 1.45)),
+          ])),
         ]),
-      ),
+        const SizedBox(height: 14),
+        Wrap(spacing: 14, runSpacing: 4, children: [
+          Text('🕯 ${room.dayN}일째', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF8A4A3A))),
+          Text('🙏 ${room.prayedN}번', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF8A4A3A))),
+          Text('✦ $stageName', style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF8A4A3A))),
+        ]),
+        const SizedBox(height: 16),
+        SizedBox(width: double.infinity, height: 50, child: Semantics(identifier: 'vault_fulfill', button: true, child: ElevatedButton(
+          onPressed: () => _confirmFulfill(context),
+          style: ElevatedButton.styleFrom(backgroundColor: WrC.glow, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+          child: const Text('✿ 소원이 이루어졌어요', style: TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700)),
+        ))),
+      ]),
     );
+  }
+
+  // main_room_screen.dart `_CareSheet` 완료 버튼 1:1(2단계 확인: 아직이에요 /
+  // 네, 이루어졌어요) — 보관함 카드에서도 같은 확인 절차를 거쳐 실수 완료를 막는다.
+  void _confirmFulfill(BuildContext context) {
+    showDialog(context: context, builder: (dialogCtx) => AlertDialog(
+      backgroundColor: WrC.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('정말 이루어졌나요', style: WrF.body(15, w: FontWeight.w700, color: Colors.white)),
+      content: Text('완료 후 7일 동안은 되돌릴 수 있어요.', style: WrF.body(12.5, color: WrC.muted)),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: Text('아직이에요', style: WrF.body(13, color: WrC.fg))),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: WrC.glow),
+          onPressed: () {
+            Navigator.of(dialogCtx).pop();
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => CompleteScreen(roomId: room.id)));
+          },
+          child: const Text('네, 이루어졌어요', style: TextStyle(color: Color(0xFF4A2A10), fontWeight: FontWeight.w700, fontSize: 13)),
+        ),
+      ],
+    ));
   }
 }
 
@@ -364,332 +367,6 @@ class _ReplayOverlay extends StatelessWidget {
       )),
     ]));
   }
-}
-
-// ═══════════════════ 복주머니 — PouchTab() 1:1 ═══════════════════
-
-class _EarnSection {
-  const _EarnSection({required this.id, required this.no, required this.icon, required this.c1, required this.c2,
-    required this.title, this.big = false, this.go});
-  final String id, no, icon, title; final Color c1, c2; final bool big; final String? go;
-}
-
-const List<_EarnSection> _kSections = [
-  _EarnSection(id: 'ad', no: '01', icon: '▶', c1: Color(0xFF9A6AFF), c2: Color(0xFF6A3AD8), title: '짧은 영상 보기', big: true),
-  _EarnSection(id: 'attend', no: '02', icon: '✓', c1: Color(0xFFF5CF6A), c2: Color(0xFFC9962A), title: '오늘의 출석'),
-  _EarnSection(id: 'devo10', no: '03', icon: '🙏', c1: Color(0xFFFF9CBC), c2: Color(0xFFF2628F), title: '정성 10회 채우기', go: 'home'),
-  _EarnSection(id: 'm_visit', no: '04', icon: '☾', c1: Color(0xFF8AB8FF), c2: Color(0xFF4A7AD8), title: '다른 소원방 3곳 둘러보기', go: 'explore'),
-  _EarnSection(id: 'm_cheer', no: '05', icon: '❤', c1: Color(0xFFFF8FB1), c2: Color(0xFFC93A7A), title: '응원 3번 보내기', go: 'explore'),
-  _EarnSection(id: 'm_msg', no: '06', icon: '💬', c1: Color(0xFF7FD6A0), c2: Color(0xFF2F8A5A), title: '응원 메시지 남기기', go: 'explore'),
-];
-
-class _PouchTab extends StatefulWidget {
-  const _PouchTab();
-  @override
-  State<_PouchTab> createState() => _PouchTabState();
-}
-
-class _PouchTabState extends State<_PouchTab> {
-  bool _adLoading = false;
-  int _gotKey = 0; int _gotAmount = 0;
-
-  Future<void> _earn(_EarnSection s) async {
-    if (s.id == 'ad') {
-      if (!AdmobAdIds.isSupportedPlatform) {
-        WrToast.show(context, '이 플랫폼에서는 광고 시청을 지원하지 않아요');
-        return;
-      }
-      if (_adLoading) return;
-      setState(() => _adLoading = true);
-      await RewardedAd.load(
-        adUnitId: AdmobAdIds.rewardedUnitId,
-        request: const AdRequest(),
-        rewardedAdLoadCallback: RewardedAdLoadCallback(
-          onAdLoaded: (ad) {
-            bool rewarded = false;
-            ad.fullScreenContentCallback = FullScreenContentCallback(
-              onAdDismissedFullScreenContent: (ad) async {
-                ad.dispose();
-                if (mounted) setState(() => _adLoading = false);
-                if (rewarded) await _doEarn(s.id);
-              },
-              onAdFailedToShowFullScreenContent: (ad, _) {
-                ad.dispose();
-                if (mounted) setState(() => _adLoading = false);
-              },
-            );
-            ad.show(onUserEarnedReward: (ad, reward) { rewarded = true; });
-          },
-          onAdFailedToLoad: (_) {
-            if (mounted) setState(() => _adLoading = false);
-            if (mounted) WrToast.show(context, '지금은 광고를 불러올 수 없어요');
-          },
-        ),
-      );
-      return;
-    }
-    // app2/screens-c2.jsx › PouchTab() act() 1:1 — go 필드는 메타데이터일 뿐, 실제
-    // 클릭 동작은 devo10만 app.go('home')으로 분기하고 나머지(m_visit/m_cheer/m_msg
-    // 포함)는 go 값과 무관하게 전부 즉시 doEarn(S.id)를 호출한다.
-    // [버그수정 — 전수감사] 기존엔 go=='explore'일 때 적립 없이 안내 토스트만 띄웠다
-    // (원본엔 그런 분기가 없다). go=='home'도 popUntil(isFirst)이라 Vault 탭(IndexedStack)
-    // 안에서는 메인 탭으로 전환되지 않았다.
-    if (s.go == 'home') { context.read<WishRoomProvider>().requestTab(0); return; }
-    await _doEarn(s.id);
-  }
-
-  Future<void> _doEarn(String source) async {
-    final p = context.read<WishRoomProvider>();
-    final res = await p.earn(source);
-    if (!mounted) return;
-    if (res != null) {
-      setState(() { _gotKey++; _gotAmount = res.$1; });
-      p.loadLedger();
-    } else if (p.lastError != null) {
-      final msg = p.lastError!.code == 'EARN_LIMIT' ? '오늘은 모두 받았어요' : p.lastError!.message;
-      WrToast.show(context, msg);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // [버그수정 — 사용자 리포트: "복주머니는 아예 안보이고"] VaultScreen은
-    // WishRoomShell의 IndexedStack 자식이라 이 build()는 보관함 탭을
-    // 선택하기 전부터(Shell 빌드 즉시) 실행된다. WrCatalog.I는 `static
-    // late` 필드라 WrCatalog.load()가 아직 끝나지 않은 극히 짧은 틈에
-    // 이 화면에 먼저 도달하면 LateInitializationError로 build() 전체가
-    // 실패해 탭이 완전히 빈 화면(검은 화면)으로 보인다. 로드 전이면
-    // 크래시 대신 로딩 스피너를 보여주고 안전하게 빠진다.
-    if (!WrCatalog.isLoaded) {
-      return const Center(child: CircularProgressIndicator(color: WrC.glow));
-    }
-    return Consumer<WishRoomProvider>(builder: (context, p, __) {
-      final me = p.me;
-      final cat = WrCatalog.I;
-      final earnCat = {for (final e in cat.earn) e['id'] as String: e};
-      final today = me?.earnToday ?? const <String, int>{};
-      final total = cat.earn.fold<int>(0, (a, e) => a + (e['amount'] as num).toInt() * (e['limit'] as num).toInt());
-      final gotToday = cat.earn.fold<int>(0, (a, e) {
-        final id = e['id'] as String; final limit = (e['limit'] as num).toInt();
-        return a + (e['amount'] as num).toInt() * (today[id] ?? 0).clamp(0, limit);
-      });
-      final room = p.room;
-      final devoUsed = room?.devotionsToday ?? 0, devoLim = room?.dailyLimit ?? 10;
-
-      return RefreshIndicator(onRefresh: () => p.loadLedger(), child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 32), children: [
-        // 잔액 패널 — pouch 84px bob + Burst 연출
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18),
-            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x99781E32), Color(0xCC280C1C)])),
-          child: Row(children: [
-            Stack(clipBehavior: Clip.none, children: [
-              _BobbingPouch(key: const ValueKey('pouch')),
-              if (_gotKey > 0) WrBurst(key: ValueKey(_gotKey), x: 42, y: 42, n: 16, glyph: '✨', spread: 90),
-            ]),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('내 복주머니 · 신통방통 공용', style: WrF.body(12.5, color: WrC.muted)),
-              Text('${me?.pouch ?? 0}', key: ValueKey(me?.pouch), style: WrF.display(38, color: WrC.glow)),
-              if (_gotKey > 0) Text('+$_gotAmount 담겼어요', key: ValueKey('got$_gotKey'), style: WrF.body(13, color: WrC.glow)),
-            ])),
-          ]),
-        ),
-        const SizedBox(height: 18),
-        // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 두 Text가
-        // Flexible/Expanded 없이 고정폭으로 Row에 바로 들어있어, textScale이
-        // 커지면(큰 글꼴의 "복주머니 모으기" 제목 + "매일 자정 초기화" 부제)
-        // Row 가용폭(화면폭-32)을 초과해 가로로 넘쳤다(실측 320x568@2.0,
-        // 81px 초과). 부제 쪽을 Flexible+ellipsis로 감싸, 평소(공간 충분)엔
-        // 그대로 보이고 넘칠 때만 말줄임표로 줄어들게 해 가로 오버플로를
-        // 방지한다. 디자인·문구·색상 변경 없음.
-        Row(children: [
-          Text('복주머니 모으기', style: WrF.display(16)),
-          const SizedBox(width: 6),
-          Flexible(child: Text('매일 자정 초기화', style: WrF.body(11, color: WrC.muted), overflow: TextOverflow.ellipsis)),
-        ]),
-        const SizedBox(height: 10),
-        // 오늘 진행 요약
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
-          child: Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('오늘 모은 복주머니', style: WrF.body(12, color: WrC.muted)),
-              const SizedBox(height: 2),
-              Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                Text('$gotToday', style: WrF.display(22, color: WrC.glow)),
-                const SizedBox(width: 4),
-                Text('/ 최대 $total', style: WrF.body(12, color: WrC.muted)),
-              ]),
-              const SizedBox(height: 8),
-              ClipRRect(borderRadius: BorderRadius.circular(5), child: LinearProgressIndicator(
-                value: total == 0 ? 0 : (gotToday / total).clamp(0, 1).toDouble(), minHeight: 5, backgroundColor: const Color(0x1FFFFFFF),
-                valueColor: const AlwaysStoppedAnimation(WrC.blossom))),
-            ])),
-            const SizedBox(width: 10),
-            Image.asset('assets/wishroom/items/pouch.png', width: 46, errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 36))),
-          ]),
-        ),
-        const SizedBox(height: 10),
-        ...List.generate(_kSections.length, (i) {
-          final s = _kSections[i];
-          final e = earnCat[s.id];
-          if (e == null) return const SizedBox.shrink();
-          final limit = (e['limit'] as num).toInt();
-          final amount = (e['amount'] as num).toInt();
-          final n = today[s.id] ?? 0;
-          final done = n >= limit;
-          final isDevo = s.id == 'devo10';
-          final prog = isDevo ? devoUsed.clamp(0, devoLim) : n;
-          final progMax = isDevo ? devoLim : limit;
-          return Padding(padding: const EdgeInsets.only(bottom: 10), child: Container(
-            padding: EdgeInsets.fromLTRB(14, s.big ? 14 : 12, 14, s.big ? 12 : 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: done ? WrC.card : null,
-              gradient: !done && s.big ? LinearGradient(colors: [s.c1.withValues(alpha: .2), const Color(0x1FF2628F)]) : (!done ? null : null),
-              border: Border.all(color: done ? WrC.cardBorder : (s.big ? s.c1.withValues(alpha: .53) : WrC.cardBorder)),
-            ),
-            child: Opacity(opacity: done ? .62 : 1, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(width: s.big ? 50 : 42, height: s.big ? 50 : 42, alignment: Alignment.center,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(14),
-                    color: done ? const Color(0x1AFFFFFF) : null,
-                    gradient: done ? null : LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [s.c1, s.c2]),
-                    boxShadow: done ? null : [BoxShadow(color: s.c1.withValues(alpha: .4), blurRadius: 14)]),
-                  child: Text(done ? '✓' : s.icon, style: TextStyle(fontSize: s.big ? 20 : 17, color: Colors.white))),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Text(s.no, style: TextStyle(fontFamily: 'IBMPlexMono', fontSize: 9.5, letterSpacing: 1.5, color: s.c1)),
-                    const SizedBox(width: 6),
-                    Expanded(child: Text(s.title, style: WrF.body(s.big ? 15 : 13.5, w: FontWeight.w700, color: WrC.fg), maxLines: 2)),
-                  ]),
-                  const SizedBox(height: 2),
-                  Text(_descFor(s.id, isDevo ? devoUsed.clamp(0, devoLim) : 0, devoLim), style: WrF.body(11.5, color: WrC.muted, height: 1.45)),
-                ])),
-              ]),
-              if (progMax > 1) Padding(padding: const EdgeInsets.only(top: 10), child: Row(children: [
-                for (var k = 0; k < progMax; k++) Expanded(child: Container(
-                  margin: EdgeInsets.only(right: k == progMax - 1 ? 0 : 3), height: 5,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(3),
-                    gradient: k < prog ? LinearGradient(colors: [s.c1, s.c2]) : null,
-                    color: k < prog ? null : const Color(0x24FFFFFF)))),
-              ])),
-              const SizedBox(height: 10),
-              Row(children: [
-                Image.asset('assets/wishroom/items/pouch.png', width: 16, errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 13))),
-                const SizedBox(width: 4),
-                Text('+$amount', style: TextStyle(fontFamily: 'NotoSerifKR', fontWeight: FontWeight.w900, fontSize: s.big ? 18 : 15, color: done ? WrC.muted : WrC.glow)),
-                const SizedBox(width: 6),
-                Expanded(child: Text(
-                  limit > 1 ? '· $n/$limit회 · 하루 최대 +${amount * limit}' : (done ? '· 받음' : s.id.startsWith('m_') ? '· 오늘의 미션' : '· 하루 1회'),
-                  style: WrF.body(10.5, color: WrC.muted), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                GestureDetector(
-                  onTap: done || (s.id == 'ad' && _adLoading) ? null : () => _earn(s),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14), height: 32, alignment: Alignment.center,
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(999),
-                      color: done ? WrC.darkBtn : (s.big ? null : WrC.darkBtn),
-                      gradient: !done && s.big ? const LinearGradient(colors: [WrC.blossom2, WrC.blossom]) : null,
-                      border: Border.all(color: done ? WrC.line : s.c1.withValues(alpha: .47))),
-                    child: s.id == 'ad' && _adLoading
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(done ? '오늘 완료' : (isDevo ? '정성 들이러 가기 ›' : s.id == 'ad' ? '영상 보기' : s.id == 'attend' ? '출석하기' : s.id == 'm_visit' ? '둘러보기' : s.id == 'm_cheer' ? '응원하러 가기' : '메시지 남기기'),
-                          style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 12.5, color: Colors.white)),
-                  ),
-                ),
-              ]),
-            ])),
-          ));
-        }),
-        const SizedBox(height: 18),
-        Text('사용처', style: WrF.display(16)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
-          child: Column(children: [
-            _useRow('캐릭터', '500'),
-            _useRow('꾸미기 아이템', '50~150'),
-            _useRow('인장', '50~120'),
-            _useRow('선물하기', '자유롭게', last: true),
-          ]),
-        ),
-        const SizedBox(height: 18),
-        Text('내역', style: WrF.display(16)),
-        const SizedBox(height: 8),
-        if (p.ledger.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('아직 내역이 없어요', style: WrF.body(12, color: WrC.muted))))
-        else ...p.ledger.take(10).map((e) {
-          final amount = ((e['amount'] ?? 0) as num).toInt();
-          final at = e['at'];
-          return Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Container(
-            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: WrC.line))),
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text((e['label'] ?? e['reason'] ?? '').toString(), style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)),
-                const SizedBox(height: 2),
-                Text(_agoLedger(at), style: WrF.body(11, color: WrC.muted)),
-              ])),
-              Text('${amount > 0 ? '+' : ''}$amount', style: WrF.body(14, w: FontWeight.w700, color: amount > 0 ? WrC.glow : WrC.fg)),
-            ]),
-          ));
-        }),
-      ]));
-    });
-  }
-
-  String _descFor(String id, int devoUsed, int devoLim) => switch (id) {
-        'ad' => '짧은 영상을 끝까지 보면 복주머니가 담겨요',
-        'attend' => '하루 한 번, 들러주신 것만으로 충분해요',
-        'devo10' => '오늘 정성 ${devoUsed.clamp(0, devoLim)}/$devoLim · 다 채우면 자동으로 담겨요',
-        'm_visit' => '다른 분들의 소원을 조용히 둘러봐요',
-        'm_cheer' => '마음이 닿는 소원에 응원을 보내요',
-        'm_msg' => '따뜻한 한 마디를 남겨주세요',
-        _ => '',
-      };
-
-  String _agoLedger(dynamic at) {
-    if (at == null) return '';
-    DateTime? t;
-    if (at is num) t = DateTime.fromMillisecondsSinceEpoch(at.toInt());
-    if (at is String) t = DateTime.tryParse(at);
-    if (t == null) return '';
-    final m = DateTime.now().difference(t).inMinutes;
-    if (m < 1) return '지금';
-    if (m < 60) return '$m분 전';
-    final h = m ~/ 60;
-    return h < 24 ? '$h시간 전' : '${h ~/ 24}일 전';
-  }
-
-  Widget _useRow(String label, String value, {bool last = false}) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: last ? null : const BoxDecoration(border: Border(bottom: BorderSide(color: WrC.line))),
-        child: Row(children: [
-          Expanded(child: Text(label, style: WrF.body(13, color: WrC.fg))),
-          Text(value, style: WrF.body(13, w: FontWeight.w700, color: WrC.glow)),
-        ]),
-      );
-}
-
-/// 복주머니 이미지 bob 애니메이션 — CSS `bob 4s ease-in-out infinite` 1:1.
-class _BobbingPouch extends StatefulWidget {
-  const _BobbingPouch({super.key});
-  @override
-  State<_BobbingPouch> createState() => _BobbingPouchState();
-}
-
-class _BobbingPouchState extends State<_BobbingPouch> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
-  @override
-  void dispose() { _c.dispose(); super.dispose(); }
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(animation: _c, builder: (_, __) => Transform.translate(
-        offset: Offset(0, -6 * Curves.easeInOut.transform(_c.value)),
-        child: Image.asset('assets/wishroom/items/pouch.png', width: 84, errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 64))),
-      ));
 }
 
 // ═══════════════════ 응원 보상 — RewardTab() 1:1 ═══════════════════
