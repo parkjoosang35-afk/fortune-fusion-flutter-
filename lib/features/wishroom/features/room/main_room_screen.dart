@@ -30,6 +30,7 @@ import '../capsule/capsule_screen.dart';
 import '../../../../core/util/safe_share.dart';
 import '../guide/guide_prefs.dart';
 import '../guide/guide_sheet.dart';
+import '../guide/guide3_data.dart';
 import '../wallpaper/wallpaper_screen.dart';
 import '../wallet/wallet_sheet.dart';
 import '../../core/wr_nav_pill.dart';
@@ -3632,7 +3633,27 @@ class _CareSheetState extends State<_CareSheet> {
         lockLabel ??
         _subFor(info.key, room: room, guardian: guardian, themeInfo: themeInfo);
 
+    // [대표님 판정 — "잠김 안내는 한 가지 모양으로"] 잠겨 있고(!isOpen) 날짜
+    // 계산이 의미 있는(!unimplemented) 항목은 하단 탭 · 상점과 똑같은
+    // `showGuide3LockSheet()`로 보여준다. "곧 열려요"(unimplemented, API 미구현
+    // → 날짜 자체가 없음)만은 예외로 기존 `showCareMenuInfoSheet`의 comingSoon
+    // 모드를 그대로 쓴다 — Guide3Lock은 진행 막대에 날짜가 필요해 "곧 열려요"
+    // 의미를 표현할 수 없기 때문이다(현재 kCareMenuInfos 10개 중 unimplemented:
+    // true인 항목은 없어 이 분기는 당장은 호출되지 않지만, 향후 다시 쓰일 수
+    // 있어 분기 자체는 남겨 둔다). 열려 있는 항목의 "처음 보는 안내"(HOW IT
+    // WORKS, 바로가기 버튼 포함)는 잠금 안내와 다른 종류의 시트라 그대로 둔다.
     void openInfo(VoidCallback onGo) {
+      if (!isOpen && !info.unimplemented) {
+        final item = kGuide3[info.guideKey ?? info.lockKey];
+        if (item != null) {
+          showGuide3LockSheet(
+            context,
+            item: item,
+            lock: Guide3Lock(day: unlockDay, left: math.max(1, unlockDay - dayN), dayN: dayN),
+          );
+          return;
+        }
+      }
       showCareMenuInfoSheet(
         context,
         info: info,

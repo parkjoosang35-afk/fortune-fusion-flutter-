@@ -76,6 +76,20 @@ const Map<String, Guide3Item> kGuide3 = {
     ],
     promise: '이름은 보이지 않아요. 지역과 나이대만 보여요.',
   ),
+  // [대표님 판정 — "잠김 안내는 한 가지 모양으로"] 원본 GUIDE3엔 '찾아온
+  // 수호자'(다른 사람이 내 소원을 빌러 온 것 — 'together'와 반대 방향)에 맞는
+  // 키가 없었다('together'는 "내가 남의 소원을 빌어 줌" 쪽). care_menu_info.dart
+  // '찾아온 수호자' 항목의 기존 안내문을 그대로 가져와 신규로 추가했다.
+  'visitor': Guide3Item(
+    img: 'items/lotus.png',
+    title: '찾아온 수호자',
+    steps: [
+      Guide3Step('☾', '누가 다녀갔는지 볼 수 있어요'),
+      Guide3Step('💌', '남기고 간 한마디를 읽어요'),
+      Guide3Step('🎁', '고마우면 답례를 보내요'),
+    ],
+    promise: '이름 대신 지역 · 나이대만 보여요.',
+  ),
   'wardrobe': Guide3Item(
     img: 'outfits/O_free_01.png',
     title: '수호자 옷을 갈아입혀요',
@@ -136,6 +150,23 @@ const Map<String, Guide3Item> kGuide3 = {
       Guide3Step('🛡', '나쁜 말은 오지 않아요'),
     ],
     promise: '수호자 방문을 받을지도 여기서 정해요.',
+  ),
+  // [대표님 판정 — "잠김 안내는 한 가지 모양으로"] 원본 app3/guide3.jsx GUIDE3엔
+  // 'wallpaper' 키가 없었다(⋯ 메뉴의 "배경화면으로 쓰기"는 menuinfo.js 전용
+  // 안내만 갖고 있었음). ⋯ 메뉴의 잠금 안내도 하단 탭 · 상점과 같은 모양으로
+  // 통일하기 위해, care_menu_info.dart의 '배경화면으로 쓰기' 안내(이미지 ·
+  // 문구)를 그대로 가져와 신규로 추가했다 — 의미상 새 기능이 아니라 같은
+  // 기존 안내문을 다른 틀(Guide3Sheet)에 담은 것뿐이다.
+  'wallpaper': Guide3Item(
+    img: 'room-empty.jpg',
+    isBg: true,
+    title: '배경화면으로 써요',
+    steps: [
+      Guide3Step('▣', '지금 방 모습 그대로 담아요'),
+      Guide3Step('📱', '잠금 화면 · 홈 화면에 설정해요'),
+      Guide3Step('🔄', '방이 자라면 배경도 함께 바뀌어요'),
+    ],
+    promise: '배경화면에는 버튼이나 광고가 없어요. 방만 조용히 보여요.',
   ),
   'vault': Guide3Item(
     img: 'items/gift.png',

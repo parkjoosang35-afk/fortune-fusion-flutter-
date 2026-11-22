@@ -21,6 +21,7 @@ import '../wallet/wallet_sheet.dart';
 import '../decor/decor_screen.dart';
 import 'pay_screen.dart';
 import '../guide/guide3_sheet.dart';
+import '../guide/guide3_data.dart';
 
 const List<(Slot, String, String)> _kItemTabs = [
   (Slot.DECORATION, 'DECORATION', '장식'),
@@ -61,12 +62,24 @@ class _ShopScreenState extends State<ShopScreen> {
   bool _shopOpen(WishRoom? room) =>
       room != null && room.isFeatureUnlocked('shop');
 
+  // [대표님 판정 — "잠김 안내는 한 가지 모양으로"] 상점은 "구경은 가능,
+  // 사기만 잠김"이라 화면 자체를 막지는 않지만, 실제로 구매를 시도한
+  // 순간엔 하단 탭 · ⋯ 메뉴와 똑같은 Guide3Lock 전체화면 시트를 보여준다
+  // (예전엔 짧은 토스트 1줄만 떴다 — 세 곳의 모양을 하나로 맞추라는 지시에
+  // 따라 토스트 대신 시트로 바꿨다. 화면 자체를 막는 _lockBanner는 "구경은
+  // 마음껏"이라는 별도 의미가 있어 그대로 둔다).
   void _lockToast(BuildContext context, WishRoom? room) {
     final cat = WrCatalog.I;
     final unlockDay = (cat.raw['UNLOCK'] as Map)['shop'] as int? ?? 14;
     final dayN = room?.dayN ?? 1;
     final left = (unlockDay - dayN).clamp(1, 999);
-    WrToast.show(context, '소원 상점은 $left일 뒤에 정식으로 열려요 · 구경은 지금도 할 수 있어요');
+    final item = kGuide3['shop'];
+    if (item == null) return;
+    showGuide3LockSheet(
+      context,
+      item: item,
+      lock: Guide3Lock(day: unlockDay, left: left, dayN: dayN),
+    );
   }
 
   @override

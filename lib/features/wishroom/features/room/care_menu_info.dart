@@ -27,6 +27,7 @@ class CareMenuInfo {
     required this.note,
     this.lockKey,
     this.unimplemented = false,
+    this.guideKey,
   });
 
   /// Row 식별자(한글 제목 그대로 — menuinfo.js의 `t` 키와 1:1).
@@ -48,6 +49,14 @@ class CareMenuInfo {
   /// 수호자는 S3에서, 소원·목표 고쳐 쓰기는 S6에서 기능이 생기면 이 플래그를
   /// false로 되돌린다.
   final bool unimplemented;
+
+  /// [대표님 판정 — "잠김 안내는 한 가지 모양으로"] ⋯ 메뉴의 잠금 안내도
+  /// `showGuide3LockSheet()`(하단 탭 · 상점과 동일한 모양)로 통일하면서,
+  /// `Guide3Item`을 찾아올 `kGuide3` 키를 지정한다. `lockKey`와 이름이 같은
+  /// 항목(decor/wardrobe/theme/wallpaper/shop)은 null로 두면 `lockKey`를
+  /// 그대로 쓰고, 이름이 다르거나(guardian→guardians) 의미가 다른 항목
+  /// (수호자에게 맡기기→entrust, 찾아온 수호자→visitor)만 여기 명시한다.
+  final String? guideKey;
 }
 
 // app3/menuinfo.js INFO 객체 순서 그대로(10개).
@@ -64,6 +73,7 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '다른 수호자 20명은 소원 상점에서 만나요. 이벤트 수호자는 이벤트로만 와요.',
     lockKey: 'guardian',
+    guideKey: 'guardians',
   ),
   CareMenuInfo(
     key: '수호자에게 맡기기',
@@ -77,6 +87,10 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '방이 자라는 건 내가 직접 빈 날만 세어요. 맡긴 날은 촛불과 연속 기록만 지켜요.',
     lockKey: 'guardian',
+    // [대표님 판정] 잠금 판정 기준(lockKey)은 'guardian'(수호자와 같은 날 열림)
+    // 이지만, 보여줄 안내 그림/문구는 kGuide3['entrust']('수호자에게 맡겨요')가
+    // 더 알맞다 — lockKey와 guideKey가 다른 첫 사례.
+    guideKey: 'entrust',
   ),
   CareMenuInfo(
     key: '찾아온 수호자',
@@ -90,6 +104,10 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '원하지 않으면 공개 설정에서 수호자 방문을 끌 수 있어요.',
     lockKey: 'together',
+    // [대표님 판정] lockKey는 'together'(상대가 먼저 열려야 서로 오갈 수 있는
+    // 구조라 같은 날 기준)지만, 보여줄 그림/문구는 kGuide3['visitor']
+    // ("찾아온 수호자" 전용, together의 "내가 가서 빌어줌"과 반대 방향)로 분리.
+    guideKey: 'visitor',
   ),
   CareMenuInfo(
     key: '옷 갈아입기',

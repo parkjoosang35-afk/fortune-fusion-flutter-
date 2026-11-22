@@ -13,6 +13,8 @@ import 'theme/wr_theme.dart';
 import '../application/wishroom_provider.dart';
 import '../data/wr_catalog.dart';
 import '../features/guide/guide_prefs.dart';
+import '../features/guide/guide3_data.dart';
+import '../features/guide/guide3_sheet.dart';
 import 'wr_nav_pill.dart';
 
 /// (이모지, 라벨, lock key, 탭 id) — wishroom_shell.dart의 탭 순서 그대로.
@@ -178,64 +180,28 @@ Widget wrBottomNavBar(
   );
 }
 
-/// [v5 S2] 매핑표 00-C "잠긴 곳 표시 — 하단바 탭: 🔒 + 흐림 · 누르면 안내 시트
-/// '🔒 N일째에 열려요 · N일 뒤' + 진행 막대 + [기다릴게요] (화면 이동 안 함)"의
-/// 공용 구현. app3/shell.jsx goTab()의 `left = max(1, unlock[k] - dayN)` 그대로.
+/// [v5 S2 → 대표님 판정 "잠김 안내는 한 가지 모양으로"] 하단 탭의 잠긴 항목을
+/// 눌렀을 때도 이제 앱 전체 유일한 잠금 시트인 `showGuide3LockSheet()`를 그대로
+/// 쓴다 — 예전엔 이 함수가 자체 ad-hoc 시트를 그렸으나(그림 없이 🔒 이모지 +
+/// 문구 + 버튼만), 하단바 · ⋯ 메뉴 · 상점이 서로 다른 모양이 되는 문제가 있었다.
+/// 하단 탭의 lock key(`guardian`/`together`/`decor`)를 `kGuide3`의 키
+/// (`guardians`/`together`/`shop`)로 치환해서 넘긴다 — 상점 탭은 기존과 동일하게
+/// 'decor'→'shop' 리매핑을 유지(오픈 판정은 UNLOCK.decor=3일째여도, 안내 문구는
+/// 반드시 UNLOCK.shop=14일째 기준).
 void wrShowLockHintSheet(BuildContext context, String key) {
   final room = context.read<WishRoomProvider>().room;
-  // [버그수정 — S2 실사용 검증] app3/shell.jsx goTab() 1:1 — 상점 탭의 lock
-  // key 자체는 'decor'(오픈 판정은 UNLOCK.decor=3일째 기준)지만, 안내시트에
-  // 보여주는 "N일째에 열려요"는 반드시 'shop'(=14) 키로 리매핑해서 계산한다.
   final unlockKey = key == 'decor' ? 'shop' : key;
+  final guideKey = key == 'guardian'
+      ? 'guardians'
+      : (key == 'decor' ? 'shop' : key);
   final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)[unlockKey] as int? ?? 0;
   final dayN = room?.dayN ?? 1;
   final left = math.max(1, unlockDay - dayN);
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (sheetCtx) => Container(
-      decoration: WrDeco.sheet,
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🔒', style: TextStyle(fontSize: 40)),
-            const SizedBox(height: 10),
-            Text('$unlockDay일째에 열려요', style: WrF.display(18)),
-            const SizedBox(height: 6),
-            Text(
-              '$left일 뒤에 만날 수 있어요',
-              textAlign: TextAlign.center,
-              style: WrF.body(13, color: WrC.muted, height: 1.6),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: WrSize.btnH,
-              child: DecoratedBox(
-                decoration: WrDeco.btnPink,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => Navigator.of(sheetCtx).pop(),
-                    child: const Center(
-                      child: Text(
-                        '기다릴게요',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
+  final item = kGuide3[guideKey];
+  if (item == null) return;
+  showGuide3LockSheet(
+    context,
+    item: item,
+    lock: Guide3Lock(day: unlockDay, left: left, dayN: dayN),
   );
 }

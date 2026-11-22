@@ -5,10 +5,11 @@
 // markSeen) 판정이고, 잠금 모드가 없는 한 항상 "알겠어요" 버튼 1개만 보여준다.
 //
 // [lock 파라미터] 원본은 잠긴 탭을 눌렀을 때도 같은 컴포넌트를 재사용한다
-// (`lock={{day,left}}`). 이 포팅도 동일 구조를 지원해 두지만(향후
-// wishroom_shell.dart의 placeholder `_showLockHintSheet` 교체 범위는 별도
-// 확인 후 진행 — CHECKLIST.md 참고), 이번 C1-C11 작업 자체는 lock:null
-// (처음 동작 안내) 호출만 실제로 연결한다.
+// (`lock={{day,left}}`). [대표님 판정 — "잠김 안내는 한 가지 모양으로"]
+// 이 구조를 그대로 살려 `showGuide3LockSheet()`(아래)를 추가했고, 하단 탭
+// (wishroom_shell.dart/wr_bottom_nav.dart) · ⋯ 메뉴(care_menu_info_sheet.dart
+// 경유) · 상점(shop_screen.dart) 세 곳 모두 이 함수로 교체 완료했다
+// (CHECKLIST.md "대표님 판정② — Guide3Lock 통일" 참고).
 import 'package:flutter/material.dart';
 import '../../core/theme/wr_theme.dart';
 import 'guide3_data.dart';

@@ -31,6 +31,8 @@ import 'features/characters/character_shop_screen.dart';
 import 'features/shop/shop_screen.dart';
 import 'features/vault/vault_screen.dart';
 import 'features/guide/guide_prefs.dart';
+import 'features/guide/guide3_data.dart';
+import 'features/guide/guide3_sheet.dart';
 
 class WishRoomShell extends StatefulWidget {
   const WishRoomShell({super.key, this.initialIndex = 0});
@@ -305,68 +307,26 @@ class _WishRoomShellState extends State<WishRoomShell> {
     );
   }
 
-  /// [v5 S2] 매핑표 00-C "잠긴 곳 표시 — 하단바 탭: 🔒 + 흐림 · 누르면 안내 시트
-  /// '🔒 N일째에 열려요 · N일 뒤' + 진행 막대 + [기다릴게요] (화면 이동 안 함)"의
-  /// 최소 구현. app3/shell.jsx goTab()의 `left = max(1, unlock[k] - dayN)` 계산을
-  /// 그대로 따른다. 정식 GuideSheet3(그림·1·2·3 안내 카드 등)로의 교체는 Todo #4.
-  void _showLockHintSheet(BuildContext context, String key) {
+  /// [대표님 판정 — "잠김 안내는 한 가지 모양으로"] 하단 탭 · ⋯ 메뉴 · 상점
+  /// 세 곳 모두 `showGuide3LockSheet()` 하나만 쓰도록 통일 — 이 셸의 옛
+  /// 전용 ad-hoc 시트(🔒 이모지 + 문구 + 버튼만, 그림·진행막대 없음)는
+  /// 삭제했다. 상점 탭은 기존과 동일하게 'decor'→'shop' 리매핑을 유지.
+  void _showLockHintSheet(BuildContext context, String? key) {
+    if (key == null) return;
     final room = context.read<WishRoomProvider>().room;
-    // [버그수정 — S2 실사용 검증] app3/shell.jsx goTab() 56줄 1:1 —
-    // 상점 탭의 lock key 자체는 'decor'(오픈 판정은 UNLOCK.decor=3일째 기준)지만,
-    // 안내시트에 보여주는 "N일째에 열려요"는 반드시 'shop'(=14) 키로 리매핑해서
-    // 계산해야 한다. 이 리매핑을 빼먹으면 상점 안내시트가 "3일째"로 잘못 표시된다
-    // (실제 Playwright 검증에서 발견: decor=3으로 잘못 나옴, 정답은 shop=14).
     final unlockKey = key == 'decor' ? 'shop' : key;
+    final guideKey = key == 'guardian'
+        ? 'guardians'
+        : (key == 'decor' ? 'shop' : key);
     final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)[unlockKey] as int? ?? 0;
     final dayN = room?.dayN ?? 1;
     final left = math.max(1, unlockDay - dayN);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => Container(
-        decoration: WrDeco.sheet,
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🔒', style: TextStyle(fontSize: 40)),
-              const SizedBox(height: 10),
-              Text('$unlockDay일째에 열려요', style: WrF.display(18)),
-              const SizedBox(height: 6),
-              Text(
-                '$left일 뒤에 만날 수 있어요',
-                textAlign: TextAlign.center,
-                style: WrF.body(13, color: WrC.muted, height: 1.6),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: WrSize.btnH,
-                child: DecoratedBox(
-                  decoration: WrDeco.btnPink,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => Navigator.of(sheetCtx).pop(),
-                      child: const Center(
-                        child: Text(
-                          '기다릴게요',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    final item = kGuide3[guideKey];
+    if (item == null) return;
+    showGuide3LockSheet(
+      context,
+      item: item,
+      lock: Guide3Lock(day: unlockDay, left: left, dayN: dayN),
     );
   }
 }
