@@ -173,6 +173,13 @@ class WishRoom {
   final WishStatus? wishStatus;
   final String? shareToken;
   final Map<String, dynamic>? snapshot;    // SEALED/ARCHIVED 시 보존 (§14.2)
+  // [S6 신규 — "소원 수정 제한", wish-edit/route.ts 참고] goal=기도 목표(21/49/100,
+  // null=없음, app3 view().goal 1:1). wishEditsRemaining=오늘 남은 "문구 다듬기"
+  // 횟수(0~3). canRewish=지금 "다른 소원으로" 가능 여부(dayN<=3 && 아직 안 씀) —
+  // 서버가 미리 판정해 내려주므로 클라이언트에서 dayN을 다시 계산할 필요 없다.
+  final int? goal;
+  final int wishEditsRemaining;
+  final bool canRewish;
 
   WishRoom.fromJson(Map<String, dynamic> j)
       : id = j['id'], ownerId = j['ownerId'], owner = j['owner'] ?? '', region = j['region'] ?? '',
@@ -210,7 +217,10 @@ class WishRoom {
         outcome = j['outcome'] == null ? null : _enum(Outcome.values, j['outcome'], Outcome.ONGOING),
         note = j['note'] as String?,
         wishStatus = j['wishStatus'] == null ? null : _enum(WishStatus.values, j['wishStatus'], WishStatus.IN_PROGRESS),
-        shareToken = j['shareToken'], snapshot = j['snapshot'];
+        shareToken = j['shareToken'], snapshot = j['snapshot'],
+        goal = (j['goal'] as num?)?.toInt(),
+        wishEditsRemaining = (j['wishEditsRemaining'] as num?)?.toInt() ?? 3,
+        canRewish = j['canRewish'] ?? false;
 
   double get levelProgress => nextLevelPts == null ? 1 : ((points - curLevelPts) / (nextLevelPts! - curLevelPts)).clamp(0, 1).toDouble();
   bool get readOnly => status == RoomStatus.SEALED || status == RoomStatus.ARCHIVED;

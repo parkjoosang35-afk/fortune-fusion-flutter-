@@ -903,3 +903,76 @@ SSV + 1일 5회 상한 ✅-기능삭제로대체, 복주머니 보상 v5 수치 
 **S6 마무리**(21일 미리보기, 소원 수정 제한, 46개 안내 팝업, 어뷰징
 체크, 9단계 플로우 테스트) — 완전 미착수. 그 외 미전달 6장 스크린샷
 (`/home/user/wr_compare/DELIVERY_6SHOTS/`)도 그대로 대기 중.
+
+## S6 마무리 — "소원 수정 제한" 완료 (대표님 S6 우선순위 1차 판정)
+
+app3/extras.js `WishEdit3` · flow.js `editWish(t)`/`rewish(t)`/`setGoal(g)`
+1:1 포팅. 서버(admin_web)·클라이언트(flutter_app) 양쪽 모두 완료.
+
+**admin_web(서버) — 별도 커밋 `9d142403`로 이미 완료**:
+- `prisma/schema.prisma`에 `WishRoom.goalDays`/`wishEditsToday`/
+  `wishEditsResetDate`/`rewished` 4개 필드 추가, 마이그레이션
+  `20261122010000_add_wishroom_wish_edit_limits` 작성·적용.
+- 신규 라우트 `POST /wish-rooms/{id}/wish-edit`
+  (`body: {mode:'edit'|'rewish'|'goal', text?, goalDays?, force?}`) —
+  기존 `PATCH /wish-rooms/{id}`(DRAFT 전용 텍스트 수정)와는 서로 배타적
+  상태(DRAFT vs 그 외)에서만 동작해 충돌 없음. 기존 `outcome` REWISH(타임캡슐
+  "다시 소원을 빌어요")와도 전혀 다른 코드 경로 — 이름만 비슷할 뿐 무관.
+  - `edit`: 문구만 다듬기, 하루 3번(`devotionsToday`와 동일한 KST 날짜별
+    리셋 패턴). 날짜·기도 횟수·연속기록은 그대로.
+  - `rewish`: 완전히 다른 소원으로, `dayN<=3` AND 평생(방 라이프사이클) 1회만.
+  - `goal`: 21/49/100일, 횟수 제한 없음. 0 또는 null = 목표 없음.
+- `wishroom-engine.ts` `roomView()`에 파생 필드 추가: `goal`
+  (`goalDays ?? null`), `wishEditsRemaining`(0~3), `canRewish`
+  (`dayN<=3 && !rewished`) — Flutter가 dayN을 재계산할 필요 없도록 서버가
+  미리 판정해 내려줌.
+- 검증: `npx tsc --noEmit` 0 에러. 금지 5개 파일(`gunghap/direct/route.ts`
+  등) 그대로 미수정 확인.
+
+**flutter_app(클라이언트) — 이번 세션 완료**:
+- `lib/features/wishroom/data/models.dart` — `WishRoom`에 `goal`
+  (`int?`)/`wishEditsRemaining`(`int`)/`canRewish`(`bool`) 필드 +
+  `fromJson` 파싱 추가.
+- `lib/features/wishroom/data/wr_api.dart` — `WrRepository.editWish()`
+  추상 메서드 + `ApiRepository.editWish()` 구현
+  (`POST /wish-rooms/{id}/wish-edit`) 추가. 기존 테스트 ~30개가 전부
+  `WrRepository`를 `noSuchMethod` 폴백으로 구현하므로 비파괴적임을
+  확인(실제로 `flutter analyze`/`flutter test`로 재확인 — 신규 에러 0건).
+- `lib/features/wishroom/application/wishroom_provider.dart` —
+  `WishRoomProvider.editWish()` 추가. 다른 변경 메서드들과 달리
+  `ApiError`를 `lastError`에 담고 삼키는 대신 **rethrow**한다(원본
+  `WishEdit3`가 `catch(e){ setErr(e.message) }` 식으로 시트 로컬
+  상태에 바로 에러를 보여주는 UX를 그대로 재현하기 위함).
+- `lib/features/wishroom/features/room/wish_edit_sheet.dart` **(신규)** —
+  `WishEditSheet` + `openWishEditSheet(context)`. `entrust_sheet.dart`를
+  구조 템플릿으로 사용(헤더/시트 데코/`Semantics(identifier:...)` 버튼
+  래핑 관례 1:1 준수). 구성: ✎문구 다듬기/↺다른 소원으로 모드 토글 칩
+  (`canRewish=false`면 다른 소원으로 비활성), 60자 제한 textarea(수정
+  모드는 기존 소원 프리필, 다른 소원 모드는 빈칸), 인라인 에러 표시,
+  21/49/100일/목표 없음 목표 칩(탭 즉시 `editWish(mode:'goal')` 호출 —
+  원본처럼 별도 저장 버튼 없음), 주 저장 버튼
+  (`Semantics(identifier:'wish_edit_save')`), "이 소원 마무리하기 ›"
+  링크(→ `CompleteScreen`, 원본 `app.sheet('fulfill')` 1:1).
+- `lib/features/wishroom/features/room/main_room_screen.dart` —
+  `import 'wish_edit_sheet.dart';` 추가. `_subFor('소원 · 목표 고쳐 쓰기')`를
+  하드코딩 `'목표 없음'` 대신 `room.goal` 동적 표시로 교체. `_onGoFor('소원
+  · 목표 고쳐 쓰기')`의 no-op(`() {}`)을 `Navigator.pop() +
+  openWishEditSheet(context)`로 교체(`'수호자에게 맡기기'` 항목과 동일한
+  배선 패턴).
+- `lib/features/wishroom/features/room/care_menu_info.dart` — "소원 ·
+  목표 고쳐 쓰기" 항목의 `unimplemented: true` 플래그 제거(기본값
+  `false`로 복귀) — 이제 서버 `unlocked[]` 날짜대로 정상 잠금/해제됨.
+- **검증**: `flutter analyze` 신규 이슈 0건(기존 무관
+  `WrGuardianOutfitLauncher` 에러 2건만 잔존, `git stash`로 이번 작업과
+  무관함 재확인). `flutter test test/main_room_screen_overflow_test.dart
+  test/main_room_sheets_overflow_test.dart` — `git stash` 전/후 비교로
+  동일 실패 건수 확인(기존 버그, 회귀 아님). `build_local.sh --debug`
+  171.2초 성공. `:5060` HTTP 200 / `:3100` HTTP 307 확인. admin_web
+  금지 5개 파일은 이번 flutter_app 단독 작업과 무관.
+
+**다음 세션에 이어갈 것(갱신)**: "소원 수정 제한" 전 항목(서버+클라이언트)
+종료. 남은 S6 항목은 21일 미리보기, 46개 안내 팝업 전수 대조, 어뷰징
+미확인 4개 항목(⑥⑦⑧⑩), 9단계 플로우 수동 QA — 전부 미착수. Tour21 종료
+후 목표 미설정 시 자동 `setGoal(21)`(원본 `shell.jsx`에 있음)은 이번
+범위에 포함 여부 미확정 — 다음 세션에서 대표님 판정 필요. 그 외 미전달
+6장 스크린샷(`/home/user/wr_compare/DELIVERY_6SHOTS/`)도 그대로 대기 중.

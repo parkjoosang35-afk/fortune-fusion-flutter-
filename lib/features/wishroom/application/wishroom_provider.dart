@@ -415,6 +415,23 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
+  // [S6 신규 — "소원 수정 제한"] mode='edit'/'rewish'/'goal'. 호출부(WishEditSheet)가
+  // ApiError를 받아 err 메시지로 바로 보여줄 수 있도록 여기서 삼키지 않고 rethrow한다
+  // (다른 메서드들의 "lastError에 담고 false 반환" 패턴과 다름 — 원본 WishEdit3도
+  // catch(e){ setErr(e.message) } 식으로 시트 안에서 바로 에러를 보여준다).
+  Future<bool> editWish(String id, {required String mode, String? text, int? goalDays, bool force = false}) async {
+    lastError = null;
+    try {
+      room = await repo.editWish(id, mode: mode, text: text, goalDays: goalDays, force: force);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   // ── 꾸미기(SCR-04) ──
 
   Future<bool> equip(String roomId, String itemId) async {

@@ -185,7 +185,7 @@ const List<CareMenuInfo> kCareMenuInfos = [
     ],
     note: '전혀 다른 소원이 되었다면 이 소원을 마무리하고 새로 담는 걸 권해요.',
     lockKey: null,
-    // S6에서 소원·목표 고쳐 쓰기(updateWish) API/화면이 생기면 해제한다.
-    unimplemented: true,
+    // [S6 완료 — "소원 수정 제한"] wish_edit_sheet.dart + WrRepository.editWish()가
+    // 생겨 더 이상 항상 잠글 필요가 없다 — unimplemented 기본값(false)으로 되돌림.
   ),
 ];

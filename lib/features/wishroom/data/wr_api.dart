@@ -57,6 +57,11 @@ abstract class WrRepository {
   Future<(int, Me)> earn(String source);                                                                        // POST /me/earn
   Future<Me> settings({bool? skipIntro});                                                                       // PATCH /me/settings
   Future<WishRoom> updateRoom(String id, {Visibility? visibility});                                             // PATCH /wish-rooms/{id}
+  // [S6 신규 — "소원 수정 제한", app3/extras.js WishEdit3 · flow.js editWish()/
+  // rewish()/setGoal() 1:1 포팅] mode='edit'(문구만 다듬기, 하루 3번) /
+  // 'rewish'(완전히 다른 소원, dayN<=3·평생 1번) / 'goal'(21·49·100일, 횟수 제한 없음).
+  // text는 edit·rewish에서만 필수, goalDays는 goal에서만 쓰인다(0 또는 null=목표 없음).
+  Future<WishRoom> editWish(String id, {required String mode, String? text, int? goalDays, bool force});        // POST /wish-rooms/{id}/wish-edit
   Future<void> report({String? roomId, String? commentId});                                                     // POST /reports
   Future<void> block(String userId);                                                                            // POST /blocks
   // v2.3~2.6 추가
@@ -216,6 +221,13 @@ class ApiRepository implements WrRepository {
   @override Future<(int, Me)> earn(String source) async { final d = _m(await _req('POST', '/me/earn', {'source': source})); return ((d['amount'] as num).toInt(), Me.fromJson(_m(d['me']))); }
   @override Future<Me> settings({bool? skipIntro}) async => Me.fromJson(_m(await _req('PATCH', '/me/settings', {if (skipIntro != null) 'skipIntro': skipIntro})));
   @override Future<WishRoom> updateRoom(String id, {Visibility? visibility}) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id', {if (visibility != null) 'visibility': visibility.name})));
+  @override Future<WishRoom> editWish(String id, {required String mode, String? text, int? goalDays, bool force = false}) async =>
+      WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/wish-edit', {
+        'mode': mode,
+        if (text != null) 'text': text,
+        if (mode == 'goal') 'goalDays': goalDays,
+        if (force) 'force': force,
+      })));
   @override Future<void> report({String? roomId, String? commentId}) async => await _req('POST', '/reports', {if (roomId != null) 'roomId': roomId, if (commentId != null) 'commentId': commentId});
   @override Future<void> block(String userId) async => await _req('POST', '/blocks', {'userId': userId});
 
