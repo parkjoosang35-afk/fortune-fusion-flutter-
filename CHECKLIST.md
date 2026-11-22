@@ -1357,3 +1357,54 @@ C1-C11(처음 동작 안내 11종) — 아래 계속 진행.
 `GUIDE3` 딕셔너리 11건 — pray/guardians/decor/together/wardrobe/shop/pay/
 entrust/theme/share/vault — 를 신규 "처음 동작 안내" 시스템으로 이식해야
 함, 각 화면의 첫 동작 시점에 트리거 연결 필요) — 다음 세션에서 계속 진행.
+
+---
+
+### C1-C11(처음 동작 안내 11종)·A11(TabGuide) 구현 완료
+
+- 서버 변경 없음.
+- flutter_app 신규 파일 3개:
+  - `guide/guide3_data.dart` — app3/guide3.jsx `GUIDE3` 딕셔너리 11키
+    (pray/guardians/decor/together/wardrobe/shop/pay/entrust/theme/share/
+    vault) 1:1 포팅. `wardrobe`의 img는 원본 `outfits2/O_free_01.png`가
+    프로젝트에 없어 `care_menu_info.dart`에 이미 있던 선례대로
+    `outfits/O_free_01.png`로 대체.
+  - `guide/guide3_sheet.dart` — app3/guide3.jsx `GuideSheet3` 포팅.
+    `care_menu_info_sheet.dart`의 히어로이미지+모노라벨+제목+단계카드+
+    약속문구+CTA 구조를 그대로 재사용. `showGuide3Sheet(context,key,
+    {lock,onClose})` + 평생 1회 노출 편의 헬퍼 `maybeShowGuide3(context,
+    key)`(기존에 미사용이던 `GuidePrefs.seen/markSeen` 최초 활성화) 제공.
+    `Guide3Lock` 클래스는 원본 `lock={day,left}`와의 구조적 대응을 위해
+    추가했으나 이번 트리거 11건에는 실사용 안 함(향후 wishroom_shell.dart
+    잠금 힌트 교체 시 재사용 후보로 보류).
+  - `guide/tab_guide_sheet.dart` — app3/tour.jsx `TabGuide({app,onClose})`
+    1:1 포팅(탭 6개+⋯메뉴 7행, 각 "지금 가능"/"N일째" 표시).
+- flutter_app 트리거 연결(9개 파일, `want` useEffect 1:1 대응):
+  - character_shop_screen.dart → 'guardians', explore_screen.dart →
+    'together', shop_screen.dart → 'shop', vault_screen.dart → 'vault',
+    wardrobe_screen.dart → 'wardrobe', entrust_sheet.dart → 'entrust',
+    pay_screen.dart → 'pay'(항상 최우선), main_room_screen.dart
+    `_ShareSheetState` → 'share', main_room_screen.dart `build()` →
+    'pray'(원본 `scr==='home'&&v.wish&&!v.prayedToday&&v.prayedN===0&&
+    !tour` 조건 1:1).
+  - decor_screen.dart → 'decor'와 'theme' 순차 호출(이 포팅은 THEME
+    전환을 DecorScreen 첫 슬롯 탭으로 통합했기 때문에 두 GUIDE3 키를
+    한 화면 진입 시점에 순서대로 노출 — 대표님 재확인 필요한 판단,
+    코드 주석으로 근거 명시).
+  - main_room_screen.dart "소원방 쓰는 법" 행의 `onTap`을 기존
+    `widget.openGuide()`(구버전 10주제 GuideBook)에서
+    `showTabGuideSheet(context)`로 교체(A11). `openGuide`/`_openGuide`
+    자체는 다른 용도(포커스 조회)로 다른 곳에서 계속 쓰이므로 미변경.
+- Semantics identifier 추가: `guide3_close`(guide3_sheet CTA),
+  `tab_guide_close`(tab_guide_sheet CTA).
+- admin_web 금지 파일 5종 불변 재확인(`git status --short` 동일).
+
+**검증**: `flutter analyze`(전체 프로젝트) 2회 통과 — 신규 오류 0건
+(기존에 범위 밖으로 확인된 `guardian_outfit_launcher_test.dart` 오류
+2건만 잔존). `build_local.sh --debug` 빌드 성공(137.2s). 프리뷰 서버
+(:5060) 기동 확인(HTTP 200).
+
+남은 공백: `wishroom_shell.dart`의 `_showLockHintSheet()` 플레이스홀더를
+신규 `Guide3Lock` 인프라로 교체할지 여부 — 이번 범위에서는 미착수,
+대표님 판단 필요. 그 외 어뷰징 ⑥⑧⑩ 잔여 결정, 9단계 플로우 수동 QA는
+여전히 미착수.
