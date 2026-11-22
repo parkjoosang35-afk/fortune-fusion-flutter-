@@ -1321,3 +1321,39 @@ grep 0건 — **위기 표현 감지 로직이 전혀 없음**. `filterText()`�
 
 남은 공백: A11(TabGuide)·A12(TomorrowCard)·A13(MorningCard3)·
 C1-C11(처음 동작 안내 11종) — 아래 계속 진행.
+
+---
+
+**A12(TomorrowCard) — 구현 완료**:
+- 서버 변경 없음 — `WrCatalog.I.raw['UNLOCK']`(assets/wishroom/data/
+  wishroom_data.json, 클라이언트에 이미 존재)만으로 "다음에 열릴 기능"을
+  계산 가능함을 확인.
+- flutter_app: `tomorrow_card.dart` 신규 — app3/tour.jsx `OPEN_NEXT` 배열 +
+  `TomorrowCard` 1:1 포팅. 생애 첫 기도 직후가 아닌 매일 기도 완료 직후
+  (`_QuoteCard.onClose`, `_firstTimeAfterPray`가 false인 분기)에 트리거되며
+  Tour21과 상호 배타(app3 `afterPray(first)` 1:1). "오늘 하루 한 번만"
+  판정은 서버에 해당 로그 테이블이 없어(entrust와 동일한 공백) `GuidePrefs`에
+  `roomId:dayN` 키로 로컬 저장(`tomorrowCardShown`/`markTomorrowCardShown`
+  신규 메서드)하는 방식으로 대체.
+
+**A13(MorningCard3) — 구현 완료**:
+- 서버 변경 없음.
+- flutter_app: `morning_card.dart` 신규 — app3/guide3.jsx `MorningCard3`
+  1:1 포팅. [치환] 원본의 `v.day`(방 생성 후 누적 일련번호, 0-base)는 이
+  서버 스키마에 없어 의미상 가장 가까운 `room.dayN`(1-base 경과일)으로
+  대체했다 — "어젯밤 N명이 빌었어요" 숫자는 장식용 의사난수라 정확히 같은
+  값일 필요는 없음. 2일째부터, 아직 오늘 기도 전이고 투어 중이 아닐 때
+  화면 빌드 초입(`build()` 진입 시 postFrameCallback)에서 하루 1번 트리거.
+  "오늘 하루 한 번만" 판정도 A12와 동일하게 `GuidePrefs`에 `roomId:dayN`
+  키로 로컬 저장(`morningCardShown`/`markMorningCardShown` 신규 메서드).
+- 커밋 `0c80728c`.
+
+**검증(A12/A13)**: `flutter analyze`(전체 프로젝트) 통과(morning_card.dart의
+`Visibility` 모호 임포트 1건 발견 → `hide Visibility`로 즉시 수정, 기존
+파일들과 동일 패턴). `build_local.sh --debug` 빌드 성공(144.5s), 프리뷰
+서버(:5060) 기동 확인(HTTP 200).
+
+남은 공백: A11(TabGuide)·C1-C11(처음 동작 안내 11종, 가장 큰 남은 작업,
+`GUIDE3` 딕셔너리 11건 — pray/guardians/decor/together/wardrobe/shop/pay/
+entrust/theme/share/vault — 를 신규 "처음 동작 안내" 시스템으로 이식해야
+함, 각 화면의 첫 동작 시점에 트리거 연결 필요) — 다음 세션에서 계속 진행.
