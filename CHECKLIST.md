@@ -1244,3 +1244,80 @@ grep 0건 — **위기 표현 감지 로직이 전혀 없음**. `filterText()`�
 
 **코드 변경은 아직 없음 — 조사만 완료. 위 6개 공백에 대해 대표님 판정
 후 구현 여부·우선순위 결정 예정.**
+
+---
+
+## 46개 안내 팝업 — 공백 구현 진행 기록 (대표님 "진행" 승인, 위 6개 공백 처리)
+
+**F5(방문 정책 편집) — 구현 완료**:
+- admin_web: `PATCH /wish-rooms/{id}` 엔드포인트에 `visitPolicy`(off/ask/open)
+  파라미터 추가(기존 `visibility` 편집과 같은 엔드포인트 재사용 — 새 라우트
+  만들지 않음). 커밋 `6acb2952`.
+- flutter_app: `WrRepository.updateRoom()`에 `visitPolicy` 파라미터 추가,
+  `WishRoomProvider.updateVisitPolicy(id, policy)` 신규 메서드,
+  `main_room_screen.dart`의 `_ShareSheet`에 "수호자 방문"
+  받지 않기/물어보고/누구든 탭 선택 UI 추가(기존 공개범위 탭 선택 UI와
+  동일한 패턴 — `_visTab`/`_visDesc` 옆에 `_policyTab`/`_policyDesc` 추가).
+  커밋 `965d3f77`.
+- 검증: `flutter analyze` 통과, `tsc --noEmit` 통과.
+
+**G3(EntrustBack, 맡기기 끝 카드) — 구현 완료**:
+- 서버 변경 없음(기존 `entrustDone`/`POST .../entrust/ack` 인프라가 이미
+  충분함을 재확인).
+- flutter_app: `entrust_back_card.dart` 신규 — `room.entrustDone`이 있고
+  다른 오버레이가 하나도 없을 때(기존 `unlock_card.dart`와 동일한 조건)
+  "代願 · 기도 일지" 카드를 보여준다. [축소 반영] 원본(app3/entrust.jsx)은
+  일자별 "내가 빈 날/수호자가 빈 날" 달력 칸을 그리지만, 이 서버는 그
+  일자별 기도 로그(`WishRoomPrayerLog` 모델은 있으나 공개 API 미연결)를
+  내려주지 않아 `Entrust` 필드(guardian/days)만으로 요약 문구로 대체했다
+  — 달력 UI 자체는 구현하지 않음(아래 "남은 제약" 참고). "마음에 담기"
+  버튼은 `WishRoomProvider.ackEntrust(room.id)`를 호출한다.
+  `main_room_screen.dart` Stack에 `UnlockCard` 다음 우선순위로 연결.
+  커밋 `1630b06f`.
+
+**G5(DispatchBack, 보낸 수호자 귀환 카드) — 구현 완료**:
+- admin_web: `wishroom-engine.ts`에 `getDispatchDone(tx, userId, nowMs)` 신규
+  함수 추가(내가 보낸 dispatch 중 끝났지만 `ackedAt`이 비어 있는 가장 최근
+  1건을 찾음). `MeViewOptions`/`meView()`에 `dispatchDone` 필드 추가,
+  `_shared.ts`의 `buildMeView()`에 연결해 `me`를 반환하는 모든 엔드포인트
+  응답에 자동 포함되도록 함(room이 아니라 me 레벨 개념이라 `roomView()`가
+  아닌 `meView()`에 실음 — "어느 방으로 보냈든 내 홈 화면에 뜨는 카드"이기
+  때문). 커밋 `6acb2952`.
+- flutter_app: `models.dart`의 `Me` 클래스에 `dispatchDone` 필드 +
+  JSON 파싱 추가. `dispatch_back_card.dart` 신규 — `me.dispatchDone`이
+  있을 때 "○○이 돌아왔어요" 카드를 보여준다(G3와 동일하게 받는 방의
+  소원 문구·방문자 수는 공개 API로 내려오지 않아 요약 문구로 대체).
+  "마음에 담기" 버튼은 `WishRoomProvider.ackDispatch('wrd_{id}')`를
+  호출한다(서버 `parseWishRoomDispatchId`가 요구하는 `wrd_` 접두어 포맷).
+  **버그 수정**: `ackDispatch()` 엔드포인트는 `ackEntrust()`와 달리 응답에
+  room/me를 함께 주지 않고 `{ok:true}`만 반환하므로, provider의
+  `ackDispatch()`가 ack 성공 후 `loadMyRoom()`을 호출해 `me.dispatchDone`을
+  직접 갱신하도록 수정(안 하면 카드가 계속 떠 있는 버그). 커밋 `1630b06f`.
+
+**우선순위**(동시 발생 시): `pendingUnlock`(열림 카드) > `entrustDone`(G3)
+> `dispatchDone`(G5) — `UnlockCard`와 동일한 "다른 오버레이 없음" 조건을
+공유하되 `else if`로 상호 배타 처리.
+
+**남은 제약(의도적 축소, 대표님 재확인 필요 시 추가 작업 대상)**:
+- G3 카드의 "기도 일지 달력"(일자별 내가/수호자가 빈 날 칸)은 구현하지
+  않음 — 서버에 일자별 기도 기록을 공개 API로 노출하는 엔드포인트가 없음
+  (`WishRoomPrayerLog` 모델은 스키마에 있으나 연결된 라우트가 전혀 없음).
+  필요하면 신규 서버 작업(API 추가)부터 시작해야 함.
+- G5 카드의 "그 방 소원 문구·방문자 수" 표시도 동일한 이유로 생략 —
+  발신자가 상대방 방 상세를 조회할 공개 API가 없음(현재 구조상 의도적
+  — 사생활 보호 목적일 수 있어 임의로 새 엔드포인트를 만들지 않음).
+
+**검증**: `flutter analyze`(전체 프로젝트) 통과, `tsc --noEmit` 통과,
+`build_local.sh --debug` 빌드 성공(146.2s), 프리뷰 서버(:5060) 기동 확인
+(HTTP 200). F5 커밋 이후 깨졌던 `test/main_room_sheets_overflow_test.dart`의
+`_FakeWrRepository.updateRoom()` override 시그니처도 함께 수정.
+
+**다음 단계(요약표 갱신)**:
+
+| 그룹 | 항목 수 | 상태 |
+|---|---|---|
+| F (소원 관리) | 5 | **F1-F5 전부 구현**(F5 방문정책 편집 UI 완료) |
+| G (수호자·함께) | 6 | **G1-G6 전부 구현**(G3,G5 카드 UI 완료, 일자별 달력/방 상세는 의도적 축소) |
+
+남은 공백: A11(TabGuide)·A12(TomorrowCard)·A13(MorningCard3)·
+C1-C11(처음 동작 안내 11종) — 아래 계속 진행.
