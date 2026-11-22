@@ -970,9 +970,28 @@ app3/extras.js `WishEdit3` · flow.js `editWish(t)`/`rewish(t)`/`setGoal(g)`
   171.2초 성공. `:5060` HTTP 200 / `:3100` HTTP 307 확인. admin_web
   금지 5개 파일은 이번 flutter_app 단독 작업과 무관.
 
-**다음 세션에 이어갈 것(갱신)**: "소원 수정 제한" 전 항목(서버+클라이언트)
-종료. 남은 S6 항목은 21일 미리보기, 46개 안내 팝업 전수 대조, 어뷰징
-미확인 4개 항목(⑥⑦⑧⑩), 9단계 플로우 수동 QA — 전부 미착수. Tour21 종료
-후 목표 미설정 시 자동 `setGoal(21)`(원본 `shell.jsx`에 있음)은 이번
-범위에 포함 여부 미확정 — 다음 세션에서 대표님 판정 필요. 그 외 미전달
+### Tour21 종료 시 자동 기도 목표 설정(`setGoal(21)`) — 추가 완료
+
+원본 `shell.jsx` `{tour && <Tour21 app={app} onEnd={(remind) => { ...
+if (!v.goal) window.WRF.setGoal(21); ... }}/>}` 1:1 — 21일 미리보기
+투어를 끝낼 때 아직 기도 목표가 없으면(신규 방은 항상 이 경우) 자동으로
+21일로 설정한다. Flutter 포팅(`tour21_screen.dart`)에는 이 호출이
+빠져 있었던 것을 발견해 `main_room_screen.dart`의 `Tour21Screen(onEnd:
+...)` 콜백에 추가했다.
+
+- `main_room_screen.dart` — `_tour21`을 끄는 `onEnd` 콜백에서
+  `room.goal == null`이면 `WishRoomProvider.editWish(id, mode: 'goal',
+  goalDays: 21)`을 `unawaited()`로 호출(원본도 결과를 기다리지 않고
+  바로 `setToast`로 넘어감 — 실패해도 미리보기 종료 자체를 막을 이유가
+  없으므로 에러는 조용히 무시, 원본에도 별도 실패 안내 없음).
+- **검증**: `flutter analyze` 신규 이슈 0건(전체 파일 기준 동일, 기존
+  무관 `WrGuardianOutfitLauncher` 에러 2건만 잔존). `build_local.sh
+  --debug` 150.1초 성공. `:5060` HTTP 200 / `:3100` HTTP 307 확인.
+  admin_web 금지 5개 파일 그대로.
+
+**다음 세션에 이어갈 것(갱신)**: "소원 수정 제한" + Tour21 자동
+목표설정까지 전부 종료. 남은 S6 항목은 46개 안내 팝업 전수 대조, 어뷰징
+미확인 4개 항목(⑥⑦⑧⑩), 9단계 플로우 수동 QA — 전부 미착수(참고: "21일
+미리보기" 자체(Tour21Screen)는 기존에 이미 구현되어 있었고, 이번에 발견
+돼 보강한 것은 그 "종료 시 자동 목표설정" 누락분뿐이다). 그 외 미전달
 6장 스크린샷(`/home/user/wr_compare/DELIVERY_6SHOTS/`)도 그대로 대기 중.

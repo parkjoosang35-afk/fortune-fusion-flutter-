@@ -1105,6 +1105,17 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                       child: Tour21Screen(
                         onEnd: (remind) {
                           setState(() => _tour21 = false);
+                          // [S6 — 대표님 판정 반영] shell.jsx onEnd 콜백 `if (!v.goal)
+                          // window.WRF.setGoal(21)` 1:1 — 미리보기를 끝낼 때 아직 기도
+                          // 목표를 정하지 않았다면(새로 만든 방이라 항상 이 경우) 21일로
+                          // 자동 설정한다. 실패해도(네트워크 등) 미리보기 종료 자체를
+                          // 막을 이유는 없으므로 에러는 조용히 무시한다(토스트도 원본에
+                          // 없음 — editWish(mode:'goal')은 성공 시에도 별도 안내가
+                          // 없는 조용한 호출).
+                          final r = context.read<WishRoomProvider>().room;
+                          if (r != null && r.goal == null) {
+                            unawaited(context.read<WishRoomProvider>().editWish(r.id, mode: 'goal', goalDays: 21).catchError((_) => false));
+                          }
                           showTour21EndToast(context);
                         },
                       ),
