@@ -56,7 +56,7 @@ abstract class WrRepository {
   Future<List<Map<String, dynamic>>> ledger();                                                                  // GET  /me/ledger
   Future<(int, Me)> earn(String source);                                                                        // POST /me/earn
   Future<Me> settings({bool? skipIntro});                                                                       // PATCH /me/settings
-  Future<WishRoom> updateRoom(String id, {Visibility? visibility});                                             // PATCH /wish-rooms/{id}
+  Future<WishRoom> updateRoom(String id, {Visibility? visibility, String? visitPolicy});                        // PATCH /wish-rooms/{id}
   // [S6 신규 — "소원 수정 제한", app3/extras.js WishEdit3 · flow.js editWish()/
   // rewish()/setGoal() 1:1 포팅] mode='edit'(문구만 다듬기, 하루 3번) /
   // 'rewish'(완전히 다른 소원, dayN<=3·평생 1번) / 'goal'(21·49·100일, 횟수 제한 없음).
@@ -220,7 +220,10 @@ class ApiRepository implements WrRepository {
   @override Future<List<Map<String, dynamic>>> ledger() async => (await _req('GET', '/me/ledger') as List).map(_m).toList();
   @override Future<(int, Me)> earn(String source) async { final d = _m(await _req('POST', '/me/earn', {'source': source})); return ((d['amount'] as num).toInt(), Me.fromJson(_m(d['me']))); }
   @override Future<Me> settings({bool? skipIntro}) async => Me.fromJson(_m(await _req('PATCH', '/me/settings', {if (skipIntro != null) 'skipIntro': skipIntro})));
-  @override Future<WishRoom> updateRoom(String id, {Visibility? visibility}) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id', {if (visibility != null) 'visibility': visibility.name})));
+  @override Future<WishRoom> updateRoom(String id, {Visibility? visibility, String? visitPolicy}) async => WishRoom.fromJson(_m(await _req('PATCH', '/wish-rooms/$id', {
+        if (visibility != null) 'visibility': visibility.name,
+        if (visitPolicy != null) 'visitPolicy': visitPolicy,
+      })));
   @override Future<WishRoom> editWish(String id, {required String mode, String? text, int? goalDays, bool force = false}) async =>
       WishRoom.fromJson(_m(await _req('POST', '/wish-rooms/$id/wish-edit', {
         'mode': mode,

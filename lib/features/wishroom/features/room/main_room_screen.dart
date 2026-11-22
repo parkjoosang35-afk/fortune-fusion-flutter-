@@ -3874,6 +3874,12 @@ class _ShareSheet extends StatefulWidget {
 
 class _ShareSheetState extends State<_ShareSheet> {
   late Visibility _vis = widget.room.visibility;
+  // [F5 신규 — 46개 안내 팝업 전수 대조 공백 발견] 매핑표 care_menu_info.dart
+  // "함께 빌어달라고 하기" note "수호자 방문을 받을지도 여기서 정해요" 1:1 —
+  // 공개범위(visibility) 전환과 같은 시트에 "수호자 방문" 설정(off/ask/open)을
+  // 함께 둔다. 지금까지는 room.visitPolicy를 읽기만 하고 바꿀 UI가 없었다.
+  late String _policy = widget.room.visitPolicy;
+  bool _policyBusy = false;
   ({String token, String url})? _link;
   bool _copied = false;
   bool _loadingLink = false;
@@ -3905,6 +3911,23 @@ class _ShareSheetState extends State<_ShareSheet> {
     if (!mounted || !ok) return;
     setState(() => _vis = v);
     if (v != Visibility.PRIVATE && _link == null) _loadLink(false);
+  }
+
+  /// [F5 신규] off(받지 않기)/ask(물어보고)/open(누구든) — care_menu_info.dart
+  /// "찾아온 수호자" steps[0]의 설명과 1:1 매칭.
+  Future<void> _changePolicy(String v) async {
+    if (v == _policy || _policyBusy) return;
+    setState(() => _policyBusy = true);
+    final p = context.read<WishRoomProvider>();
+    final ok = await p.updateVisitPolicy(widget.room.id, v);
+    if (!mounted) return;
+    setState(() {
+      _policyBusy = false;
+      if (ok) _policy = v;
+    });
+    if (!ok && p.lastError != null) {
+      WrToast.show(context, p.lastError!.message);
+    }
   }
 
   String get _shareMessage {
@@ -4278,6 +4301,29 @@ class _ShareSheetState extends State<_ShareSheet> {
                 ),
               ),
             ],
+            // [F5 신규 — 46개 안내 팝업 전수 대조 공백 발견] care_menu_info.dart
+            // "함께 빌어달라고 하기" note 1:1 — 공개범위와 별개로 항상 노출(나만
+            // 보기 상태에서도 수호자 방문 정책을 미리 정해둘 수 있어야 한다).
+            const SizedBox(height: 18),
+            Text(
+              '수호자 방문',
+              style: WrF.body(13.5, w: FontWeight.w700, color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _policyTab('받지 않기', 'off'),
+                const SizedBox(width: 6),
+                _policyTab('물어보고', 'ask'),
+                const SizedBox(width: 6),
+                _policyTab('누구든', 'open'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _policyDesc(_policy),
+              style: WrF.body(11.5, color: WrC.muted, height: 1.6),
+            ),
             if (_copied)
               Container(
                 margin: const EdgeInsets.only(top: 10),
@@ -4341,6 +4387,52 @@ class _ShareSheetState extends State<_ShareSheet> {
         return '링크를 받은 분만 들어와 응원할 수 있어요. 모두의 소원방에는 보이지 않아요.';
       case Visibility.PRIVATE:
         return '나만 보기에서는 공유할 수 없어요. 공유하려면 공개 범위를 바꿔주세요.';
+    }
+  }
+
+  /// [F5 신규] off/ask/open 탭 — _visTab과 동일한 모양.
+  Widget _policyTab(String label, String v) {
+    final sel = _policy == v;
+    return Expanded(
+      child: GestureDetector(
+        onTap: _policyBusy ? null : () => _changePolicy(v),
+        child: Container(
+          height: WrSize.tabH,
+          alignment: Alignment.center,
+          decoration: sel
+              ? WrDeco.tabOn
+              : BoxDecoration(
+                  borderRadius: BorderRadius.circular(WrR.tab),
+                  color: WrC.chipBg,
+                ),
+          child: _policyBusy && sel
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : Text(
+                  label,
+                  style: WrF.body(
+                    WrSize.tabFont,
+                    w: FontWeight.w700,
+                    color: sel ? Colors.white : WrC.muted,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  String _policyDesc(String v) {
+    switch (v) {
+      case 'off':
+        return '다른 분의 수호자가 내 방을 찾아오지 않아요.';
+      case 'open':
+        return '누구든 바로 수호자를 보내 대신 빌어 줄 수 있어요.';
+      case 'ask':
+      default:
+        return '수호자를 보내기 전에 먼저 물어봐요.';
     }
   }
 

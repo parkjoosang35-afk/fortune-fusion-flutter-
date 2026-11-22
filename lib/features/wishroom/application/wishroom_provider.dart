@@ -415,6 +415,24 @@ class WishRoomProvider extends ChangeNotifier {
     }
   }
 
+  /// [F5 신규 — 46개 안내 팝업 전수 대조 공백 발견] 매핑표 "함께 빌어달라고 하기"
+  /// note("수호자 방문을 받을지도 여기서 정해요")가 가리키는 설정 — off(받지 않기)/
+  /// ask(물어보고)/open(누구든). 지금까지 room.visitPolicy는 서버 응답을 읽기만
+  /// 했을 뿐 바꿀 방법이 없었다(_ShareSheet의 공개범위 전환과 동일한 PATCH
+  /// /wish-rooms/{id}를 재사용).
+  Future<bool> updateVisitPolicy(String id, String policy) async {
+    lastError = null;
+    try {
+      room = await repo.updateRoom(id, visitPolicy: policy);
+      notifyListeners();
+      return true;
+    } on ApiError catch (e) {
+      lastError = e;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // [S6 신규 — "소원 수정 제한"] mode='edit'/'rewish'/'goal'. 호출부(WishEditSheet)가
   // ApiError를 받아 err 메시지로 바로 보여줄 수 있도록 여기서 삼키지 않고 rethrow한다
   // (다른 메서드들의 "lastError에 담고 false 반환" 패턴과 다름 — 원본 WishEdit3도
