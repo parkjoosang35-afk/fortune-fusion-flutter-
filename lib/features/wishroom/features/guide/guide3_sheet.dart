@@ -14,11 +14,16 @@ import '../../core/theme/wr_theme.dart';
 import 'guide3_data.dart';
 import 'guide_prefs.dart';
 
-/// 잠금 모드 전용 부가 정보 — 원본 `lock={day,left}` 1:1.
+/// 잠금 모드 전용 부가 정보 — 원본 `lock={day,left}` 1:1 + 진행 막대 계산용
+/// `dayN`(오늘 며칠째인지) 추가. [대표님 판정 — "잠김 안내는 한 가지 모양으로"]
+/// 하단 탭 · ⋯ 메뉴 · 상점 세 곳이 모두 같은 모양(그림 + "🔒 N일째에 열려요" +
+/// 오늘 며칠째인지 보여주는 진행 막대 + [기다릴게요])으로 보이도록, 호출부가
+/// dayN까지 함께 넘긴다.
 class Guide3Lock {
-  const Guide3Lock({required this.day, required this.left});
+  const Guide3Lock({required this.day, required this.left, required this.dayN});
   final int day;
   final int left;
+  final int dayN;
 }
 
 /// [C1-C11] 처음 동작 안내 — `!GuidePrefs.I.seen(key)`일 때만 호출부가 열고,
@@ -54,6 +59,26 @@ Future<void> maybeShowGuide3(BuildContext context, String key) async {
   if (GuidePrefs.I.seen(key)) return;
   if (!context.mounted) return;
   await showGuide3Sheet(context, key);
+}
+
+/// [대표님 판정 — "잠김 안내는 한 가지 모양으로"] 앱 전체의 유일한 잠금 안내
+/// 시트. 하단 탭(wishroom_shell.dart/wr_bottom_nav.dart) · ⋯ 메뉴
+/// (care_menu_info_sheet.dart, CareMenuInfo→Guide3Item 변환 경유) · 상점
+/// (shop_screen.dart) 세 곳 모두 이 함수 하나만 호출한다 — 서로 다른 모양의
+/// 잠금 시트가 섞이지 않도록. `showGuide3Sheet`와 달리 "평생 1번" 판정이
+/// 없다(잠긴 동안은 누를 때마다 매번 보여줘야 하므로 GuidePrefs.seen/markSeen을
+/// 건드리지 않는다).
+Future<void> showGuide3LockSheet(
+  BuildContext context, {
+  required Guide3Item item,
+  required Guide3Lock lock,
+}) {
+  return showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => _Guide3Sheet(item: item, lock: lock),
+  );
 }
 
 class _Guide3Sheet extends StatelessWidget {
@@ -163,6 +188,37 @@ class _Guide3Sheet extends StatelessWidget {
                           ],
                         ),
                         textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // [대표님 판정 — "잠김 안내는 한 가지 모양으로"] care_menu_info_sheet.dart
+                    // 와 동일한 "오늘 N일째" + 진행 막대 — 하단 탭 · ⋯ 메뉴 · 상점 모두
+                    // 이 한 가지 모양만 쓰도록 통일한다.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('오늘 ${lock!.dayN}일째', style: WrF.body(12, w: FontWeight.w700, color: WrC.muted)),
+                        Text('${lock!.left}일 뒤 열려요', style: WrF.body(12, w: FontWeight.w700, color: WrC.glow)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: SizedBox(
+                        height: 7,
+                        child: Stack(
+                          children: [
+                            Container(color: Colors.white.withValues(alpha: .08)),
+                            FractionallySizedBox(
+                              widthFactor: (lock!.day > 0 ? lock!.dayN / lock!.day : 1.0).clamp(0, 1),
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(colors: [Color(0xFFFF9CBC), Color(0xFFF5CF6A)]),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

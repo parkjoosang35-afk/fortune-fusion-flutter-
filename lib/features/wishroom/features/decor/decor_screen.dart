@@ -26,6 +26,7 @@ import '../../core/wr_toast.dart';
 import '../../core/wr_item_icon.dart';
 import '../shop/shop_screen.dart';
 import '../guide/guide3_sheet.dart';
+import '../guide/guide3_data.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -35,6 +36,10 @@ class DecorScreen extends StatefulWidget {
 
 class _DecorScreenState extends State<DecorScreen> {
   Slot _slot = Slot.THEME; // 원본: const [slot, setSlot] = useState('THEME')
+  // [대표님 판정 — "7일째 전엔 … 안내도 띄우지 않습니다"] _slot 기본값이
+  // THEME인데 아직 잠긴 방이면, 화면을 열자마자 잠긴 내용 대신 바로 쓸 수
+  // 있는 장식(DECORATION) 탭으로 한 번만 조용히 바꿔준다(안내 시트 없이).
+  bool _didAdjustInitialSlot = false;
 
   /// [꾸미기 한눈에 보기 — A안, 사용자 선택 2026-10-14] 목록을 내리면 방
   /// 미리보기가 슬림 스트립으로 접히고(소원방은 없애지 않음), 맨 위로
@@ -51,19 +56,43 @@ class _DecorScreenState extends State<DecorScreen> {
     super.initState();
     final p = context.read<WishRoomProvider>();
     if (!p.catalogLoaded) p.loadCatalog();
-    // [C3-decor/C9-theme 신규] app3/shell.jsx `want` — sh==='decor'(이 화면
-    // 전체)를 처음 열 때 "방을 꾸며요" 안내. 원본은 테마 전환을 별도
-    // Theme3 시트로 열었지만(sh==='theme'), 이 포팅은 THEME을 DecorScreen의
-    // 첫 슬롯 탭으로 합쳤으므로(_slot 기본값 THEME) "방 분위기를 골라요"
-    // 안내는 그 슬롯이 실제로 보이는 시점(= 이 화면 진입 시점과 동일)에
-    // 함께 띄운다 — 두 안내가 한 번에 겹치지 않도록 'decor'가 먼저 닫힌
-    // 뒤 'theme'를 연이어 보여준다.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await maybeShowGuide3(context, 'decor');
-      if (!mounted) return;
-      await maybeShowGuide3(context, 'theme');
+    // [대표님 판정 — "안내는 한 번에 하나씩"] C3(decor)만 화면 진입 시 띄운다.
+    // C9(theme)는 더 이상 여기서 함께 띄우지 않는다 — 방 분위기 탭(첫 슬롯)을
+    // "처음 누를 때"로 분리했다(아래 슬롯칩 onTap, _onThemeTabTap 참고).
+    // 이전엔 두 안내를 이 화면 진입 시점에 연달아 보여줬으나, "하나씩 쉽게"
+    // 원칙과 맞지 않는다는 지적으로 분리했다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowGuide3(context, 'decor');
     });
+  }
+
+  /// [대표님 판정 — "방 분위기 탭을 처음 누를 때"] 방 분위기(THEME) 슬롯칩을
+  /// 누른 순간에만 호출. 7일째 전엔 잠금 안내(Guide3Lock, 누를 때마다 보여줌)를,
+  /// 7일째 이후 처음 누르면 C9(theme) 안내(평생 1번)를 보여주고 슬롯을 연다.
+  void _onThemeTabTap(WishRoom room) {
+    final unlocked = room.isFeatureUnlocked('theme');
+    if (!unlocked) {
+      final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)['theme'] as int? ?? 7;
+      final dayN = room.dayN;
+      final item = kGuide3['theme'];
+      if (item != null) {
+        showGuide3LockSheet(
+          context,
+          item: item,
+          lock: Guide3Lock(
+            day: unlockDay,
+            left: math.max(1, unlockDay - dayN),
+            dayN: dayN,
+          ),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _slot = Slot.THEME;
+      _preview = null;
+    });
+    maybeShowGuide3(context, 'theme');
   }
 
   bool _isOn(WrItem it, WishRoom room) => room.equip.all.contains(it.id);
@@ -190,6 +219,14 @@ class _DecorScreenState extends State<DecorScreen> {
             // [버그수정 — 전수감사] 기존엔 room==null일 때 단순 로딩 스피너만 표시했다
             // (원본은 "아직 소원이 담기지 않았어요" 안내 + "첫 소원 담기" CTA).
             if (room == null) return const _NoRoom();
+            if (!_didAdjustInitialSlot) {
+              _didAdjustInitialSlot = true;
+              if (_slot == Slot.THEME && !room.isFeatureUnlocked('theme')) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _slot = Slot.DECORATION);
+                });
+              }
+            }
             final cat = WrCatalog.I;
             final eq = room.equip;
             // 미리보기(미보유 선택) 반영한 가상 room
@@ -592,14 +629,23 @@ class _DecorScreenState extends State<DecorScreen> {
                                 final T = themeInfo.isNotEmpty
                                     ? themeInfo.first
                                     : null;
-                                final label = _slotLabel(s, room);
+                                // [대표님 판정 — "7일째 전엔 탭에 🔒 표시"]
+                                final themeLocked =
+                                    s == Slot.THEME && !room.isFeatureUnlocked('theme');
+                                final label = themeLocked ? '🔒 방 분위기' : _slotLabel(s, room);
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 6),
                                   child: GestureDetector(
-                                    onTap: () => setState(() {
-                                      _slot = s;
-                                      _preview = null;
-                                    }),
+                                    onTap: () {
+                                      if (s == Slot.THEME) {
+                                        _onThemeTabTap(room);
+                                        return;
+                                      }
+                                      setState(() {
+                                        _slot = s;
+                                        _preview = null;
+                                      });
+                                    },
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 13,
@@ -629,16 +675,21 @@ class _DecorScreenState extends State<DecorScreen> {
                                                     ],
                                                   )
                                                 : WrDeco.chip),
-                                      child: Text(
-                                        '${T != null ? '${T['glyph']} ' : ''}$label',
-                                        style: WrF.body(
-                                          12,
-                                          w: FontWeight.w700,
-                                          color: sel
-                                              ? Colors.white
-                                              : (T != null
-                                                    ? const Color(0xFFFFE0A8)
-                                                    : WrC.fg),
+                                      child: Opacity(
+                                        opacity: themeLocked ? .5 : 1,
+                                        child: Text(
+                                          themeLocked
+                                              ? label
+                                              : '${T != null ? '${T['glyph']} ' : ''}$label',
+                                          style: WrF.body(
+                                            12,
+                                            w: FontWeight.w700,
+                                            color: sel
+                                                ? Colors.white
+                                                : (T != null
+                                                      ? const Color(0xFFFFE0A8)
+                                                      : WrC.fg),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -668,20 +719,36 @@ class _DecorScreenState extends State<DecorScreen> {
                                 110,
                               ),
                               child: _slot == Slot.THEME
-                                  ? Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        _themeSwitch(room),
-                                        const SizedBox(height: 10),
-                                        _itemGrid(
-                                          room,
-                                          p,
-                                          Slot.THEME,
-                                          themeOnly: true,
-                                        ),
-                                      ],
-                                    )
+                                  ? (room.isFeatureUnlocked('theme')
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              _themeSwitch(room),
+                                              const SizedBox(height: 10),
+                                              _itemGrid(
+                                                room,
+                                                p,
+                                                Slot.THEME,
+                                                themeOnly: true,
+                                              ),
+                                            ],
+                                          )
+                                        // [대표님 판정 — "7일째 전엔 … 안내도 띄우지
+                                        // 않습니다"] _slot 기본값이 THEME이라 아직
+                                        // 잠긴 채로 화면에 처음 진입했을 수 있다 —
+                                        // 이때도 잠긴 내용을 보여주지 않고 장식
+                                        // 슬롯으로 안내만 한다(빈 화면 방지).
+                                        : Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 24),
+                                            child: Center(
+                                              child: Text(
+                                                '🔒 방 분위기는 7일째에 열려요\n먼저 장식을 둘러보세요',
+                                                textAlign: TextAlign.center,
+                                                style: WrF.body(13, color: WrC.muted, height: 1.6),
+                                              ),
+                                            ),
+                                          ))
                                   : _itemGrid(room, p, _slot),
                             ),
                           ),
