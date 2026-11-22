@@ -41,6 +41,8 @@ import '../wardrobe/wardrobe_screen.dart';
 import '../decor/decor_screen.dart';
 import '../notifications/notifications_screen.dart';
 import 'unlock_card.dart';
+import 'entrust_back_card.dart';
+import 'dispatch_back_card.dart';
 import 'tour21_screen.dart';
 import 'care_menu_info.dart';
 import 'care_menu_info_sheet.dart';
@@ -1163,6 +1165,55 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                         unlockKey: room.pendingUnlock!,
                         dayN: room.dayN,
                       ),
+                    ),
+                  )
+                // [G3 신규 — 46개 안내 팝업 전수 대조 공백 보완] app3/shell.jsx
+                // `!calm && !prog && !done && v.entrustDone && <EntrustBack/>` 1:1 —
+                // UnlockCard(해금 카드)와 동일한 "다른 오버레이 없음" 조건을 쓰되,
+                // 열림 카드가 온보딩상 더 급하므로 pendingUnlock이 있으면 그것부터
+                // 먼저 보여준다(else if로 상호 배타).
+                else if (room.entrustDone != null &&
+                    !_wishOpen &&
+                    !_peek &&
+                    !_tour &&
+                    _levelUp == null &&
+                    !_devotion.busy &&
+                    !_rekindling &&
+                    _reward == null &&
+                    _quoteText == null &&
+                    !_capOpen &&
+                    !(room.capsuleDue && !_capLater))
+                  Positioned.fill(
+                    key: const ValueKey('entrustBackCard'),
+                    child: WrCanvasScaler(
+                      contentHeight: 800,
+                      child: EntrustBackCard(
+                        roomId: room.id,
+                        entrust: room.entrustDone!,
+                      ),
+                    ),
+                  )
+                // [G5 신규 — 46개 안내 팝업 전수 대조 공백 보완] app3/home.jsx
+                // `!calm && !prog && !done && v.returned && v.returned[0] &&
+                // <DispatchBack/>` 1:1 — G3과 동일 조건, me.dispatchDone(내가 보낸
+                // 수호자 쪽) 사용. entrustDone과 동시에 뜨지 않도록 else if로 둔다
+                // (둘 다 있으면 다음 화면 재진입 시 순서대로 보여짐).
+                else if (p.me?.dispatchDone != null &&
+                    !_wishOpen &&
+                    !_peek &&
+                    !_tour &&
+                    _levelUp == null &&
+                    !_devotion.busy &&
+                    !_rekindling &&
+                    _reward == null &&
+                    _quoteText == null &&
+                    !_capOpen &&
+                    !(room.capsuleDue && !_capLater))
+                  Positioned.fill(
+                    key: const ValueKey('dispatchBackCard'),
+                    child: WrCanvasScaler(
+                      contentHeight: 800,
+                      child: DispatchBackCard(dispatch: p.me!.dispatchDone!),
                     ),
                   ),
               ],

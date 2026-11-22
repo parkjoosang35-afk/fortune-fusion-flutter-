@@ -237,13 +237,19 @@ class Me {
   final bool skipIntro;
   final Map<String, int> earnToday;
   final Map<String, dynamic>? wallpaper;
+  // [G5 신규 — 46개 안내 팝업 전수 대조 공백 발견] 내가 보낸 수호자 중 기간이 끝났지만
+  // 아직 확인(ack) 안 한 것 — wishroom-engine.ts getDispatchDone()/meView() 1:1.
+  // room이 아니라 me 레벨 개념(어느 방으로 보냈든 내 홈 화면에 뜸)이라 WishRoom이 아닌
+  // 여기에 싣는다. null이면 보여줄 DispatchBack 카드 없음.
+  final DispatchAway? dispatchDone;
   Me.fromJson(Map<String, dynamic> j)
       : id = j['id'], nick = j['nick'], repChar = j['repChar'], pouch = j['pouch'], accountAgeDays = j['accountAgeDays'] ?? 0,
         giftToday = j['giftToday'] ?? 0, unread = j['unread'] ?? 0,
         ownedChars = List<String>.from(j['ownedChars'] ?? const []), ownedItems = List<String>.from(j['ownedItems'] ?? const []),
         ownedOutfits = List<String>.from(j['ownedOutfits'] ?? const []),
         skipIntro = (j['settings'] ?? {})['skipIntro'] ?? false,
-        earnToday = Map<String, int>.from(j['earnToday'] ?? {}), wallpaper = j['wallpaper'];
+        earnToday = Map<String, int>.from(j['earnToday'] ?? {}), wallpaper = j['wallpaper'],
+        dispatchDone = j['dispatchDone'] == null ? null : DispatchAway.fromJson(Map<String, dynamic>.from(j['dispatchDone']));
   bool ownsOutfit(String char, WrTheme t) => t == WrTheme.free || ownedOutfits.contains('$char:${t.name}');
 }
 

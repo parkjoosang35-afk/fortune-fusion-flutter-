@@ -44,7 +44,7 @@ import 'package:flutter_app/features/wishroom/features/room/main_room_screen.dar
 
 class _FakeWrRepository implements WrRepository {
   @override
-  Future<WishRoom> updateRoom(String id, {Visibility? visibility}) async {
+  Future<WishRoom> updateRoom(String id, {Visibility? visibility, String? visitPolicy}) async {
     return WishRoom.fromJson(_roomJson(vis: visibility?.name ?? 'PUBLIC'));
   }
 

@@ -1194,10 +1194,15 @@ class WishRoomProvider extends ChangeNotifier {
   }
 
   /// 내가 보낸 수호자의 결과 확인 · flow.js API.ackDispatch(id) 1:1. 금전 효과 없음.
+  /// [G5 신규] ackEntrust()와 달리 서버 응답에 room/me를 함께 돌려주지 않으므로
+  /// (route.ts가 {ok:true}만 반환), ack 성공 뒤 loadMyRoom()으로 me.dispatchDone을
+  /// 직접 갱신해야 DispatchBackCard가 닫힌다 — 안 하면 다음 화면 전환까지 카드가
+  /// 계속 떠 있는 버그가 생긴다.
   Future<bool> ackDispatch(String dispatchId) async {
     lastError = null;
     try {
       await repo.ackDispatch(dispatchId);
+      await loadMyRoom();
       return true;
     } on ApiError catch (e) {
       lastError = e;
