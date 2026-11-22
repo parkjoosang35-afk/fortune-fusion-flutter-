@@ -31,6 +31,7 @@ class GuidePrefs {
     _tour21Done = p.getBool('wr_tour21_done') ?? false;
     await _loadVisitedTabs(p);
     await _loadMenuInfoSeen(p);
+    await _loadDailyCardKeys(p);
     _loaded = true;
   }
 
@@ -102,5 +103,42 @@ class GuidePrefs {
 
   Future<void> _loadMenuInfoSeen(SharedPreferences p) async {
     _menuInfoSeen = (p.getStringList('wr_menuinfo_seen') ?? const []).toSet();
+  }
+
+  // [A12/A13 신규 — 46개 안내 팝업 전수 대조 공백 보완] app3/shell.jsx
+  // `c.log[c.day].tmrShown` / `v.log[v.day].morning` 1:1 — 원본은 서버에 저장되는
+  // "방 일자(day, 0-base)"를 키로 썼지만, 이 프로젝트 서버 스키마엔 그 일자별
+  // log 테이블이 없다(WishRoomPrayerLog와 마찬가지로 API 미연결, CHECKLIST.md
+  // 공백 기록 참고). "오늘 하루 한 번만" 판정 자체는 기기 로컬에서만 의미가
+  // 있으므로(여러 기기 동기화 불필요 — 순수 UX 장식), room.dayN(서버가 이미
+  // 내려주는 "방 생성일부터 경과일")을 키로 삼아 wr_hint_seen 등과 동일하게
+  // shared_preferences에 보관한다. dayN은 방마다 다시 1부터 시작하므로
+  // roomId까지 합쳐 키를 만들어야 새 소원을 쓴 뒤 다시 뜨지 않는 버그를 막는다.
+  String? _tmrShownKey; // 'roomId:dayN' — A12 TomorrowCard
+  String? _morningShownKey; // 'roomId:dayN' — A13 MorningCard3
+
+  Future<void> _loadDailyCardKeys(SharedPreferences p) async {
+    _tmrShownKey = p.getString('wr_tmr_shown_key');
+    _morningShownKey = p.getString('wr_morning_shown_key');
+  }
+
+  /// A12 TomorrowCard를 오늘(이 방의 이 dayN) 이미 보여줬는지.
+  bool tomorrowCardShown(String roomId, int dayN) =>
+      _tmrShownKey == '$roomId:$dayN';
+
+  Future<void> markTomorrowCardShown(String roomId, int dayN) async {
+    _tmrShownKey = '$roomId:$dayN';
+    final p = await SharedPreferences.getInstance();
+    await p.setString('wr_tmr_shown_key', _tmrShownKey!);
+  }
+
+  /// A13 MorningCard3를 오늘(이 방의 이 dayN) 이미 보여줬는지.
+  bool morningCardShown(String roomId, int dayN) =>
+      _morningShownKey == '$roomId:$dayN';
+
+  Future<void> markMorningCardShown(String roomId, int dayN) async {
+    _morningShownKey = '$roomId:$dayN';
+    final p = await SharedPreferences.getInstance();
+    await p.setString('wr_morning_shown_key', _morningShownKey!);
   }
 }

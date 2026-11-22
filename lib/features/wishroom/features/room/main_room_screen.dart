@@ -43,6 +43,8 @@ import '../notifications/notifications_screen.dart';
 import 'unlock_card.dart';
 import 'entrust_back_card.dart';
 import 'dispatch_back_card.dart';
+import 'tomorrow_card.dart';
+import 'morning_card.dart';
 import 'tour21_screen.dart';
 import 'care_menu_info.dart';
 import 'care_menu_info_sheet.dart';
@@ -142,6 +144,13 @@ class _MainRoomScreenState extends State<MainRoomScreen>
   // Tour21을 띄운다. GuidePrefs.I.tour21Done으로 "한 번이라도 봤으면 다시 안 뜸"을 보장.
   bool _firstTimeAfterPray = false;
   bool _tour21 = false;
+  // [A12 신규] app3/tour.jsx TomorrowCard — 생애 첫 기도가 아닌 매일 기도 직후
+  // "내일(또는 며칠 뒤)은 무엇이 열려요"를 1번 더 보여준다. app3/shell.jsx
+  // `afterPray(first)` 1:1 — first면 Tour21(_tour21), 아니면 이 카드(_tmr).
+  bool _tmr = false;
+  // [A13 신규] app3/guide3.jsx MorningCard3 — 2일째부터 하루 1번, 아직 오늘
+  // 기도 전에 화면을 열면 보여주는 "감동 포인트" 아침 인사 카드.
+  bool _morning = false;
 
   @override
   void initState() {
@@ -728,6 +737,24 @@ class _MainRoomScreenState extends State<MainRoomScreen>
               });
             }
 
+            // [A13 신규] app3/shell.jsx `scr==='home' && v.wish && v.dayN>=2 &&
+            // !v.prayedToday && !v.inPreview && !tour && !(v.log[v.day]||{}).morning`
+            // 1:1(치환: v.log[day].morning → GuidePrefs.I.morningCardShown, dayN
+            // 키). 2일째부터, 아직 오늘 기도 전이고, 투어/다른 오버레이 중이
+            // 아닐 때 이 화면을 열면 하루 1번 아침 인사 카드를 띄운다.
+            if (!_morning &&
+                room.devotionsToday < 1 &&
+                room.dayN >= 2 &&
+                !_tour &&
+                !_tour21 &&
+                !GuidePrefs.I.morningCardShown(room.id, room.dayN)) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                GuidePrefs.I.markMorningCardShown(room.id, room.dayN);
+                setState(() => _morning = true);
+              });
+            }
+
             return Stack(
               children: [
                 Positioned.fill(
@@ -1039,6 +1066,19 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                   if (_firstTimeAfterPray) {
                     _firstTimeAfterPray = false;
                     _tour21 = true;
+                  } else {
+                    // [A12 신규] app3/shell.jsx `afterPray(first)`의 !first 분기
+                    // `if (c.prayedToday && !(c.log[c.day]||{}).tmrShown)` 1:1
+                    // (치환: c.log[c.day].tmrShown → GuidePrefs.I.tomorrowCardShown,
+                    // dayN 키) — 생애 첫 기도가 아닌 매일 기도 직후, 오늘 아직
+                    // 이 카드를 안 봤으면 1번 보여준다.
+                    final r = context.read<WishRoomProvider>().room;
+                    if (r != null &&
+                        r.devotionsToday >= 1 &&
+                        !GuidePrefs.I.tomorrowCardShown(r.id, r.dayN)) {
+                      GuidePrefs.I.markTomorrowCardShown(r.id, r.dayN);
+                      _tmr = true;
+                    }
                   }
                 }),
                               ),
@@ -1214,6 +1254,38 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                     child: WrCanvasScaler(
                       contentHeight: 800,
                       child: DispatchBackCard(dispatch: p.me!.dispatchDone!),
+                    ),
+                  ),
+                // [A12 신규] app3/shell.jsx `{tmr && <TomorrowCard .../>}` 1:1 —
+                // 매일 기도 직후(생애 첫 기도 제외) "내일은 무엇이 열려요" 카드.
+                // _QuoteCard.onClose에서만 켜지므로 그 시점엔 _quoteText가 이미
+                // null이라 다른 오버레이 조건과 겹칠 일이 없다.
+                if (_tmr)
+                  Positioned.fill(
+                    key: const ValueKey('tomorrowCard'),
+                    child: WrCanvasScaler(
+                      contentHeight: 800,
+                      child: TomorrowCard(
+                        dayN: room.dayN,
+                        onClose: () => setState(() => _tmr = false),
+                      ),
+                    ),
+                  ),
+                // [A13 신규] app3/shell.jsx `{morning && !hint && <MorningCard3 .../>}`
+                // 1:1 — 2일째부터 하루 1번, 기도 전 화면 진입 시 아침 인사 카드.
+                // 원본은 처음 하는 동작 안내(hint, C그룹·미착수)와 동시에 뜨지
+                // 않게 막지만, 이 카드의 build() 트리거 조건(초입에서 계산)
+                // 자체가 _tour/_tour21 중엔 켜지지 않으므로 동일 효과를 낸다.
+                if (_morning)
+                  Positioned.fill(
+                    key: const ValueKey('morningCard'),
+                    child: WrCanvasScaler(
+                      contentHeight: 800,
+                      child: MorningCard(
+                        room: room,
+                        guardianName: p.characters.where((c) => c.id == room.char).firstOrNull?.name ?? '수호자',
+                        onClose: () => setState(() => _morning = false),
+                      ),
                     ),
                   ),
               ],
