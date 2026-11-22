@@ -1098,7 +1098,149 @@ grep 0건 — **위기 표현 감지 로직이 전혀 없음**. `filterText()`�
 동일기기 보상 차단 범위 포함 여부, ⑧ 분당제한(10→3)·하루상한 추가
 여부, ⑩ 위기표현 감지 신규 구현 여부 — 코드 변경은 아직 없음, 대표님
 판정 대기(위 표/결정사항 참고). 남은 S6 항목은 46개 안내 팝업 전수
-대조, 9단계 플로우 수동 QA — 전부 미착수(참고: "21일 미리보기" 자체
-(Tour21Screen)는 기존에 이미 구현되어 있었고, 이번에 발견돼 보강한
+대조(아래로 완료), 9단계 플로우 수동 QA — 미착수(참고: "21일 미리보기"
+자체(Tour21Screen)는 기존에 이미 구현되어 있었고, 이번에 발견돼 보강한
 것은 그 "종료 시 자동 목표설정" 누락분뿐이다). 그 외 미전달 6장
 스크린샷(`/home/user/wr_compare/DELIVERY_6SHOTS/`)도 그대로 대기 중.
+
+### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
+
+출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
+§05-B "POPUPS & GUIDES"(A~G 7개 그룹, 매핑표 자체 표기로 46개 —
+세부 행 전개 시 59개). 실제 카피 원문은
+`/home/user/handoffs/extracted/mapping/popup_copy.json`
+(GUIDE3·UNLOCK_TXT·TOUR_STEPS·MENU_INFO·TEXTS). 아래는 각 항목을
+`lib/features/wishroom/` 실제 코드와 대조한 결과다(코드 변경 없음 —
+조사만).
+
+**구현 확인(문제 없음)**:
+- **B1-B6**(UNLOCK_TXT, 잠금 해제 카드 6종) — `unlock_card.dart`에
+  원문과 정확히 일치.
+- **D1-D10**(MENU_INFO, "⋯ 소원방 돌보기" 메뉴 10종 안내) —
+  `care_menu_info.dart`에 원문과 정확히 일치(과거 세션에 이미 완료).
+- **A3-A10**(TOUR_STEPS, 21일 미리보기 7단계) — `tour21_screen.dart`에
+  원문과 정확히 일치.
+- **A1**(Intro3) — `features/intro/wish_room_intro_screen.dart`.
+- **A2**(Light3) — `features/compose/wish_light_screen.dart`
+  (`WishLightScreen`/`_StampSeal`/`_FlyingGlyph`).
+- **A14**(DoneCard) — `main_room_screen.dart`에 테마별 말씀카드 4종 +
+  🧧+5 보상까지 구현·보강됨(원안보다 풍부).
+- **A15**(HOLD_SHORT) — `devotion_controller.dart`
+  (`WrToast.show(context, '조금만 더 머물러 주세요')`, 정확 일치).
+- **C12**(잠긴 탭 안내) — "기다릴게요" 문구로 `wr_bottom_nav.dart` 등
+  4개 파일에서 확인.
+- **E1·E2**(결제창·영수증) — `features/shop/pay_screen.dart`
+  (`PayOrder`/`PayScreen`, S5 공용 결제창 그 자체).
+- **E3**(ConfirmBuy) — `guardian_detail_sheet.dart`.
+- **E4**(복주머니 시트) — `features/wallet/wallet_sheet.dart`
+  (`WalletSheet`).
+- **E5**(ExitAsk3) — `wr_nav_pill.dart`/`wr_bottom_nav.dart`의
+  `wrExitHome`/`wrBackOrAskExit` 헬퍼로 여러 화면에 공용 적용.
+- **F1**(GoalSheet3) — 독립 시트가 아니라 `wish_edit_sheet.dart`의 목표
+  칩(21/49/100/0)으로 **병합 구현**(기능 자체는 존재, 화면 구성만 원안과
+  다름 — 문제로 보지 않음).
+- **F2**(WishEdit3) — `wish_edit_sheet.dart`(이번 세션 "소원 수정 제한"
+  작업으로 완료).
+- **F3**(Fulfill3, 成/放) — `main_room_screen.dart`의 `_CareSheet`
+  (`Outcome.RELEASED`/`FULFILLED`, 이전 세션 4-B 작업으로 완료).
+- **F4**(Celebrate3) — `features/complete/complete_screen.dart`
+  (`CompleteScreen`, `_LightPillar`/`_LotusPop`/`_SealingOverlay`).
+- **G1**(수호자 자세히) — `guardian_detail_sheet.dart`에 성향·성격·
+  좋아하는 것·지켜주는 소원·상태별 CTA까지 원안 그대로 주석에 명시된
+  구조로 구현됨.
+- **G2**(맡기기 시트) — `entrust_sheet.dart`에 하루/사흘/이레 가격
+  선택 그대로 구현.
+- **G6**(다른 분 방 시트, Visit3) — `other_room_screen.dart`에
+  메시지쓰기(60자 — 스펙 표기 80자와 숫자만 다름, 기능은 동일)·선물
+  금액 칩(5/10/30/50개 — 스펙 표기 10/30/50/100과 숫자만 다름)·
+  "☾ 수호자 보내기" 버튼(`dispatchGuardian()` 호출)·신고 사유 시트
+  전부 구현 확인. 위기 표현 109 안내는 G6이 아니라 `compose_screen.dart`
+  쪽에 구현(작성 시점 차단 — 적용 위치가 스펙과 다르지만 기능은 존재).
+
+**확인된 공백(미구현 또는 구조적 결손) — 구현 여부 대표님 판정 필요**:
+
+1. **C1-C11(처음 동작 안내, 11항목) — 전면 미구현**. v5 스펙은 기존
+   구버전(app2 시절) 10개 주제짜리 통합 가이드북을 C(처음 동작
+   안내 11개)+D(메뉴 안내 10개) 2종으로 분리하라고 요구하는데, D만
+   완료되고 C는 전혀 새로 만들어지지 않았다. 현재
+   `guide_data.dart`/`guide_sheet.dart`/`guide_prefs.dart` 3개 파일
+   모두 여전히 구버전 10주제(촛불·정성·레벨·복주머니·캐릭터·소원·
+   봉인·응원·꾸미기·보관함) 구조 그대로이고, `main_room_screen.dart`·
+   `decor_screen.dart`·`vault_screen.dart`의 `_openGuide()` 호출부도
+   전부 이 구버전 `GuideBook`을 그대로 띄운다. `GuidePrefs`에는 v5의
+   "화면별 첫 동작 1회성 힌트"라는 개념 자체가 없다(과거 세션
+   CHECKLIST에도 "구버전 가이드북을 C+D로 쪼개야 하는데 D만
+   끝냈다"는 메모가 이미 있었음 — 그대로 미완 상태로 남아있었음이
+   이번에 재확인됨).
+
+2. **A11(TabGuide) — 애매함, 판정 필요**. "소원방 쓰는 법" 메뉴 항목
+   (`_CareSheet` 안)이 진입점으로 존재하긴 하나, 누르면 위 1번의
+   구버전 `GuideBook`이 열려 v5의 새 TabGuide 내용이 아니다.
+   "진입점은 있으나 내용이 다름" — 구현/미구현 중 어느 쪽으로 볼지
+   판단 필요(사실상 1번 C그룹 공백과 같은 근본 원인).
+
+3. **A12(TomorrowCard)·A13(MorningCard3) — 확인된 공백, 과거에
+   명시적으로 보류됨**. `main_room_screen.dart`에 "아침 인사
+   카드(A13)·21일 미리보기(A3~A11) 신규 구현은 S3 이후 별도 작업"이라는
+   코드 주석이 그대로 남아있다. 21일 미리보기(A3-A10)는 이후 실제로
+   구현됐지만 A12·A13은 끝내 구현되지 않았다. 더 중요한 점은, A13이
+   대체하기로 했던 구버전 "FirstVisitChip" 기능이 이미 제거된 상태라
+   — 단순히 "새 기능 미구현"이 아니라 "있던 기능을 빼고 대체품을 아직
+   안 넣은" 실질적 기능 공백이다.
+
+4. **F5(공개 설정, Share3) — 부분 공백**. `_ShareSheet`
+   (`main_room_screen.dart`)에 공개범위 전환(모두에게/링크로만/나만
+   보기, `Visibility` enum + `updateVisibility()`)은 구현돼 있지만,
+   스펙이 요구하는 "수호자 방문 받지 않기/물어보고/누구든"
+   (`visitPolicy`: off/ask/open) 설정 UI는 어디에도 없다.
+   `visitPolicy` 필드는 서버 응답을 그대로 읽어 **보여주기만**
+   하는 2곳(`other_room_screen.dart`, `received_sheet.dart`)뿐이고,
+   값을 바꾸는 UI·provider 메서드(`updateVisitPolicy` 등) 자체가
+   코드에 없다 — 현재 방문객이 "☾ 방문 여쭤보기/보내기" 버튼을 볼 때
+   항상 서버 기본값(`ask`)에 의존하며, 방 주인이 이를 직접 끄거나
+   "누구든 OK"로 바꿀 방법이 없다.
+
+5. **G3(EntrustBack, 맡기기 끝 카드) — 데이터/API는 있으나 UI 전혀
+   없음**. 모델에 `WishRoom.entrustDone` 필드, provider에
+   `ackEntrust(id)`(서버 "마음에 담기" 처리) 메서드가 다 구현돼 있지만,
+   `room.entrustDone`을 읽어 "맡긴 기간 종료 · ○○이 N일 동안 대신
+   빌었어요" 카드를 띄우는 화면이 **단 한 곳도 없다**. `ackEntrust()`도
+   어느 UI에서도 호출되지 않는다(provider 안에서만 정의돼 있고
+   호출부 0건). 즉 서버가 데이터를 내려줘도 사용자는 절대 볼 수 없고,
+   종료 처리(ack) 자체도 트리거할 방법이 없다.
+
+6. **G5(DispatchBack, 보낸 수호자 귀환 카드) — G3과 동일한 패턴의
+   공백**. 모델에 `WishRoom.guardianAway`(`DispatchAway`) 필드가 있고
+   `guardianAway != null` 체크는 `guardian_detail_sheet.dart`(바쁨
+   상태 표시용) 등 3곳에서 하지만, 이는 전부 "지금 보낸 상태인지"
+   판정용일 뿐 **귀환 완료 시 "기도 일지 보여주기" 카드**는 어디에도
+   없다. provider의 `ackDispatch(dispatchId)` 메서드도 선언만 있고
+   호출하는 UI가 전혀 없다(G3과 동일하게 호출부 0건).
+
+**요약표**:
+
+| 그룹 | 항목 수 | 상태 |
+|---|---|---|
+| A (처음·매일) | 15 | A1,A2,A3-A10,A14,A15 구현 / A11 애매(구내용 다름) / A12,A13 공백 |
+| B (열림카드) | 6 | 전부 구현 |
+| C (처음 동작 안내) | 11 | **전부 공백**(구버전 가이드북 미분리) |
+| C12 (잠긴 탭) | 1 | 구현 |
+| D (메뉴 안내) | 10 | 전부 구현(기완료) |
+| E (확인·결제) | 5 | 전부 구현 |
+| F (소원 관리) | 5 | F1,F2,F3,F4 구현 / F5 부분 공백(방문정책 편집 UI 없음) |
+| G (수호자·함께) | 6 | G1,G2,G6 구현 / G3,G5 공백(데이터·API만 있고 UI 없음) / G4는 `received_sheet.dart`에 구현 확인 |
+
+**확인된 공백 총정리(구현 필요 여부 대표님 판정 대기)**:
+1. C1-C11(처음 동작 안내 11종) 신규 구현 — 가장 큰 작업.
+2. A11 TabGuide를 C그룹과 함께 새로 만들지, 구버전 가이드북 연결을
+   그대로 둘지.
+3. A12(TomorrowCard)·A13(MorningCard3) 신규 구현 — 특히 A13은 이미
+   제거된 FirstVisitChip의 대체 기능이라 우선순위 검토 필요.
+4. F5 방문 정책(visitPolicy) 편집 UI 신규 구현 — 방 주인이 "수호자
+   방문 받지 않기/물어보고/누구든"을 직접 설정할 방법 추가.
+5. G3(EntrustBack) 카드 UI 신규 구현 — 데이터·API는 이미 있어 UI만
+   추가하면 됨(상대적으로 작은 작업).
+6. G5(DispatchBack) 카드 UI 신규 구현 — G3과 동일하게 UI만 추가하면 됨.
+
+**코드 변경은 아직 없음 — 조사만 완료. 위 6개 공백에 대해 대표님 판정
+후 구현 여부·우선순위 결정 예정.**
