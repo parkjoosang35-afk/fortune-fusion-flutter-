@@ -32,8 +32,15 @@ const double wrCanvasW = 390, wrCanvasH = 844;
 /// [WrCanvasScaler]와 동일한 좌표계를 쓰는 다른 위젯(예: 꾸미기 화면의 드래그
 /// 배치 좌표, 격자 배경 간격 계산)도 반드시 이 함수로 배율을 구해야
 /// WrCanvasScaler가 실제로 그리는 캔버스와 좌표가 어긋나지 않는다.
-double wrCanvasScaleFor(Size size) =>
-    math.min(size.width / wrCanvasW, size.height / wrCanvasH);
+///
+/// [필러박싱 긴급 수정] 아래 [WrCanvasScaler]의 기본(contentHeight 없음) 모드와
+/// 반드시 동일한 공식을 써야 한다 — 하나만 바뀌면 꾸미기 화면의 드래그 핸들이
+/// 실제로 그려지는 RoomScene과 어긋난다.
+double wrCanvasScaleFor(Size size) => size.height < _wrHeightFloor
+    ? math.min(size.width / wrCanvasW, size.height / wrCanvasH)
+    : size.width / wrCanvasW;
+
+const double _wrHeightFloor = 540.0;
 
 /// 390×844 Stack을 화면 크기에 맞춰 스케일해 보여준다. 폭/높이 중 더 작은
 /// 배율을 적용해(= `BoxFit.contain`과 동일한 원리) 캔버스가 잘리지 않고
@@ -99,11 +106,26 @@ class WrCanvasScaler extends StatelessWidget {
             ),
           );
         }
+        // [필러박싱 긴급 수정 — 대표님 리포트 "소원방 양쪽 검은 여백, 폭 끝까지
+        // 꽉 차야 함" / 원본 스샷(478w) 실측 좌우 각 ~47px(약 20%) 암전] 기존
+        // "폭/높이 중 더 작은 배율"(BoxFit.contain 방식)은 세로 가용 공간이
+        // contentHeight(800)에 못 미치는 모든 화면에서 무조건 좌우 여백을
+        // 만든다 — 그런데 모바일 브라우저(특히 카카오톡 등 인앱 브라우저,
+        // 주소창이 접히지 않는 환경)는 실제 화면 높이보다 훨씬 작은
+        // window.innerHeight를 보고하는 경우가 흔해, 거의 모든 실사용
+        // 환경에서 이 여백이 발생하는 회귀였다. 대표님 지시대로 "폭을 항상
+        // 꽉 채우는 것"을 최우선으로 삼아 기본값을 폭 기준 배율로 바꾼다.
+        // 세로가 부족하면 캔버스 맨 아래(원래 UI가 없는 배경 여백부터)가
+        // 화면 밖으로 밀려날 뿐이다 — contentHeight(800)는 정성 버튼
+        // 하단(786)에서 이미 14px 버퍼를 두고 있었으므로 일반적인 모바일
+        // 뷰포트에서는 폭 기준으로 키워도 버튼이 가려지지 않는다. 분할화면
+        // 등 극단적으로 짧은 뷰포트(maxHeight<540)에서만 예전 방식(세로
+        // 보정 min-scale)으로 되돌려 핵심 버튼이 화면 밖으로 완전히
+        // 사라지는 사고만 막는다.
         final effectiveH = contentHeight ?? wrCanvasH;
-        final scale = math.min(
-          c.maxWidth / wrCanvasW,
-          c.maxHeight / effectiveH,
-        );
+        final scale = c.maxHeight < _wrHeightFloor
+            ? math.min(c.maxWidth / wrCanvasW, c.maxHeight / effectiveH)
+            : c.maxWidth / wrCanvasW;
         return ClipRect(
           child: OverflowBox(
             alignment: Alignment.topCenter,
