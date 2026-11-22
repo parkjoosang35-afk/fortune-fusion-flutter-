@@ -1408,3 +1408,91 @@ entrust/theme/share/vault — 를 신규 "처음 동작 안내" 시스템으로 
 신규 `Guide3Lock` 인프라로 교체할지 여부 — 이번 범위에서는 미착수,
 대표님 판단 필요. 그 외 어뷰징 ⑥⑧⑩ 잔여 결정, 9단계 플로우 수동 QA는
 여전히 미착수.
+
+### 대표님 판정 ① "안내는 한 번에 하나씩" — decor/theme 안내 분리
+
+- 문제: `decor_screen.dart`가 화면 진입 시 'decor'·'theme' 두 GUIDE3 안내를
+  연달아 띄웠다 — "하나씩 쉽게"라는 원칙과 맞지 않는다는 지적.
+- 수정(`decor_screen.dart`만):
+  - `initState()`는 이제 'decor' 안내만 화면 진입 시 띄운다. 'theme' 호출은
+    제거.
+  - 신규 `_onThemeTabTap(room)` — 방 분위기(THEME) 슬롯칩을 누른 순간에만
+    호출. `room.isFeatureUnlocked('theme')`가 false(7일째 전)면
+    `showGuide3LockSheet()`(판정②, 아래 참고)로 잠금 안내만 보여주고 슬롯
+    전환은 하지 않는다. true면 슬롯을 THEME로 바꾸고 `maybeShowGuide3(context,
+    'theme')`(평생 1회)를 호출한다.
+  - `_slot` 기본값이 `Slot.THEME`인데 아직 잠긴 방으로 처음 진입했을 수
+    있어, `_didAdjustInitialSlot` 가드로 `build()` 첫 회에 한해 조용히
+    `Slot.DECORATION`으로 되돌린다(안내 없이 — 빈/잠긴 화면 노출 방지).
+  - 슬롯칩: THEME가 잠겨 있으면 라벨을 `🔒 방 분위기`로, 칩 전체를 반투명
+    (`opacity: .5`)으로 바꾸고 탭을 `_onThemeTabTap`으로 라우팅. 그 외
+    슬롯은 기존 동작 그대로.
+  - THEME 콘텐츠 영역: 잠긴 상태에서 THEME 그리드 대신 "🔒 방 분위기는
+    7일째에 열려요 · 먼저 장식을 둘러보세요" 안내 문구로 대체(초기 슬롯
+    자동 보정 레이스 상황에서도 잠긴 내용이 한 프레임도 보이지 않도록).
+
+### 대표님 판정 ② "잠김 안내는 한 가지 모양으로" — `Guide3Lock` 통일
+
+- 문제: 잠금 안내가 3곳에서 서로 다른 모양이었다 — 하단 탭
+  (`wr_bottom_nav.dart`/`wishroom_shell.dart`, 그림 없이 🔒 이모지+문구+버튼만),
+  ⋯ 메뉴(`care_menu_info_sheet.dart`, 그림+진행막대 있음), 상점
+  (`shop_screen.dart`, 토스트 1줄).
+- 신규 공용 함수 `showGuide3LockSheet(context, {required item, required lock})`
+  (`guide3_sheet.dart`) — 앱 전체 유일한 잠금 안내 시트. 기존
+  `_Guide3Sheet`(히어로+제목+스텝카드+약속문구) 구조를 그대로 쓰고,
+  `care_menu_info_sheet.dart`와 동일한 "오늘 N일째" + 진행 막대를 lock 모드에
+  추가했다. `showGuide3Sheet`와 달리 "평생 1번" 판정이 없다 — 잠긴 동안은
+  누를 때마다 매번 보여줘야 하므로 `GuidePrefs.seen/markSeen`을 건드리지
+  않는다.
+  - `Guide3Lock{day, left, dayN}` — 기존 `{day,left}`에 진행 막대 계산용
+    `dayN`(오늘 며칠째)을 추가했다.
+- 3곳 전부 이 함수 하나로 교체, 옛 함수 삭제:
+  1. `wr_bottom_nav.dart`의 `wrShowLockHintSheet()` — 본문을
+     `showGuide3LockSheet()` 호출로 전면 교체. lock key
+     (`guardian`/`together`/`decor`)를 `kGuide3` 키
+     (`guardians`/`together`/`shop`)로 매핑. 상점 탭의 'decor'→'shop'
+     날짜 리매핑(오픈 판정 3일째 vs 안내 문구 14일째)은 그대로 유지.
+  2. `wishroom_shell.dart`의 `_showLockHintSheet()` — 동일하게 교체. 옛
+     ad-hoc `showModalBottomSheet` 본문(그림 없는 간이 시트)은 완전히
+     삭제했다.
+  3. `care_menu_info_sheet.dart`(⋯ 메뉴, `main_room_screen.dart`의
+     `_careRow`/`openInfo`) — 잠겨 있고(`!isOpen`) 날짜 계산이 의미 있는
+     (`!info.unimplemented`) 항목만 `showGuide3LockSheet()`로 분기. "곧
+     열려요"(API 미구현, 날짜 자체가 없는 `unimplemented: true` 항목 —
+     현재 10개 중 실제 해당 항목 없음)는 예외로 기존
+     `showCareMenuInfoSheet`의 `comingSoon` 모드를 유지(Guide3Lock의 진행
+     막대는 날짜가 필수라 "곧 열려요" 의미를 표현할 수 없음). 열려 있는
+     항목의 "처음 보는 안내"(HOW IT WORKS+바로가기)는 잠금 안내와 다른
+     종류라 기존 시트 그대로 둔다.
+     - `CareMenuInfo`에 신규 `guideKey` 필드 추가 — `lockKey`와 이름이
+       같은 항목(decor/wardrobe/theme/wallpaper/shop)은 비워 두면
+       `lockKey`를 그대로 쓰고, 의미가 다른 2개만 명시:
+       `'수호자에게 맡기기'`(lockKey='guardian', guideKey='entrust'),
+       `'찾아온 수호자'`(lockKey='together', guideKey='visitor').
+     - `kGuide3`에 없던 2개 키 신규 추가(`guide3_data.dart`) —
+       `'wallpaper'`(배경화면으로 쓰기, care_menu_info.dart 기존 문구를
+       그대로 가져옴)와 `'visitor'`(찾아온 수호자, 원본 GUIDE3엔 "내가 남의
+       소원을 빎"(together)의 반대 방향인 "남이 내 소원을 빌러 옴"에 대응하는
+       키가 없었음 — 신규로 채워 넣음).
+  4. `shop_screen.dart`의 `_lockToast()` — 짧은 토스트 1줄 대신
+     `showGuide3LockSheet(item: kGuide3['shop'], ...)`로 교체. 구매 시도
+     시점(수호자 구매/옷 구매/아이템 구매 공통 경로)에 호출된다. 화면
+     자체를 막는 `_lockBanner()`("🔒 구경은 언제든 마음껏 · 정식으로
+     사기는 N일 뒤부터예요")는 "구경 가능" 의미가 따로 있어 그대로 둔다 —
+     Guide3Lock 전체화면 시트로 바꾸면 그 의미가 사라지기 때문.
+- 재확인한 재잠금 방지 수정(사용자 질의에 대한 답): admin_web 커밋
+  `f6b20531`(fix(wishroom): 열림(unlock) 상태를 방 단위 → 사용자 단위로
+  전환)이 현재 admin_web HEAD `6acb2952`의 조상 — 이미 완료되어 있었음(본
+  CHECKLIST.md 280~307행에 런타임 검증 기록 있음). 추가 작업 불필요.
+- admin_web 금지 파일 5종 불변 재확인(`git status --short` diff 모양 동일,
+  이번 라운드는 flutter_app만 수정).
+
+**검증**: `flutter analyze`(전체 프로젝트, wishroom 범위 별도 포함) 통과 —
+신규 오류 0건, `git stash`/`pop` 전후 비교로 베이스라인과 이슈 수 동일
+(전체 118건 · wishroom 범위 50건, 기존에 확인된
+`guardian_outfit_launcher_test.dart` 오류 2건 포함 모두 기존 항목).
+`build_local.sh --debug` 빌드 성공(137.7s). 프리뷰 서버(:5060) 기동
+확인(HTTP 200).
+
+남은 공백: 어뷰징 ⑥⑧⑩ 항목명 3줄 대기 중(사용자 제공 필요), 6개
+스크린샷(4-A×3, 4-B×3) 대조, 9단계 플로우 수동 QA는 여전히 미착수.
