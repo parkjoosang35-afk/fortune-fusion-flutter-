@@ -15,6 +15,7 @@ import '../../data/wr_catalog.dart';
 import '../../core/theme/wr_theme.dart';
 import '../../core/wr_toast.dart';
 import '../shop/pay_screen.dart';
+import '../guide/guide3_sheet.dart';
 
 /// 어디서든(소원방 돌보기 메뉴 "수호자에게 맡기기") 호출 가능한 오프너.
 void openEntrustSheet(BuildContext context) {
@@ -56,6 +57,11 @@ class _EntrustSheetState extends State<EntrustSheet> {
     super.initState();
     final room = context.read<WishRoomProvider>().room;
     _startsToday = !(room != null && room.devotionsToday > 0);
+    // [C8 신규] app3/shell.jsx `want` — sh==='entrust' 시트를 처음 열 때
+    // "수호자에게 맡겨요" 안내(평생 1번).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowGuide3(context, 'entrust');
+    });
   }
 
   // [S5 — 공용 결제창 통일] app3/entrust.jsx `go()`가 app.checkout({kind:'entrust',...})을

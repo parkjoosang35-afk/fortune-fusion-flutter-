@@ -19,6 +19,7 @@ import '../wallet/wallet_sheet.dart';
 import 'guardian_detail_sheet.dart';
 import '../wardrobe/wardrobe_screen.dart';
 import '../../core/wr_toast.dart';
+import '../guide/guide3_sheet.dart';
 
 class CharacterShopScreen extends StatefulWidget {
   const CharacterShopScreen({super.key, this.embedded = false});
@@ -46,6 +47,9 @@ class _CharacterShopScreenState extends State<CharacterShopScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _init();
+      // [C2 신규] app3/shell.jsx `want` — scr==='guardians' 탭 첫 진입 시
+      // "수호자는 내 소원 친구" 처음 동작 안내(평생 1번).
+      if (mounted) maybeShowGuide3(context, 'guardians');
     });
   }
 

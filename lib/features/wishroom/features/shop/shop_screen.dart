@@ -20,6 +20,7 @@ import '../../core/wr_toast.dart';
 import '../wallet/wallet_sheet.dart';
 import '../decor/decor_screen.dart';
 import 'pay_screen.dart';
+import '../guide/guide3_sheet.dart';
 
 const List<(Slot, String, String)> _kItemTabs = [
   (Slot.DECORATION, 'DECORATION', '장식'),
@@ -51,6 +52,9 @@ class _ShopScreenState extends State<ShopScreen> {
       final p = context.read<WishRoomProvider>();
       if (!p.catalogLoaded) p.loadCatalog();
       if (p.me == null) p.loadMyRoom();
+      // [C6 신규] app3/shell.jsx `want` — sh==='shop' || scr==='shop' 첫 진입 시
+      // "소원 상점" 처음 동작 안내(평생 1번).
+      if (mounted) maybeShowGuide3(context, 'shop');
     });
   }
 

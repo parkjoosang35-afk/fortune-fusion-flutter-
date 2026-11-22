@@ -29,6 +29,7 @@ import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 import '../shop/shop_screen.dart';
 import '../characters/outfit_variants.dart';
+import '../guide/guide3_sheet.dart';
 
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
@@ -53,6 +54,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _init();
+      // [C4 신규] app3/shell.jsx `want` — sh==='wardrobe' 시트(여기선 독립
+      // 화면)를 처음 열 때 "수호자 옷을 갈아입혀요" 안내(평생 1번).
+      if (mounted) maybeShowGuide3(context, 'wardrobe');
     });
   }
 

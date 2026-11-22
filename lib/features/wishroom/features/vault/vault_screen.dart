@@ -19,6 +19,7 @@ import '../room/room_scene.dart';
 import '../compose/compose_screen.dart';
 import '../complete/complete_screen.dart';
 import '../guide/guide_sheet.dart';
+import '../guide/guide3_sheet.dart';
 import '../../core/wr_nav_pill.dart';
 import '../../core/wr_toast.dart';
 
@@ -51,6 +52,9 @@ class _VaultScreenState extends State<VaultScreen> with SingleTickerProviderStat
       if (!mounted) return;
       p.loadArchive();
       p.loadLedger();
+      // [C11 신규] app3/shell.jsx `want` — scr==='vault' 탭 첫 진입 시
+      // "이루어진 소원 보관함" 처음 동작 안내(평생 1번).
+      maybeShowGuide3(context, 'vault');
     });
   }
 

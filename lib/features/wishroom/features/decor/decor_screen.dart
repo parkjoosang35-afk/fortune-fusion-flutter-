@@ -25,6 +25,7 @@ import '../compose/compose_screen.dart';
 import '../../core/wr_toast.dart';
 import '../../core/wr_item_icon.dart';
 import '../shop/shop_screen.dart';
+import '../guide/guide3_sheet.dart';
 
 class DecorScreen extends StatefulWidget {
   const DecorScreen({super.key});
@@ -50,6 +51,19 @@ class _DecorScreenState extends State<DecorScreen> {
     super.initState();
     final p = context.read<WishRoomProvider>();
     if (!p.catalogLoaded) p.loadCatalog();
+    // [C3-decor/C9-theme 신규] app3/shell.jsx `want` — sh==='decor'(이 화면
+    // 전체)를 처음 열 때 "방을 꾸며요" 안내. 원본은 테마 전환을 별도
+    // Theme3 시트로 열었지만(sh==='theme'), 이 포팅은 THEME을 DecorScreen의
+    // 첫 슬롯 탭으로 합쳤으므로(_slot 기본값 THEME) "방 분위기를 골라요"
+    // 안내는 그 슬롯이 실제로 보이는 시점(= 이 화면 진입 시점과 동일)에
+    // 함께 띄운다 — 두 안내가 한 번에 겹치지 않도록 'decor'가 먼저 닫힌
+    // 뒤 'theme'를 연이어 보여준다.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await maybeShowGuide3(context, 'decor');
+      if (!mounted) return;
+      await maybeShowGuide3(context, 'theme');
+    });
   }
 
   bool _isOn(WrItem it, WishRoom room) => room.equip.all.contains(it.id);

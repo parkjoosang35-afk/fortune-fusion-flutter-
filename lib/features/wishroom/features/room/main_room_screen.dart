@@ -45,6 +45,8 @@ import 'entrust_back_card.dart';
 import 'dispatch_back_card.dart';
 import 'tomorrow_card.dart';
 import 'morning_card.dart';
+import '../guide/guide3_sheet.dart';
+import '../guide/tab_guide_sheet.dart';
 import 'tour21_screen.dart';
 import 'care_menu_info.dart';
 import 'care_menu_info_sheet.dart';
@@ -752,6 +754,21 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                 if (!mounted) return;
                 GuidePrefs.I.markMorningCardShown(room.id, room.dayN);
                 setState(() => _morning = true);
+              });
+            }
+
+            // [C1 신규] app3/shell.jsx `want` 마지막 분기 — `scr==='home' &&
+            // v.wish && !v.prayedToday && v.prayedN===0 && !tour` 1:1. 소원을
+            // 쓴 뒤 생애 첫 화면(아직 한 번도 빌지 않음)에서 "두 손 모아
+            // 빌어요" 안내를 보여준다. Tour21(_tour21)도 같은 "첫 기도"
+            // 순간을 다루므로 함께 제외한다.
+            if (room.devotionsToday < 1 &&
+                room.prayedN == 0 &&
+                !_tour &&
+                !_tour21 &&
+                !GuidePrefs.I.seen('pray')) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) maybeShowGuide3(context, 'pray');
               });
             }
 
@@ -3288,12 +3305,14 @@ class _CareSheetState extends State<_CareSheet> {
               '그 밖에',
               style: WrF.body(12, w: FontWeight.w700, color: WrC.muted),
             ),
-            // 「그 밖에」 1 — 소원방 쓰는 법(= 기존 guideBtn 안내서, A11 탭 안내).
+            // [A11 신규] 「그 밖에」 1 — 소원방 쓰는 법. app3/tour.jsx `TabGuide`
+            // 전용 1장 요약 시트로 교체(기존엔 구버전 10주제 GuideBook을 열어
+            // v5 스펙 내용과 달랐다 — CHECKLIST.md A11 공백 기록 참고).
             _plainRow(
               ic: '📖',
               t: '소원방 쓰는 법',
               s: '탭 6개 · ⋯ 메뉴 · 각 열리는 날을 한 장으로',
-              onTap: () => widget.openGuide(),
+              onTap: () => showTabGuideSheet(context),
             ),
             // 「그 밖에」 2 — 들어갈 때 인트로 보기(skipIntro 반전 토글).
             // [v5 S2 — 사용자 확정] 서버 PATCH(setSkipIntro)에 연결, 값=true면
@@ -4011,6 +4030,11 @@ class _ShareSheetState extends State<_ShareSheet> {
   void initState() {
     super.initState();
     if (_vis != Visibility.PRIVATE) _loadLink(false);
+    // [C10 신규] app3/shell.jsx `want` — sh==='share' 시트를 처음 열 때
+    // "함께 빌어달라고 해요" 안내(평생 1번).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowGuide3(context, 'share');
+    });
   }
 
   Future<void> _loadLink(bool reissue) async {

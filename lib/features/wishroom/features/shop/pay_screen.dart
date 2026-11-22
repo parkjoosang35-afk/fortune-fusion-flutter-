@@ -19,6 +19,7 @@ import '../../core/theme/wr_theme.dart';
 import '../../core/fx/wr_fx.dart';
 import '../../core/wr_toast.dart';
 import '../wallet/wallet_sheet.dart';
+import '../guide/guide3_sheet.dart';
 
 /// 결제창에 전달하는 "주문" 정보 — app3/pay.jsx `order` prop 1:1.
 class PayOrder {
@@ -97,6 +98,11 @@ class _PayScreenState extends State<PayScreen> {
     // app3/pay.jsx `'WR'+Date.now().toString(36)...` 1:1(주문번호).
     _oid =
         'WR${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
+    // [C7 신규] app3/shell.jsx `want` — order(이 화면)를 열 때 항상 최우선으로
+    // "복주머니로 결제해요" 안내(평생 1번) — 원본 `want = order ? 'pay' : ...`.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowGuide3(context, 'pay');
+    });
   }
 
   Future<void> _pay(int before) async {

@@ -14,6 +14,7 @@ import '../room/room_scene.dart';
 import '../review/review_write_screen.dart';
 import 'other_room_screen.dart';
 import '../../core/wr_toast.dart';
+import '../guide/guide3_sheet.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key, this.initialTab = 'rooms'});
@@ -39,6 +40,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WishRoomProvider>().loadExplore();
       context.read<WishRoomProvider>().loadReviewFeed();
+      // [C3 신규] app3/shell.jsx `want` — scr==='together' 탭 첫 진입 시
+      // "다른 사람 소원도 빌어 줘요" 처음 동작 안내(평생 1번).
+      if (mounted) maybeShowGuide3(context, 'together');
     });
   }
 
