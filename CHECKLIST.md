@@ -2152,6 +2152,88 @@ append-only 트리거로 영구 보존됨(실질 잔액/상태는 이미 원복�
 **TodoWrite 갱신**: §12 ⑧ 완료 처리(공백 발견, 대표님 판단 대기).
 다음 순서는 §12 ⑨ 방 분위기 바꿈이다(미착수).
 
+### §12 예외상황 ⑨ 방 분위기 바꿈 — 공백 없음(API 재현)
+
+**기획 요구사항**(§12 예외상황 9번): "방 분위기 바꿈 — 버튼 이름 ·
+한마디 · 옷(자동일 때) 함께 변경 · 기록 유지". 즉 "테마(분위기)를
+바꾸면 기도 버튼 이름, 한마디(의식 문구), 자동 코디 중인 옷이
+전부 즉시 새 테마에 맞춰 바뀌어야 하고, 그 전까지 쌓인 기록(기도
+횟수·포인트·레벨 등 누적 통계)은 그대로 유지돼야 한다"는 의미.
+
+**코드 조사**:
+- **버튼 이름**: `main_room_screen.dart`의 `kPrayBtnLabel`(63-68행)
+  맵 `{free:'두 손 모아', god:'기도하기', buddha:'절 올리기',
+  shaman:'두 손 비비기'}`를 2059행에서
+  `kPrayBtnLabel[room.theme.name] ?? '두 손 모아'`로 매 렌더링마다
+  `room.theme`을 실시간 조회해 결정 — 별도 캐싱이나 저장 없이
+  테마가 바뀌면 다음 프레임에 즉시 버튼 이름도 바뀜.
+- **한마디(의식 문구)**: 같은 파일에서
+  `final ritual = cat.ritual(room.theme)`(295행, 732행)으로 매번
+  `room.theme`을 참조해 `wishroom_data.json`의 `RITUAL`
+  (free/god/buddha/shaman 각각 다른 verb/icon/pose/lines/quotes
+  세트)을 가져옴 — 이 역시 테마 변경 즉시 반영되는 실시간 조회
+  구조.
+- **옷(자동일 때) 함께 변경**: `theme/route.ts`의 PATCH 핸들러는
+  `theme` 컬럼만 바꾸고 `outfit` 컬럼은 건드리지 않는다(코드 주석:
+  "outfit=null이면 테마 변경만으로 자동 반영됨"). `outfitNowOf()`
+  함수(engine.ts 680-690행)의 로직: `want = outfit || theme ||
+  'free'` — `outfit`이 `null`(= 자동 모드)이면 `theme` 값을 그대로
+  착장으로 사용하므로, 테마만 바꾸면 옷도 자동으로 같이 바뀜.
+- **기록 유지**: `wish_room_prayer_logs` 테이블이 스키마에 정의돼
+  있으나(`room_id`/`day_idx`/`date_key`/`who_prayed`) 실제 API
+  라우트 코드 어디에서도 이 테이블에 쓰거나 읽는 코드가 없음(grep
+  0건, DB에는 과거 room 13의 테스트성 레코드 7건만 존재) —
+  "기록"은 이 죽은 테이블이 아니라 `wish_rooms` 자체의 누적 통계
+  컬럼(`devotion_count`/`points`/`level`/`support_count`/
+  `comment_count`/`prayer_streak` 등)을 의미하는 것으로 해석하고
+  검증.
+
+**API 레벨 재현 검증**(user458 소유 `wr_19`, 테스트 후 원복):
+
+| 단계 | 호출 | 결과 |
+|---|---|---|
+| 1 | `GET /wish-rooms/me` (theme="free") | `outfit:null`, `outfitNow:"free"`, `devotionCount:1`, `points:1`, `level:1`, `supportCount:0`, `commentCount:0`, `brightness:1`, `decayLabel:"밝게 타는 중"`, `dayN:1` |
+| 2 | `PATCH /wish-rooms/wr_19/theme {theme:"god"}` | 성공, `theme:"god"`, `outfit:null`, `outfitNow:"god"` |
+| 3 | `GET /wish-rooms/me` (theme="god") | `outfitNow:"god"`로 자동 전환, 그 외 `devotionCount:1`/`points:1`/`level:1`/`supportCount:0`/`commentCount:0`/`brightness:1`/`decayLabel`/`dayN:1` **전부 변화 없음** |
+| 4 | `PATCH /wish-rooms/wr_19/theme {theme:"buddha"}` | 성공, `outfitNow:"buddha"`로 재전환 |
+| 5 | `GET /wish-rooms/me` (theme="buddha") | 통계 필드 전부 2단계와 동일(불변) 재확인 |
+| 6 | `PATCH /wish-rooms/wr_19/theme {theme:"free"}` | 원복 완료, `outfitNow:"free"` |
+
+- **버튼 이름/한마디**는 Flutter 쪽이 `room.theme`을 매 렌더링마다
+  실시간 조회하는 구조라 서버가 테마만 바꿔 내려주면 클라이언트는
+  별도 처리 없이 자동 반영됨(코드 검토로 확인, 서버 응답에 버튼
+  라벨/의식 문구 자체가 포함되지 않고 클라이언트가 `theme` 값으로
+  로컬 맵에서 찾아 쓰는 구조이므로 API 재현 대신 코드 분석으로
+  충분히 확정 가능).
+- **옷(자동)**은 위 표와 같이 API 재현으로 3회(god→buddha→free)
+  연속 전환 모두 `outfitNow`가 매번 즉시 따라감을 실측.
+- **기록 유지**는 3회 테마 전환 전후로 `devotionCount`/`points`/
+  `level`/`supportCount`/`commentCount`/`brightness`/`decayLabel`/
+  `dayN` 등 모든 누적·상태 필드가 **한 번도 변하지 않음**을 실측
+  확인 — 테마 변경 API(`theme/route.ts`)가 `theme` 컬럼 외 다른
+  컬럼을 전혀 건드리지 않으므로 당연한 결과이지만, 실측으로
+  교차검증 완료.
+
+**결론**: **⑨(§12 예외상황) 방 분위기 바꿈 — 공백 없음, 기획
+요구사항 4가지(버튼 이름·한마디·옷 자동 변경·기록 유지) 전부
+충족 확인**. 테마 변경 API가 `theme` 컬럼 하나만 원자적으로
+바꾸고, 클라이언트는 그 값을 실시간으로 참조해 버튼/문구/자동
+코디를 갱신하며, 그 외 모든 통계·진행 상태는 전혀 건드리지 않는
+단순하고 견고한 구조 덕분에 별도 보강 없이 요구사항이 자연스럽게
+충족됨. `wish_room_prayer_logs` 테이블이 스키마에만 존재하고
+실제로는 쓰이지 않는 죽은 테이블이라는 점은 §12⑨와는 별개의
+참고사항으로 기록해 둔다(기능 공백은 아니며, 현재 "기록 유지"는
+`wish_rooms` 통계 컬럼으로 충분히 구현되어 있음).
+
+**테스트 데이터**: `wish_rooms.id=19`의 `theme`을 `god`→`buddha`
+→`free` 순으로 API를 통해 전환 후 최종적으로 원래 값(`free`)으로
+원복 완료. DB 직접 조회로 `theme='free'` 재확인. `outfit` 컬럼은
+처음부터 끝까지 `null`(자동 모드) 유지. 금전 이동이 전혀 없는
+테스트라 `point_histories`에도 영향 없음.
+
+**TodoWrite 갱신**: §12 ⑨ 완료 처리(공백 없음).
+다음 순서는 §12 ⑩ 장식 꽉 참이다(미착수).
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
