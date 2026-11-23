@@ -1936,6 +1936,62 @@ pendingUnlock:null` 원래 상태와 동일함을 재확인). DB 스키마상 �
 **TodoWrite 갱신**: §12 ⑤ 완료 처리. 다음 순서는 §12 ⑥ 수호자
 외출 중 소원 이루는 경우이다(미착수).
 
+### §12 예외상황 ⑥ 수호자 외출 중 소원 이룸 — 공백 발견(API 재현)
+
+**기획 요구사항**(§12 예외상황 6번): "수호자 외출 중 소원 이룸 —
+수호자 함께 축하하고 즉시 귀환 · 남은 날 환급". 즉 "내 수호자를
+남에게 맡겨둔(entrust) 상태에서 내 소원이 이루어지면, 맡겨둔 기간이
+남았어도 그 수호자는 즉시 내 방으로 돌아오고 남은 날만큼 환급돼야
+한다"는 의미.
+
+**코드 조사**:
+- `entrust/route.ts`(POST)로 수호자를 맡기면 `WishRoomEntrust`
+  레코드(`status:"active"`, `startDay`/`endDay`)가 생성되고, 사용자가
+  **수동으로** `DELETE /wish-rooms/{id}/entrust`를 호출해야만(=
+  "그만두기" 버튼) `status:"cancelled"` + 환급(`computeEntrustCancelRefund`)
+  처리가 일어난다(`entrust/route.ts` DELETE 핸들러, 182-212행).
+- `complete/route.ts`(POST, "소원 완료 선언" — `outcome:FULFILLED`로
+  소원이 "이루어짐"을 선언하는 엔드포인트)는 `WishRoomEntrust` 테이블을
+  **전혀 참조하지 않는다**(grep 0건) — `room.status`만
+  `"COMPLETED"`로 바꾸고 알림을 보낼 뿐, 진행중인 entrust를
+  자동으로 취소·환급하는 로직이 없음.
+- Flutter 측(`complete_screen.dart`)도 `p.complete(...)` 호출
+  전후로 entrust 관련 API를 전혀 호출하지 않음(grep 0건) — 클라이언트
+  레벨에서도 보완되지 않음.
+
+**API 레벨 재현 검증**(user 458, room `wr_19`, 테스트 후 전부 원복):
+
+| 단계 | 호출 | 결과 |
+|---|---|---|
+| 1 | `POST /entrust {days:7, startsToday:false}` | 성공, 복주머니 300→50, entrust `id:8 status:active startDay:2 endDay:9`(7일간 수호자 외출 예약) |
+| 2 | `POST /complete {outcome:"FULFILLED"}` | 성공, `room.status:"COMPLETED"`, `wishStatus:"ACHIEVED"` — **그러나 entrust는 `entrustNext`에 `status:"active"`로 그대로 응답에 남음**(DB 확인: `status='active'`, `refund=null`, `cancel_day=null`) |
+| 3 | (확인용) `DELETE /entrust` 수동 호출 | 그제서야 환급 250 발생, `status:"cancelled"` — 즉 "자동 귀환·환급"이 아니라 "소원이 끝났어도 사용자가 수동으로 그만두기를 눌러야만" 환급됨 |
+
+**결론**: **⑥(§12 예외상황) 수호자 외출 중 소원 이룸 — "수호자
+함께 축하하고 즉시 귀환 · 남은 날 환급"이 전혀 구현되지 않은
+공백임을 API 재현으로 확인**. 현재 동작은 소원을 完(FULFILLED)으로
+선언해도 진행중/예약중인 entrust가 자동으로 종료·환급되지 않고
+방치되며, 사용자가 별도로 "그만두기"를 눌러야만 환급된다 — 기획이
+요구하는 "즉시 귀환"과는 다른 동작. 스탠딩 규칙("대표님 판단 대기
+항목 발견 시 임의 구현 금지")에 따라 구현하지 않고 발견만 기록한다.
+수정 방향에 대한 대표님 판단이 필요하다(예: `complete/route.ts`
+POST 핸들러 안에서 `entrustNow`/`entrustNext`가 있으면
+`computeEntrustCancelRefund()`를 호출해 자동 취소·환급하는 방식이
+후보가 될 수 있으나, 구현 여부·시점(완료 선언 시점 vs 취소 유예
+7일 고려)은 대표님 결정 사항).
+
+**테스트 데이터**: `wish_room_entrusts`에 생성된 테스트 레코드(id:8)
+삭제 완료. `wish_rooms.id=19`는 공식 `POST /complete {cancel:true}`
+API로 `GROWING`/`outcome:null`/`wishStatus:IN_PROGRESS` 원래 상태로
+정상 원복(원복 후 `devotionCount:1`도 불변 확인). `wallets.balance`는
+300→10으로 최종 원복. `point_histories`에는 이번 ⑥ 테스트로 4건
+(entrust 결제·환급 각 2건 — `DELETE /entrust` 확인 호출 포함)이
+append-only 트리거로 영구 보존됨(실질 잔액/상태는 이미 원복되어
+서비스 영향 없음).
+
+**TodoWrite 갱신**: §12 ⑥ 완료 처리(공백 발견, 대표님 판단 대기).
+다음 순서는 §12 ⑦ 받는 분이 수호자 돌려보냄이다(미착수).
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
