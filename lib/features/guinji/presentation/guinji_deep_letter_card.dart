@@ -233,32 +233,44 @@ class _GuinjiDeepLetterCardState extends State<GuinjiDeepLetterCard> {
       const SizedBox(height: 18),
       Row(
         children: [
-          OutlinedButton(
-            onPressed: () => setState(() => _edit = true),
-            style: _btnStyle(primary: false),
-            child: const Text('✎ 직접 쓰기'),
+          Semantics(
+            identifier: 'guinji_letter_edit_button',
+            button: true,
+            child: OutlinedButton(
+              onPressed: () => setState(() => _edit = true),
+              style: _btnStyle(primary: false),
+              child: const Text('✎ 직접 쓰기'),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _openPreview('kakao'),
-              style: _btnStyle(primary: true),
-              icon: const Icon(Icons.chat_bubble, size: 16),
-              // [2026-귀인지도 수정요청 4-②] "...에게 보내기" → "...에게
-              // 보내는 편지"로 문구 변경. 버튼 기능(_openPreview('kakao'))은
-              // 그대로 유지 — 우빈에게 편지를 작성·전달하는 흐름과 이미
-              // 연결되어 있다.
-              label: Text(
-                '${widget.personName}님에게 보내는 편지',
-                overflow: TextOverflow.ellipsis,
+            child: Semantics(
+              identifier: 'guinji_letter_send_kakao_button',
+              button: true,
+              child: ElevatedButton.icon(
+                onPressed: () => _openPreview('kakao'),
+                style: _btnStyle(primary: true),
+                icon: const Icon(Icons.chat_bubble, size: 16),
+                // [2026-귀인지도 수정요청 4-②] "...에게 보내기" → "...에게
+                // 보내는 편지"로 문구 변경. 버튼 기능(_openPreview('kakao'))은
+                // 그대로 유지 — 우빈에게 편지를 작성·전달하는 흐름과 이미
+                // 연결되어 있다.
+                label: Text(
+                  '${widget.personName}님에게 보내는 편지',
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          OutlinedButton(
-            onPressed: () => _openPreview('more'),
-            style: _btnStyle(primary: false),
-            child: const Text('···'),
+          Semantics(
+            identifier: 'guinji_letter_more_button',
+            button: true,
+            child: OutlinedButton(
+              onPressed: () => _openPreview('more'),
+              style: _btnStyle(primary: false),
+              child: const Text('···'),
+            ),
           ),
         ],
       ),

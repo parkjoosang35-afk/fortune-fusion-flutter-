@@ -704,7 +704,10 @@ class _GuinjiInviteBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      identifier: 'guinji_invite_box',
+      button: true,
+      child: GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(18),
@@ -781,6 +784,7 @@ class _GuinjiInviteBox extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -793,7 +797,10 @@ class _GuinjiDirectAddBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      identifier: 'guinji_direct_add_box',
+      button: true,
+      child: GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
@@ -858,6 +865,7 @@ class _GuinjiDirectAddBox extends StatelessWidget {
             const Icon(Icons.chevron_right, color: GmColors.muted, size: 22),
           ],
         ),
+      ),
       ),
     );
   }

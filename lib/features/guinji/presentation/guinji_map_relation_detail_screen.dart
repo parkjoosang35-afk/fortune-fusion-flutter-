@@ -609,40 +609,52 @@ class _GuinjiMapRelationDetailScreenState
                   children: [
                     SizedBox(
                       width: 104,
-                      child: OutlinedButton(
-                        onPressed: _handleShare,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: GmColors.fg,
-                          side: const BorderSide(color: GmColors.line),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(27),
+                      child: Semantics(
+                        identifier: 'guinji_relation_detail_share_button',
+                        button: true,
+                        child: OutlinedButton(
+                          onPressed: _handleShare,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: GmColors.fg,
+                            side: const BorderSide(color: GmColors.line),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(27),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          '공유',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                          child: const Text(
+                            '공유',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: GmRoseButton(
-                        label: '자세한 관계 풀이 10장 전체 보기',
-                        icon: Icons.menu_book_outlined,
-                        onPressed: _openDeep,
+                      child: Semantics(
+                        identifier: 'guinji_relation_detail_deep_button',
+                        button: true,
+                        child: GmRoseButton(
+                          label: '자세한 관계 풀이 10장 전체 보기',
+                          icon: Icons.menu_book_outlined,
+                          onPressed: _openDeep,
+                        ),
                       ),
                     ),
                   ],
                 )
               else
-                GmRoseButton(
-                  label: '이 관계 공유하기',
-                  icon: Icons.ios_share,
-                  onPressed: _handleShare,
+                Semantics(
+                  identifier: 'guinji_relation_detail_share_button',
+                  button: true,
+                  child: GmRoseButton(
+                    label: '이 관계 공유하기',
+                    icon: Icons.ios_share,
+                    onPressed: _handleShare,
+                  ),
                 ),
               const SizedBox(height: 12),
               const Text(
