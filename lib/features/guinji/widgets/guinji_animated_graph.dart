@@ -154,6 +154,42 @@ class GuinjiAnimatedRelationGraph extends StatefulWidget {
       _GuinjiAnimatedRelationGraphState();
 }
 
+/// [2026-귀인지도 수정요청 — "터치감이 느리다" 근본 수정] 배경(오로라·
+/// 금빛 광선·별가루·별똥별 등, 블러 셰이더 다수 포함)이 무한 반복되는
+/// `_timeController`에 직접 매여 있어, 기기 화면 주사율(최대 120Hz)
+/// 그대로 매 프레임 전체 캔버스를 다시 그리고 있었다 — 육안으로는
+/// 거의 구분되지 않는 미세한 반짝임을 위해 UI 스레드가 쉴 틈 없이
+/// 바빠지면서, 같은 스레드에서 처리되는 핀치/드래그/탭 제스처 입력이
+/// 밀려 "터치가 둔하다"는 체감으로 이어졌다. 배경 애니메이션 자체의
+/// 값(`elapsedSeconds`)은 그대로 연속적으로 흐르게 두되(끊기는 느낌
+/// 없이 부드러움 유지), 그 값으로 다시 그리기(rebuild→repaint)를
+/// 알리는 빈도만 사람 눈에 자연스러운 약 30fps로 제한한다 — 입장
+/// 애니메이션(entrance, 0.9초 1회성)은 그대로 매 프레임 반영해 처음
+/// 등장할 때의 매끄러움은 희생하지 않는다.
+class _ThrottledListenable extends ChangeNotifier {
+  _ThrottledListenable(this._source, {required this.minInterval}) {
+    _source.addListener(_onTick);
+  }
+
+  final Listenable _source;
+  final Duration minInterval;
+  DateTime _last = DateTime.fromMillisecondsSinceEpoch(0);
+
+  void _onTick() {
+    final now = DateTime.now();
+    if (now.difference(_last) >= minInterval) {
+      _last = now;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _source.removeListener(_onTick);
+    super.dispose();
+  }
+}
+
 class _GuinjiAnimatedRelationGraphState
     extends State<GuinjiAnimatedRelationGraph>
     with TickerProviderStateMixin {
@@ -185,6 +221,11 @@ class _GuinjiAnimatedRelationGraphState
   static const double _timePeriodSeconds = 3600;
   late final AnimationController _timeController;
 
+  /// [터치감 저하 근본 수정] 배경 리페인트 알림을 30fps로 제한하는 래퍼
+  /// — 값 자체(`_timeController.value`)는 계속 매끄럽게 흐르고, "다시
+  /// 그려라"는 알림 빈도만 줄인다.
+  late final _ThrottledListenable _throttledTime;
+
   /// 최초 진입(혹은 인원 수 변화) 시 한 번 재생되는 등장(entrance) 애니메이션.
   late final AnimationController _entranceController;
 
@@ -199,6 +240,10 @@ class _GuinjiAnimatedRelationGraphState
       vsync: this,
       duration: const Duration(seconds: 3600),
     )..repeat();
+    _throttledTime = _ThrottledListenable(
+      _timeController,
+      minInterval: const Duration(milliseconds: 33), // ≈30fps
+    );
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -225,6 +270,7 @@ class _GuinjiAnimatedRelationGraphState
 
   @override
   void dispose() {
+    _throttledTime.dispose();
     _timeController.dispose();
     _entranceController.dispose();
     super.dispose();
@@ -331,7 +377,7 @@ class _GuinjiAnimatedRelationGraphState
       key: _key,
       child: SizedBox.expand(
         child: AnimatedBuilder(
-          animation: Listenable.merge([_timeController, _entranceController]),
+          animation: Listenable.merge([_throttledTime, _entranceController]),
           builder: (context, _) {
             return CustomPaint(
               painter: GuinjiTempleMapPainter(
@@ -377,6 +423,19 @@ class _GuinjiAnimatedRelationGraphState
             },
             onScaleUpdate: (details) {
               if (details.pointerCount >= 2) {
+                // [2026-귀인지도 수정요청 — "핑거확대 잘 안됨" 근본 수정]
+                // 두 손가락 핀치가 하필 사람 노드 위에서 시작되면
+                // onScaleStart에서 `_dragging`이 그 노드로 설정된다. 이
+                // 분기는 지금까지 scale만 갱신하고 바로 return해 `_moved`/
+                // `_dragging`을 전혀 정리하지 않았다 — 그 결과 손가락을
+                // 떼는 순간(onScaleEnd)이 "이동 없는 단순 탭"으로 오인되어
+                // 방금 핀치했을 뿐인 노드가 엉뚱하게 선택/오픈되고, 확대
+                // 제스처 자체가 끊기는 것처럼 느껴졌다. 2손가락 입력이
+                // 들어온 순간부터는 명확히 "핀치"로 확정하고 드래그/탭
+                // 판정을 전부 무효화한다.
+                _moved = true;
+                _dragging = null;
+                _panning = false;
                 setState(() {
                   _scale = (_pinchStart * details.scale).clamp(
                     _minScale,
