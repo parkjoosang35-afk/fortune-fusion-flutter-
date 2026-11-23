@@ -1371,6 +1371,139 @@ wr_16의 기존 응원 기록(user 457, 우리 테스트와 무관)은 그대로
 **TodoWrite 갱신**: ⑤ 완료 처리. 다음 순서는 ⑨(소원에 광고·연락처
 감지)이다 — 아직 미착수.
 
+### ⑨ 범위 중 ⑨ 소원에 광고·연락처 감지 — 코드 조사 + 실제 재현으로 공백 확인(미구현 발견)
+
+**기획 요구사항**(§11 어뷰징 방지 9번): "소원에 광고·연락처 —
+전화번호·링크·오픈채팅 감지 → 저장 전 경고, 공개 시 검토 (서버+앱)".
+
+**코드 조사**: 소원 문구는 생성(`wish-rooms/route.ts`)·수정
+(`[id]/route.ts` PATCH, `[id]/wish-edit/route.ts`)에서 공통으로
+`wishroom-engine.ts`의 `filterText(text, force)` 한 함수를 통과한다.
+그 구현(550-561행)을 전수 확인한 결과:
+```ts
+const PROFANITY = ["씨발", "시발", "병신", "개새", "fuck", "광고문의", "카톡친추"];
+const PII_PATTERNS = [/01[016789][- .]?\d{3,4}[- .]?\d{4}/, /\d{2,3}-\d{3,4}-\d{4}/, /(로|길)\s?\d+/, /(동|호)\s?\d{2,4}호?/];
+```
+**"전화번호"(PII_PATTERNS)와 "욕설 몇 개"(PROFANITY)만 감지하고,
+기획서가 명시한 "링크·오픈채팅" 감지 패턴(http/https/www./카카오
+오픈채팅 URL 등)은 코드 어디에도 존재하지 않음**(`wishroom-engine.ts`
+전체와 모든 라우트 파일에 `http`·`www\.`·`kakao`·`오픈채팅` 관련
+정규식이나 문자열을 grep했으나 0건). 또한 "공개 시 검토" 절차(PUBLIC
+전환 시 재검사하거나 관리자 검토 큐에 넣는 로직)도 `wish-rooms/[id]/
+route.ts`의 PATCH(공개범위 전환)에 전혀 없음 — 공개범위만 바꾸고
+`text` 필드는 건드리지 않으면 `filterText`조차 재호출되지 않는다.
+
+**실제 API 호출로 재현 검증(공백 확정)**:
+```bash
+# 1) 카카오 오픈채팅 링크 포함 → 경고 없이 edit 성공(저장 전 경고 미작동)
+POST .../wish-rooms/wr_19/wish-edit {"mode":"edit","text":"관심있으면 http://open.kakao.com/o/abc123 로 와주세요"}
+→ 200 success, text 그대로 저장됨
+
+# 2) 일반 단축 URL 포함 → 역시 경고 없이 통과
+POST .../wish-edit {"mode":"edit","text":"https://bit.ly/abc123 이 주소로 연락주세요"}
+→ 200 success
+
+# 3) http 없는 www. 도메인도 통과
+POST .../wish-edit {"mode":"edit","text":"www.example.com 에서 만나요"}
+→ 200 success
+
+# 4) 결정적 — 이 상태에서 공개범위를 PUBLIC으로 전환(재검사 없음)
+PATCH .../wish-rooms/wr_19 {"visibility":"PUBLIC"}
+→ 200 success, visibility:"PUBLIC"
+
+# 5) 비로그인(익명) 사용자로 explore 피드 조회 → "검토" 절차 없이 즉시 전체 공개 노출
+GET .../wish-rooms/explore (Authorization 헤더 없음)
+→ wr_19 "www.example.com 에서 만나요" 가 공개 피드 최상단에 그대로 노출됨
+```
+**전화번호 패턴(010-1234-5678)은 이미 기존 ⑤ 등 다른 테스트에서
+`PII_WARNING`으로 정상 차단됨을 간접 확인했으나(force 없이 호출 시
+422), 링크·오픈채팅 감지는 전혀 구현되지 않아 저장·공개 전 과정에서
+단 한 번도 걸러지지 않음**을 명확히 확인했다.
+
+**부수 발견(참고, 재현 안 됨 — 무시 가능)**: 최초 테스트 시도에서
+500 "Unknown argument `wishEditsToday`" Prisma 에러가 1회 발생했으나,
+admin_web dev 서버(Next.js Turbopack)를 재시작(`.next` 캐시 삭제 +
+재기동)하자 완전히 사라졌다 — Prisma 생성 클라이언트 자체에는
+`wishEditsToday` 필드가 정상 존재함을 `src/generated/prisma/models/
+WishRoom.ts`에서 확인했고, 재시작 후 동일 요청이 전부 정상 200으로
+처리됨을 재현 확인했다. **dev 서버의 일회성 핫리로드 캐시 꼬임이었지
+실제 코드 버그가 아님** — 이후 테스트는 모두 재시작된 서버에서 정상
+진행됨.
+
+**테스트 데이터 원복(완료)**: wr_19의 `text`를 원래 값("기도매크로
+클린검증용 두번째 소원")으로, `visibility`를 `PRIVATE`으로,
+`wish_edits_today`/`wish_edits_reset_date`를 0/NULL로 SQLite 직접
+UPDATE해 전부 원복함.
+
+**결론**: **⑨ 소원에 광고·연락처 감지 항목은 "전화번호" 부분만
+구현되어 있고, 기획서가 명시한 "링크·오픈채팅 감지"와 "공개 시
+검토" 절차는 전혀 구현되지 않은 명확한 기능 공백(버그가 아니라
+미구현)**. 광고/스팸 계정이 오픈채팅 링크를 소원 문구에 넣고 바로
+PUBLIC 전환하면 즉시 전체 공개 피드에 검토 없이 노출되는 실제
+악용 경로가 존재함을 실측으로 증명했다. **대표님 판단 필요(추가
+구현 여부·우선순위)** — 이 세션에서는 발견·재현까지만 완료하고
+구현은 보류(스탠딩 규칙상 임의 기능 추가 금지, 판단 대기).
+
+**TodoWrite 갱신**: ⑨ 완료 처리(공백 발견, 구현 여부는 대표님 판단
+대기). 다음 순서는 ⑪ 미리보기로 이득이다 — 아직 미착수.
+
+### ⑨ 범위 중 ⑪ 미리보기로 이득 — 코드 조사 + 실제 재현으로 더 넓은 공백 확인(서버 unlock 미검증)
+
+**기획 요구사항**(§11 어뷰징 방지 11번): "미리보기로 이득 — 미리보기
+중 상태 전부 되돌림 · 서버 미저장 (앱)".
+
+**코드 조사**: `tour21_screen.dart`(21일 미리보기, "Tour21") 자체
+주석(1-5행)에 핵심 설계가 명시돼 있다 — "원본 previewStart/
+previewEnd의 localStorage 스냅샷-복구는 이식하지 않는다. 대신 실제
+탭 네비게이션(`WishRoomProvider.requestTab`)으로 각 기능을 '진짜로'
+미리 보여준다." 즉 미리보기 중 실제 상점·수호자 탭으로 진짜 이동해
+"구경"시키는 구조이고, `requestTab()`(`wishroom_provider.dart` 79행)
+자체는 잠금 여부를 전혀 검사하지 않고 무조건 탭을 전환한다. 각 화면
+(`shop_screen.dart`, `character_shop_screen.dart`)은 자체적으로
+`room.isFeatureUnlocked(key)`를 다시 검사해 **클라이언트 레벨에서는**
+"구매 버튼 누르면 `_lockToast`로 막고 `openPayScreen` 호출 자체를
+안 함"으로 미리보기 중 실결제가 되지 않게 막혀 있다.
+
+**결정적 발견**: 그런데 서버 구매 API(`items/[id]/purchase/route.ts`,
+`characters/[id]/purchase/route.ts`)를 전수 확인한 결과 **unlock
+(14일째 상점 오픈) 검증 코드가 전혀 없다** — 가격·보유 여부·잔액만
+검사한다. 즉 "미리보기 전용 공백"이 아니라 **"서버가 상점 잠금
+자체를 검증하지 않는 더 근본적인 공백"**이며, Tour21 미리보기는
+이 공백으로 들어가는 여러 경로 중 하나일 뿐이다(클라이언트가 막아도
+API를 직접 호출하면 누구나, 미리보기와 무관하게 언제든 뚫림).
+
+**실제 API 호출로 재현 검증**:
+```bash
+# user 458, dayN=1(상점은 14일째 정상 오픈) 상태에서
+# 서버 아이템 구매 API를 직접 호출
+POST /wishroom/items/f_blossom/purchase {"idempotencyKey":"QA11_LOCKSHOP_TEST1"}
+→ 201 success, item.owned:true, me.pouch 100→50(50원 정상 차감)
+```
+1일째에 14일째 전용 아이템이 **아무 차단 없이 구매 성공**함을
+실측 확인. 캐릭터 구매 API도 동일 패턴(unlock 검증 없음)으로 코드
+조사 결과 동일한 공백을 가지고 있음을 확인(실제 호출 재현은 생략 —
+동일 구조이므로 재현 불필요 판단).
+
+**테스트 데이터 원복**: `wallets.balance`(user 458) 100→10 복원,
+`wish_room_items_owned`에서 테스트 레코드(f_blossom) 삭제. 단
+`point_histories`(복주머니 사용 내역 원장) 1건은 **DB 트리거
+(`prevent_point_history_delete`)로 DELETE가 원천 차단된 append-only
+불변 원장**이라 삭제하지 못하고 "QA11_LOCKSHOP_TEST1" 테스트 거래
+기록으로 영구 남아있음 — 실질 상태(잔액·아이템 소유권)는 완전히
+원복되었으므로 서비스에 영향 없음(참고용 기록).
+
+**결론**: **⑪ 미리보기로 이득 항목은 "미리보기 자체의 상태
+되돌림"보다 더 심각한 상위 공백을 드러냈다 — 서버가 상점(14일)·
+수호자/캐릭터 잠금을 전혀 검증하지 않아, 미리보기 여부와 무관하게
+누구나 1일째부터 API 직접 호출로 모든 유료 아이템·캐릭터를 구매할
+수 있다.** 이는 버그이자 명확한 경제적 리스크(잠금을 통한 단계적
+과금 유도 설계 자체가 무력화됨). **대표님 판단 필요** — 구매 API에
+unlock 서버 검증을 추가할지 여부·우선순위 결정 대기. 이 세션에서는
+발견·재현까지만 완료, 구현은 보류.
+
+**TodoWrite 갱신**: ⑪ 완료 처리(더 넓은 공백 발견, 구현 여부는
+대표님 판단 대기). 다음 순서는 ⑫ 잔액 조작이다 — 아직 미착수.
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
