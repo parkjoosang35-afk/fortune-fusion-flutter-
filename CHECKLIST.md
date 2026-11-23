@@ -2234,6 +2234,70 @@ append-only 트리거로 영구 보존됨(실질 잔액/상태는 이미 원복�
 **TodoWrite 갱신**: §12 ⑨ 완료 처리(공백 없음).
 다음 순서는 §12 ⑩ 장식 꽉 참이다(미착수).
 
+### §12 예외상황 ⑩ 장식 꽉 참 — 공백 없음(API 재현)
+
+**기획 요구사항**(§12 예외상황 10번): "장식 꽉 참 — '하나를 빼고
+놓아 주세요' · 산 물건은 사라지지 않음". 즉 "슬롯(장식·인장·테마
+소품 등 max>1 슬롯)이 꽉 찬 상태에서 새 아이템을 놓으려 하면
+안내 문구로 거절하고, 이미 놓여 있던(또는 뺀) 아이템의 소유권
+자체는 절대 사라지지 않아야 한다"는 의미.
+
+**코드 조사**:
+- `decorations/route.ts`(PATCH, 1-79행): `slot.max > 1`인 슬롯
+  (`WR.SLOTS`에서 DECORATION max:3, SEAL max:3, THEME max:5)은
+  토글 방식 — 이미 장착돼 있으면(`arr.includes(item.id)`) 제거,
+  없으면 `arr.length >= slot.max`일 때 `409 SLOT_FULL` 에러
+  (`"${slot.label}은(는) 최대 ${slot.max}개까지 놓을 수 있어요"`)를
+  던지고, 그렇지 않으면 추가.
+- **제거는 `equipJson`의 배열에서만 아이템 id를 빼는 것**이고,
+  `layoutJson`에서도 해당 좌표만 삭제(`delete layout[item.id]`)할
+  뿐, **소유권 테이블(`WishRoomItemOwned`)은 전혀 건드리지
+  않는다** — "산 물건은 사라지지 않음"이 설계 자체로 보장됨(배치
+  여부와 소유 여부가 완전히 분리된 구조).
+- Flutter `decor_screen.dart`의 `_equip()`(123-135행)가 `p.equip()`
+  실패 시 `p.lastError.message`를 `WrToast`로 그대로 띄우는 구조 —
+  서버의 `SLOT_FULL` 에러 메시지가 그대로 사용자에게 노출됨.
+- `care_menu_info.dart`(135행)에 안내 문구 "꽉 차면 하나를 빼고
+  놓아 주세요. 산 물건은 빼도 사라지지 않아요." 가 기획 원문과
+  정확히 일치하게 이미 존재함(온보딩/도움말 카드용).
+
+**API 레벨 재현 검증**(user458 소유 `wr_19`, DECORATION 슬롯
+max=3, 테스트 후 전부 원복):
+
+| 단계 | 호출 | 결과 |
+|---|---|---|
+| 1 | (사전 준비) DB로 `d_bell`/`d_star`/`d_moon`/`d_chorong` 4개 소유권 직접 부여 | — |
+| 2 | `PATCH /decorations {itemId:"d_bell"}` | 성공, DECORATION:[d_bell] (1/3) |
+| 3 | `PATCH /decorations {itemId:"d_star"}` | 성공, DECORATION:[d_bell,d_star] (2/3) |
+| 4 | `PATCH /decorations {itemId:"d_moon"}` | 성공, DECORATION:[...,d_moon] (3/3, 꽉 참) |
+| 5 | `PATCH /decorations {itemId:"d_chorong"}` (4번째 시도) | **실패**, `409 SLOT_FULL`, `"장식은(는) 최대 3개까지 놓을 수 있어요"` — 기획 문구와 일치 |
+| 6 | `PATCH /decorations {itemId:"d_bell"}` (토글 제거) | 성공, DECORATION:[d_star,d_moon] (2/3로 줄어듦) |
+| 7 | DB 확인: `wish_room_items_owned` | `d_bell` 소유권 레코드 **그대로 존재**(제거는 배치 해제일 뿐 소유 취소가 아님을 확인) |
+| 8 | `PATCH /decorations {itemId:"d_chorong"}` | 성공, DECORATION:[d_star,d_moon,d_chorong] (3/3, 빈 자리를 채움) |
+| 9 | `PATCH /decorations {itemId:"d_bell"}` (다시 장착 시도) | **실패**, `409 SLOT_FULL`(슬롯이 다시 꽉 찼으므로 예상대로 거절 — "소유"와 "슬롯 여유"는 별개 조건임을 재확인) |
+
+**결론**: **⑩(§12 예외상황) 장식 꽉 참 — 공백 없음, 기획
+요구사항 2가지(안내 문구·소유권 유지) 전부 충족 확인**. 서버가
+`SLOT_FULL` 에러코드와 정확한 안내 메시지를 던지고, 클라이언트는
+이를 그대로 토스트로 노출하며, "장착/해제"(`equipJson`)와
+"소유"(`WishRoomItemOwned`)가 테이블 레벨에서 완전히 분리돼 있어
+빼더라도 산 물건이 사라지는 경로 자체가 구조적으로 없음. 추가로
+`care_menu_info.dart`의 온보딩 카드 문구가 기획 원문과 토씨까지
+일치함을 확인해, 사용자가 슬롯이 꽉 찬 이유와 대처법을 사전에
+안내받을 수 있는 장치도 이미 마련돼 있음을 확인.
+
+**테스트 데이터**: `wish_room_items_owned`에 테스트로 추가한
+`d_bell`/`d_star`/`d_moon`/`d_chorong` 4개 레코드 전부 DELETE로
+삭제 완료. `wish_rooms.id=19`의 `equip_json`을 테스트 이전 값
+(`DECORATION:[]` 포함 전체 슬롯 초기 상태)으로 직접 UPDATE해
+원복, `layout_json`도 원래 `{}`로 유지됨을 확인. 원복 후 공개
+API(`GET /wish-rooms/me`)로 `DECORATION:[]` 재확인. 금전 이동이
+전혀 없는 테스트라(`purchase_price`는 기록용 컬럼일 뿐 실제 지갑
+차감 없이 직접 INSERT) `wallets`/`point_histories`에도 영향 없음.
+
+**TodoWrite 갱신**: §12 ⑩ 완료 처리(공백 없음).
+다음 순서는 §12 ⑪ 기기 바꿈이다(미착수).
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
