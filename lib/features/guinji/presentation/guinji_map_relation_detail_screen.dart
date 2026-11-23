@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/util/original_result_capture.dart';
 
+import '../../auth/application/auth_provider.dart';
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
@@ -263,7 +264,17 @@ class _GuinjiMapRelationDetailScreenState
   // 해금되어 있던 관계를 다시 볼 때는 인트로를 건너뛰고 곧바로
   // [GuinjiDeepResultScreen]으로 이동한다.
   void _openDeep() {
-    final ownerName = context.read<GuinjiProvider>().mapName ?? '나';
+    // [2026-귀인지도 수정요청 4-①] 이전에는 GuinjiProvider.mapName(지도
+    // 생성 시 입력한 호스트 "별명")을 편지 발신자로 잘못 사용해, 실제
+    // 로그인한 사용자와 다른 이름(예: 다른 지도의 별명)이 "보내는 사람"
+    // 으로 표시되는 문제가 있었다. 실제 로그인 사용자의 닉네임
+    // (AuthProvider.currentUser?.nickname)을 최우선으로 쓰고, 비로그인/
+    // 닉네임 미설정 등 예외적인 경우에만 기존 mapName → '나' 순으로
+    // 폴백한다.
+    final ownerName =
+        context.read<AuthProvider>().currentUser?.nickname ??
+        context.read<GuinjiProvider>().mapName ??
+        '나';
     Navigator.of(context).push(
       guinjiPageRoute(
         _justUnlocked
@@ -319,7 +330,16 @@ class _GuinjiMapRelationDetailScreenState
             child,
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        // [2026-귀인지도 수정요청 3] 하단 "공유"/"자세한 관계 풀이" 버튼이
+        // 기기 시스템 내비게이션 바에 가려 잘리던 문제 수정 — 고정 32px
+        // 대신 MediaQuery의 실제 하단 안전영역 높이를 더해 기기별로
+        // 달라지는 네비게이션 바 높이에 대응한다.
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          32 + MediaQuery.of(context).padding.bottom,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Column(

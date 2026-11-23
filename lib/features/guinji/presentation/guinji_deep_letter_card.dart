@@ -244,8 +244,12 @@ class _GuinjiDeepLetterCardState extends State<GuinjiDeepLetterCard> {
               onPressed: () => _openPreview('kakao'),
               style: _btnStyle(primary: true),
               icon: const Icon(Icons.chat_bubble, size: 16),
+              // [2026-귀인지도 수정요청 4-②] "...에게 보내기" → "...에게
+              // 보내는 편지"로 문구 변경. 버튼 기능(_openPreview('kakao'))은
+              // 그대로 유지 — 우빈에게 편지를 작성·전달하는 흐름과 이미
+              // 연결되어 있다.
               label: Text(
-                '${widget.personName}님에게 보내기',
+                '${widget.personName}님에게 보내는 편지',
                 overflow: TextOverflow.ellipsis,
               ),
             ),

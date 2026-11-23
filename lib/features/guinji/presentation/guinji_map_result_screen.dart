@@ -642,12 +642,12 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                   // 이미 동일하게 동작하므로 기능 손실 없음. 두 위젯 클래스는
                   // 더는 쓰이지 않아 삭제했다.
 
-                  // 귀인 초대장 박스(적색 그라데이션 — v5 "請" 봉인 디자인).
+                  // 귀인 초대장 박스(카카오 노랑 — 2026-귀인지도 수정요청 1-①).
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                     child: _GuinjiInviteBox(onTap: _openShareSheet),
                   ),
-                  // 직접 추가 박스(v5 "記" 디자인).
+                  // 직접 추가 박스(초대장 박스와 통일된 노랑 계열 — 1-②).
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                     child: _GuinjiDirectAddBox(onTap: _openDirectAdd),
@@ -655,7 +655,7 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
 
                   // 여섯 가지 인연 알아보기 — 2열 그리드.
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                     child: _GuinjiTypeGuideSection(
                       people: widget.people,
                       // [SPEC §6 H4 9번] 카드 탭 시 지도 바깥 인장 탭과
@@ -710,17 +710,20 @@ class _GuinjiInviteBox extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: GmColors.gold.withValues(alpha: 0.45)),
+          border: Border.all(color: GmColors.onPrimary.withValues(alpha: 0.35)),
+          // [2026-귀인지도 수정요청 1-①] 카카오톡 연상 노랑 계열로 교체(기존
+          // 빨강 그라데이션 폐기). 배경이 밝아지므로 내부 텍스트/아이콘 색상도
+          // 어두운 톤(GmColors.onPrimary)으로 함께 조정한다.
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFB8402F), Color(0xFF8A2A22), Color(0xFF5E1A1E)],
+            colors: [Color(0xFFFFE066), GmColors.primary, Color(0xFFE6B800)],
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: GmColors.red.withValues(alpha: 0.32),
+              color: GmColors.primaryShadow,
               blurRadius: 28,
-              offset: const Offset(0, 8),
+              offset: Offset(0, 8),
             ),
           ],
         ),
@@ -733,7 +736,7 @@ class _GuinjiInviteBox extends StatelessWidget {
                 height: 50,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: GmColors.gold,
+                  color: GmColors.onPrimary,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Text(
@@ -742,7 +745,7 @@ class _GuinjiInviteBox extends StatelessWidget {
                     fontFamily: GmText.display,
                     fontSize: 25,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF5E1A1E),
+                    color: GmColors.primary,
                   ),
                 ),
               ),
@@ -758,7 +761,7 @@ class _GuinjiInviteBox extends StatelessWidget {
                       fontFamily: GmText.body,
                       fontSize: 17.5,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFFFF3DC),
+                      color: GmColors.onPrimary,
                     ),
                   ),
                   SizedBox(height: 5),
@@ -768,13 +771,13 @@ class _GuinjiInviteBox extends StatelessWidget {
                       fontFamily: GmText.ui,
                       fontSize: 12.5,
                       height: 1.45,
-                      color: Color(0xC7FFEBD2),
+                      color: Color(0xCC191600),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: GmColors.gold, size: 22),
+            const Icon(Icons.chevron_right, color: GmColors.onPrimary, size: 22),
           ],
         ),
       ),
@@ -796,8 +799,11 @@ class _GuinjiDirectAddBox extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: GmColors.line),
-          color: GmColors.card.withValues(alpha: 0.5),
+          border: Border.all(color: GmColors.primary.withValues(alpha: 0.4)),
+          // [2026-귀인지도 수정요청 1-②] 바로 위 초대장 박스(노랑 계열)과
+          // 통일감을 주되, 구분되도록 연한 톤(엔핑 10%)만 쓴다(기존
+          // 어두운 보라색 GmColors.card 대체).
+          color: GmColors.primary.withValues(alpha: 0.10),
         ),
         child: Row(
           children: [
