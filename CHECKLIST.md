@@ -1855,6 +1855,87 @@ append-only 트리거로 인해 영구 보존됨(실질 잔액/소유 상태는 
 **TodoWrite 갱신**: §12 ④ 완료 처리. 다음 순서는 §12 ⑤ 며칠
 쉼이다(미착수).
 
+### §12 예외상황 ⑤ 며칠 쉼 — 코드 조사 + API 재현 검증 완료
+
+**기획 요구사항**(§12 예외상황 5번): "며칠 쉼 — 촛불만 약해짐 ·
+밀린 열림 카드 하루 1장씩".
+
+**코드 조사**:
+- **"촛불만 약해짐"(decay)**: `wishroom-engine.ts`의
+  `decayOf(days)`(199-204행)가 `WR.DECAY` 배열(wishroom_data.json)을
+  순회해 brightness 티어를 반환한다. 실제 문턱값: `minDays:0→
+  brightness:1("밝게 타는 중")`, `4→0.8("조금 약해짐")`,
+  `8→0.62("희미해짐", badge:true)`, `15→0.48("가물거림",
+  badge:true)`. `days`는 `daysBetween(r.lastActiveAt, now)`(절대 ms
+  차이, 767행)로 계산되고, `roomView()`가 `brightness:
+  Math.max(decay.brightness, fx.decay/100)`, `decayLabel`,
+  `decayBadge` 3개 필드에만 이 값을 반영한다(840-842행). 같은 함수
+  안에서 `devotionCount`/`points`/`level`/`supportCount`/
+  `pouchReceived`/`commentCount`/`unlocked`/`entrustNow` 등 나머지
+  필드는 전부 DB 컬럼이나 별도 함수(`computeUnlockView`,
+  `computeEntrustView`)에서 독립적으로 계산되며 `days`/`decay`를
+  입력으로 쓰지 않는다 — "촛불(밝기)만" 영향받는다는 요구사항이
+  코드 구조상 정확히 지켜짐을 확인.
+- **"밀린 열림 카드 하루 1장씩"(UNLOCK)**: `UNLOCK` 문턱값은
+  `wishroom_data.json`에서 `{"guardian":2,"decor":3,"together":4,
+  "wardrobe":5,"theme":7,"wallpaper":7,"shop":14}`(일 단위, 방 생성일
+  기준 dayN). `computeUnlockView()`(243-263행)의 `pendingUnlock`은
+  "오늘 이미 하나를 ack했으면(`lastUnlockAckDay===today`) 무조건
+  null, 아니면 unlocked 중 아직 ack 안 한 것 중 **순서상 첫 번째
+  하나만**" 반환하는 구조(261행: `unlocked.find((k) =>
+  !acked.includes(k)) ?? null` — `find`라 첫 매치 1개만 반환) —
+  "며칠 쉬어 여러 날짜 문턱을 한꺼번에 넘겨도 카드는 하루 1장씩만"
+  이라는 요구사항과 정확히 부합하는 설계.
+
+**API 레벨 재현 검증**(user 458, room `wr_19`, 테스트 후 전부 원복):
+
+1. **decay(촛불 약해짐) 3단계 재현** — `last_active_at`을 과거로
+   직접 UPDATE 후 `GET /wish-rooms/me` 호출:
+   | 경과일(absentDays) | brightness | decayLabel | decayBadge | devotionCount/points/level |
+   |---|---|---|---|---|
+   | 0(원래) | 1 | 밝게 타는 중 | false | 1/1/1 |
+   | 8 | 0.62 | 희미해짐 | true | 1/1/1(불변) |
+   | 15 | 0.48 | 가물거림 | true | 1/1/1(불변) |
+
+   8일·15일 경과 양쪽 다 `devotionCount`/`points`/`level`/
+   `supportCount`/`pouchReceived`/`commentCount`가 전부 원래 값
+   그대로 유지됨을 실측 확인 — "촛불만" 약해진다는 요구사항 충족.
+
+2. **밀린 열림 카드 하루 1장씩 재현** — `created_at`을 20일 전으로
+   당겨(`dayN=21`, `prayedN=1`) guardian(2일)·decor(3일)·
+   together(4일)·wardrobe(5일)·theme(7일)·shop(14일) **6개 전부를
+   한꺼번에 미는 상황**을 만든 뒤:
+   - `GET /wish-rooms/me` → `unlocked:[guardian,decor,together,
+     wardrobe,theme,shop]`(6개 전부 열림), `pendingUnlock:"guardian"`
+     (6개 중 순서상 첫 번째 1개만).
+   - `POST /unlock-ack {key:"guardian"}` → 성공,
+     `lastUnlockAckDay:"2026-11-23"`(오늘)로 기록.
+   - **같은 날 재조회** `GET /wish-rooms/me` → `pendingUnlock:null`
+     (unlocked 5개(decor~shop)가 여전히 미ack 상태로 남아있음에도
+     "오늘은 이미 하나 봤다"로 카드가 더 나오지 않음) — "하루 1장"
+     제한이 정확히 작동함을 실측 확인.
+   - **"다음 날"을 시뮬레이션**(`lastUnlockAckDay`를 어제 날짜로
+     DB에서 직접 변경) → `GET /wish-rooms/me` →
+     `pendingUnlock:"decor"`(미ack 5개 중 순서상 다음 1개) — 밀린
+     카드가 "하루에 딱 1장씩" 순차로 풀리는 동작을 실측 확인.
+
+**결론**: **⑤(§12 예외상황) 며칠 쉼 항목은 기획서 요구사항
+("촛불만 약해짐 · 밀린 열림 카드 하루 1장씩")을 코드 레벨 설계와
+API 재현 양쪽으로 정확히 충족함을 확인**. 공백 없음, 추가 조치
+불필요.
+
+**테스트 데이터**: `wish_rooms.id=19`의 `last_active_at`/`created_at`,
+`wish_room_user_states(user_id=458)`의 `unlocked_json`/
+`last_unlock_ack_day` 전부 테스트 직후 원래 값으로 원복 완료(원복
+후 `GET /wish-rooms/me` 재조회로 `brightness:1, dayN:1, unlocked:[],
+pendingUnlock:null` 원래 상태와 동일함을 재확인). DB 스키마상 해당
+테이블들은 append-only 제약이 없어 완전 원복됨(④번까지와 달리
+`point_histories` 등 영구 보존 레코드 없음 — 이번 ⑤번 테스트는
+결제가 전혀 발생하지 않았기 때문).
+
+**TodoWrite 갱신**: §12 ⑤ 완료 처리. 다음 순서는 §12 ⑥ 수호자
+외출 중 소원 이루는 경우이다(미착수).
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
