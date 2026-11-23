@@ -63,6 +63,16 @@ class ShareService {
     List<GlobalKey> originalTrailingKeys = const [],
     List<GlobalKey> originalOverlayKeys = const [],
     Uint8List? preCapturedPng,
+    // [2026-귀인지도 수정요청 5] 서버 공유 링크(shareId/deepLinkUrl)가
+    // 생성된 직후, 기본 OS 공유 시트/클립보드 폴백을 시도하기 **전에**
+    // 호출되는 선택적 훅. true를 반환하면 "이미 전달을 완료했다"는
+    // 뜻으로 해석해 기본 동작(이미지+텍스트 공유)을 건너뛴다 — 네이티브
+    // (!kIsWeb) 경로에서만 호출된다(카카오 FeedTemplate은 네이티브
+    // 전용이므로 웹에서는 호출하지 않음). 미지정(null)이면 기존 동작과
+    // 완전히 동일하다 — 다른 호출부(타로/정통사주/관상/손금/소원방)는
+    // 이 파라미터를 넘기지 않으므로 전혀 영향을 받지 않는다.
+    Future<bool> Function(String shareId, String deepLinkUrl)?
+        tryCustomChannel,
   }) async {
     if (!context.mounted || _resultSharing[context] == true) return;
     _resultSharing[context] = true;
@@ -71,7 +81,7 @@ class ShareService {
         payload: payload, imageUrl: imageUrl, sourceRefId: sourceRefId, subject: subject,
         originalResultKey: originalResultKey, originalLeadingKeys: originalLeadingKeys,
         originalTrailingKeys: originalTrailingKeys, originalOverlayKeys: originalOverlayKeys,
-        preCapturedPng: preCapturedPng);
+        preCapturedPng: preCapturedPng, tryCustomChannel: tryCustomChannel);
     } catch (_) {
       if (context.mounted) AppToast.show(context, '결과 공유에 실패했어요. 다시 시도해주세요.', isError: true);
     } finally { _resultSharing[context] = false; }
@@ -91,6 +101,8 @@ class ShareService {
     List<GlobalKey> originalTrailingKeys = const [],
     List<GlobalKey> originalOverlayKeys = const [],
     Uint8List? preCapturedPng,
+    Future<bool> Function(String shareId, String deepLinkUrl)?
+        tryCustomChannel,
   }) async {
     // [웹·앱 공유 캡처 경로 정상화 — 2026-12] 과거(2026-11)에는 웹에서
     // `LateInitializationError`가 재발해 캡처 자체를 생략했으나, 실제 근본
@@ -200,6 +212,15 @@ class ShareService {
       // 빠지게 된다.
       final deepLinkUrl = EnvConfig.resultDeepLinkUrl(shareId);
       if (!context.mounted) return;
+      // [2026-귀인지도 수정요청 5] 커스텀 채널(카카오 FeedTemplate 등)이
+      // 전달에 성공했다고 보고하면, 아래 기본 OS 공유 시트/텍스트 폴백은
+      // 생략한다 — 이미 카카오톡으로 전달이 끝난 뒤 또 다른 공유 시트가
+      // 뜨는 것을 막는다.
+      if (tryCustomChannel != null) {
+        final handled = await tryCustomChannel(shareId, deepLinkUrl);
+        if (handled) return;
+        if (!context.mounted) return;
+      }
       if (originalPng != null) {
         await _sendImage(context, title, originalPng, shareUrl: deepLinkUrl);
       } else {

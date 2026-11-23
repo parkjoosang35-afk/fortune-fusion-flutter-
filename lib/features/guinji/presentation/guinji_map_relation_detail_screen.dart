@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import '../navigation/guinji_page_route.dart';
+import 'package:kakao_flutter_sdk_share/kakao_flutter_sdk_share.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/util/original_result_capture.dart';
@@ -19,6 +21,8 @@ import '../application/guinji_rewarded_ad_helper.dart';
 import '../deep/guinji_reasons.dart';
 import '../domain/guinji_person.dart';
 import '../domain/guinji_relation_meta.dart';
+import '../share/guinji_share_kakao.dart'
+    show guinjiRelationDetailTemplate, shareOgImageUrl;
 import '../theme/guinji_map_theme.dart';
 import '../widgets/guinji_map_widgets.dart';
 import 'guinji_deep_intro_screen.dart';
@@ -248,6 +252,44 @@ class _GuinjiMapRelationDetailScreenState
         },
         subject: '신통방통 귀인지도',
         originalResultKey: _originalResultKey,
+        // [2026-귀인지도 수정요청 5 — 카카오톡 공유 근본 수정] 기존에는
+        // 서버 공유 링크를 만들어도 네이티브에서 결국 기본 OS 공유
+        // 시트(텍스트+이미지)만 떴고, 카카오톡으로 보내도 링크 미리보기
+        // (OG 이미지/제목/버튼)가 전혀 붙지 않아 "텍스트만 공유되고
+        // 이미지/결과 화면이 공유 안 됨" 문제가 있었다. 서버가 방금
+        // 발급한 `shareId`/`deepLinkUrl`을 그대로 받아, 카카오톡이 설치된
+        // 네이티브 환경에서는 개인화 FeedTemplate(①대표 이미지 — 서버
+        // shareId 기반 OG 카드 ②상대방 이름 ③인연 유형 ④케미 점수 ⑤결과
+        // 확인 링크, [guinjiRelationDetailTemplate] 참고)로 먼저 전달을
+        // 시도한다. 성공하면 true를 반환해 기본 OS 공유 시트를 생략하고,
+        // 카카오톡 미설치/웹/실패 시에는 false를 반환해 기존 폴백(이미지+
+        // 텍스트 공유)으로 그대로 이어진다 — 다른 5개 결과화면은 이
+        // 파라미터를 전혀 쓰지 않으므로 영향 없다.
+        tryCustomChannel: (shareId, deepLinkUrl) async {
+          if (kIsWeb) return false;
+          try {
+            final available = await ShareClient.instance
+                .isKakaoTalkSharingAvailable();
+            if (!available) return false;
+            final shareUri = await ShareClient.instance.shareDefault(
+              template: guinjiRelationDetailTemplate(
+                personName: person.name,
+                relationLabel: meta.label,
+                score: person.score,
+                shareId: shareId,
+                deepLinkUrl: deepLinkUrl,
+                ogImageUrl: shareOgImageUrl(shareId),
+              ),
+            );
+            await ShareClient.instance.launchKakaoTalk(shareUri);
+            return true;
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('[GuinjiRelationDetail] 카카오톡 공유 실패: $e — 공통 폴백으로 전환');
+            }
+            return false;
+          }
+        },
       );
     } catch (_) {
       // 링크 생성 실패 시에만 텍스트 공유로 폴백.

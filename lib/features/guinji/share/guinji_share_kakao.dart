@@ -15,6 +15,7 @@
 //    `TODO.package.name` 자리표시자를 실제 값으로 치환).
 import 'package:kakao_flutter_sdk_share/kakao_flutter_sdk_share.dart';
 
+import '../../../core/config/env_config.dart';
 import '../presentation/guinji_share_screen.dart'
     show buildGuinjiInviteLink, generateGuinjiShareCode;
 
@@ -34,6 +35,15 @@ String ogInviteUrl(String token) =>
 /// 결과 카드 OG 이미지 URL(관계 상세 공유용).
 String ogResultUrl(String token) =>
     '${_webOrigin(token)}/og/guinji/$token/result.png';
+
+/// [2026-귀인지도 수정요청 5] `ShareService`가 생성한 공식 공유 레코드
+/// (`shareId`) 기반 OG 카드 이미지 URL. 귀인지도 전용 `ogResultUrl(token)`
+/// (지도 전체 요약, 비식별)과는 별개로, 관계 상세 1건마다 새로 생성되는
+/// `/r/{shareId}` 공유 링크에 딸린 개인화 카드 이미지를 가리킨다 — 서버
+/// (admin_web `/api/public/og/share/[shareId]/route.ts`)가 이미 구현되어
+/// 있어 클라이언트에서 URL만 조합하면 된다(추가 엔드포인트 불필요).
+String shareOgImageUrl(String shareId) =>
+    '${EnvConfig.adminApiBaseUrl}/api/public/og/share/${Uri.encodeComponent(shareId)}.png';
 
 String playStoreUrl(String token) =>
     'https://play.google.com/store/apps/details?id=$playPackage&referrer=g_$token'; // Install Referrer로 token 복원
@@ -143,6 +153,53 @@ String _resultDescription(Map<String, int> relationCounts) {
       .join(' · ');
   return rest > 0 ? '$topLabel 외 $rest명과 연결되어 있어요' : '$topLabel과 연결되어 있어요';
 }
+
+/// [2026-귀인지도 수정요청 5 — 관계상세 전용 개인화 카드] 지금까지 카카오
+/// FeedTemplate은 ①초대([guinjiInviteTemplate]) ②비식별 요약
+/// ([guinjiResultTemplate]) 두 종류만 있었고, "이 사람과 이 관계"를 구체적
+/// 으로 보여주는 개인화 공유 카드가 없어 관계 상세 화면("공유" 버튼)에서는
+/// 카톡에 이미지/링크 미리보기가 전혀 붙지 않는 텍스트만 전달되는 문제가
+/// 있었다. 이 템플릿은 [ShareService.shareResult]가 생성한 공식 공유
+/// 링크(`shareId`/`deepLinkUrl`, `/r/{shareId}` App Links 대상)를 그대로
+/// 사용해 ①이미지(admin_web이 shareId로 동적 생성하는 OG 카드,
+/// `buildShareOgPng.tsx` — 화이트리스트 원칙상 title/resultType라벨/
+/// tagline만 포함, 원본 사진·생년월일 등 민감정보 없음) ②상대방 이름
+/// ③인연 유형 ④케미 점수 ⑤결과 확인 링크를 모두 담는다. OG 이미지를 새로
+/// 만들지 않고 기존 `/api/public/og/share/{shareId}.png` 인프라를 그대로
+/// 재사용하므로 서버 추가 변경이 필요 없다(호출부가 이미 title/description
+/// 에 이름·유형·점수를 담아 서버로 보낸다 — [guinji_map_relation_detail_
+/// screen.dart]의 `_handleShare()` 참고). 앱 미설치자는 `deepLinkUrl`을
+/// 열면 admin_web `/r/[id]` SSR 웹 결과 페이지로 자연스럽게 폴백해 결과를
+/// 그대로 볼 수 있다(App Links `pathPrefix="/r"` 검증 실패 시 공통 동작).
+FeedTemplate guinjiRelationDetailTemplate({
+  required String personName,
+  required String relationLabel,
+  required int score,
+  required String shareId,
+  required String deepLinkUrl,
+  required String ogImageUrl,
+}) => FeedTemplate(
+  content: Content(
+    title: '$personName님과의 관계는 "$relationLabel"예요', // K-1류 ≤24자 내외
+    description: '케미 점수 $score점 · 신통방통 귀인지도', // K-2류
+    imageUrl: Uri.parse(ogImageUrl),
+    imageWidth: 1200,
+    imageHeight: 630,
+    link: Link(
+      webUrl: Uri.parse(deepLinkUrl),
+      mobileWebUrl: Uri.parse(deepLinkUrl),
+    ),
+  ),
+  buttons: [
+    Button(
+      title: '결과 확인하기', // 미설치자도 /r/{id} SSR 웹페이지로 폴백해 바로 확인 가능
+      link: Link(
+        webUrl: Uri.parse(deepLinkUrl),
+        mobileWebUrl: Uri.parse(deepLinkUrl),
+      ),
+    ),
+  ],
+);
 
 /// [순환 의존 회피] `guinji_relation_meta.dart`를 직접 import하면 이
 /// 공유 유틸이 도메인 레이어에 의존하게 되어 호출부(화면)가 이미 알고

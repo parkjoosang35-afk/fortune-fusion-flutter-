@@ -347,6 +347,36 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
     );
   }
 
+  /// [2026-귀인지도 수정요청 2] "여섯 가지 인연 알아보기" 그리드 카드 전용
+  /// 탭 핸들러 — 지도 위 바깥 인장([_handleTypeTap], 필터 토글 용도)과는
+  /// 완전히 분리한다. 기존에는 이 그리드 카드도 [_handleTypeTap]을 그대로
+  /// 재사용해, 인원이 있는 유형(상생동행·인연합·상극조율 포함)을 눌러도
+  /// 화면상 눈에 띄는 변화 없이 지도 필터만 조용히 토글되어 "카드가 눌리지
+  /// 않는다"는 리포트로 이어졌다. 이제 카드를 누르면 항상 명확한 "상세
+  /// 결과 화면"으로 이동한다:
+  ///  - 해당 유형의 사람이 1명이면 그 사람의 [GuinjiMapRelationDetailScreen]
+  ///    으로 바로 이동한다.
+  ///  - 2명 이상이면 먼저 [showGuinjiTypeInfoSheet](유형 설명 + 해당 유형
+  ///    사람 목록)을 보여주고, 목록에서 사람을 고르면 그 사람의 상세
+  ///    결과 화면으로 이동한다(기존 onPerson 콜백 그대로 재사용).
+  ///  - 인원이 0명이면 기존과 동일하게 유형 안내 시트만 보여준다(상세
+  ///    결과 화면으로 갈 "사람" 자체가 없으므로).
+  void _handleTypeGuideCardTap(String key) {
+    final matched = widget.people.where((p) => p.relation == key).toList();
+    if (matched.length == 1) {
+      Navigator.of(
+        context,
+      ).push(guinjiPageRoute(GuinjiMapRelationDetailScreen(person: matched.first)));
+      return;
+    }
+    showGuinjiTypeInfoSheet(
+      context: context,
+      typeKey: key,
+      people: widget.people,
+      onPerson: _handleNodeTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final total = widget.people.length;
@@ -658,10 +688,11 @@ class _GuinjiMapResultScreenState extends State<GuinjiMapResultScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                     child: _GuinjiTypeGuideSection(
                       people: widget.people,
-                      // [SPEC §6 H4 9번] 카드 탭 시 지도 바깥 인장 탭과
-                      // 동일한 분기(_handleTypeTap)를 재사용한다: 인원이
-                      // 있으면 필터 토글, 없으면 H4-b 유형 안내 시트.
-                      onTapType: _handleTypeTap,
+                      // [2026-귀인지도 수정요청 2] 지도 바깥 인장 탭과
+                      // 달리, 이 그리드 카드는 눌렀을 때 항상 뚜렷한 화면
+                      // 전환(상세 결과 화면 또는 안내 시트)이 일어나도록
+                      // 전용 핸들러를 쓴다([_handleTypeGuideCardTap]).
+                      onTapType: _handleTypeGuideCardTap,
                     ),
                   ),
 
