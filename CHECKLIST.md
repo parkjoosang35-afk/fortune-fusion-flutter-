@@ -2063,6 +2063,95 @@ append-only 트리거로 영구 보존됨(실질 잔액/상태는 이미 원복�
 **TodoWrite 갱신**: §12 ⑦ 완료 처리(공백 발견, 대표님 판단 대기).
 다음 순서는 §12 ⑧ 상대 방 비공개 전환·삭제이다(미착수).
 
+### §12 예외상황 ⑧ 상대 방 비공개 전환·삭제 — 공백 발견(API 재현)
+
+**기획 요구사항**(§12 예외상황 8번): "상대 방 비공개 전환 · 삭제
+— 보낸 수호자 귀환 · 환급 · 메시지는 보낸 분 기록에만". 즉 "내가
+수호자를 보낸 그 방이 나중에 비공개로 바뀌거나 삭제되면, 내
+수호자는 자동으로 돌아오고(= 더 이상 그 방에 묶여 있지 않고) 남은
+기간만큼 환급돼야 하며, 그 방문 기록은 받는 분 쪽에서 사라지고
+보낸 분 쪽 기록에만 남아야 한다"는 의미. ⑥⑦번과 함께 "대리기도
+(entrust/dispatch) 중 상대방 상태가 바뀌는 시나리오" 묶음.
+
+**코드 조사**:
+- `PATCH /wish-rooms/{id}`(공개범위 전환 — `route.ts` 52-110행)는
+  `visibility` 컬럼만 바꿀 뿐 `WishRoomDispatch` 테이블을 **전혀
+  참조하지 않는다**(grep 0건) — 비공개 전환 시 그 방에 들어와 있는
+  dispatch(파견)를 자동 종료·환급하는 로직이 없음.
+- "소원방 삭제" 전용 공개 API 자체가 **존재하지 않는다**
+  (`wish-rooms/[id]/route.ts`에 DELETE 핸들러 없음, 전체 wishroom
+  라우트 중 `WishRoomEntrust`/`me/wallpaper`/`reviews`에만 DELETE가
+  있고 방 자체를 지우는 엔드포인트는 없음). `deletedAt` 컬럼은
+  스키마에 존재하고 모든 조회 쿼리가 `deletedAt: null`로 필터링하지만,
+  이 컬럼을 세팅하는 공개 경로가 현재 코드에 없다(soft-delete가
+  관리자 전용이거나 아직 미구현된 것으로 보임 — 어느 쪽이든 "삭제"
+  시나리오는 현재 사용자가 트리거할 수 없는 상태).
+- `getGuardianAwayDispatch()`/`isGuardianAway()`(engine.ts
+  1054-1062행, 411-413행)는 **오직 `WishRoomDispatch.status`
+  (`praying`/`asked`)와 `createdAt+days*DAY_MS`(= 1일 고정 만료)만
+  보고 "내 수호자가 외출 중인지"를 판정하며, 대상 room의
+  `visibility`나 `deletedAt`을 전혀 조회하지 않는다** — 받는 방이
+  어떤 상태로 바뀌든 발신자 쪽 `guardianAway` 판정 로직은 영향받지
+  않음.
+
+**API 레벨 재현 검증**(user458→보냄, user87 소유 `wr_1`→받음,
+테스트 후 전부 원복):
+
+1. **비공개(PRIVATE) 전환 시나리오**:
+   | 단계 | 호출 | 결과 |
+   |---|---|---|
+   | 1 | user458: `POST /wish-rooms/wr_1/dispatch` | 성공, `dispatchId:wrd_3`, `status:"asked"` |
+   | 2 | user87: `PATCH /wish-rooms/wr_1 {visibility:"PRIVATE"}` | 성공, `visibility:"PRIVATE"`로 전환 |
+   | 3 | DB 확인: `wish_room_dispatches.id=3` | **`status:"asked"` 그대로 — 전환 시 자동 종료·환급 없음** |
+   | 4 | user458: `GET /wish-rooms/me` | `guardianAway:{id:3, status:"asked", ...}` — 여전히 "외출 중"으로 표시됨 |
+   | 5 | user87: `GET /me/visitors` | 여전히 조회 가능(목록에 wrd_3 뜸) — **PRIVATE 전환 자체는 "받는 쪽 기록에서 사라짐"을 유발하지 않음** |
+
+2. **삭제(soft-delete, `deletedAt` 직접 조작) 시나리오** — 공개
+   API로는 트리거 불가능해 DB를 직접 조작해 "만약 삭제 기능이
+   생긴다면" 전제로 재현:
+   | 단계 | 호출 | 결과 |
+   |---|---|---|
+   | 1 | DB: `wish_rooms.deleted_at` 세팅 | 방이 "삭제됨" 처리 |
+   | 2 | user87: `GET /me/visitors` | `data:[]` — 목록 쿼리가 `wishRoom.deletedAt:null`로 자기 방을 조회하므로 삭제된 방에 온 방문자는 더 이상 보이지 않음(= "받는 분 기록에서 사라짐"은 부수효과로 충족됨) |
+   | 3 | user87: `POST /me/visitors/wrd_3/recall`(목록에 없어도 직접 호출) | **성공**(`recall` 라우트는 room 존재 여부를 전혀 확인하지 않고 `WishRoomDispatch`만 조회·갱신 — `deletedAt` 체크 없음) → `status:"done"`으로 바뀜 |
+   | 4 | user458: `GET /wish-rooms/me` | 1일(days=1) 경과 후에는 `guardianAway:null`로 자연 해소(③④번처럼 "최대 하루"라는 안전장치는 유지됨) — **그러나 1일이 지나기 전까지는 "보이지 않는 방에 수호자가 갇혀 있다"는 상태가 그대로 유지됨**, "즉시 귀환·환급"은 일어나지 않음(애초에 dispatch가 무료라 환급 자체가 의미 없음은 ⑦번과 동일) |
+
+**결론**: **⑧(§12 예외상황) 상대 방 비공개 전환·삭제 — "보낸
+수호자 귀환"이 공식적으로 트리거되지 않음을 API 재현으로 확인**.
+세부적으로:
+- "환급"은 ⑦번과 동일한 이유(dispatch가 현재 무료 기능)로 당장은
+  금전적 의미가 없음.
+- "메시지는 보낸 분 기록에만"은 **삭제의 경우 `GET /me/visitors`가
+  `deletedAt:null` 필터 덕분에 결과적으로 충족**되지만, **비공개
+  전환의 경우는 받는 쪽 `/me/visitors` 목록에서 전혀 사라지지
+  않아 요구사항과 다르게 동작**.
+- "즉시 귀환"(= 발신자의 `guardianAway`가 즉시 풀려 다른 곳에
+  새로 보낼 수 있게 됨)은 비공개·삭제 두 경우 모두 자동으로
+  일어나지 않고, 1일 고정 만료(`days=1`)가 다 될 때까지 기다려야만
+  해소된다 — 사실상 "최대 1일 갇힘"으로 피해가 제한되긴 하지만
+  기획이 요구하는 "즉시"와는 다른 동작.
+- "소원방 삭제" 자체가 현재 사용자가 쓸 수 있는 공개 기능으로
+  존재하지 않는다는 점도 별도로 기록해 둔다(이 조사로 처음 확인된
+  사실 — ⑧번 시나리오의 전제 자체가 현재 앱에서는 발생할 수 없는
+  경로일 수 있음, 다만 관리자 도구나 향후 기능으로 생길 가능성을
+  대비해 engine 레벨 공백은 그대로 기록).
+스탠딩 규칙("대표님 판단 대기 항목 발견 시 임의 구현 금지")에 따라
+구현하지 않고 발견만 기록한다. 수정 방향에 대한 대표님 판단이
+필요하다(예: `PATCH visibility` 핸들러에서 `visibility` 변경 시
+그 방으로 온 활성 dispatch를 전부 찾아 `recall`과 동일한 처리를
+자동 수행하는 방식, 또는 "방 삭제" 기능 자체를 먼저 설계하는 것이
+선행 과제일 수 있음 — 구현 여부·범위는 대표님 결정 사항).
+
+**테스트 데이터**: `wish_room_dispatches`에 생성된 테스트 레코드
+(id:3) 삭제 완료. `wish_rooms.id=1`의 `visibility`/`deleted_at`
+전부 원래 값(`PUBLIC`/`NULL`)으로 원복 완료(원복 후 공개 API로
+재조회해 `visibility:"PUBLIC"`/`status:"ACTIVE"` 원상태 재확인).
+금전 이동이 전혀 없었던 테스트라(dispatch 무료 기능)
+`point_histories`에도 영향 없음.
+
+**TodoWrite 갱신**: §12 ⑧ 완료 처리(공백 발견, 대표님 판단 대기).
+다음 순서는 §12 ⑨ 방 분위기 바꿈이다(미착수).
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
