@@ -1103,6 +1103,51 @@ grep 0건 — **위기 표현 감지 로직이 전혀 없음**. `filterText()`�
 것은 그 "종료 시 자동 목표설정" 누락분뿐이다). 그 외 미전달 6장
 스크린샷(`/home/user/wr_compare/DELIVERY_6SHOTS/`)도 그대로 대기 중.
 
+### ⑨ 범위 중 ① 기도 매크로 — API 레벨 실제 재현 검증 완료
+
+**배경**: 대표님 지시("요거 3개(⑥⑧⑩)는 나중에 생각하고 그다음 진행")에
+따라 ⑨(어뷰징 12개+예외 12개) 중 보류 3개(⑥⑧⑩)를 제외한 나머지부터
+순서대로 검증 착수. 그 첫 항목인 "① 기도 매크로"를 코드 조사에 이어
+실제 API 호출로 재현 검증했다.
+
+**검증 방법**: UI(Playwright 마우스 타이밍)로는 holdMs를 정밀 제어하기
+어려워, 서버 API(`POST /api/public/wishroom/wish-rooms/{id}/devotions`)를
+직접 호출하는 방식으로 전환. 신규 테스트 계정(`user.id=458`,
+`wr_qa_abuse1@test.local`, 로컬 `dev.db`만)으로 로그인해 JWT를 받고,
+소원방(`wr_19`)을 만든 뒤 `heldMs` 값을 바꿔가며 호출.
+
+**결과(모두 기획서 "2.9초 미만 무효 · 하루 1번"과 정확히 일치)**:
+| 호출 | heldMs | 응답 | DB 변화 |
+|---|---|---|---|
+| 1 | 2899(경계값 미만) | `400 HOLD_SHORT` "조금만 더 머물러 주세요" | 없음(devotionCount=0, devotionsToday=0 유지) |
+| 2 | 2900(경계값) | `202` 성공, `devotionsToday:1` | devotionCount 0→1, status ACTIVE→GROWING |
+| 3 | 3000(같은 날 재시도) | `429 ALREADY_TODAY` "오늘의 기도는 이미 올렸어요" | 없음(1에서 변화 없음) |
+
+- 경계값 2899ms(미만)과 2900ms(이상)이 정확히 갈라짐 — `holdMinMs:2900`
+  구현이 기획서 수치와 1:1 일치.
+- HOLD_SHORT로 거절된 요청은 DB에 어떤 흔적도 남기지 않음(재시도 가능,
+  매크로로 짧게 연타해도 소득 없음) — 어뷰징 관점에서 안전.
+- ALREADY_TODAY가 HOLD_SHORT보다 먼저 검사됨(`devotions/route.ts` 52-58행)도
+  실측 확인(이미 기도한 뒤 정상값 heldMs=3000을 보내도 ALREADY_TODAY로
+  거절됨 — "하루 1번" 제한이 hold 시간 검증보다 우선).
+- 코드 레벨 조사(이전 기록)와 API 레벨 실제 재현이 모두 기획서와 일치 →
+  **① 기도 매크로 항목은 완전 검증 완료, 추가 조치 불필요**.
+
+**사용한 신규 테스트 계정/데이터**(로컬 `dev.db`만, 운영 서버 무관):
+- `users.id=458`(`wr_qa_abuse1@test.local`, pw "Test1234!") +
+  `user_profiles`(사주정보 복사, 온보딩 스킵용).
+- `wish_rooms.id=18`(최초 생성, 이후 ARCHIVED로 변경), `id=19`(클린
+  재현용, 현재 GROWING·devotionCount=1 상태로 남아있음 — 추후 다른
+  어뷰징 항목 검증에 재사용 가능).
+
+**검증 스크립트**: curl 직접 호출(ephemeral, 셸 히스토리에만 존재,
+파일로 저장 안 함). Playwright 스크립트 `/tmp/qa9_item1_devotion.py`·
+`qa9b_item1_ui.py`·`qa9c_item1_ui2.py`는 로그인→소원방 진입 경로
+확인용으로만 사용(ephemeral).
+
+**TodoWrite 갱신**: ① 완료 처리. 다음 순서는 ②기기시계조작
+(`kstDate()` 서버 KST 자정 기준 로직 코드 조사)이다 — 아직 미착수.
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
