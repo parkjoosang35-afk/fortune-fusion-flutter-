@@ -1992,6 +1992,77 @@ append-only 트리거로 영구 보존됨(실질 잔액/상태는 이미 원복�
 **TodoWrite 갱신**: §12 ⑥ 완료 처리(공백 발견, 대표님 판단 대기).
 다음 순서는 §12 ⑦ 받는 분이 수호자 돌려보냄이다(미착수).
 
+### §12 예외상황 ⑦ 받는 분이 수호자 돌려보냄 — 공백 발견(API 재현)
+
+**기획 요구사항**(§12 예외상황 7번): "받는 분이 수호자 돌려보냄 —
+보낸 분께 남은 날 환급 + \"그분이 혼자 빌고 싶어 하세요\"". 즉 (1)
+금전적 환급과 (2) "자연히 기간이 끝난 것"과는 구분되는 전용 안내
+메시지, 2가지가 모두 필요하다는 의미.
+
+**코드 조사**:
+- `POST /me/visitors/{dispatchId}/recall`(받는 쪽이 "돌려보내기"를
+  누르는 엔드포인트)은 `computeDispatchRecallRefund()`로 환급을
+  계산해 `earnLuckPouch()`로 지급하고 `status:"done"`으로
+  바꾼다(route.ts 23-48행). **그런데 현재 dispatch(수호자 파견)는
+  `price` 컬럼이 항상 0으로 고정된 "무료" 기능**(`dispatch/route.ts`
+  97행: `price: 0` 하드코딩, `wishroom_data.json` POUCH에도 dispatch
+  유상 설정 없음)이라, `computeDispatchRecallRefund()`가 항상
+  `refund:0`을 반환한다(함수 자체 460행: `if (dispatch.price <= 0
+  ...) return { refund: 0 }`) — "남은 날 환급"이 구조적으로 발생할
+  수 없는 상태. 이는 ⑥번과 달리 **아직 금전이 오가지 않는 기능이라
+  당장 금전적 피해는 없음**(참고: Prisma 스키마 주석은 "추후 유상
+  파견 확장 대비"라고 명시하고 있어, 유상화 시점에는 이 환급 로직이
+  의미를 갖게 됨).
+- 더 명확한 공백은 **"그분이 혼자 빌고 싶어 하세요" 메시지**
+  쪽이다. `recall` 엔드포인트는 DB에 `status:"done"`(스키마 주석은
+  `recalled`라고 적혀 있으나 실제 구현 코드는 `"done"`을 쓴다 —
+  `getDispatchDone()`의 조회 조건도 `status:{in:["praying","done"]}`
+  으로 `done`만 찾음, `recalled`라는 문자열은 코드 어디에도 실제로
+  기록되지 않는 죽은 상태값)으로만 바꿀 뿐, "자연히 기간이 끝나서
+  done이 된 경우"와 "받는 분이 중간에 돌려보내서 done이 된 경우"를
+  **DB 레벨에서도 구분하지 않는다**. `getDispatchDone()`이 발신자에게
+  내려주는 `DispatchAwayRow`에는 `recalled` 여부를 나타내는 필드가
+  없고, Flutter `DispatchAway` 모델도 `status` 필드의 주석에만
+  `recalled`라는 값이 있을 수 있다고 적어뒀을 뿐 실제로 그 값이
+  내려온 적이 없어 `dispatch_back_card.dart`는 두 경우 모두 똑같이
+  "{수호자}이(가) 돌아왔어요 · 다른 분 소원방에서 {기간} 동안 빌고
+  왔어요. 촛불이 아주 환해졌어요"라는 **같은 축하 문구**만 보여준다
+  — "그분이 혼자 빌고 싶어 하세요"라는 분기 메시지 자체가 코드
+  어디에도 존재하지 않음(전체 리포 grep 0건).
+
+**API 레벨 재현 검증**(user 458→보냄, user 87 소유 `wr_1`→받음,
+테스트 후 전부 원복):
+
+| 단계 | 호출 | 결과 |
+|---|---|---|
+| 1 | user458: `POST /wish-rooms/wr_1/dispatch {guardian:"F00"}` | 성공, `dispatchId:"wrd_2"`, `wr_1.visitPolicy="ask"`라 `status:"asked"`로 생성(`ask:true`) |
+| 2 | user87(방 주인): `POST /me/visitors/wrd_2/recall` | 성공, DB 확인 결과 `status:"done"`(`"recalled"`가 아님), `sent_back_at` 기록, `refund:null`(price=0이라 환급 없음) |
+| 3 | user458: `GET /wish-rooms/me` | `me.dispatchDone:{id:2, guardian:"F00", status:"done", ...}` — **자연 완료와 동일한 payload**, "돌려보내졌다"는 정보 자체가 응답에 없음 |
+
+**결론**: **⑦(§12 예외상황) 받는 분이 수호자 돌려보냄 — 2가지
+요구사항 중 "남은 날 환급"은 dispatch가 현재 무료 기능이라 당장은
+의미가 없는 상태(향후 유상화 시 재검증 필요)이고, "그분이 혼자
+빌고 싶어 하세요" 전용 안내 메시지는 서버·클라이언트 양쪽 모두
+미구현된 명백한 공백임을 API 재현으로 확인**. 현재는 받는 분이
+중간에 거절해 돌려보낸 경우와 수호자가 정상적으로 기간을 다 채운
+경우를 발신자가 전혀 구분할 수 없다. 스탠딩 규칙("대표님 판단 대기
+항목 발견 시 임의 구현 금지")에 따라 구현하지 않고 발견만 기록한다.
+수정 방향에 대한 대표님 판단이 필요하다(예: `recall` 시
+`status:"recalled"`로 명확히 구분해 저장하고, `getDispatchDone()`/
+`DispatchAwayRow`/Flutter `DispatchAway` 모델에 이 상태를 그대로
+전달해 `dispatch_back_card.dart`가 `status=="recalled"`일 때만
+"그분이 혼자 빌고 싶어 하세요" 메시지로 분기하는 방식이 후보가 될
+수 있으나, 구현 여부·문구는 대표님 결정 사항).
+
+**테스트 데이터**: `wish_room_dispatches`에 생성된 테스트 레코드
+(id:2) 삭제 완료. 양쪽 사용자(458/87) `wallets.balance` 전부
+테스트 전후 변화 없음(dispatch가 무료 기능이라 애초에 금전 이동이
+없었음) — `point_histories`에도 이번 ⑦ 테스트로 인한 레코드 생성
+없음(①~⑥번까지와 달리 이번 테스트는 결제가 전혀 발생하지 않음).
+
+**TodoWrite 갱신**: §12 ⑦ 완료 처리(공백 발견, 대표님 판단 대기).
+다음 순서는 §12 ⑧ 상대 방 비공개 전환·삭제이다(미착수).
+
 ### 46개 안내 팝업 전수 대조 — 조사 완료, 구현은 대표님 판정 대기
 
 출처: `/home/user/handoffs/extracted/mapping/소원방 개발 매핑표.html`
