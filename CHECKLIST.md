@@ -1742,3 +1742,85 @@ QA는 반드시 릴리즈 빌드 기준으로 수행해야 신뢰할 수 있다*
 **사용한 테스트 계정**: `wr_qa_tour21@test.local`(user 457) / room
 id=17은 이후 세션 재사용을 위해 삭제하지 않고 dev.db에 유지한다(단,
 devotion_count=1 상태이므로 재사용 시 그 점 고려).
+
+### ④ 5일 쉬기 → J11 밝기·문구 — 완료(기존 계정 room 17 재사용, 날짜 조작)
+
+**실행 방법**: ② Tour21 검증에 쓴 기존 계정(`wr_qa_tour21@test.local`,
+user 457, room id=17)을 재사용. 로컬 `dev.db`에서
+`wish_rooms.last_active_at`을 직접 UPDATE해 "며칠 쉼"을 시뮬레이션하고
+(`decay_notified=0`도 함께 리셋), Playwright로 로그인→메인룸 진입→
+안내 시트 전부 닫기까지 진행 후 메인룸을 캡처했다.
+
+**1단계: DECAY 티어 코드 분석(4개 티어 전부 확인)**. `wishroom_data.json`의
+`DECAY` 배열(`{0일:밝기1·밝게 타는 중}, {4일:밝기.8·조금 약해짐·badge
+false·push true}, {8일:밝기.62·희미해짐·badge true}, {15일:밝기.48·
+가물거림·badge true}`)과 `wishroom-engine.ts`의 `decayOf(days)`/
+`daysBetween()`/`roomView()`, Flutter `main_room_screen.dart`의
+`isDim = room.decayBadge && room.brightness < 1 && !_rekindling`(710-711행)
+로직을 대조해, **4~7일 구간은 `badge:false`라 UI(다시밝히기 버튼·말풍선)에
+변화가 없고 서버 push 알림만 트리거되며, 8일 이상부터 `badge:true`로
+바뀌어야 비로소 UI가 전환되는 것이 설계임**을 코드 레벨에서 확정했다.
+
+**2단계: 5일째 캡처 — UI 변화 없음 확인(정상)**. `last_active_at`을 5일
+전으로 맞춘 뒤 캡처한 결과(`/tmp/qd5_05_clean_mainroom.png`) "다시
+밝히기" 버튼이나 약해짐 말풍선이 전혀 뜨지 않음을 확인 — 1단계 분석과
+정확히 일치하는 **정상 동작**(버그 아님)으로 결론지었다.
+
+**3단계: 8일째 캡처 — 버튼·라벨·말풍선 전부 정상 노출 확인**.
+`last_active_at`을 8일 전으로 재조정 후 재캡처
+(`/tmp/qd8_00_clean_mainroom.png`, 확대 크롭 `/tmp/qd8_01_zoom_button.png`)
+한 결과 "다시 밝히기" 버튼과 "🕯 촛불 62%" 라벨이 코드값(`brightness:0.62`)과
+정확히 일치해 정상 노출됨을 1차 확인했다. 다만 이 시점에는 말풍선 문구가
+보이지 않았는데, 원인 조사 결과 **수호자(guardian) 말풍선 위젯 자체가
+`room.isFeatureUnlocked('guardian')`일 때만 렌더링되고(927행 `if
+(room.isFeatureUnlocked('guardian')) Positioned(key: speechBubble...)`),
+guardian의 unlock 조건은 `dayN>=2`(= `wish_rooms.created_at` 기준 경과일,
+decay의 `last_active_at` 기준과는 다른 날짜임)인데, `created_at`은
+여전히 "오늘"로 남아 있어 `dayN=1`이라 guardian이 잠긴 상태였기
+때문임**을 확인했다 — `last_active_at`(decay 계산용)과
+`created_at`(dayN/unlock 계산용)이 서로 다른 날짜 축이라는 점을 이번에
+처음 명확히 구분했다.
+
+**4단계: `created_at`도 8일 전으로 맞춰 재캡처 — 말풍선까지 완전 확인**.
+`created_at`을 8일 전으로 추가 UPDATE하자 "DAY 9 · NEW 수호자가
+찾아왔어요" unlock 카드가 새로 떠 "나중에"로 닫은 뒤 메인룸을 재캡처
+(`/tmp/qd8c_01_clean.png`)한 결과, **"8일 만에 오셨네요\n촛불이 많이
+약해졌어요"라는 말풍선 문구가 코드(`_speechText()`의 isDim 분기,
+`'${room.absentDays}일 만에 오셨네요\n촛불이 많이 약해졌어요'`)와
+정확히 일치해 정상 노출됨**을 최종 확인했다. "다시 밝히기" 버튼과
+"🕯 촛불 62%" 라벨도 동시에 정상 노출된 상태로 함께 확인됐다.
+
+**5단계: decay 푸시 알림 미발송 여부 — 원인 규명 완료(Flutter 측 설계상
+`/enter` API를 호출하는 화면이 없음)**. `enter/route.ts`는
+`absentDays>=4 && !decayNotified`일 때 "소원방 촛불이 조금 약해졌어요"
+알림을 서버 `notifications` 테이블에 1회 발송하도록 구현돼 있다. 그러나
+로컬 `dev.db`의 `notifications` 테이블을 user 457 기준으로 조회한
+결과(4~5단계 전체 과정 동안) **0건**이었다. Flutter 소스 전체(`grep -rn
+"enterRoom" lib/`, `grep -rn "\.enterRoom" lib/`, `grep -rni "enterroom"
+.`)를 재확인한 결과 `WishRoomProvider.enterRoom()`(`POST
+/wish-rooms/{id}/enter`를 호출하는 메서드, wishroom_provider.dart:256)은
+**정의만 존재하고 앱 어디에서도 호출되지 않는다**는 것을 확정했다.
+메인룸 진입 시 실제로 호출되는 것은 `loadMyRoom()`(`GET
+/wish-rooms/me` 경로, main_room_screen.dart:174 `initState()`에서 호출)
+뿐이며, 이 라우트(`wish-rooms/me/route.ts`)를 전체 읽어 확인한 결과
+**UNSEAL(봉인 해제) 알림 로직만 있고 decay(STATUS) 알림 로직 자체가
+없다**. 즉 **"소원방 촛불이 조금 약해졌어요" 푸시 알림은 Flutter
+클라이언트가 `enter` 엔드포인트를 전혀 호출하지 않는 현재 구조상 설계상
+발송될 수 없는 상태**이다. 이는 코드 조사만으로 확정된 사실이며, 버그
+여부 판단·`enter` 호출 추가 여부는 대표님 판정 영역으로 남겨둔다(5개
+금지 파일 중 하나도 아니고 신규 코드 변경이 필요한 영역이라 이번
+세션에서는 수정하지 않았다).
+
+**결론**:
+- UI 밝기·라벨·말풍선 전환(4단계 전부)은 **코드와 완전히 일치하여 정상
+  작동**함을 스크린샷으로 확정 검증했다.
+- decay 알림(push)은 **현재 Flutter 구조상 설계상 발송되지 않는다**는
+  원인까지 규명했다(버그 여부는 대표님 판정 대기, 이번 세션에서 코드
+  변경 없음).
+- `created_at`(dayN/unlock 계산)과 `last_active_at`(decay 계산)은 서로
+  다른 날짜 축이라는 점을 이번 조사로 명확히 구분해 기록해 둔다 — 향후
+  날짜 조작 기반 QA 시 둘 다 고려해야 정확한 재현이 가능하다.
+
+**사용한 테스트 계정**: `wr_qa_tour21@test.local`(user 457) / room
+id=17, 이번 조사로 `created_at`·`last_active_at` 모두 8일 전으로 변경된
+상태로 dev.db에 남아있다(다음 세션 재사용 시 이 점 고려).
