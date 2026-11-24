@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- [2026-10 스플래시 디자인 교체 — "귀인지도"] v21+에서도 다크/라이트
+     모드와 무관하게 동일한 단색(#14214a)을 유지한다(values-night의
+     LaunchTheme도 동일 drawable을 참조하므로 결과적으로 시스템 설정과
+     무관하게 항상 이 색으로 고정됨 — 브랜드 색 일관성 우선). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <item android:drawable="@color/gwiinjido_launch_background" />
 </layer-list>

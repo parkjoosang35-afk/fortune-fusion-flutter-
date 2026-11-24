@@ -235,6 +235,7 @@ flutter:
     - assets/icons/
     - assets/icons/bottom_nav/
     - assets/images/
+    - assets/images/splash/
     - assets/images/guinji/
     - assets/images/guinji_home/
     - assets/images/guinji_home_v2/

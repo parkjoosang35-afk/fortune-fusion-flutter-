@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- [2026-10 스플래시 디자인 교체 — "귀인지도"] 핸드오프 README §네이티브
+     런치스크린: "아이콘 없이 단색 #14214a"로, Flutter 엔진이 첫 프레임을
+     그리기 전까지 보이는 이 네이티브 화면이 뒤이어 나타나는 애니메이션
+     스플래시(splash_screen.dart) 배경 그라데이션의 중간색과 동일해
+     전환 시 색 끊김이 없도록 한다. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <item android:drawable="@color/gwiinjido_launch_background" />
 </layer-list>
