@@ -65,6 +65,7 @@ import '../../features/subscription/presentation/my_subscription_screen.dart';
 import '../../features/wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../features/wishroom/features/link/link_invite_screen.dart';
 import '../../features/shop/presentation/seal_shop_screen.dart';
+import '../../features/pouch_pay/presentation/pouch_store_screen.dart';
 import '../../features/shop/presentation/candle_shop_screen.dart';
 import '../../features/shop/presentation/talisman_shop_screen.dart';
 import '../../features/shop/presentation/treasure_box_screen.dart';
@@ -1019,6 +1020,10 @@ class AppRouter {
         return _pageNamed('/shop/talismans', const TalismanShopScreen());
       case '/shop/treasure':
         return _pageNamed('/shop/treasure', const TreasureBoxScreen());
+
+      // [S5 복주머니 결제] 곳간(Store) — 복주머니 팩/구독 전용 신규 화면.
+      case '/pouch/store':
+        return _pageNamed('/pouch/store', const PouchStoreScreen());
 
       // [2026-11 홈 화면 정리] "내 기록 (읽기 전용)" 진입점(홈 화면 시계
       // 아이콘) 및 이 라우트를 사용자 요청으로 완전히 제거했다.

@@ -11,6 +11,8 @@ import '../domain/shop_item_visuals.dart';
 import '../domain/shop_models.dart';
 import '../widgets/shop_purchase_effect.dart';
 import '../widgets/shop_widgets.dart';
+import '../../pouch_pay/presentation/shortage_quick_sheet.dart';
+import '../../wishroom/features/wallet/wallet_sheet.dart';
 
 const String _sealShopGuideSeenKey = 'shop_guide_seen_seal';
 
@@ -47,11 +49,12 @@ class _SealShopScreenState extends State<SealShopScreen> {
   Future<void> _handlePurchase(ShopCatalogItem item) async {
     final pouch = context.read<LuckPouchProvider>();
     if (pouch.balance < item.price) {
-      await ShortageDialog.show(
+      await openShortageQuickSheet(
         context,
-        item: item,
+        itemLabel: item.nameKo,
         need: item.price,
         have: pouch.balance,
+        onCollectFree: () => openWalletSheet(context),
       );
       return;
     }

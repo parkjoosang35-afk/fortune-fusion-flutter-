@@ -73,6 +73,10 @@ import 'core/widgets/luck_pouch_toast.dart';
 import 'features/shop/data/shop_repository.dart';
 import 'features/shop/data/shop_api_repository.dart';
 import 'features/shop/application/shop_provider.dart';
+// [S5 복주머니 결제 — PAYMENT_MODE=mock] 곳간(Store)/체크아웃/ShortageQuickSheet가
+// 공유하는 구매 서비스. ShopProvider와 동일한 원칙(LuckPouchProvider만 참조,
+// 새 화폐 생성 금지)으로 ChangeNotifierProxyProvider로 등록한다.
+import 'features/pouch_pay/application/pouch_pay_service.dart';
 // [소원방 v2.6 전면 재구축 완료] 구 모듈(lib/features/wish_room/, 및 그 소비자인
 // lib/features/_archive/wish_wall_board/)은 신규 모듈(lib/features/wishroom/)
 // 실동작(회원인증/복주머니/광고 연동 포함 전체 라이프사이클: 작성→정성들이기→
@@ -309,6 +313,19 @@ class App extends StatelessWidget {
           ),
           update: (context, pouch, previous) =>
               previous ?? ShopProvider(context.read<ShopRepository>(), pouch),
+        ),
+        // [S5 복주머니 결제] 곳간(Store)/체크아웃/ShortageQuickSheet 전용 구매
+        // 서비스 — ShopProvider와 동일하게 LuckPouchProvider 위에 얇게 얹는다.
+        ChangeNotifierProxyProvider<LuckPouchProvider, PouchPayService>(
+          create: (context) =>
+              PouchPayService(context.read<LuckPouchProvider>()),
+          update: (context, pouch, previous) {
+            if (previous != null) {
+              previous.updatePouch(pouch);
+              return previous;
+            }
+            return PouchPayService(pouch);
+          },
         ),
         // [소원방 v2.6 전면 재구축] 구 감사 도장(GratitudeProvider)은 신규 모듈로
         // 완전히 대체되어 제거했다.
@@ -563,6 +580,9 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     // (admin_web ShrineOrder 등)가 userId 기준으로 관리하므로, 로그아웃 시
     // 클라이언트 캐시(ShrineV3Provider 내부 state)만 비워주면 된다.
     auth.registerLogoutCallback(context.read<ShrineV3Provider>().clearOnLogout);
+    // [S5 복주머니 결제 — 계정 격리 원칙] 이전 계정의 영수증/구독상태
+    // 표시용 캐시가 로그아웃 후 다른 계정 화면에 잔존하면 안 된다.
+    auth.registerLogoutCallback(context.read<PouchPayService>().clearOnLogout);
   }
 
   @override

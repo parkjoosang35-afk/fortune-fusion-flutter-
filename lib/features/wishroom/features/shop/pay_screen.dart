@@ -7,9 +7,10 @@
 // 영수증 · after 콜백)은 전부 이 파일 하나가 전담한다 — 구매 버튼과 결제 처리를
 // 두 곳에 따로 만들지 말라는 지시를 코드 구조로 강제한다.
 //
-// [③ 결제 서버 범위] 지금은 기존 구매 API(아이템·수호자·옷)만 쓴다. 유상/무상
-// 원장·충전·환불은 S5에서 한다 — 「🧧 N개 충전하기」 버튼은 자리만 두고 토스트로
-// "충전은 곧 준비돼요"만 안내한다.
+// [③ 결제 서버 범위 — S5 구현 완료] 「🧧 N개 충전하기」 버튼은 이제 실제로
+// ShortageQuickSheet(곳간 바로가기 + 추천 팩)를 열어, 복주머니를 담고
+// 돌아오면 이 결제창이 그대로 이어서 결제되도록 안내한다(resumeLabel).
+// 실제 곳간/체크아웃/적립 구현은 lib/features/pouch_pay/ 참고.
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -20,6 +21,8 @@ import '../../core/fx/wr_fx.dart';
 import '../../core/wr_toast.dart';
 import '../wallet/wallet_sheet.dart';
 import '../guide/guide3_sheet.dart';
+// [S5 복주머니 결제] "충전하기" 버튼이 실제로 곳간(Store)을 열도록 연결한다.
+import '../../../pouch_pay/presentation/shortage_quick_sheet.dart';
 
 /// 결제창에 전달하는 "주문" 정보 — app3/pay.jsx `order` prop 1:1.
 class PayOrder {
@@ -273,21 +276,33 @@ class _PayScreenState extends State<PayScreen> {
                 ),
                 const SizedBox(height: 18),
                 if (lack > 0) ...[
-                  // ③ 결제 서버 범위 — 충전 버튼은 지금은 자리만.
+                  // [S5 복주머니 결제] 부족분만큼 추천 팩을 바로 보여주는
+                  // ShortageQuickSheet를 연다 — 담고 나면 "{상품명} 이어서
+                  // 봉인하기" 버튼으로 이 결제창에 자연히 돌아오게 안내한다.
                   SizedBox(
                     width: double.infinity,
                     height: 50,
-                    child: OutlinedButton(
-                      onPressed: () => WrToast.show(context, '충전 기능은 곧 준비돼요'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0x66F5CF6A)),
-                      ),
-                      child: Text(
-                        '🧧 $lack개 충전하기',
-                        style: WrF.body(
-                          14,
-                          w: FontWeight.w700,
-                          color: const Color(0xFFFFE7A0),
+                    child: Semantics(
+                      identifier: 'pay_charge_lack',
+                      button: true,
+                      child: OutlinedButton(
+                        onPressed: () => openShortageQuickSheet(
+                          context,
+                          itemLabel: order.name,
+                          need: order.price,
+                          have: before,
+                          onCollectFree: () => openWalletSheet(context),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0x66F5CF6A)),
+                        ),
+                        child: Text(
+                          '🧧 $lack개 충전하기',
+                          style: WrF.body(
+                            14,
+                            w: FontWeight.w700,
+                            color: const Color(0xFFFFE7A0),
+                          ),
                         ),
                       ),
                     ),
