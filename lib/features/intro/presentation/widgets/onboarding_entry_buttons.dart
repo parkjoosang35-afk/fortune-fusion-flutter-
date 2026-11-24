@@ -72,7 +72,10 @@ class _OnboardingMoonPrimaryButtonState
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      identifier: 'onboarding_primary_cta_button',
+      button: true,
+      child: GestureDetector(
       onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
       onTapCancel: () => setState(() => _pressed = false),
       onTapUp: widget.enabled ? (_) => setState(() => _pressed = false) : null,
@@ -88,22 +91,28 @@ class _OnboardingMoonPrimaryButtonState
             // alpha .5}}`.
             final glowT = Curves.easeInOut.transform(_glowController.value);
             final blur = 18 + glowT * (32 - 18);
+            // [온보딩 v3] README §2 "버튼" Primary pulse — alpha .28↔.5
+            // (기존과 동일한 범위, 색만 골드로 교체).
             final alpha = 0.28 + glowT * (0.5 - 0.28);
             return Container(
               height: widget.height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
+                // [온보딩 v3] README §2 "버튼" Primary 배경 —
+                // `linear-gradient(180deg, #f1da92, #e0c264)`.
                 gradient: const LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    IntroPalette.introGlowLight,
-                    IntroPalette.primary,
+                    IntroPalette.onboardingV3GlowLight,
+                    IntroPalette.onboardingV3Glow,
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: IntroPalette.primary.withValues(alpha: alpha),
+                    color: IntroPalette.onboardingV3Glow.withValues(
+                      alpha: alpha,
+                    ),
                     blurRadius: blur,
                   ),
                   const BoxShadow(
@@ -126,7 +135,7 @@ class _OnboardingMoonPrimaryButtonState
                           style: GoogleFonts.gowunBatang(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: IntroPalette.introInk,
+                            color: IntroPalette.onboardingV3Ink,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -135,7 +144,7 @@ class _OnboardingMoonPrimaryButtonState
                           style: GoogleFonts.gowunBatang(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: IntroPalette.introInk,
+                            color: IntroPalette.onboardingV3Ink,
                           ),
                         ),
                       ],
@@ -147,6 +156,7 @@ class _OnboardingMoonPrimaryButtonState
             );
           },
         ),
+      ),
       ),
     );
   }
@@ -184,8 +194,9 @@ class _OnboardingMoonPrimaryButtonState
   }
 }
 
-/// `.btn-ghost` — 2열 그리드용 작은 버튼. 배경 `rgba(200,180,255,.08)`,
-/// 테두리 `1px solid var(--line)`, `backdrop-filter: blur(12px)`.
+/// `.btn-ghost` — 2열 그리드용 작은 버튼. [온보딩 v3] README §2 "버튼"
+/// 보조 버튼 — 배경 `rgba(224,194,100,.06)`, 테두리
+/// `1px solid rgba(224,194,100,.18)`, `backdrop-filter: blur(12px)`.
 class OnboardingMoonGhostButton extends StatefulWidget {
   const OnboardingMoonGhostButton({
     super.key,
@@ -217,7 +228,12 @@ class _OnboardingMoonGhostButtonState
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      identifier: widget.leadingIcon != null
+          ? 'onboarding_login_button'
+          : 'onboarding_browse_guest_button',
+      button: true,
+      child: GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapCancel: () => setState(() => _pressed = false),
       onTapUp: (_) => setState(() => _pressed = false),
@@ -234,8 +250,8 @@ class _OnboardingMoonGhostButtonState
               height: widget.height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                color: const Color(0x14C8B4FF), // rgba(200,180,255,.08).
-                border: Border.all(color: IntroPalette.cardBorder),
+                color: IntroPalette.onboardingV3Card,
+                border: Border.all(color: IntroPalette.onboardingV3Line),
               ),
               alignment: Alignment.center,
               child: Row(
@@ -247,7 +263,7 @@ class _OnboardingMoonGhostButtonState
                       style: GoogleFonts.gowunBatang(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: IntroPalette.primary,
+                        color: IntroPalette.onboardingV3Glow,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -257,7 +273,7 @@ class _OnboardingMoonGhostButtonState
                     style: GoogleFonts.gowunBatang(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: IntroPalette.textPrimary,
+                      color: IntroPalette.onboardingV3Fg,
                     ),
                   ),
                   if (widget.trailingIcon != null) ...[
@@ -267,7 +283,7 @@ class _OnboardingMoonGhostButtonState
                       style: GoogleFonts.gowunBatang(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: IntroPalette.primary,
+                        color: IntroPalette.onboardingV3Glow,
                       ),
                     ),
                   ],
@@ -276,6 +292,7 @@ class _OnboardingMoonGhostButtonState
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -290,7 +307,10 @@ class OnboardingNoticeLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return Semantics(
+      identifier: 'onboarding_notice_link',
+      button: true,
+      child: TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
@@ -306,14 +326,14 @@ class OnboardingNoticeLink extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: IntroPalette.cardBorder),
+              border: Border.all(color: IntroPalette.onboardingV3Line),
             ),
             child: Text(
               'i',
               style: GoogleFonts.ibmPlexMono(
                 fontSize: 8,
                 fontWeight: FontWeight.w500,
-                color: IntroPalette.primary,
+                color: IntroPalette.onboardingV3Glow,
                 height: 1.0,
               ),
             ),
@@ -325,10 +345,11 @@ class OnboardingNoticeLink extends StatelessWidget {
               fontFamily: 'Pretendard',
               fontSize: 11.5,
               fontWeight: FontWeight.w400,
-              color: IntroPalette.introFaint,
+              color: IntroPalette.onboardingV3Faint,
             ),
           ),
         ],
+      ),
       ),
     );
   }

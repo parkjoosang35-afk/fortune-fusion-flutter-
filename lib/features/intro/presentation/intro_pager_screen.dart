@@ -225,16 +225,17 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
 
     return Scaffold(
       body: DecoratedBox(
-        // [배경 변경 금지] README "배경색은 지금과 똑같이 유지" — 기존
-        // 3단 그라디언트를 그대로 재사용한다.
+        // [온보딩 v3 네이비+골드 리컬러] README §2 "배경" — 3단 그라디언트를
+        // 라벤더(backgroundTop/Mid/Bottom, 다른 화면과 공유)에서 이 화면
+        // 전용 네이비 톤(onboardingV3Bg1/BgMid/Bg2)으로 교체한다.
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              IntroPalette.backgroundTop,
-              IntroPalette.backgroundMid,
-              IntroPalette.backgroundBottom,
+              IntroPalette.onboardingV3Bg1,
+              IntroPalette.onboardingV3BgMid,
+              IntroPalette.onboardingV3Bg2,
             ],
             stops: [0.0, 0.45, 1.0],
           ),
@@ -278,34 +279,37 @@ class _IntroPagerScreenState extends State<IntroPagerScreen>
   }
 }
 
-/// 배경 라디얼 그라디언트 2겹(변경 금지 범위, 기존 그대로 유지).
+/// 배경 라디얼 그라디언트 2겹. [온보딩 v3 네이비+골드 리컬러] README §2
+/// "배경" — `radial-gradient(120% 60% at 15% 0%, rgba(120,150,210,.14),
+/// transparent 60%)` + `radial-gradient(90% 55% at 90% 85%,
+/// rgba(224,194,100,.08), transparent 60%)`로 교체(기존 라벤더 2겹 대체).
 class _AmbientRadials extends StatelessWidget {
   const _AmbientRadials();
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: RadialGradient(
-          center: const Alignment(-0.7, -1.0),
+          center: Alignment(-0.7, -1.0),
           radius: 1.1,
           colors: [
-            IntroPalette.crystal.withValues(alpha: 0.10),
+            Color(0x24789AD2), // rgba(120,150,210,.14).
             Colors.transparent,
           ],
-          stops: const [0.0, 0.6],
+          stops: [0.0, 0.6],
         ),
       ),
-      child: DecoratedBox(
+      child: const DecoratedBox(
         decoration: BoxDecoration(
           gradient: RadialGradient(
-            center: const Alignment(0.8, 0.7),
+            center: Alignment(0.8, 0.7),
             radius: 1.0,
             colors: [
-              IntroPalette.primary.withValues(alpha: 0.12),
+              Color(0x14E0C264), // rgba(224,194,100,.08).
               Colors.transparent,
             ],
-            stops: const [0.0, 0.6],
+            stops: [0.0, 0.6],
           ),
         ),
       ),
@@ -364,13 +368,19 @@ class _OnboardingContent extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       child: Column(
         children: [
-          SizedBox(
-            height: 28,
-            child: _FadeIn(
-              elapsedSeconds: elapsedSeconds,
-              startSeconds: _EntryTiming.topBarStart,
-              durationSeconds: _EntryTiming.topBarDuration,
-              child: _TopBar(onSkip: onSkip),
+          _FadeIn(
+            elapsedSeconds: elapsedSeconds,
+            startSeconds: _EntryTiming.topBarStart,
+            durationSeconds: _EntryTiming.topBarDuration,
+            child: Column(
+              children: [
+                SizedBox(height: 28, child: _TopBar(onSkip: onSkip)),
+                // [온보딩 v3 신규] README §2 "TopBar (브랜드 교체)" 구분선
+                // — TopBar 아래 12px 위치의 1px 가로선 + 가운데 ◇(골드).
+                // 홈 화면(`guinji_v2_sheet.dart`의 `_EngineDivider`)과 같은
+                // 장식을 이 화면 전용 색(onboardingV3Line/Glow)으로 재현.
+                const _TopBarDivider(),
+              ],
             ),
           ),
           Expanded(
@@ -502,7 +512,10 @@ class _RiseFadeIn extends StatelessWidget {
   }
 }
 
-/// TopBar — 좌: 브랜드 마크+「귀인지도」+「SINTONG」, 우: 「건너뛰기」.
+/// TopBar — 좌: 브랜드 마크+「귀인지도」+「GWIIN JIDO」, 우: 「건너뛰기」.
+/// [온보딩 v3 브랜드 교체] README §2 "TopBar (브랜드 교체)" — 마크 글리프
+/// 「神」→「✦」(골드 그라디언트 배지), 브랜드명 색을 흰색→골드로, 영문
+/// 표기 「SINTONG」→「GWIIN JIDO」로 변경한다.
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.onSkip});
 
@@ -524,21 +537,21 @@ class _TopBar extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment(-0.6, -1),
                   end: Alignment(0.6, 1),
-                  colors: [Color(0xFFF3DCFB), IntroPalette.primary],
+                  colors: [Color(0xFFF3DC98), IntroPalette.onboardingV3Glow],
                 ),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
-                    color: IntroPalette.primary.withValues(alpha: 0.35),
+                    color: IntroPalette.onboardingV3GlowShadow,
                     blurRadius: 12,
                   ),
                 ],
               ),
               child: Text(
-                '神',
+                '✦',
                 style: GoogleFonts.notoSerifKr(
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
-                  color: IntroPalette.introInk,
+                  color: IntroPalette.onboardingV3Ink,
                   height: 1.0,
                 ),
               ),
@@ -547,43 +560,99 @@ class _TopBar extends StatelessWidget {
             Text(
               '귀인지도',
               style: GoogleFonts.notoSerifKr(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 13 * 0.02,
-                color: IntroPalette.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 14 * 0.02,
+                color: IntroPalette.onboardingV3Glow,
                 height: 1.0,
+                shadows: const [
+                  Shadow(
+                    color: IntroPalette.onboardingV3GlowShadow,
+                    blurRadius: 14,
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 2),
             Text(
-              'SINTONG',
+              'GWIIN JIDO',
               style: GoogleFonts.ibmPlexMono(
                 fontSize: 9,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 9 * 0.3,
-                color: IntroPalette.introFaint,
+                color: IntroPalette.onboardingV3Faint,
                 height: 1.0,
               ),
             ),
           ],
         ),
-        GestureDetector(
-          onTap: onSkip,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 0, 8),
-            child: Text(
-              '건너뛰기',
-              style: const TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: IntroPalette.textSecondary,
+        Semantics(
+          identifier: 'onboarding_skip_button',
+          button: true,
+          child: GestureDetector(
+            onTap: onSkip,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 0, 8),
+              child: Text(
+                '건너뛰기',
+                style: const TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: IntroPalette.onboardingV3Muted,
+                ),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// [온보딩 v3 신규] TopBar 아래 ◇ 구분선. README §2 "구분선 (신규)" —
+/// 1px 가로 그라디언트 라인 가운데에 ◇(7px, 골드). 홈 화면
+/// (`guinji_v2_sheet.dart`의 `_EngineDivider`)과 같은 장식을, 배경이
+/// 단색이 아니라 라인을 끊어 보이게 하는 대신 라인 위에 그대로 겹쳐
+/// 그린다(배경이 그라디언트라 고정 배경색으로 "끊어 보이게" 할 수 없다).
+class _TopBarDivider extends StatelessWidget {
+  const _TopBarDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: SizedBox(
+        height: 7,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              height: 1,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    IntroPalette.onboardingV3Line,
+                    IntroPalette.onboardingV3Line,
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.2, 0.8, 1.0],
+                ),
+              ),
+            ),
+            const Text(
+              '◇',
+              style: TextStyle(
+                fontSize: 7,
+                height: 1,
+                color: IntroPalette.onboardingV3Glow,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

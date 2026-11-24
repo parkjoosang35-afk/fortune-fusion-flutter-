@@ -258,11 +258,15 @@ class _DustParticle extends StatelessWidget {
                 width: 3,
                 height: 3,
                 decoration: BoxDecoration(
-                  color: IntroPalette.primary,
+                  // [온보딩 v3] README §2 "배경" — "빛 알갱이 색은
+                  // --glow(골드)를 따라가요"(기존 라벤더 primary 대체).
+                  color: IntroPalette.onboardingV3Glow,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: IntroPalette.primary.withValues(alpha: 0.9),
+                      color: IntroPalette.onboardingV3Glow.withValues(
+                        alpha: 0.9,
+                      ),
                       blurRadius: 6,
                     ),
                   ],

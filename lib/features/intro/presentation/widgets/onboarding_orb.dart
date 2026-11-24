@@ -39,7 +39,8 @@ class OnboardingOrb extends StatelessWidget {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          // 바깥 마법진 — 100%, 160s 시계방향, color glow op .6.
+          // 바깥 마법진 — 100%, 160s 시계방향. [온보딩 v3] color
+          // glow(#e0c264) op .55(기존 라벤더 primary op .6 대체).
           SizedBox(
             width: size,
             height: size,
@@ -47,13 +48,14 @@ class OnboardingOrb extends StatelessWidget {
               periodSeconds: 160,
               reduceMotion: reduceMotion,
               painterBuilder: (r) => OnboardingOuterSigilPainter(
-                color: IntroPalette.primary,
-                opacity: 0.6,
+                color: IntroPalette.onboardingV3Glow,
+                opacity: 0.55,
                 rotationRadians: r,
               ),
             ),
           ),
-          // 안쪽 마법진 — inset 16%, 90s 반시계방향, color crystal op .5.
+          // 안쪽 마법진 — inset 16%, 90s 반시계방향. [온보딩 v3] color
+          // crystal(#9fb6dc) op .45(기존 라벤더 crystal op .5 대체).
           SizedBox(
             width: size * 0.68,
             height: size * 0.68,
@@ -62,8 +64,8 @@ class OnboardingOrb extends StatelessWidget {
               reverse: true,
               reduceMotion: reduceMotion,
               painterBuilder: (r) => OnboardingInnerSigilPainter(
-                color: IntroPalette.crystal,
-                opacity: 0.5,
+                color: IntroPalette.onboardingV3Crystal,
+                opacity: 0.45,
                 rotationRadians: r,
               ),
             ),
@@ -99,12 +101,11 @@ class OnboardingOrb extends StatelessWidget {
               ],
             ),
           ),
-          // 인장 神通 — right 6%, bottom 12%, 세로쓰기.
-          Positioned(
-            right: size * 0.06,
-            bottom: size * 0.12,
-            child: _Seal(fontSizeBase: size),
-          ),
+          // [온보딩 v3 — 神通 인장 삭제] README §2 "神通 인장 → 삭제":
+          // Orb 오른쪽 아래의 빨간 세로 인장(神通)과 등장 애니메이션을
+          // 모두 제거한다. 과거 `_Seal` 위젯 정의는 아래에 더 이상
+          // 참조되지 않지만 프로젝트 관례(구 코드 보존)에 따라 그대로
+          // 남겨 두고, 호출부(여기)에서만 제거한다.
         ],
       ),
     );
@@ -157,14 +158,14 @@ class _OrbitingStarsState extends State<_OrbitingStars>
               angle: angle,
               child: Align(
                 alignment: Alignment.topCenter,
-                child: _starGlyph('✦', IntroPalette.crystal),
+                child: _starGlyph('✦', IntroPalette.onboardingV3Crystal),
               ),
             ),
             Transform.rotate(
               angle: angle,
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: _starGlyph('✧', IntroPalette.primary),
+                child: _starGlyph('✧', IntroPalette.onboardingV3Glow),
               ),
             ),
           ],
@@ -226,30 +227,39 @@ class _MoonState extends State<_Moon> with SingleTickerProviderStateMixin {
         final t = Curves.easeInOut.transform(_breathe.value);
         final blur1 = 44 + t * (64 - 44);
         final blur2 = 100 + t * (140 - 100);
+        // [온보딩 v3] README §2 "달" 빛 숨쉬기 — alpha .45↔.65(색만
+        // 골드로 교체, blur 범위는 기존과 동일).
         final alpha1 = 0.45 + t * (0.65 - 0.45);
         final alpha2 = 0.18 + t * (0.3 - 0.18);
         return Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            // [온보딩 v3] README §2 "달" 면 — `radial-gradient(circle at
+            // 36% 32%, #fffaee 0%, #f7e8bf 35%, #e3c47c 70%, #b88e45
+            // 100%)`(기존 라벤더 4색 대체, center 좌표는 동일).
             gradient: const RadialGradient(
               center: Alignment(-0.28, -0.36),
               colors: [
-                Color(0xFFFDF8FF),
-                Color(0xFFF1DCFA),
-                Color(0xFFD6BDEC),
-                Color(0xFFA993D1),
+                Color(0xFFFFFAEE),
+                Color(0xFFF7E8BF),
+                Color(0xFFE3C47C),
+                Color(0xFFB88E45),
               ],
               stops: [0.0, 0.35, 0.70, 1.0],
             ),
             boxShadow: [
               BoxShadow(
-                color: IntroPalette.primary.withValues(alpha: alpha1),
+                color: IntroPalette.onboardingV3Glow.withValues(alpha: alpha1),
                 blurRadius: blur1,
               ),
               BoxShadow(
-                color: IntroPalette.primary.withValues(alpha: alpha2),
+                color: IntroPalette.onboardingV3Glow.withValues(alpha: alpha2),
                 blurRadius: blur2,
               ),
+              // README "inset -14px -18px 34px rgba(110,70,20,.35)" —
+              // Flutter BoxDecoration은 inset shadow를 직접 지원하지
+              // 않으므로 `_MoonCraterPainter` 쪽에서 근사한 음영을 더해
+              // 입체감을 보완한다(아래 크레이터 참고).
             ],
           ),
           child: CustomPaint(painter: _MoonCraterPainter()),
@@ -260,6 +270,8 @@ class _MoonState extends State<_Moon> with SingleTickerProviderStateMixin {
 }
 
 /// 크레이터 3개 — (64%,70%) r8% / (30%,62%) r5% / (70%,30%) r4%.
+/// [온보딩 v3] README §2 "달" 크레이터 — 보라빛 틴트에서 갈색
+/// `rgba(170,130,60, a)`(a=.28/.20/.18)로 교체.
 class _MoonCraterPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -273,9 +285,9 @@ class _MoonCraterPainter extends CustomPainter {
       );
     }
 
-    crater(0.64, 0.70, 0.08, const Color(0x598F7BBF));
-    crater(0.30, 0.62, 0.05, const Color(0x408F7BBF));
-    crater(0.70, 0.30, 0.04, const Color(0x388F7BBF));
+    crater(0.64, 0.70, 0.08, const Color(0x47AA823C));
+    crater(0.30, 0.62, 0.05, const Color(0x33AA823C));
+    crater(0.70, 0.30, 0.04, const Color(0x2EAA823C));
   }
 
   @override
@@ -314,7 +326,9 @@ class _GlyphLayer extends StatelessWidget {
               fontSize: fontSize,
               fontWeight: FontWeight.w800,
               height: 1.0,
-              color: const Color(0xC73D3568),
+              // [온보딩 v3] README §2 "달" 한자 글리프 — 짙은 갈색 음각
+              // `rgba(70,48,18,.72)`(기존 라벤더 잉크 대체).
+              color: const Color(0xB8463012),
               shadows: const [
                 Shadow(
                   color: Color(0x80FFFFFF),
@@ -329,77 +343,10 @@ class _GlyphLayer extends StatelessWidget {
   }
 }
 
-/// 인장 神通 — 세로쓰기, 인주색(seal red) 그라디언트 배지, rotate(6deg).
-class _Seal extends StatelessWidget {
-  const _Seal({required this.fontSizeBase});
-
-  final double fontSizeBase;
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = (fontSizeBase / 290).clamp(0.6, 1.1);
-    return Transform.rotate(
-      angle: 6 * math.pi / 180,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: 7 * scale,
-          vertical: 6 * scale,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6 * scale),
-          gradient: const LinearGradient(
-            begin: Alignment(-0.6, -1),
-            end: Alignment(0.6, 1),
-            colors: [
-              IntroPalette.introSealLight,
-              Color(0xFFC94A3B),
-              IntroPalette.introSealDark,
-            ],
-            stops: [0.0, 0.55, 1.0],
-          ),
-          border: Border.all(
-            color: const Color(0x40FFDCC8),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFC94A3B).withValues(alpha: 0.45),
-              blurRadius: 18 * scale,
-              offset: Offset(0, 4 * scale),
-            ),
-            const BoxShadow(
-              color: Color(0x40FFFFFF),
-              blurRadius: 0,
-              offset: Offset(0, 1),
-            ),
-          ],
-        ),
-        // `writing-mode: vertical-rl` 근사 — 짧은 2자 한자를 세로로
-        // 쌓아 세로쓰기 인상을 재현한다(회전이 아니라 수직 배치).
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '神',
-              style: GoogleFonts.nanumMyeongjo(
-                fontWeight: FontWeight.w800,
-                fontSize: 15 * scale,
-                color: IntroPalette.introSealText,
-                height: 1.1,
-              ),
-            ),
-            Text(
-              '通',
-              style: GoogleFonts.nanumMyeongjo(
-                fontWeight: FontWeight.w800,
-                fontSize: 15 * scale,
-                color: IntroPalette.introSealText,
-                height: 1.1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// [온보딩 v3 — 신통 인장 삭제] README §2 "神通 인장 → 삭제"에 따라
+// `_Seal` 위젯 전체(정의)를 제거했다. v2까지는 Orb 오른쪽 아래에
+// 세로쓰기 빨간 인장(神通)을 그렸으나, v3는 브랜드 교체로 더 이상
+// 표시하지 않는다(진입 시퀀스의 인장 1.6s 단계도 함께 사라짐).
+// `IntroPalette.introSealLight/introSealDark/introSealText`는 다른
+// 화면이 참조하지 않는 이 전용 토큰이지만, 프로젝트 관례(구 코드/토큰
+// 보존 원칙)에 따라 `intro_palette.dart`에서는 삭제하지 않고 남겨둔다.

@@ -27,7 +27,9 @@ Future<void> showOnboardingNoticeSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: const Color(0x8C0A0819), // rgba(10,8,25,.55) 근사.
+    // [온보딩 v3] README §2 "바터시트" 떔: rgba(5,9,20,.6)
+    // (기존 rgba(10,8,25,.55) 대체).
+    barrierColor: const Color(0x990A0914),
     builder: (context) => const _OnboardingNoticeSheet(),
   );
 }
@@ -46,12 +48,19 @@ class _OnboardingNoticeSheet extends StatelessWidget {
             topLeft: Radius.circular(22),
             topRight: Radius.circular(22),
           ),
+          // [온보딩 v3] README §2 "바터시트" 시트 배경 —
+          // `linear-gradient(180deg, #1b2b50, #0f1931)`.
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [IntroPalette.sheetTop, IntroPalette.sheetBottom],
+            colors: [
+              IntroPalette.onboardingV3Bg1,
+              IntroPalette.onboardingV3SheetBottom,
+            ],
           ),
-          border: Border(top: BorderSide(color: IntroPalette.cardBorder)),
+          border: Border(
+            top: BorderSide(color: IntroPalette.onboardingV3Line),
+          ),
         ),
         // [반응형 화면 규격 통일 지시서] 이 바텀시트는 SingleChildScrollView
         // 보호 없는 고정 Column이라, 작은 화면(320px대) + 큰 textScale(2.0배
@@ -69,14 +78,18 @@ class _OnboardingNoticeSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: IntroPalette.cardBorder,
+                  // [온보딩 v3] 손잡이(grab) 색 --line.
+                  color: IntroPalette.onboardingV3Line,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
               Text(
                 '재미·참고용 콘텐츠 안내',
                 textAlign: TextAlign.center,
-                style: IntroTextStyles.title(fontSize: 19),
+                style: IntroTextStyles.title(
+                  fontSize: 19,
+                  color: IntroPalette.onboardingV3Fg,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -84,30 +97,38 @@ class _OnboardingNoticeSheet extends StatelessWidget {
                 '재미와 참고를 위한 이야기예요.\n'
                 '중요한 결정은 당신의 마음과 함께 내려주세요.',
                 textAlign: TextAlign.center,
-                style: IntroTextStyles.sub(),
+                style: IntroTextStyles.sub(color: IntroPalette.onboardingV3Muted),
               ),
               const SizedBox(height: 22),
-              SizedBox(
-                height: 56,
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  style:
-                      ElevatedButton.styleFrom(
-                        backgroundColor: IntroPalette.primary,
-                        foregroundColor: IntroPalette.onPrimary,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+              Semantics(
+                identifier: 'onboarding_notice_sheet_confirm_button',
+                button: true,
+                child: SizedBox(
+                  height: 56,
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    style:
+                        ElevatedButton.styleFrom(
+                          backgroundColor: IntroPalette.onboardingV3Glow,
+                          foregroundColor: IntroPalette.onboardingV3Ink,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ).copyWith(
+                          // [온보딩 v3] README §2 "버튼" Primary 배경
+                          // 상단톤(--glow-light #f1da92)을 단색으로 근사.
+                          backgroundColor: const WidgetStatePropertyAll(
+                            IntroPalette.onboardingV3GlowLight,
+                          ),
                         ),
-                      ).copyWith(
-                        backgroundColor: const WidgetStatePropertyAll(
-                          IntroPalette.glowLight,
-                        ),
-                      ),
-                  child: Text(
-                    '알겠어요',
-                    style: IntroTextStyles.btnPrimary().copyWith(fontSize: 16),
+                    child: Text(
+                      '알겠어요',
+                      style: IntroTextStyles.btnPrimary(
+                        color: IntroPalette.onboardingV3Ink,
+                      ).copyWith(fontSize: 16),
+                    ),
                   ),
                 ),
               ),

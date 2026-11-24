@@ -159,4 +159,56 @@ class IntroPalette {
   /// 緣 인장 위 글자색(핸드오프 #fbeee6). 기존 [sealInk](#fff9e8)와 다른
   /// 핸드오프 값이라 별도 보관한다.
   static const Color introSealText = Color(0xFFFBEEE6);
+
+  // ───────────────────────── [온보딩 v3 네이비+골드 리컬러 — design_handoff_onboarding_v3.zip 반영] ─────────────────────────
+  // `Onboarding v3.html`(라벤더 → 네이비+골드, 「신통방통/SINTONG/神」 →
+  // 「귀인지도/GWIIN JIDO」 브랜드 교체) README §1 색상 토큰 변경표를 그대로
+  // 이식한다. 기존 `backgroundTop/Mid/Bottom`·`primary`·`crystal`·
+  // `cardBorder`·`onPrimary`·`textPrimary`·`textSecondary` 등은 로그인/
+  // 회원가입/약관/웰컴팝업 등 다른 화면과 공유되는 토큰이라 값을 바꾸지
+  // 않고, 이 온보딩 화면 전용 신규 토큰을 `onboardingV3` 접두사로 분리
+  // 신설한다(기존 `intro*` 접두사 토큰도 v2 전용값이라 그대로 보존).
+
+  /// 배경 그라디언트 상단(--bg-1 #1b2b50). 바텀시트 상단 톤과도 동일.
+  static const Color onboardingV3Bg1 = Color(0xFF1B2B50);
+
+  /// 배경 그라디언트 45% 지점(--bg-mid #131f3b).
+  static const Color onboardingV3BgMid = Color(0xFF131F3B);
+
+  /// 배경 그라디언트 하단(--bg-2 #0b1428).
+  static const Color onboardingV3Bg2 = Color(0xFF0B1428);
+
+  /// 본문 글자(--fg #f5eedd).
+  static const Color onboardingV3Fg = Color(0xFFF5EEDD);
+
+  /// 보조/캡션 글자(--muted rgba(232,222,200,.64)).
+  static const Color onboardingV3Muted = Color(0xA3E8DEC8);
+
+  /// 가장 옅은 글자, 안내 링크/영문 라벨(--faint rgba(232,222,200,.4)).
+  static const Color onboardingV3Faint = Color(0x66E8DEC8);
+
+  /// 강조 글자/마법진/점/버튼(--glow #e0c264).
+  static const Color onboardingV3Glow = Color(0xFFE0C264);
+
+  /// Primary 버튼·달 그라디언트 위쪽(--glow-light #f1da92).
+  static const Color onboardingV3GlowLight = Color(0xFFF1DA92);
+
+  /// 빛 번짐/버튼 shadow(--glow-shadow rgba(224,194,100,.35)).
+  static const Color onboardingV3GlowShadow = Color(0x59E0C264);
+
+  /// Eyebrow/안쪽 마법진/공전 별(--crystal #9fb6dc).
+  static const Color onboardingV3Crystal = Color(0xFF9FB6DC);
+
+  /// 보조(Ghost) 버튼 배경(--card rgba(224,194,100,.06)).
+  static const Color onboardingV3Card = Color(0x0FE0C264);
+
+  /// 테두리/구분선/점(비활성)(--line rgba(224,194,100,.18)).
+  static const Color onboardingV3Line = Color(0x2EE0C264);
+
+  /// 골드 배경 위 글자(--ink #111a30).
+  static const Color onboardingV3Ink = Color(0xFF111A30);
+
+  /// 바텀시트 배경 그라디언트 하단(핸드오프 #0f1931). 상단은
+  /// [onboardingV3Bg1]과 동일값이라 재사용한다.
+  static const Color onboardingV3SheetBottom = Color(0xFF0F1931);
 }

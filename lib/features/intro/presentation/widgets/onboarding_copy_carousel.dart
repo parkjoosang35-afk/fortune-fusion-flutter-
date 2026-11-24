@@ -123,7 +123,8 @@ class _SlideLayer extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 10 * 0.38,
-                    color: IntroPalette.crystal,
+                    // [온보딩 v3] README §1 — eyebrow는 --crystal(#9fb6dc).
+                    color: IntroPalette.onboardingV3Crystal,
                   ),
                 ),
                 SizedBox(height: titleMarginTop),
@@ -135,17 +136,20 @@ class _SlideLayer extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       height: 1.32,
                       letterSpacing: titleSize * -0.025,
-                      color: IntroPalette.textPrimary,
+                      // [온보딩 v3] README §1 — 본문 글자 --fg(#f5eedd).
+                      color: IntroPalette.onboardingV3Fg,
                     ),
                     children: [
                       TextSpan(text: data.titlePrefix),
                       TextSpan(
                         text: data.titleEmphasis,
                         style: const TextStyle(
-                          color: IntroPalette.primary,
+                          // [온보딩 v3] 강조 글자 --glow(#e0c264) +
+                          // text-shadow --glow-shadow.
+                          color: IntroPalette.onboardingV3Glow,
                           shadows: [
                             Shadow(
-                              color: IntroPalette.glowShadow,
+                              color: IntroPalette.onboardingV3GlowShadow,
                               blurRadius: 20,
                             ),
                           ],
@@ -163,7 +167,8 @@ class _SlideLayer extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                     height: 1.7,
-                    color: IntroPalette.textSecondary,
+                    // [온보딩 v3] README §1 — 보조 글자 --muted.
+                    color: IntroPalette.onboardingV3Muted,
                   ),
                 ),
               ],
@@ -227,6 +232,7 @@ class _Dot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      identifier: 'onboarding_dot_$label',
       label: label,
       button: true,
       child: GestureDetector(
@@ -241,9 +247,11 @@ class _Dot extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
+              // [온보딩 v3] README §1 — 활성 점 배경
+              // rgba(224,194,100,.25), 비활성 점 --line.
               color: active
-                  ? IntroPalette.introDotActiveBg
-                  : IntroPalette.cardBorder,
+                  ? const Color(0x40E0C264)
+                  : IntroPalette.onboardingV3Line,
             ),
             clipBehavior: Clip.hardEdge,
             child: active
@@ -252,7 +260,7 @@ class _Dot extends StatelessWidget {
                     child: FractionallySizedBox(
                       widthFactor: progress.clamp(0.0, 1.0),
                       heightFactor: 1.0,
-                      child: Container(color: IntroPalette.primary),
+                      child: Container(color: IntroPalette.onboardingV3Glow),
                     ),
                   )
                 : null,
