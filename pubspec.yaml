@@ -265,7 +265,10 @@ flutter:
     - assets/tarot/oz/
     - assets/jeontong/easy_terms.json
     - assets/jeontong/rules/
-    - assets/videos/
+    # [온보딩 영상 삭제 — 2026-11] 스플래시 직후 온보딩 화면 전에 1회
+    # 자동재생하던 5대 기능 소개 영상(assets/videos/onboarding.mp4, 약
+    # 18MB)을 삭제했다 — 사용자 요청. `assets/videos/` 폴더 자체도 비어
+    # 함께 제거했으므로 이 asset 선언도 제거한다.
     # [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 구버전(U1-U13, 어두운
     # 공포 이야기 버전)은 비용 문제(영상 대역폭)로 전면 삭제되었다.
     # design_handoff_shrine_v3 핸드오프 기준 신규 에셋 구조(talisman/

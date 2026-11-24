@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/utils/email_validator.dart';
@@ -13,8 +12,6 @@ import '../../guinji/presentation/guinji_join_screen.dart';
 import '../../guinji/presentation/guinji_onboarding_screen.dart';
 import '../../intro/presentation/intro_palette.dart';
 import '../../intro/presentation/intro_text_styles.dart';
-import '../../intro/presentation/onboarding_gate_screen.dart';
-import '../../intro/presentation/onboarding_video_screen.dart';
 import '../../intro/presentation/widgets/intro_title_text.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
@@ -301,11 +298,15 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  /// [온보딩 영상 적용 가이드 §4 + 회원가입 통합 사주정보] 회원가입 성공
-  /// 직후 호출. 온보딩 영상을 아직 안 봤으면 먼저 보여준 뒤(건너뛰기
-  /// 가능), 공통 본인 사주정보 입력 화면(`BirthInputScreen`,
-  /// `isSignupFlow: true`)으로 `pushReplacement`한다 — 뒤로가기로 가입
-  /// 화면에 되돌아갈 수 없다(가입 자체는 이미 서버에 완료됐으므로).
+  /// [회원가입 통합 사주정보] 회원가입 성공 직후 호출. 공통 본인
+  /// 사주정보 입력 화면(`BirthInputScreen`, `isSignupFlow: true`)으로
+  /// `pushReplacement`한다 — 뒤로가기로 가입 화면에 되돌아갈 수 없다
+  /// (가입 자체는 이미 서버에 완료됐으므로).
+  ///
+  /// [온보딩 영상 삭제 — 2026-11] 과거(온보딩 영상 적용 가이드 §4)에는
+  /// 이 단계 진입 전에 5대 핵심기능 소개 영상(27초)을 먼저 보여줬으나,
+  /// 사용자 요청으로 그 영상 단계를 완전히 제거했다. 이제 곧바로 사주정보
+  /// 입력 화면으로 이동한다.
   ///
   /// [비로그인 결과보기 복귀 지시서 R2와의 관계] 과거에는 이 시점에
   /// pending 결과보기 복귀를 먼저 확인했으나, 이제는 "가입 직후 1회
@@ -315,33 +316,6 @@ class _SignupScreenState extends State<SignupScreen> {
   /// 복귀 자체를 삭제하지 않는다 — 단지 사주정보 입력 다음으로 순서만
   /// 미뤄진다.
   Future<void> _goToSajuProfileInput(BuildContext context) async {
-    bool alreadySeen = true;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      alreadySeen = prefs.getBool(OnboardingGateScreen.prefsKey) ?? false;
-    } catch (_) {
-      // 조회 실패 시 기존 동작(곧바로 다음 단계)과 동일하게 안전 폴백.
-      alreadySeen = true;
-    }
-    if (!context.mounted) return;
-
-    if (!alreadySeen) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => OnboardingVideoScreen(
-            onFinished: () async {
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool(OnboardingGateScreen.prefsKey, true);
-              } catch (_) {}
-              if (context.mounted) Navigator.of(context).pop();
-            },
-          ),
-        ),
-      );
-      if (!context.mounted) return;
-    }
-
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => const BirthInputScreen(isSignupFlow: true),

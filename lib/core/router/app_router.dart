@@ -6,7 +6,7 @@ import 'app_shell.dart';
 // 경로로 유지한다.
 import '../../features/shrine_v3/presentation/screens/shrine_v3_entry_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
-import '../../features/intro/presentation/onboarding_gate_screen.dart';
+import '../../features/intro/presentation/intro_pager_screen.dart';
 import '../../features/policy/presentation/policy_notice_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_choice_screen.dart';
@@ -254,14 +254,16 @@ class AppRouter {
       // [인트로 전면 개편] 4단계 인트로(카드1/카드2/CTA) 페이저. 스플래시 이후
       // introSeen=false인 첫 실행 사용자에게만 노출된다.
       //
-      // [온보딩 영상 적용 — 개발자 핸드오프 가이드 §4] 이 페이저 진입 전에
-      // 5대 핵심기능 소개 영상(27초)을 먼저 보여줘야 하므로,
-      // OnboardingGateScreen이 SharedPreferences(`has_seen_onboarding_v1`)
-      // 기준으로 "영상 → 이 페이저" 또는 "바로 이 페이저"를 내부적으로
-      // 분기한다(카드 인트로 자체의 introSeen 분기는 SplashScreen이 기존
-      // 그대로 담당 — 이중 분기 로직이 아니라 한 단계 더 얹는 방식).
+      // [온보딩 영상 삭제 — 2026-11] 과거(온보딩 영상 적용 가이드 §4)에는
+      // 이 페이저 진입 전에 5대 핵심기능 소개 영상(27초, `assets/videos/
+      // onboarding.mp4`)을 먼저 자동재생했다. 사용자 요청으로 그 영상
+      // 단계를 완전히 제거하고, `/intro`가 곧바로 [IntroPagerScreen]으로
+      // 진입하도록 되돌린다. 영상 게이트 화면 자체(`OnboardingGateScreen`,
+      // `OnboardingVideoScreen`)는 프로젝트 관례(구 코드 보존 원칙)에
+      // 따라 삭제하지 않고 그대로 두되, 더 이상 이 라우트에서 참조하지
+      // 않는다.
       case '/intro':
-        return _pageNamed('/intro', const OnboardingGateScreen());
+        return _pageNamed('/intro', const IntroPagerScreen());
       // [6-5-D] 구 3페이지 온보딩(OnboardingScreen)은 신규 IntroPagerScreen이
       // 완전히 대체했고, 이 named route를 호출하는 코드가 앱 전체(딥링크 포함)
       // 어디에도 없음을 확인해 죽은 라우트만 제거한다. 화면 파일 자체
