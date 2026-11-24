@@ -7,13 +7,13 @@ import 'package:flutter_app/features/home/domain/manseryeok/saju_profile.dart';
 import 'dart:convert';
 
 void main() {
-  // 이권호: 1970년 음력 11월 26일, 새벽 1시(01:00), 남성, 서울(KST)
+  // 이권호: 1970년 음력 11월 26일, 자시(子時, 00:00~00:59 대표 00:30), 남성, 서울(KST)
   final withCore = ManseryeokCoreEngine.buildProfileWithCore(
     year: 1970,
     month: 11,
     day: 26,
-    hour: 1,
-    minute: 0,
+    hour: 0,
+    minute: 30,
     gender: 'male',
     calendarType: CalendarInputType.lunar,
     isLeapMonth: false,
