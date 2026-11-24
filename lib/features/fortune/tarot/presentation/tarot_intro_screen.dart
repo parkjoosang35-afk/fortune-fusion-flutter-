@@ -14,7 +14,7 @@
 //
 // [폰트 대체] 프로젝트에 고정된 `google_fonts: 6.2.1`에는 'Noto Serif KR'
 // 전용 메서드가 없어(다른 화면에서도 이미 확인된 제약, 예:
-// sintong_hero_carousel.dart, oz_theme.dart 주석 참고), 동일한 명조 계열인
+// guinji_hero_video.dart, oz_theme.dart 주석 참고), 동일한 명조 계열인
 // `nanumMyeongjo`로 대체한다. `Cormorant Garamond`/`Gowun Batang`/
 // `IBM Plex Mono`는 6.2.1에 그대로 존재해 스펙과 동일하게 사용한다.
 //

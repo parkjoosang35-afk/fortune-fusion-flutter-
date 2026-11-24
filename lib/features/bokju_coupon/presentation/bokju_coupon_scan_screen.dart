@@ -8,7 +8,7 @@ import 'bokju_coupon_resolve_screen.dart';
 /// 화면. 추출 성공 시 [BokjuCouponResolveScreen]으로 교체 이동한다.
 ///
 /// [QR 내용 형식] 발급 쿠폰의 QR은 딥링크 URL
-/// (`https://sintong.kr/coupon/{token}` 또는 `fortunefusion://coupon/{token}`)
+/// (`https://sintong.kr/coupon/{token}` 또는 `guinjido://coupon/{token}`)
 /// 또는 순수 토큰 문자열 둘 중 하나로 인코딩될 수 있다고 가정하고, 두 형식을
 /// 모두 파싱한다(관리자 웹 쪽 QR 생성 방식이 나중에 바뀌어도 이 화면이
 /// 깨지지 않도록 방어적으로 처리).
@@ -54,7 +54,7 @@ class _BokjuCouponScanScreenState extends State<BokjuCouponScanScreen> {
     }
   }
 
-  /// `https://sintong.kr/coupon/{token}`, `fortunefusion://coupon/{token}`,
+  /// `https://sintong.kr/coupon/{token}`, `guinjido://coupon/{token}`,
   /// 또는 순수 토큰 문자열 중 하나로부터 토큰을 추출한다.
   String? _extractToken(String raw) {
     final trimmed = raw.trim();
@@ -67,7 +67,7 @@ class _BokjuCouponScanScreenState extends State<BokjuCouponScanScreen> {
           uri.pathSegments[0] == 'coupon') {
         return uri.pathSegments[1];
       }
-      if (uri.scheme == 'fortunefusion' && uri.host == 'coupon') {
+      if (uri.scheme == 'guinjido' && uri.host == 'coupon') {
         return uri.pathSegments.first;
       }
     }

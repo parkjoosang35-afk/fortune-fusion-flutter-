@@ -21,7 +21,7 @@ void initWebNavBridge() {
           return;
         }
         final data = message.data.dartify();
-        if (data is! Map || data['type'] != 'sintong:navigate') return;
+        if (data is! Map || data['type'] != 'guinji:navigate') return;
         final route = data['route'];
         if (route is! String || route.isEmpty) return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,7 +44,7 @@ void notifyRouteName(String? name) {
   try {
     if (web.window.parent == web.window) return;
     web.window.parent?.postMessage(
-      {'type': 'sintong:route-changed', 'route': name}.jsify(),
+      {'type': 'guinji:route-changed', 'route': name}.jsify(),
       web.window.location.origin.toJS,
     );
   } catch (error) {

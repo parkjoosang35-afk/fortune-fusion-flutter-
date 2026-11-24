@@ -235,11 +235,11 @@ flutter:
     - assets/icons/
     - assets/icons/bottom_nav/
     - assets/images/
-    - assets/images/sintong/
-    - assets/images/sintong_home/
-    - assets/images/sintong_home_v2/
-    - assets/images/sintong_home_v2/sections/
-    - assets/images/sintong_home_v2/menu/
+    - assets/images/guinji/
+    - assets/images/guinji_home/
+    - assets/images/guinji_home_v2/
+    - assets/images/guinji_home_v2/sections/
+    - assets/images/guinji_home_v2/menu/
     - assets/gunghap/art/web/sq/
     - assets/gunghap/art/web/sub/
     - assets/images/intro/
@@ -248,6 +248,7 @@ flutter:
     - assets/images/guinji/doryeong/
     - assets/images/guinji/seonnyeo/
     - assets/images/guinji/chars/
+    - assets/images/guinji/chars_fairy/
     - assets/audio/tarot/
     - assets/audio/pouch_box/
     - assets/audio/bgm/

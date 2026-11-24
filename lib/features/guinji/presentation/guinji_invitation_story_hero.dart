@@ -1,6 +1,6 @@
 // lib/features/guinji/presentation/guinji_invitation_story_hero.dart
 // [귀인지도 초대장 리디자인 — design_handoff_guiin_invitation.zip]
-// [A] StoryHero 변형 — 홈의 `SintongStoryHero`(sintong_story_hero.dart)와
+// [A] StoryHero 변형 — 홈의 `GuinjiStoryHero`(guinji_story_hero.dart)와
 // 동일한 5컷×6초=30초 무한 루프 타이밍 수학을 재사용하되, README "StoryHero
 // (초대장 변형)" 표에 명시된 시각 차이를 적용한다:
 //   - 풀블리드 폭 × 높이 430, 라운드 0 (홈은 16:11 aspect, 라운드 18)
@@ -10,7 +10,7 @@
 //   - 회전 마법진(sigil) SVG 레이어 + 금가루(gold dust) 파티클 레이어 추가
 //   - STORY 버튼이 우상단이 아니라 하단 우측, 진행 도트와 같은 줄
 //
-// 이미지 자산은 홈과 완전히 동일한 5장(`assets/images/sintong_home/
+// 이미지 자산은 홈과 완전히 동일한 5장(`assets/images/guinji_home/
 // story-N-*.jpg`)을 재사용한다(핸드오프 README "모두 1376×768 AI 생성
 // 일러스트" — 이미 프로젝트에 존재하는 파일과 동일).
 import 'dart:math' as math;
@@ -41,7 +41,7 @@ class GuinjiInvitationStoryHero extends StatefulWidget {
 
 class _GuinjiInvitationStoryHeroState extends State<GuinjiInvitationStoryHero>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  static const String _assetBase = 'assets/images/sintong_home';
+  static const String _assetBase = 'assets/images/guinji_home';
 
   final List<_InviteCut> _cuts = const [
     _InviteCut(

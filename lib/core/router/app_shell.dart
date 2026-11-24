@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/midnight_bottom_nav.dart';
 // [귀인지도 홈 v2 전면 교체] 사용자 두 번째 디자인 핸드오프
-// (design_handoff_sintong_main.zip)로 전면 교체 — 기존 v1
+// (design_handoff_guinji_main.zip)로 전면 교체 — 기존 v1
 // home_screen.dart(화이트 프리미엄 CMS 동적 섹션)는 더 이상 이 탭에
 // 배선하지 않는다(파일 자체는 프로젝트 관례상 보존).
-import '../../features/home/presentation/sintong_home_v2/sintong_home_v2_screen.dart';
+import '../../features/home/presentation/guinji_home_v2/guinji_home_v2_screen.dart';
 // [신당(神堂) 통합 — A안] 하단바 1번 슬롯이 더 이상 소원방을 열지 않고
 // 신당을 연다(아래 _openShrine 참고). WishRoomIntroScreen import와 소원방
 // push 기능 자체는 홈 카드/마이페이지 등 다른 진입점이 계속 쓰므로 삭제하지
@@ -53,7 +53,7 @@ import '../../features/mypage/presentation/my_screen.dart';
 /// 아니라 하단바 라벨/아이콘만 제거된 것이며, 홈 화면 카드·마이페이지
 /// 등 기존 다른 진입점(`WishRoomIntroScreen`)으로는 계속 동일하게 접근
 /// 가능하다(검색 확인: all_categories_screen.dart,
-/// sintong_home_v2_routing.dart, my_screen.dart에 각각 독립된 진입점
+/// guinji_home_v2_routing.dart, my_screen.dart에 각각 독립된 진입점
 /// 보존됨 — 이 파일은 그 경로들을 전혀 건드리지 않는다).
 class AppShell extends StatefulWidget {
   const AppShell({super.key, this.initialIndex = 0});
@@ -155,7 +155,7 @@ class _AppShellState extends State<AppShell> {
 
   // [운세보기 섹션 삭제] FortuneHubScreen 탭 콘텐츠를 _tabs에서 제거.
   static const _tabs = [
-    SintongHomeV2Screen(), // 🏠 홈 - 다크 히어로 캐러셀 v2(design_handoff_sintong_main)
+    GuinjiHomeV2Screen(), // 🏠 홈 - 다크 히어로 캐러셀 v2(design_handoff_sintong_main)
     // 🎁 복주머니 - [행운상자 - 복주머니 탭 신규 기능] 광고 시청으로 여는
     // 행운상자 그리드(하단바 라벨/아이콘은 그대로 "복주머니" 유지, 화면
     // 내용만 신규 행운상자 인터랙션으로 전면 교체됨).

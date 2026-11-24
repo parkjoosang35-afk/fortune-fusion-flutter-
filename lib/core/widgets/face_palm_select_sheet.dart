@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../features/fortune/sintong/screens/home_reading_sheet.dart';
+import '../../features/fortune/guinji/screens/home_reading_sheet.dart';
 import '../../features/pass/presentation/pass_gate_helper.dart';
 
 /// [홈 "상담" 카드 → "관상/손금" 통합 카드 교체] 관상/손금을 하나의 카드로

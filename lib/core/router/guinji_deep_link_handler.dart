@@ -6,7 +6,7 @@ import '../../features/guinji/presentation/guinji_map_guest_join_screen.dart';
 import 'app_navigator_key.dart';
 import 'app_router.dart';
 
-/// [귀인지도 딥링크 버그수정 — Phase A] `fortunefusion://g/{token}` 커스텀
+/// [귀인지도 딥링크 버그수정 — Phase A] `guinjido://g/{token}` 커스텀
 /// URI 스킴으로 앱이 열렸을 때(콜드 스타트/백그라운드 복귀 모두) 게스트
 /// 참여+입력 화면([GuinjiMapGuestJoinScreen])으로 이동시키는 전역 리스너.
 ///
@@ -31,12 +31,12 @@ import 'app_router.dart';
 /// [귀인지도 바이럴 랜딩 - ServiceGrid 신설] 바이럴 랜딩페이지
 /// (admin_web `/g/[token]`)에 "소원방/타로/정통사주/오늘의 운세" 4개
 /// 카드를 추가하면서, 각 카드가 "즉시 이동"하도록 신규 스킴
-/// `fortunefusion://svc/{key}` (및 `https://sintong.kr/svc/{key}`)를
+/// `guinjido://svc/{key}` (및 `https://sintong.kr/svc/{key}`)를
 /// 함께 처리한다. key → 실제 Flutter named route 매핑은
 /// [_serviceRouteFor]에 있다. `/g/{token}`(게스트 참여) 흐름과는
 /// 완전히 독립적인 별도 host이므로 서로 간섭하지 않는다.
 ///
-/// [결과 공유 기능 — sintong-share-proposal.pdf] `fortunefusion://r/{shareId}`
+/// [결과 공유 기능 — sintong-share-proposal.pdf] `guinjido://r/{shareId}`
 /// (및 `https://sintong.kr/r/{shareId}`) 딥링크도 이 핸들러가 함께
 /// 수신한다. `g`/`svc`와 동일하게 완전히 독립된 host('r')이며,
 /// [AppRouter.onGenerateRoute]의 '/r/' 접두사 분기로 최종 라우팅한다.
@@ -71,12 +71,12 @@ class GuinjiDeepLinkHandler {
   }
 
   /// 두 가지 형태를 처리한다:
-  ///   1) `fortunefusion://g/{token}` — 커스텀 스킴(host가 'g').
+  ///   1) `guinjido://g/{token}` — 커스텀 스킴(host가 'g').
   ///      pathSegments[0]이 곧 token.
   ///   2) `https://sintong.kr/g/{token}` — [Phase B] 운영 도메인 App Links.
   ///      pathSegments가 ['g', token] 형태(호스트가 도메인이라 'g'가 첫
   ///      경로 세그먼트로 들어옴)이므로 인덱스가 다르다.
-  ///   3) `fortunefusion://svc/{key}` / `https://sintong.kr/svc/{key}` —
+  ///   3) `guinjido://svc/{key}` / `https://sintong.kr/svc/{key}` —
   ///      [ServiceGrid 신설] 바이럴 랜딩페이지의 소원방/타로/정통사주/
   ///      오늘의 운세 카드. key는 [_serviceRouteFor]가 실제 named route로
   ///      변환한다.
@@ -84,8 +84,8 @@ class GuinjiDeepLinkHandler {
   static void _handleUri(Uri uri) {
     // ── 1)+2) 게스트 참여(`g`) ──────────────────────────────────────
     String? token;
-    if (uri.scheme == 'fortunefusion' && uri.host == 'g') {
-      // fortunefusion://g/{token} → path가 '/{token}', pathSegments[0]이 token.
+    if (uri.scheme == 'guinjido' && uri.host == 'g') {
+      // guinjido://g/{token} → path가 '/{token}', pathSegments[0]이 token.
       final segments = uri.pathSegments;
       token = segments.isNotEmpty ? segments.first : null;
     } else if (uri.scheme == 'https' &&
@@ -111,8 +111,8 @@ class GuinjiDeepLinkHandler {
 
     // ── 3) ServiceGrid(`svc`) ───────────────────────────────────────
     String? serviceKey;
-    if (uri.scheme == 'fortunefusion' && uri.host == 'svc') {
-      // fortunefusion://svc/{key} → pathSegments[0]이 key.
+    if (uri.scheme == 'guinjido' && uri.host == 'svc') {
+      // guinjido://svc/{key} → pathSegments[0]이 key.
       final segments = uri.pathSegments;
       serviceKey = segments.isNotEmpty ? segments.first : null;
     } else if (uri.scheme == 'https' &&
@@ -136,11 +136,11 @@ class GuinjiDeepLinkHandler {
     }
 
     // ── 4) 결과 공유(`r`) ───────────────────────────────────────────
-    // [sintong-share-proposal.pdf] `fortunefusion://r/{shareId}` /
+    // [sintong-share-proposal.pdf] `guinjido://r/{shareId}` /
     // `https://sintong.kr/r/{shareId}`. AppRouter의 '/r/{shareId}' named
     // route로 그대로 위임한다(SharedResultScreen이 실제 조회를 담당).
     String? shareId;
-    if (uri.scheme == 'fortunefusion' && uri.host == 'r') {
+    if (uri.scheme == 'guinjido' && uri.host == 'r') {
       final segments = uri.pathSegments;
       shareId = segments.isNotEmpty ? segments.first : null;
     } else if (uri.scheme == 'https' &&
@@ -161,11 +161,11 @@ class GuinjiDeepLinkHandler {
 
     // ── 5) 소원방 공유 링크(`w`) ─────────────────────────────────────
     // [소원방 v2.6] app2/capsule2.jsx › ShareSheet가 shareLink()로 발급하는
-    // 공유 링크. `fortunefusion://w/{token}` / `https://sintong.kr/w/{token}`.
+    // 공유 링크. `guinjido://w/{token}` / `https://sintong.kr/w/{token}`.
     // AppRouter의 '/w/{token}' named route로 위임한다(LinkInviteScreen이
     // GET /share/{token}으로 실제 조회를 담당).
     String? wToken;
-    if (uri.scheme == 'fortunefusion' && uri.host == 'w') {
+    if (uri.scheme == 'guinjido' && uri.host == 'w') {
       final segments = uri.pathSegments;
       wToken = segments.isNotEmpty ? segments.first : null;
     } else if (uri.scheme == 'https' &&
@@ -185,12 +185,12 @@ class GuinjiDeepLinkHandler {
     }
 
     // ── 6) 복주머니 마케팅 쿠폰(`coupon`) ──────────────────────────
-    // [복주머니 마케팅 쿠폰] `fortunefusion://coupon/{token}` /
+    // [복주머니 마케팅 쿠폰] `guinjido://coupon/{token}` /
     // `https://sintong.kr/coupon/{token}`. '/g'·'/r'·'/w'와 동일한 패턴으로
     // AppRouter의 '/coupon/{token}' named route로 위임한다
     // ([BokjuCouponResolveScreen]이 실제 미리보기/등록을 담당).
     String? couponToken;
-    if (uri.scheme == 'fortunefusion' && uri.host == 'coupon') {
+    if (uri.scheme == 'guinjido' && uri.host == 'coupon') {
       final segments = uri.pathSegments;
       couponToken = segments.isNotEmpty ? segments.first : null;
     } else if (uri.scheme == 'https' &&
@@ -210,12 +210,12 @@ class GuinjiDeepLinkHandler {
     }
 
     // ── 7) 궁합지도 초대(`gh`) ───────────────────────────────────────
-    // [귀인지도 궁합지도 개발 지시서 §2③] `fortunefusion://gh/{token}` /
+    // [귀인지도 궁합지도 개발 지시서 §2③] `guinjido://gh/{token}` /
     // `https://sintong.kr/gh/{token}`. '/r'·'/w'·'/coupon'과 동일한
     // 패턴으로 AppRouter의 '/gh/{token}' named route로 위임한다
     // ([GunghapGuestInputScreen]이 비로그인 게스트 사주입력을 담당).
     String? ghToken;
-    if (uri.scheme == 'fortunefusion' && uri.host == 'gh') {
+    if (uri.scheme == 'guinjido' && uri.host == 'gh') {
       final segments = uri.pathSegments;
       ghToken = segments.isNotEmpty ? segments.first : null;
     } else if (uri.scheme == 'https' &&

@@ -25,7 +25,7 @@ import '../../pass/application/pass_provider.dart';
 /// "궁합만 저장이 안 된다"로 보였다. [ResultCardStack]이 이미 지원하는
 /// captureKey를 연결하고, 다른 결과 화면과 동일한 saveOriginalResult 공통
 /// 유틸(REQ-03 — 저장 단일 진입점)을 그대로 재사용해 저장 CTA를 추가한다.
-/// 파일명 규칙은 §6 REQ-06 지정대로 sintong_compat_{id}를 따른다.
+/// 파일명 규칙은 §6 REQ-06 지정대로 guinji_compat_{id}를 따른다.
 class CompatibilityResultScreen extends StatefulWidget {
   const CompatibilityResultScreen({super.key});
 
@@ -62,7 +62,7 @@ class _CompatibilityResultScreenState extends State<CompatibilityResultScreen> {
     final saved = await saveOriginalResult(
       context,
       _originalResultKey,
-      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
       name: buildSaveFileName('compat', result.id),
     );
     if (!mounted || !saved) return;

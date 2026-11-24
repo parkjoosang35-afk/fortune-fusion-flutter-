@@ -289,7 +289,7 @@ class ShareService {
         [
           XFile.fromData(
             png,
-            name: 'sintong_result_${DateTime.now().millisecondsSinceEpoch}.png',
+            name: 'guinji_result_${DateTime.now().millisecondsSinceEpoch}.png',
             mimeType: 'image/png',
           ),
         ],

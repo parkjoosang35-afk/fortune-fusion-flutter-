@@ -30,7 +30,7 @@ import 'tarot_deep_dive_screen.dart';
 import 'theme/tarot_perf_config.dart';
 import 'widgets/tarot_particle_burst.dart';
 import 'widgets/tarot_share_report_card.dart';
-import '../../../../core/sound/sintong_sound_service.dart';
+import '../../../../core/sound/guinji_sound_service.dart';
 
 /// [타로 오즈 리스킨 · 화면07 RESULT] 결과 화면.
 ///
@@ -71,7 +71,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        context.read<SintongSoundService>().duckMomentary('reveal');
+        context.read<GuinjiSoundService>().duckMomentary('reveal');
       } catch (_) {}
     });
   }
@@ -115,7 +115,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     final saved = await saveOriginalResult(
       context,
       _originalResultKey,
-      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
       name: buildSaveFileName('tarot', view.result.id),
       trailingKeys: [_originalFooterKey],
       overlayKeys: [_originalOverlayKey],
@@ -243,7 +243,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
                   ),
                 ),
                 const SizedBox(height: OzTokens.spaceMd),
-                // [결과 공유 기능 — sintong-share-proposal.pdf] 이미지 캡처
+                // [결과 공유 기능 — guinji-share-proposal.pdf] 이미지 캡처
                 // 공유(기존 기능, 변경 없음)와 별개로, 앱 설치 여부와 무관하게
                 // 열람 가능한 `/r/{shareId}` 웹 링크를 만들어 공유하는 새 경로.
                 // 카카오톡 등에서 링크를 누르면 OG 카드 미리보기가 뜨고,

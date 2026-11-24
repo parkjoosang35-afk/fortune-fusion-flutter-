@@ -8,13 +8,13 @@ import '../../../../core/widgets/app_toast.dart';
 import '../../../result_access/domain/result_access_model.dart';
 import '../../../result_access/presentation/result_access_gate_sheet.dart';
 import '../../shared/presentation/sensitive_photo_consent_dialog.dart';
-import '../../sintong/theme/sintong_colors.dart';
-import '../../sintong/theme/sintong_typography.dart';
-import '../../sintong/widgets/bangtong_coach_card.dart';
-import '../../sintong/widgets/face_sigil.dart';
-import '../../sintong/widgets/face_silhouette.dart';
-import '../../sintong/widgets/sintong_button.dart';
-import '../../sintong/widgets/sintong_screen_bg.dart';
+import '../../guinji/theme/guinji_colors.dart';
+import '../../guinji/theme/guinji_typography.dart';
+import '../../guinji/widgets/guinji_coach_card.dart';
+import '../../guinji/widgets/face_sigil.dart';
+import '../../guinji/widgets/face_silhouette.dart';
+import '../../guinji/widgets/guinji_button.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
 import '../application/face_provider.dart';
 import '../../../../core/sound/sound_route_trigger.dart';
 
@@ -125,7 +125,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       child: Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(child: SintongScreenBg()),
+          const Positioned.fill(child: GuinjiScreenBg()),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -141,15 +141,15 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                     onBack: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(height: 8),
-                  Text('STEP 01 / 03', style: SintongType.eyebrow),
+                  Text('STEP 01 / 03', style: GuinjiType.eyebrow),
                   const SizedBox(height: 8),
                   Text(
                     hasImage ? '이 얼굴로 / 들여다볼까요' : '얼굴을 / 보여주세요',
-                    style: SintongType.displayLg,
+                    style: GuinjiType.displayLg,
                   ),
                   const SizedBox(height: 14),
 
-                  BangtongCoachCard(
+                  GuinjiCoachCard(
                     message: hasImage
                         ? '좋아요, 얼굴이 잘 보여요.\n이대로 분석을 시작해볼게요.'
                         : '천천히 정면을 바라봐 주세요.\n얼굴결이 잘 보이도록 도와드릴게요.',
@@ -166,12 +166,12 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              SintongColors.glow.withValues(alpha: 0.08),
-                              SintongColors.accent.withValues(alpha: 0.04),
+                              GuinjiColors.glow.withValues(alpha: 0.08),
+                              GuinjiColors.accent.withValues(alpha: 0.04),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: SintongColors.line),
+                          border: Border.all(color: GuinjiColors.line),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: hasImage
@@ -225,19 +225,19 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                   const SizedBox(height: 10),
                   Text(
                     '촬영한 사진은 분석 즉시 파기되며 저장되지 않습니다',
-                    style: SintongType.caption,
+                    style: GuinjiType.caption,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 14),
 
                   if (hasImage)
-                    SintongPrimaryButton(
+                    GuinjiPrimaryButton(
                       label: '분석 시작하기',
                       icon: Icons.auto_awesome_rounded,
                       onPressed: () => _startAnalysis(context),
                     )
                   else ...[
-                    SintongPrimaryButton(
+                    GuinjiPrimaryButton(
                       label: '촬영 시작하기',
                       icon: Icons.camera_alt_outlined,
                       onPressed: _isPicking
@@ -245,7 +245,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                           : () => _pickImage(ImageSource.camera),
                     ),
                     const SizedBox(height: 10),
-                    SintongGhostButton(
+                    GuinjiGhostButton(
                       label: '갤러리에서 불러오기',
                       icon: Icons.photo_library_outlined,
                       onPressed: _isPicking
@@ -286,7 +286,7 @@ class _RetakeChip extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               '다시 선택',
-              style: SintongType.monoSm.copyWith(color: Colors.white),
+              style: GuinjiType.monoSm.copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -308,7 +308,7 @@ class _TopNav extends StatelessWidget {
         children: [
           _IconBtn(icon: Icons.arrow_back, onTap: onBack),
           Expanded(
-            child: Center(child: Text(title, style: SintongType.monoSm)),
+            child: Center(child: Text(title, style: GuinjiType.monoSm)),
           ),
           const SizedBox(width: 36),
         ],
@@ -331,10 +331,10 @@ class _IconBtn extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: SintongColors.card,
-          border: Border.all(color: SintongColors.line),
+          color: GuinjiColors.card,
+          border: Border.all(color: GuinjiColors.line),
         ),
-        child: Icon(icon, size: 16, color: SintongColors.fg),
+        child: Icon(icon, size: 16, color: GuinjiColors.fg),
       ),
     );
   }
@@ -350,9 +350,9 @@ class _StepRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: SintongColors.card,
+        color: GuinjiColors.card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: SintongColors.line),
+        border: Border.all(color: GuinjiColors.line),
       ),
       child: Row(
         children: [
@@ -361,13 +361,13 @@ class _StepRow extends StatelessWidget {
             height: 22,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: SintongColors.accent,
+              color: GuinjiColors.accent,
             ),
             alignment: Alignment.center,
             child: Text(
               num,
               style: TextStyle(
-                fontFamily: SintongType.display,
+                fontFamily: GuinjiType.display,
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
                 color: const Color(0xFFFFF9E8),
@@ -378,7 +378,7 @@ class _StepRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: SintongType.bodySmall.copyWith(fontSize: 13),
+              style: GuinjiType.bodySmall.copyWith(fontSize: 13),
             ),
           ),
         ],

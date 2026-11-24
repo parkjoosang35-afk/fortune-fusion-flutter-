@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: midnight_bottom_nav.dart
-// [하단바 리디자인 2차 — design_handoff_sintong_main.zip "Midnight Navy"]
+// [하단바 리디자인 2차 — design_handoff_guinji_main.zip "Midnight Navy"]
 //
 // 사용자 요청: "귀인지도 전체 하단바도 지금 준걸로 전체 다 바꿔줬으면해"
 // — 기존 "심야의 신전" Variant A(어두운 보라/#0E0A14 톤)를, 홈 화면과
@@ -53,7 +53,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// 디자인 토큰 — design_handoff_sintong_main.zip README.md
+/// 디자인 토큰 — design_handoff_guinji_main.zip README.md
 /// "하단 탭바" 절 + "Design Tokens" 표 그대로(Midnight Navy).
 class MidnightNavTokens {
   MidnightNavTokens._();

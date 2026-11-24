@@ -2,7 +2,7 @@ import 'package:intl/intl.dart';
 
 /// [REQ-09 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 저장 파일명 규칙 통일.
 ///
-/// 규칙: `sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}`
+/// 규칙: `guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}`
 /// (서비스: saju | tarot | face | palm | guinji | compat | wish | category 등)
 ///
 /// 확장자(.png)는 포함하지 않는다 — 네이티브(Android/iOS) 경로는
@@ -14,5 +14,5 @@ import 'package:intl/intl.dart';
 /// (기존 규칙은 시각 미포함 — REQ-09 명시 요구사항, Q-06 연관).
 String buildSaveFileName(String service, String resultId) {
   final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-  return 'sintong_${service}_${resultId}_$timestamp';
+  return 'guinji_${service}_${resultId}_$timestamp';
 }

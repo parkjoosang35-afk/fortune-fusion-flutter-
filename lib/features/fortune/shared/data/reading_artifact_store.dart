@@ -19,7 +19,7 @@ import '../domain/reading_artifact.dart';
 class ReadingArtifactStore {
   ReadingArtifactStore._();
 
-  static const _key = 'sintong_v7_reading_artifacts';
+  static const _key = 'guinji_v7_reading_artifacts';
   static const maxCount = 12;
 
   static Future<List<ReadingArtifact>> list() async {

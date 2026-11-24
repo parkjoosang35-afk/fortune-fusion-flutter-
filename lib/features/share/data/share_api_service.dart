@@ -8,7 +8,7 @@ import '../domain/share_result_model.dart';
 
 /// 결과 공유(Share Result) — admin_web 3개 공개 API 대응 Repository.
 ///
-/// [백엔드 대응 — sintong-share-proposal.pdf §5]
+/// [백엔드 대응 — guinji-share-proposal.pdf §5]
 /// - `POST   /api/public/share`            → [createShareLink] (인증 필수)
 /// - `GET    /api/public/share/{shareId}`  → [fetchSharedResult] (인증 불필요)
 /// - `DELETE /api/public/share/{shareId}`  → [deleteShareLink] (인증 필수, 본인 소유만)

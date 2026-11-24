@@ -44,14 +44,14 @@ const bool _kIosFlow = false;
 /// playPackage와 동일한 값이어야 한다(패키지명 불일치 금지 — 다른 파일에
 /// 이미 있는 상수를 임포트해 교차 기능 결합을 만들지 않고, 이 화면 전용
 /// 상수로 복제해 둔다. 값 변경 시 두 곳 모두 갱신 필요).
-const String _kPlayPackage = 'com.fortunefusion.fortune';
+const String _kPlayPackage = 'com.guinjido.app';
 String get _kPlayStoreUrl => 'https://play.google.com/store/apps/details?id=$_kPlayPackage';
 
-/// 앱의 `fortunefusion://svc/wish-room` 커스텀 스킴(AndroidManifest.xml ·
+/// 앱의 `guinjido://svc/wish-room` 커스텀 스킴(AndroidManifest.xml ·
 /// guinji_deep_link_handler.dart에 이미 등록된 `svc` host, key='wish-room' →
 /// '/wish-room' 라우트로 매핑됨)과 동일한 딥링크. 웹에서 이 링크를 열면
 /// 앱이 설치돼 있을 때 같은 계정의 소원방 게이트로 바로 이동한다.
-const String _kAppDeepLink = 'fortunefusion://svc/wish-room';
+const String _kAppDeepLink = 'guinjido://svc/wish-room';
 
 class WallpaperScreen extends StatefulWidget {
   const WallpaperScreen({super.key});
@@ -172,7 +172,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
 
   /// [v2.1 §14.4 "Android 배경화면 설정"] 웹에서는 네이티브 WallpaperService
   /// 채널이 존재하지 않으므로 `_applyAndroid`를 그대로 호출할 수 없다. 대신
-  /// 앱의 커스텀 스킴 딥링크(`fortunefusion://svc/wish-room`)를 열어 "같은
+  /// 앱의 커스텀 스킴 딥링크(`guinjido://svc/wish-room`)를 열어 "같은
   /// 방"으로 이동을 시도하고, 앱이 설치돼 있지 않거나 열기에 실패하면
   /// 승인된 설치 안내 시트로 폴백한다 — 웹에서 OS 배경화면을 직접 적용한
   /// 것처럼 표시하지 않는다(§14.4 마지막 문단).
@@ -210,7 +210,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
       return;
     }
     // [REQ-05] 원인별 안내로 교체.
-    // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+    // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
     final result = await saveImageBytesToGalleryDetailed(
       bytes,
       name: buildSaveFileName('wish', room.id),

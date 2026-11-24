@@ -11,7 +11,7 @@ import 'core/web/web_nav_bridge.dart';
 import 'core/widgets/web_mobile_frame.dart';
 import 'core/widgets/debug_backend_badge.dart';
 import 'core/zoom/global_pinch_zoom_manager.dart';
-import 'core/sound/sintong_sound_service.dart';
+import 'core/sound/guinji_sound_service.dart';
 import 'core/sound/sound_navigator_observer.dart';
 
 import 'features/auth/application/auth_provider.dart';
@@ -136,8 +136,8 @@ class App extends StatelessWidget {
         // 라우트 이름만 등록돼 있으면 사운드가 자동으로 따라온다. init()이
         // 비동기이므로 즉시 생성 후 뒤에서 초기화한다 — 초기화 완료 전
         // 호출되는 재생 요청은 큐잉되어 init() 완료 직후 재시도된다(콜드
-        // 스타트 경쟁 조건 수정, sintong_sound_service.dart 참고).
-        ChangeNotifierProvider(create: (_) => SintongSoundService()..init()),
+        // 스타트 경쟁 조건 수정, guinji_sound_service.dart 참고).
+        ChangeNotifierProvider(create: (_) => GuinjiSoundService()..init()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
         // [인트로 전면 개편] 첫 진입(스플래시→인트로→홈) 흐름의 로컬 완료 상태
         // (introSeen/skipped/continueAsGuest)와, admin_web에서 발행한 인트로
@@ -375,7 +375,7 @@ class App extends StatelessWidget {
               // 위한 Observer. 비-웹 플랫폼에서는 빈 구현(no-op)이다.
               navigatorObservers: [
                 WebNavBridgeObserver(),
-                SoundNavigatorObserver(context.read<SintongSoundService>()),
+                SoundNavigatorObserver(context.read<GuinjiSoundService>()),
               ],
               title: '귀인지도',
               debugShowCheckedModeBanner: false,

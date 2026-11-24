@@ -47,7 +47,7 @@ class IntroCTASection extends StatelessWidget {
     return Column(
       children: [
         // [인트로 페이지 복구 - 2026] 유실됐던 고화질 전신 캐릭터 히어로를
-        // 되살린다. 기존 BangtongIntroHero(공용 위젯, 삭제됨) 대신 이
+        // 되살린다. 기존 GuinjiIntroHero(공용 위젯, 삭제됨) 대신 이
         // 화면 전용의 가벼운 _IntroHeroImage로 동일한 연출(전신 이미지 +
         // 하단 배경색 페이드아웃)을 재현한다.
         const _IntroHeroImage(
@@ -169,7 +169,7 @@ class IntroCTASection extends StatelessWidget {
 }
 
 /// [인트로 페이지 복구 - 2026] 전신 캐릭터 히어로 이미지 + 하단 배경색
-/// 페이드아웃. 기존 공용 위젯 `BangtongIntroHero`(삭제됨)와 동일한 시각
+/// 페이드아웃. 기존 공용 위젯 `GuinjiIntroHero`(삭제됨)와 동일한 시각
 /// 효과를 이 화면 전용으로 재현한다 — 잘림 없이 보여야 하므로
 /// `BoxFit.contain` 고정.
 class _IntroHeroImage extends StatelessWidget {

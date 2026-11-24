@@ -14,7 +14,7 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/fortune/shared/presentation/removed_daily_fortune_stub.dart';
 import '../../features/mypage/presentation/my_fortune_records_screen.dart';
 import '../../features/home/presentation/all_categories_screen.dart';
-import '../../features/home/presentation/sintong_home_v2/fortune_engine_intro_screen.dart';
+import '../../features/home/presentation/guinji_home_v2/fortune_engine_intro_screen.dart';
 import '../../features/fortune/generic/presentation/generic_fortune_result_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_question_screen.dart';
 import '../../features/fortune/tarot/presentation/tarot_card_select_screen.dart';
@@ -197,7 +197,7 @@ class AppRouter {
 
     // [결과 공유 기능 — sintong-share-proposal.pdf] '/r/{shareId}' 형태를
     // 처리한다. `GuinjiDeepLinkHandler`가 OS 레벨 딥링크(커스텀 스킴
-    // `fortunefusion://r/{shareId}` 및 App Links `https://sintong.kr/r/{shareId}`)를
+    // `guinjido://r/{shareId}` 및 App Links `https://sintong.kr/r/{shareId}`)를
     // 수신했을 때도 최종적으로 이 named route를 통해 도달한다(위 '/g/'와
     // 동일한 이중 진입점 통합 패턴).
     if (name.startsWith('/r/')) {
@@ -221,7 +221,7 @@ class AppRouter {
     }
 
     // [복주머니 마케팅 쿠폰] `/coupon/{token}` — QR 딥링크(웹 URL 진입) 및
-    // `GuinjiDeepLinkHandler`가 수신한 OS 레벨 딥링크(`fortunefusion://coupon/{token}`,
+    // `GuinjiDeepLinkHandler`가 수신한 OS 레벨 딥링크(`guinjido://coupon/{token}`,
     // `https://sintong.kr/coupon/{token}`) 모두 최종적으로 이 경로를 통해
     // [BokjuCouponResolveScreen]으로 도달한다('/g/'·'/r/'·'/w/'와 동일한
     // 와일드카드 선매칭 패턴).

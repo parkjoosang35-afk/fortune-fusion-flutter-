@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../shared/domain/reading_artifact_builder.dart';
 import '../../shared/presentation/reading_timeline_screen.dart';
-import '../../sintong/widgets/sintong_screen_bg.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
 import '../application/palm_provider.dart';
 
 class PalmReadingTimelineScreen extends StatelessWidget {
@@ -27,7 +27,7 @@ class PalmReadingTimelineScreen extends StatelessWidget {
       return const Scaffold(
         body: Stack(
           children: [
-            Positioned.fill(child: SintongScreenBg()),
+            Positioned.fill(child: GuinjiScreenBg()),
             Center(child: CircularProgressIndicator()),
           ],
         ),

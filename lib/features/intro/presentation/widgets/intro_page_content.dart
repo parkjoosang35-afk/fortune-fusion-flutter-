@@ -36,7 +36,7 @@ class IntroPageContent extends StatelessWidget {
   /// 캐릭터 전신/반신/포즈 이미지 경로. null이면 캐릭터 히어로를 표시하지
   /// 않는다. 기존에는 76~84px 작은 원형 얼굴 아바타를 텍스트 위에 얹었으나,
   /// "증명사진처럼 작다"는 피드백에 따라 화면 폭 전체를 채우는 큰 배너
-  /// 이미지(BangtongIntroHero)로 교체한다.
+  /// 이미지(GuinjiIntroHero)로 교체한다.
   final String? characterAsset;
 
   /// 캐릭터 히어로 배너의 높이. 화면 상단 여백을 활용해 충분히 크게 보여준다.

@@ -20,7 +20,7 @@ import '../widgets/saju_story_widgets.dart';
 import '../widgets/saju_visual_widgets.dart';
 import '../../share/application/share_service.dart';
 import '../../share/domain/share_result_model.dart';
-import '../../../core/sound/sintong_sound_service.dart';
+import '../../../core/sound/guinji_sound_service.dart';
 import 'more_stories_screen.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
@@ -117,7 +117,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        context.read<SintongSoundService>().duckMomentary('reveal');
+        context.read<GuinjiSoundService>().duckMomentary('reveal');
       } catch (_) {}
     });
   }

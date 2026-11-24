@@ -136,7 +136,7 @@ class _FullResultSheetState extends State<FullResultSheet> {
     try {
       final png = widget.originalPng ?? await captureOriginalResult(_capture);
       // [REQ-05] 원인별 안내 — 권한 거부/공간 부족/형식 오류/기타를 구분.
-      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
       final result = await saveImageBytesToGalleryDetailed(
         png,
         name: buildSaveFileName('share', 'original'),

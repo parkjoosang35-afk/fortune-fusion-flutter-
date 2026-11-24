@@ -21,7 +21,7 @@ import '../domain/guinji_relation_meta.dart';
 import '../share/guinji_share_kakao.dart' show guinjiResultTemplate;
 import '../theme/guinji_theme.dart';
 import '../theme/guinji_map_theme.dart';
-import '../../../core/sound/sintong_sound_service.dart';
+import '../../../core/sound/guinji_sound_service.dart';
 
 /// 귀인지도(Guinji Map) — 10. 결과 카드(Result Card) 화면.
 ///
@@ -91,7 +91,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        context.read<SintongSoundService>().duckMomentary('reveal');
+        context.read<GuinjiSoundService>().duckMomentary('reveal');
       } catch (_) {}
     });
   }
@@ -129,7 +129,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
       // [REQ-05 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 실패 원인을
       // 구분해 안내한다(과거에는 모든 실패가 "권한을 확인해주세요"로
       // 뭉뚱그려져, 저장 공간 부족 사용자가 엉뚱한 설정을 뒤지게 됨).
-      // [REQ-09] 파일명 규칙을 sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}로
+      // [REQ-09] 파일명 규칙을 guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}로
       // 통일. 결과카드는 화면에 고정 ID가 없어 'card'로 대체하고,
       // buildSaveFileName이 자동으로 붙이는 시각(초 단위)이 매번 새 파일로
       // 생성되도록 보장한다(시각 미포함이던 기존 규칙의 충돌 문제 해결).
@@ -729,7 +729,7 @@ class _TheCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
                     _MonoLabel(
-                      'SINTONG · GUINJI',
+                      'GUINJIDO',
                       color: GuinjiColors.lavender,
                       fontSize: 7,
                     ),
@@ -823,7 +823,7 @@ class _TheCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Center(
-                  child: _MonoLabel('SINTONG BANGTONG · 귀인지도', fontSize: 7),
+                  child: _MonoLabel('GUINJIDO · 귀인지도', fontSize: 7),
                 ),
               ],
             ),

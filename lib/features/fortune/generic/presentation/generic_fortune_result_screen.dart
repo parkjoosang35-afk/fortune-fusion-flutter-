@@ -119,7 +119,7 @@ class _GenericFortuneResultScreenState
     await saveOriginalResult(
       context,
       _originalResultKey,
-      // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
       name: buildSaveFileName('category', entry.id),
     );
   }

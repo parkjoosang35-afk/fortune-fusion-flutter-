@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ReadingWishLinkStore {
   ReadingWishLinkStore._();
 
-  static const _key = 'sintong_v7_reading_wish_links';
+  static const _key = 'guinji_v7_reading_wish_links';
 
   static Future<Map<String, List<String>>> _readAll() async {
     final prefs = await SharedPreferences.getInstance();

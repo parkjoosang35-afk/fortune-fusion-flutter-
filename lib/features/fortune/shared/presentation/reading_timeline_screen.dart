@@ -26,10 +26,10 @@
 library;
 
 import 'package:flutter/material.dart';
-import '../../sintong/theme/sintong_colors.dart';
-import '../../sintong/theme/sintong_typography.dart';
-import '../../sintong/widgets/hanja_stamp.dart';
-import '../../sintong/widgets/sintong_screen_bg.dart';
+import '../../guinji/theme/guinji_colors.dart';
+import '../../guinji/theme/guinji_typography.dart';
+import '../../guinji/widgets/hanja_stamp.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
 import '../domain/reading_artifact.dart';
 import 'reading_disclosure_widgets.dart';
 
@@ -196,7 +196,7 @@ class _ReadingTimelineScreenState extends State<ReadingTimelineScreen>
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(child: SintongScreenBg()),
+          const Positioned.fill(child: GuinjiScreenBg()),
           SafeArea(
             child: Column(
               children: [
@@ -226,8 +226,8 @@ class _ReadingTimelineScreenState extends State<ReadingTimelineScreen>
                                   text: item.chip,
                                   size: 48,
                                   color: item.isTotal
-                                      ? SintongColors.accent
-                                      : SintongColors.stampGuan,
+                                      ? GuinjiColors.accent
+                                      : GuinjiColors.stampGuan,
                                   rotation: -6,
                                 ),
                               ),
@@ -241,8 +241,8 @@ class _ReadingTimelineScreenState extends State<ReadingTimelineScreen>
                                       item.isTotal
                                           ? '${kind.hanja} · 總評'
                                           : '${kind.label} · 부위 풀이',
-                                      style: SintongType.monoSm.copyWith(
-                                        color: SintongColors.glow,
+                                      style: GuinjiType.monoSm.copyWith(
+                                        color: GuinjiColors.glow,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -254,12 +254,12 @@ class _ReadingTimelineScreenState extends State<ReadingTimelineScreen>
                           const SizedBox(height: 18),
                           Text(
                             visibleTitle,
-                            style: SintongType.displayLg.copyWith(
+                            style: GuinjiType.displayLg.copyWith(
                               fontSize: 23,
                             ),
                           ),
                           const SizedBox(height: 10),
-                          Text(visibleBody, style: SintongType.bodyText),
+                          Text(visibleBody, style: GuinjiType.bodyText),
                           // v7.2: 엔진이 실제로 잰 수치가 있을 때만 표시한다
                           // (없는 통계를 만들어내지 않는다 — measures는 현재
                           // 엔진이 범주형 텍스트만 반환하므로 대부분 비어
@@ -322,7 +322,7 @@ class _ReadingTimelineScreenState extends State<ReadingTimelineScreen>
                               child: TextButton(
                                 onPressed: widget.onFinished,
                                 style: TextButton.styleFrom(
-                                  foregroundColor: SintongColors.muted,
+                                  foregroundColor: GuinjiColors.muted,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
                                   ),
@@ -372,13 +372,13 @@ class _TopBar extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: SintongColors.card,
-                  border: Border.all(color: SintongColors.line),
+                  color: GuinjiColors.card,
+                  border: Border.all(color: GuinjiColors.line),
                 ),
                 child: Icon(
                   Icons.arrow_back_rounded,
                   size: 17,
-                  color: SintongColors.fg,
+                  color: GuinjiColors.fg,
                 ),
               ),
             )
@@ -388,7 +388,7 @@ class _TopBar extends StatelessWidget {
             child: Center(
               child: Text(
                 label,
-                style: SintongType.monoSm.copyWith(color: SintongColors.muted),
+                style: GuinjiType.monoSm.copyWith(color: GuinjiColors.muted),
               ),
             ),
           ),
@@ -397,8 +397,8 @@ class _TopBar extends StatelessWidget {
             child: Text(
               stepLabel,
               textAlign: TextAlign.right,
-              style: SintongType.monoSm.copyWith(
-                color: SintongColors.glow,
+              style: GuinjiType.monoSm.copyWith(
+                color: GuinjiColors.glow,
                 fontSize: 9,
                 letterSpacing: 0.5,
               ),
@@ -421,8 +421,8 @@ class _MeasureBox extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SintongColors.line),
-        color: SintongColors.card,
+        border: Border.all(color: GuinjiColors.line),
+        color: GuinjiColors.card,
       ),
       child: Column(
         children: [
@@ -432,8 +432,8 @@ class _MeasureBox extends StatelessWidget {
               children: [
                 Text(
                   '◈ 엔진 관찰 · 사진에서 본 내용',
-                  style: SintongType.monoSm.copyWith(
-                    color: SintongColors.crystal,
+                  style: GuinjiType.monoSm.copyWith(
+                    color: GuinjiColors.crystal,
                     fontSize: 9,
                   ),
                 ),
@@ -448,7 +448,7 @@ class _MeasureBox extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: SintongColors.line),
+                  top: BorderSide(color: GuinjiColors.line),
                 ),
               ),
               child: Row(
@@ -456,14 +456,14 @@ class _MeasureBox extends StatelessWidget {
                   Expanded(
                     child: Text(
                       measures[i].label,
-                      style: SintongType.caption,
+                      style: GuinjiType.caption,
                     ),
                   ),
                   Text(
                     measures[i].unit != null
                         ? '${measures[i].value}${measures[i].unit}'
                         : measures[i].value,
-                    style: SintongType.cardTitle.copyWith(fontSize: 13),
+                    style: GuinjiType.cardTitle.copyWith(fontSize: 13),
                   ),
                 ],
               ),
@@ -511,13 +511,13 @@ class _SealRail extends StatelessWidget {
               borderRadius: BorderRadius.circular(9),
               color: (isDone || isCurrent)
                   ? (item.isTotal as bool
-                        ? SintongColors.accent
-                        : SintongColors.glow)
+                        ? GuinjiColors.accent
+                        : GuinjiColors.glow)
                   : Colors.transparent,
               border: Border.all(
                 color: (isDone || isCurrent)
                     ? Colors.transparent
-                    : SintongColors.line,
+                    : GuinjiColors.line,
               ),
             ),
             child: Opacity(
@@ -525,12 +525,12 @@ class _SealRail extends StatelessWidget {
               child: Text(
                 item.chip as String,
                 style: TextStyle(
-                  fontFamily: SintongType.display,
+                  fontFamily: GuinjiType.display,
                   fontWeight: FontWeight.w900,
                   fontSize: 15,
                   color: (isDone || isCurrent)
                       ? const Color(0xFFFFF9E8)
-                      : SintongColors.fg,
+                      : GuinjiColors.fg,
                 ),
               ),
             ),
@@ -572,10 +572,10 @@ class _GlowButton extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            color: SintongColors.glow,
+            color: GuinjiColors.glow,
             boxShadow: [
               BoxShadow(
-                color: SintongColors.glowShadow,
+                color: GuinjiColors.glowShadow,
                 blurRadius: 16,
                 spreadRadius: 1,
               ),
@@ -583,7 +583,7 @@ class _GlowButton extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: SintongType.button.copyWith(
+            style: GuinjiType.button.copyWith(
               color: const Color(0xFF2A1A14),
             ),
           ),
@@ -609,10 +609,10 @@ class _GhostIconButton extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: SintongColors.card,
-          border: Border.all(color: SintongColors.line),
+          color: GuinjiColors.card,
+          border: Border.all(color: GuinjiColors.line),
         ),
-        child: Icon(icon, size: 18, color: SintongColors.fg),
+        child: Icon(icon, size: 18, color: GuinjiColors.fg),
       ),
     );
   }

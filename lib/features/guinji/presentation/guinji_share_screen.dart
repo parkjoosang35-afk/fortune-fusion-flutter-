@@ -41,7 +41,7 @@ String generateGuinjiShareCode({int length = 6}) {
 /// `EnvConfig.adminApiBaseUrl`(admin_web 서버) 아래에 신설한 웹 랜딩페이지
 /// (`/g/{token}`, admin_web `src/app/g/[token]/page.tsx`)로 교체한다 — 이
 /// 페이지는 초대 내용을 보여주고 "앱에서 열기" 버튼으로 커스텀 스킴
-/// (`fortunefusion://g/{token}`)을 호출해 앱을 실행시킨다.
+/// (`guinjido://g/{token}`)을 호출해 앱을 실행시킨다.
 ///
 /// [주의] 이 base URL은 샌드박스 프리뷰마다 바뀌는 임시 도메인이다. 실제
 /// 운영 배포 시에는 `EnvConfig.adminApiBaseUrl`을 진짜 도메인으로 교체하는

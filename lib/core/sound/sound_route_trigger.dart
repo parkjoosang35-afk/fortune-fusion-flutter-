@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
-import 'sintong_sound_service.dart';
+import 'guinji_sound_service.dart';
 
 /// [귀인지도 사운드 배치 개발 기획서 §5.1/§9.2] 8개 메뉴 화면 각각에
 /// "이 화면은 어떤 BGM·앰비언스 라우트인지"를 선언하기만 하면 되도록 만든
@@ -9,7 +9,7 @@ import 'sintong_sound_service.dart';
 /// 이 위젯으로 감싸면, StatelessWidget 화면(예: TarotHomeScreen)에도
 /// 동일한 한 줄로 적용할 수 있다.
 ///
-/// [재진입 시 재시작 금지와의 관계] `SintongSoundService.playRoute()`
+/// [재진입 시 재시작 금지와의 관계] `GuinjiSoundService.playRoute()`
 /// 자체가 동일 라우트 재호출을 무시하므로(§6.3), 이 위젯이 build될
 /// 때마다(예: 탭 전환으로 다시 보이게 될 때) 호출해도 안전하다 —
 /// didChangeDependencies가 아니라 initState에서 1회만 호출해 중복 호출
@@ -52,7 +52,7 @@ class _SoundRouteTriggerState extends State<SoundRouteTrigger> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
-        context.read<SintongSoundService>().playRoute(widget.routeKey);
+        context.read<GuinjiSoundService>().playRoute(widget.routeKey);
       } catch (_) {
         // [저사양 degrade] Provider 미등록 등 어떤 이유로든 실패해도
         // 화면 자체의 렌더링에는 영향을 주지 않는다.

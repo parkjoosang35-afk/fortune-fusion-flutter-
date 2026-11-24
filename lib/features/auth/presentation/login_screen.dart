@@ -317,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   AuthFormField(
                     controller: _emailController,
                     label: '이메일',
-                    hintText: 'example@fortunefusion.app',
+                    hintText: 'example@guinjido.app',
                     keyboardType: TextInputType.emailAddress,
                   ),
                   AuthFormField(

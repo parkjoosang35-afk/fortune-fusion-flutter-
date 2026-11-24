@@ -236,7 +236,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
                 child: _SealedBody(
                   room: room,
                   items: p.items,
-                  // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+                  // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
                   onSave: () => saveOriginalResult(
                     context,
                     _originalResultKey,

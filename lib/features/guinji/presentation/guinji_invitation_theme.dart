@@ -8,7 +8,7 @@
 // `colors_and_type.css`의 기본(`:root`) 팔레트가 Midnight Temple이며, 이는
 // `intro_palette.dart`의 `IntroPalette`("달빛 크리스탈" — CSS의
 // `.palette-crystal` 변형)와도 다른, 완전히 별개의 색 체계다. 프로젝트의
-// "화면별 토큰 격리" 관례(`sintong_home_tokens.dart`, `intro_palette.dart`
+// "화면별 토큰 격리" 관례(`guinji_home_tokens.dart`, `intro_palette.dart`
 // 등)를 그대로 따라 이 화면 전용 파일로 새로 만든다 — 전역 테마 파일은
 // 건드리지 않는다.
 //

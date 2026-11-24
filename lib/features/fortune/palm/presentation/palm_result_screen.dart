@@ -6,10 +6,10 @@ import '../../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/result_card_stack.dart';
 import '../../../../core/widgets/result_text_scale_overlay.dart';
-import '../../sintong/theme/sintong_colors.dart';
-import '../../sintong/theme/sintong_typography.dart';
-import '../../sintong/widgets/hanja_stamp.dart';
-import '../../sintong/widgets/sintong_screen_bg.dart';
+import '../../guinji/theme/guinji_colors.dart';
+import '../../guinji/theme/guinji_typography.dart';
+import '../../guinji/widgets/hanja_stamp.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
 import '../../../share/application/share_service.dart';
 import '../../../share/domain/share_result_model.dart';
 import '../application/palm_provider.dart';
@@ -19,7 +19,7 @@ import '../../../../core/util/save_filename.dart';
 import '../../shared/domain/reading_artifact_builder.dart';
 import '../../shared/presentation/reading_disclosure_widgets.dart';
 import '../../shared/presentation/seal_reading_flow.dart';
-import '../../../../core/sound/sintong_sound_service.dart';
+import '../../../../core/sound/guinji_sound_service.dart';
 
 /// [관상·손금 귀인지도 "새벽 한지" 리스킨] 손금 결과 화면.
 ///
@@ -61,7 +61,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        context.read<SintongSoundService>().duckMomentary('reveal');
+        context.read<GuinjiSoundService>().duckMomentary('reveal');
       } catch (_) {}
     });
   }
@@ -76,13 +76,13 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
       child: Scaffold(
         body: Stack(
           children: [
-            const Positioned.fill(child: SintongScreenBg()),
+            const Positioned.fill(child: GuinjiScreenBg()),
             SafeArea(
               child: Column(
                 children: [
                   OriginalResultScene(
                     captureKey: _originalHeaderKey,
-                    background: SintongColors.bg1,
+                    background: GuinjiColors.bg1,
                     child: Stack(
                       children: [
                         Positioned.fill(
@@ -91,13 +91,13 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
                               alignment: Alignment.topCenter,
                               minHeight: MediaQuery.sizeOf(context).height,
                               maxHeight: MediaQuery.sizeOf(context).height,
-                              child: const SintongScreenBg(),
+                              child: const GuinjiScreenBg(),
                             ),
                           ),
                         ),
                         _ResultTopBar(
                           hanja: '紋',
-                          hanjaColor: SintongColors.stampMun,
+                          hanjaColor: GuinjiColors.stampMun,
                           title: '手紋 · REPORT',
                           onBack: canGoBack
                               ? () => Navigator.of(context).pop()
@@ -210,7 +210,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
           onTap: () => saveOriginalResult(
             context,
             _originalResultKey,
-            // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+            // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
             name: buildSaveFileName('palm', result.id),
             leadingKeys: [_originalHeaderKey],
           ),
@@ -306,7 +306,7 @@ class _ResultTopBar extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: SintongType.monoSm.copyWith(color: SintongColors.accent),
+              style: GuinjiType.monoSm.copyWith(color: GuinjiColors.accent),
             ),
           ),
           if (onShare != null)
@@ -335,10 +335,10 @@ class _CircleIconButton extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: SintongColors.card,
-          border: Border.all(color: SintongColors.line),
+          color: GuinjiColors.card,
+          border: Border.all(color: GuinjiColors.line),
         ),
-        child: Icon(icon, size: 18, color: SintongColors.fg),
+        child: Icon(icon, size: 18, color: GuinjiColors.fg),
       ),
     );
   }
@@ -364,7 +364,7 @@ class _PaperSheet extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: SintongColors.sigil.withValues(alpha: 0.18),
+            color: GuinjiColors.sigil.withValues(alpha: 0.18),
             blurRadius: 24,
             offset: const Offset(0, -4),
           ),

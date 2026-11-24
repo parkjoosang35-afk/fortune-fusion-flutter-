@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'sintong_sound_service.dart';
+import 'guinji_sound_service.dart';
 
 /// [귀인지도 사운드 배치 개발 기획서 §8.1 공통 이벤트 nav.push/nav.pop]
 /// "스택에 새 화면 push 완료" → `07_page_in`, "뒤로가기·모달 닫기" →
@@ -40,7 +40,7 @@ import 'sintong_sound_service.dart';
 class SoundNavigatorObserver extends NavigatorObserver {
   SoundNavigatorObserver(this._sound);
 
-  final SintongSoundService _sound;
+  final GuinjiSoundService _sound;
 
   /// `sound_routes.json`의 8개 메뉴 키(main/saju/guide/tarot/wish/face/
   /// palm/shrine) 각각에 대응하는 named route 접두사 목록. `startsWith`로

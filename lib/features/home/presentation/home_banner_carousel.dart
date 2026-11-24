@@ -8,13 +8,13 @@ import '../../saju_renewal/navigation/saju_dimension_transition.dart';
 /// [메인 UI 리디자인 - 귀인지도 배너 3장 롤링 캐러셀]
 ///
 /// `design_handoff_home_redesign.zip`의 `BANNER_CAROUSEL.md` 스펙을 그대로
-/// Flutter로 재구현한다(참고용 HTML/CSS는 `Sintong Home.html`).
+/// Flutter로 재구현한다(참고용 HTML/CSS는 `Guinji Home.html`).
 ///
 /// - Slide1 귀인지도(라벤더·골드) / Slide2 오늘의 운세(아쿠아·미드나이트블루) /
 ///   Slide3 인연·궁합(플럼·핑크)
 /// - 자동슬라이드 4.2초, 스와이프 시 정지 후 재개, 도트 인디케이터,
 ///   reduced-motion 대응(자동재생 스킵)
-/// - 각 슬라이드: 별 반짝임 22개, 회전 마법진(sigil), 후광 pulse, 방통선녀
+/// - 각 슬라이드: 별 반짝임 22개, 회전 마법진(sigil), 후광 pulse, 귀인선녀
 /// 캐릭터(float+tilt), 스파클 4개(pop), NEW/TODAY/HOT 배지(pulse), CTA(breath)
 ///
 /// 백엔드 라우팅(`/guinji`, `/fortune/today`, `/fortune/compatibility`)은 아직
@@ -39,7 +39,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
     _BannerSlideData(
       key: 'guinji',
       route: '/guinji-map',
-      eyebrow: 'SINTONG · N°01',
+      eyebrow: 'GUINJI · N°01',
       titleLines: ['내 주변에', '{accent}귀인{/}은 몇 명일까'],
       sub: '생일만 있으면 돼요.\n지도를 채워보세요.',
       ctaLabel: '지도 만들기',
@@ -69,7 +69,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
     _BannerSlideData(
       key: 'fortune',
       route: '/fortune/today',
-      eyebrow: 'SINTONG · N°02',
+      eyebrow: 'GUINJI · N°02',
       titleLines: ['오늘의 내', '{accent}별자리{/}는 무슨 색'],
       sub: '생년월일 하나로 오늘의 운세를\n확인해보세요.',
       ctaLabel: '운세 보기',
@@ -99,7 +99,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
     _BannerSlideData(
       key: 'fate',
       route: '/fortune/compatibility',
-      eyebrow: 'SINTONG · N°03',
+      eyebrow: 'GUINJI · N°03',
       titleLines: ['그 사람과 나', '{accent}붉은 실{/}이 있을까'],
       sub: '두 사람의 생일만 있으면\n궁합이 풀려요.',
       ctaLabel: '궁합 보기',
@@ -590,7 +590,7 @@ class _BannerSlideState extends State<_BannerSlide>
             ),
           ),
 
-          // 방통선녀 캐릭터(float + tilt)
+          // 귀인선녀 캐릭터(float + tilt)
           Positioned(
             right: data.characterOffsetRight,
             bottom: data.characterOffsetBottom,

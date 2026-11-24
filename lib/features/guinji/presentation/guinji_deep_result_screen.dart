@@ -66,7 +66,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
       return;
     }
     // [REQ-05] 원인별 안내로 교체.
-    // [REQ-09] 파일명 규칙 통일: sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+    // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
     final result = await saveImageBytesToGalleryDetailed(
       bytes,
       name: buildSaveFileName('guinji', 'deep'),

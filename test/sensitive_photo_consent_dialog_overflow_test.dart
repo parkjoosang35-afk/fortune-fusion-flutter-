@@ -11,7 +11,7 @@
 // 2) 가로 오버플로(공용 위젯 파급 버그): 위 수정 후에도 320x568@2.0/2.5에서
 //    오버플로가 남아 debugDumpRenderTree로 추적한 결과, 원인은 이 시트가
 //    아니라 하단 "동의하고 계속하기"/"거부하기" 버튼이 쓰는 공용 위젯
-//    SintongPrimaryButton/SintongGhostButton(sintong_button.dart) 내부 Row가
+//    GuinjiPrimaryButton/GuinjiGhostButton(sintong_button.dart) 내부 Row가
 //    라벨 Text에 overflow 보호 없이 textScale 확대분을 그대로 받아
 //    가로로 넘쳤다(실측 @2.0 65px, @2.5 132px). 두 위젯 모두 라벨을
 //    Flexible+ellipsis로 감싸 해결 — 기존 라벨 길이에서는 시각적 변화 없음

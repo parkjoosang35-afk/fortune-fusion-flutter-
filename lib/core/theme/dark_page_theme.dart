@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// 설정(마이페이지) 등 2차 화면이 기본 흰 바탕이라 메인페이지(다크)와
 /// 이어지지 않는 문제를 해결한다. 각 화면의 Scaffold를 이 테마로 감싸면
 /// 기본 글자색·앱바·위젯 색이 다크로 통일된다(명시적 색상은 그대로 유지).
-ThemeData sintongDarkPageTheme() {
+ThemeData guinjiDarkPageTheme() {
   const bg = Color(0xFF0B0B0D);
   const gold = Color(0xFFE9C46A);
   return ThemeData(
@@ -58,5 +58,5 @@ class DarkPage extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) =>
-      Theme(data: sintongDarkPageTheme(), child: child);
+      Theme(data: guinjiDarkPageTheme(), child: child);
 }

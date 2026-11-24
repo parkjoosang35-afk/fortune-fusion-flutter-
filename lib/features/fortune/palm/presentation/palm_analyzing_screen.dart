@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../sintong/theme/sintong_colors.dart';
-import '../../sintong/theme/sintong_typography.dart';
-import '../../sintong/widgets/bangtong_fairy_avatar.dart';
-import '../../sintong/widgets/sintong_screen_bg.dart';
+import '../../guinji/theme/guinji_colors.dart';
+import '../../guinji/theme/guinji_typography.dart';
+import '../../guinji/widgets/guinji_fairy_avatar.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
 import '../application/palm_provider.dart';
 
 /// [관상·손금 귀인지도 "새벽 한지" 리스킨] AI 손금 분석중(로딩) 화면.
@@ -122,7 +122,7 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen>
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(child: SintongScreenBg()),
+          const Positioned.fill(child: GuinjiScreenBg()),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -149,7 +149,7 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen>
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const BangtongFairyAvatar(
+                      const GuinjiFairyAvatar(
                         size: 60,
                         borderWidth: 2,
                         glowIntensity: 0.8,
@@ -165,12 +165,12 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: SintongColors.accent,
+                              color: GuinjiColors.accent,
                               borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(
                               '方通',
-                              style: SintongType.monoSm.copyWith(
+                              style: GuinjiType.monoSm.copyWith(
                                 color: const Color(0xFFFAF3E0),
                                 fontSize: 8,
                                 letterSpacing: 1.6,
@@ -185,14 +185,14 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen>
 
                   Text(
                     '手紋 · READING',
-                    style: SintongType.monoSm.copyWith(
-                      color: SintongColors.accent,
+                    style: GuinjiType.monoSm.copyWith(
+                      color: GuinjiColors.accent,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '손금을 / 읽고 있어요',
-                    style: SintongType.displayLg.copyWith(fontSize: 22),
+                    style: GuinjiType.displayLg.copyWith(fontSize: 22),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
@@ -220,8 +220,8 @@ class _PalmAnalyzingScreenState extends State<PalmAnalyzingScreen>
                         child: Text(
                           '${_lines[lineIndex].label}을 분석하고 있어요...',
                           key: ValueKey(lineIndex),
-                          style: SintongType.bodySmall.copyWith(
-                            color: SintongColors.muted,
+                          style: GuinjiType.bodySmall.copyWith(
+                            color: GuinjiColors.muted,
                             fontSize: 13,
                           ),
                           textAlign: TextAlign.center,
@@ -277,10 +277,10 @@ class _PalmScanCard extends StatelessWidget {
       height: _cardHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: SintongColors.line),
+        border: Border.all(color: GuinjiColors.line),
         boxShadow: [
           BoxShadow(
-            color: SintongColors.glowShadow,
+            color: GuinjiColors.glowShadow,
             blurRadius: 24,
             spreadRadius: 1,
           ),
@@ -295,12 +295,12 @@ class _PalmScanCard extends StatelessWidget {
             Image.memory(imageBytes, fit: BoxFit.cover)
           else
             Container(
-              color: SintongColors.card,
+              color: GuinjiColors.card,
               alignment: Alignment.center,
               child: Icon(
                 Icons.back_hand_rounded,
                 size: 72,
-                color: SintongColors.muted,
+                color: GuinjiColors.muted,
               ),
             ),
 
@@ -322,14 +322,14 @@ class _PalmScanCard extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: SintongColors.glow.withValues(
+                  color: GuinjiColors.glow.withValues(
                     alpha: glowOpacity + 0.4,
                   ),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: SintongColors.glow.withValues(
+                    color: GuinjiColors.glow.withValues(
                       alpha: glowOpacity * 0.5,
                     ),
                     blurRadius: 14,
@@ -350,16 +350,16 @@ class _PalmScanCard extends StatelessWidget {
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: SintongColors.glow.withValues(alpha: 0.9),
+                    color: GuinjiColors.glow.withValues(alpha: 0.9),
                     blurRadius: 8,
                     spreadRadius: 1,
                   ),
                 ],
                 gradient: LinearGradient(
                   colors: [
-                    SintongColors.glow.withValues(alpha: 0.0),
-                    SintongColors.glow,
-                    SintongColors.glow.withValues(alpha: 0.0),
+                    GuinjiColors.glow.withValues(alpha: 0.0),
+                    GuinjiColors.glow,
+                    GuinjiColors.glow.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -384,7 +384,7 @@ class _PalmScanCard extends StatelessWidget {
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(SintongColors.glow),
+                      valueColor: AlwaysStoppedAnimation(GuinjiColors.glow),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -440,11 +440,11 @@ class _LineStepIndicator extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 color: (isDone || isActive)
-                    ? SintongColors.accent
+                    ? GuinjiColors.accent
                     : Colors.black.withValues(alpha: 0.06),
                 border: (isDone || isActive)
                     ? null
-                    : Border.all(color: SintongColors.line),
+                    : Border.all(color: GuinjiColors.line),
               ),
               alignment: Alignment.center,
               child: Opacity(
@@ -452,12 +452,12 @@ class _LineStepIndicator extends StatelessWidget {
                 child: Text(
                   lines[index].hanja,
                   style: TextStyle(
-                    fontFamily: SintongType.display,
+                    fontFamily: GuinjiType.display,
                     fontWeight: FontWeight.w900,
                     fontSize: 12,
                     color: (isDone || isActive)
                         ? const Color(0xFFFAF3E0)
-                        : SintongColors.fg,
+                        : GuinjiColors.fg,
                   ),
                 ),
               ),

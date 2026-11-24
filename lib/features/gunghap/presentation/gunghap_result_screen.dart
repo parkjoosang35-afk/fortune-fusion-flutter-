@@ -213,7 +213,7 @@ class _GunghapResultScreenState extends State<GunghapResultScreen> {
   // 구조: captureOriginalResult/saveOriginalResult 공용 유틸을 그대로
   // 재사용하고, 성공/실패 토스트도 그 유틸이 전담한다(이 화면에서
   // 별도 토스트 문구를 만들지 않음 — REQ-05/REQ-09 표준 유지).
-  // 파일명은 공통 규칙(`sintong_gunghap_{resultId}_{yyyyMMdd_HHmmss}`)을
+  // 파일명은 공통 규칙(`guinji_gunghap_{resultId}_{yyyyMMdd_HHmmss}`)을
   // 그대로 따른다. [S17 UI 재작성] 호출 위치만 Footer → AppBar 아이콘으로
   // 옮겼을 뿐, 이 함수 내부는 한 글자도 바뀌지 않았다.
   Future<void> _saveImage() async {

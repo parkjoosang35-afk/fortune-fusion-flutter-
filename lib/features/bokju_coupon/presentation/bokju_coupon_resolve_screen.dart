@@ -30,7 +30,7 @@ void replayPendingBokjuCoupon() {
 /// 조회하고, "등록하기" 버튼으로 실제 적립(redeem)까지 진행하는 단일 화면.
 ///
 /// [진입 경로] 3가지 모두 이 화면으로 귀결된다:
-///   1) 딥링크(`fortunefusion://coupon/{token}` / `https://sintong.kr/coupon/{token}`)
+///   1) 딥링크(`guinjido://coupon/{token}` / `https://sintong.kr/coupon/{token}`)
 ///      — [GuinjiDeepLinkHandler]가 수신해 이 화면으로 push.
 ///   2) named route `/coupon/{token}` — 웹 URL로 직접 진입(App Router
 ///      '/g/', '/r/', '/w/'와 동일한 와일드카드 선매칭 패턴).

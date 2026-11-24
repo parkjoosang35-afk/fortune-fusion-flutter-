@@ -15,7 +15,7 @@ import '../application/auth_provider.dart';
 /// [2026-10 스플래시 디자인 교체 — "귀인지도" 워드마크 애니메이션]
 /// `design_handoff_splash` 핸드오프(`splash.html`)를 그대로 이식한다.
 ///
-/// 배경은 기존 로딩 화면(`sintong.kr/app/`)과 동일한 보라 그라데이션을
+/// 배경은 기존 로딩 화면(`guinjido.app/`)과 동일한 보라 그라데이션을
 /// 유지하고(핸드오프 §4-1, "변경 금지"), 중앙 컨텐츠만 "귀인지도" 글자
 /// 4개의 3D 플립 → 인장(神通萬通) 4개 팝 → 가는 선 → 영문 스크램블 →
 /// 흰 빛 스윕 → 퇴장 순서로 재생되는 약 7.3초짜리 시퀀스로 교체했다.
@@ -103,7 +103,7 @@ class _SplashScreenState extends State<SplashScreen>
   // 갱신해야 하므로 Text 위젯 상태를 별도 ValueNotifier로 들고 있다
   // (AnimationController의 리빌드 주기와 분리해 스크램블 글자가 매
   // 프레임 새로 랜덤 선택되도록 하기 위함).
-  static const String _finalEnglishText = 'SINTONG BANGTONG';
+  static const String _finalEnglishText = 'GUINJIDO';
   static const String _scrambleGlyphs =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#*+/<>';
   final ValueNotifier<String> _englishText = ValueNotifier<String>(
@@ -737,7 +737,7 @@ class _RuleLine extends StatelessWidget {
   }
 }
 
-/// 영문 "SINTONG BANGTONG" — 페이드인 + 스크램블(키프레임 ⑤는
+/// 영문 "GUINJIDO" — 페이드인 + 스크램블(키프레임 ⑤는
 /// `_SplashScreenState._onIntroTick`이 매 프레임 텍스트를 갱신).
 class _EnglishLabel extends StatelessWidget {
   const _EnglishLabel({required this.elapsed, required this.textListenable});

@@ -8,10 +8,10 @@
 // [S24 명세 — 00_DEV_MAPPING.md 571-577줄]
 // AppBar(← · 「결과 공유」) · 세그먼트(세로형 9:16 / 정사각 1:1) ·
 // 카드(세로 250w / 정사각 300w, r24, 이중 테두리, 모서리 ✦4개, radial
-// 보라32%+핑크16% 배경 + #F4F0F8→#FAF8FC) · mono「SINTONG BANGTONG」+
+// 보라32%+핑크16% 배경 + #F4F0F8→#FAF8FC) · mono「GUINJIDO」+
 // 로고「궁합지도」+「{나}✦{상대}」(24/19 900)+「{한자}·{분야}{·세부(세로만)}」+
 // 중앙 GHScoreRing128/96(뒤 StarMap 55%)+인용「"{한 줄 요약}"」+
-// 하단박스「우리 궁합도 확인해 보세요·sintong.app/map」, 점선민트
+// 하단박스「우리 궁합도 확인해 보세요·guinjido.app/map」, 점선민트
 // 「✓생년월일과 태어난 시간, 상세 풀이는 공유 이미지에 담기지 않아요.」,
 // Footer(카카오「카카오톡으로 공유」+2열 Secondary「이미지 저장」(RepaintBoundary)/
 // 「링크 복사」).
@@ -425,7 +425,7 @@ class _ShareCard extends StatelessWidget {
               children: [
                 Column(
                   children: [
-                    GHMono('SINTONG BANGTONG', color: GHColors.violetText),
+                    GHMono('GUINJIDO', color: GHColors.violetText),
                     const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -485,7 +485,7 @@ class _ShareCard extends StatelessWidget {
                         children: [
                           Text('우리 궁합도 확인해 보세요', style: GHText.ui(size: 11.5, weight: FontWeight.w700, color: GHColors.fg)),
                           const SizedBox(height: 2),
-                          GHMono('sintong.app/map', color: GHColors.muted),
+                          GHMono('guinjido.app/map', color: GHColors.muted),
                         ],
                       ),
                     ),

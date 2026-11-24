@@ -1,0 +1,267 @@
+// ═══════════════════════════════════════════════════════════════
+// FILE: guinji_home_v2_routing.dart
+// [귀인지도 홈 v2] 새 디자인(히어로 캐러셀/칩/하단 시트)의 6개 카테고리
+// (귀인지도/정통사주/타로/소원방/관상/손금)를 눌렀을 때 이동할 목적지를
+// 한 곳에 모은다.
+//
+// [히어로 캐러셀 6개 확장] 원래 palm 1개("손금·관상" 통합 슬라이드)로
+// 묶여 있었으나, 사용자 요청으로 관상을 별도 카테고리([face])로 분리해
+// 히어로 캐러셀도 6개 슬라이드로 확장한다. palm은 이제 손금 전용이며,
+// 두 카테고리 모두 기존 [openFaceReading]/[openPalmReading]으로 곧장
+// 연결한다(더 이상 통합 선택 시트를 거치지 않음).
+//
+// [중요 수정] 원래 이 파일은 "새 디자인 전용 서브 목차 화면(guide/saju/
+// tarot/wish/palm GuideSubScreen)"을 만들어 그리로 연결했으나, 이는
+// 사용자가 요청한 범위(메인 화면만 교체)를 벗어난 것이었다. 사용자
+// 피드백("귀인지도 클릭시 넘어가야 하는데 안 넘어가고 ... 완전히
+// 개판") 반영 — 새 서브 화면을 전부 걷어내고, 기존 앱에 이미 있던
+// 진짜 화면으로 직접 연결한다(v1 home_screen.dart의 서비스카드
+// onTap과 완전히 동일한 목적지).
+//
+// [원칙] 이 파일은 새 화면/새 API/새 상태관리를 추가하지 않는다 — 오직
+// "어느 카테고리를 누르면 기존의 어떤 화면으로 가는지"만 결정한다.
+// ═══════════════════════════════════════════════════════════════
+library;
+
+import 'package:flutter/material.dart';
+
+import '../../../../core/router/app_router.dart' show AppRouter;
+import '../../../pass/presentation/pass_gate_helper.dart';
+import '../../../saju_renewal/navigation/saju_dimension_transition.dart';
+import '../../../wishroom/features/intro/wish_room_intro_screen.dart';
+import '../../../guinji/presentation/guinji_landing_screen.dart';
+import '../../../gunghap/presentation/gunghap_home_screen.dart';
+import 'guinji_home_v2_data.dart';
+import 'widgets/guinji_section_photo_card.dart';
+
+/// 홈 화면(히어로 슬라이드 탭, 칩 탭, 하단 시트 카드 탭)에서 해당
+/// 카테고리를 눌렀을 때 이동할 실제 기존 화면. v1 home_screen.dart의
+/// `_buildServiceSpecs()` onTap과 완전히 동일한 목적지를 그대로
+/// 재사용한다(신규 화면 없음).
+///
+/// [tapPosition] — docs/03 §00 "진입 전환" 전용 파라미터. 정통사주
+/// 카테고리를 탭한 지점의 전역 좌표를 넘기면 `/saju-renewal` 라우트가
+/// 그 지점을 원점으로 원형 확산 전환을 재생한다(app_router.dart 참고).
+/// 다른 카테고리에는 영향 없음(해당 사항 없으면 무시됨).
+void openSubScreen(
+  BuildContext context,
+  SHomeV2Category category, {
+  Offset? tapPosition,
+}) {
+  switch (category) {
+    case SHomeV2Category.guide:
+      // 귀인지도 — 기존 홈 스토리히어로/귀인지도 CTA와 동일한 목적지.
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const GuinjiLandingScreen()));
+    case SHomeV2Category.saju:
+      // [귀인지도 정통사주 리뉴얼] 정통사주 — 유일한 신규 정통사주(saju_renewal)로
+      // 연결한다(구 69종 매트릭스 게이트는 제거됨).
+      Navigator.of(context).pushNamed('/saju-renewal', arguments: tapPosition);
+    case SHomeV2Category.tarot:
+      // 타로 — 기존 서비스카드와 동일: 타로 인트로 화면.
+      Navigator.of(context).pushNamed(AppRouter.tarotIntroRoute);
+    case SHomeV2Category.wish:
+      // 소원방 — 기존 서비스카드와 동일: 소원방 진입 게이트.
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()));
+    case SHomeV2Category.face:
+      // 관상 — 곧장 관상 촬영 화면으로 이동(통합 시트 없음).
+      openFaceReading(context);
+    case SHomeV2Category.palm:
+      // 손금 — 곧장 손금 촬영 화면으로 이동(통합 시트 없음).
+      openPalmReading(context);
+  }
+}
+
+/// [관상/손금 개별 전용 목적지] 관상/손금은 기존 [showFacePalmSelectSheet]
+/// 통합 선택 시트를 거치지 않고, 히어로 슬라이드/칩/시트 카드 모두 곧장
+/// 각자의 촬영 화면으로 연결한다. 동일한 라우트(`/ai-fortune/face/capture`,
+/// `/ai-fortune/palm/capture`)와 게이트 로직([navigateWithPassGate])을
+/// 그대로 재사용한다(신규 라우트/화면 없음).
+void openFaceReading(BuildContext context) {
+  navigateWithPassGate(
+    context,
+    title: '오늘의 관상',
+    route: '/ai-fortune/face/capture',
+    requiresPass: true,
+  );
+}
+
+void openPalmReading(BuildContext context) {
+  navigateWithPassGate(
+    context,
+    title: '손금',
+    route: '/ai-fortune/palm/capture',
+    requiresPass: true,
+  );
+}
+
+/// [전체보기 섹션 2개 추가 — design_handoff_add_two_sections.zip]
+/// "오늘의운세" 카드 전용 목적지.
+///
+/// [버그 수정 — 사용자 리포트] 2026-08-13 결정으로 한때 일간 운세가
+/// 정통사주 80항목에 통합되어 이 카드를 `/saju-renewal`(정통사주 메인)로
+/// 연결했었으나, 이후 세션에서 기간별 운세 전용 화면
+/// ([FortunePeriodScreen], 라우트 `/fortune-period`, 오늘·주간·월간 3탭)이
+/// 정식으로 추가되었다. 이 함수가 갱신되지 않아 "오늘의 운세" 카드를 누르면
+/// 엉뚱하게 정통사주 메인 화면이 뜨는 버그가 발생했다 — 이제 정식 목적지인
+/// `/fortune-period`로 연결한다. `tapPosition`(정통사주 원형 확산 전환용)은
+/// 더 이상 쓰이지 않으므로 전달하지 않는다(호출부 시그니처 호환을 위해
+/// 매개변수 자체는 유지).
+void openTodayFortune(BuildContext context, {Offset? tapPosition}) =>
+    Navigator.of(context).pushNamed('/fortune-period');
+
+/// [궁합지도 Star Map 디자인 적용 — design_handoff_gunghap_map.zip]
+/// "궁합지도" 카드 전용 목적지.
+///
+/// 기존에는 단순 궁합 입력 화면(`/compatibility/input`,
+/// [CompatibilityInputScreen] — 애정/우정/사업/가족 궁합, 0~100점
+/// 수치 표기)으로 연결했었다. 이번 핸드오프는 이것과는 별개의, 훨씬
+/// 풍부한 신규 "궁합지도"(Star Map 테마, 8개 대분류, 점수·퍼센트
+/// 표기 금지) 기능이며, 사용자가 "궁합지도 클릭시 지금 디자인
+/// 나오게 만들어주면됨"이라고 명시적으로 요청해 이 카드의 목적지를
+/// 새 [GunghapHomeScreen]으로 교체한다.
+///
+/// ⚠️ 범위: 신규 화면은 01 메인 홈 → 02 대분류 → 03 세부 카테고리까지
+/// 실제 클릭 흐름이 동작하며, 그 이후(나의 정보 입력부터)는 실제 사주
+/// FACT 엔진·초대장 백엔드·복주머니 결제가 없어 "준비 중" 안내 화면으로
+/// 자연스럽게 멈춘다(정식 개발 지시서의 전체 백엔드 구현은 이번 턴
+/// 범위 밖 — 디자인/클릭 흐름만 구현).
+void openCompatibilityMap(BuildContext context) => Navigator.of(
+  context,
+).push(MaterialPageRoute(builder: (_) => const GunghapHomeScreen()));
+
+/// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
+/// 2열×3행 사진 포토 카드 그리드 데이터. 순서/틴트/이미지는 README.md
+/// "섹션 매핑" 표 그대로: 소원방·타로 / 정통사주·귀인지도 / 관상·손금.
+/// [Midnight Navy 리뉴얼 — 8칸 확장] 그리드뷰([GuinjiEngineCardGrid])가
+/// README MENU 순서(귀인지도→궁합지도→정통사주→타로→소원방→오늘의운세→
+/// 관상→손금) 8개 카드로 교체되면서, 같은 시트의 리스트뷰(토글 OFF
+/// 상태)만 구 6개 카드로 남아 궁합지도/오늘의 운세가 빠지는 불일치가
+/// 있었다. 리스트뷰도 동일한 8개/동일한 순서로 맞춘다 — 기존 6개 카드의
+/// 라우트·이미지는 그대로 두고, 궁합지도/오늘의 운세 2개만 새로 추가한다
+/// (신규 라우팅 로직 없음 — 기존 [openCompatibilityMap]/
+/// [openTodayFortune] 그대로 재사용).
+final List<GHomeV2SheetCard> sHomeV2SheetCards = [
+  GHomeV2SheetCard(
+    category: SHomeV2Category.guide,
+    thumbAsset: 'assets/images/guinji_home_v2/sheet-4-guide.jpg',
+    title: '귀인지도',
+  ),
+  GHomeV2SheetCard(
+    thumbAsset: 'assets/images/guinji_home_v2/menu/gunghap_map.jpg',
+    title: '궁합지도',
+    customOnTap: openCompatibilityMap,
+  ),
+  GHomeV2SheetCard(
+    category: SHomeV2Category.saju,
+    thumbAsset: 'assets/images/guinji_home_v2/sheet-3-saju.jpg',
+    title: '정통사주',
+    // 얼굴이 약 25~35% 지점 — "조금 내리고"(살짝 아래로) 요청 반영.
+    imageAlignment: Alignment(0, -0.3),
+  ),
+  GHomeV2SheetCard(
+    category: SHomeV2Category.tarot,
+    thumbAsset: 'assets/images/guinji_home_v2/sheet-2-tarot.jpg',
+    title: '타로',
+    // [얼굴 잘림 수정] 인물 얼굴이 원본 사진 상단부(약 15~30% 지점)에
+    // 있어 기본 중앙 크롭에서 완전히 잘려 나갔다 — 상단 쪽으로 크게 이동.
+    imageAlignment: Alignment(0, -0.8),
+  ),
+  GHomeV2SheetCard(
+    category: SHomeV2Category.wish,
+    thumbAsset: 'assets/images/guinji_home_v2/sheet-1-wish.jpg',
+    title: '소원방',
+  ),
+  GHomeV2SheetCard(
+    thumbAsset: 'assets/images/guinji_home_v2/menu/today_phone.jpg',
+    title: '오늘의 운세',
+    customOnTap: (ctx) =>
+        openTodayFortune(ctx, tapPosition: sajuCardCenterOf(ctx)),
+  ),
+  GHomeV2SheetCard(
+    thumbAsset: 'assets/images/guinji_home_v2/sheet-5-face.jpg',
+    title: '관상',
+    customOnTap: openFaceReading,
+    // 얼굴이 약 30~45% 지점 — "좀 내리고"(살짝 아래로) 요청 반영.
+    imageAlignment: Alignment(0, -0.15),
+  ),
+  GHomeV2SheetCard(
+    thumbAsset: 'assets/images/guinji_home_v2/sheet-6-palm.jpg',
+    title: '손금',
+    customOnTap: openPalmReading,
+  ),
+];
+
+/// [전체보기 6섹션 개편 — design_handoff_main_all_sections.zip]
+/// 2열×3행 포토 카드(사진이 카드 전체를 채우는 디자인)에 쓰이는 데이터.
+/// 순서/틴트/이미지는 README.md "섹션 매핑" 표 그대로이며, 탭 목적지는
+/// 위 [sHomeV2SheetCards]와 완전히 동일한 기존 라우트를 재사용한다.
+///
+/// [전체보기 섹션 2개 추가 — design_handoff_add_two_sections.zip] 배열
+/// 맨 앞에 "오늘의운세"·"궁합지도" 2개를 추가해 2열×3행(6개) →
+/// 2열×4행(8개)으로 확장한다. 기존 6개 카드의 순서·값은 그대로 둔다.
+///
+/// [onTap 시그니처] 각 카드가 자신을 그리는 위젯의 [BuildContext]를
+/// 받는다(최상위 그리드 context가 아님) — 정통사주 카드가 docs/03 §00
+/// "구현은 카드 중심 좌표를 원점으로" 요구사항에 맞춰 자신의 화면상
+/// 중심 좌표([sajuCardCenterOf])를 구할 수 있어야 하기 때문이다. 나머지
+/// 카드는 이 인자를 그냥 전달만 하면 되므로(기존 `context`와 사실상
+/// 동일하게 동작) 동작 변화가 없다.
+List<GHomeV2PhotoCard> buildSHomeV2PhotoCards(BuildContext context) => [
+  GHomeV2PhotoCard(
+    title: '오늘의운세',
+    asset: 'assets/images/guinji_home_v2/sections/section-today.png',
+    tint: const Color(0xFFF5CF6A),
+    // 정통사주와 동일한 목적지이므로 동일하게 카드 중심 좌표를 넘긴다.
+    onTap: (ctx) => openTodayFortune(ctx, tapPosition: sajuCardCenterOf(ctx)),
+  ),
+  GHomeV2PhotoCard(
+    title: '궁합지도',
+    asset: 'assets/images/guinji_home_v2/sections/section-match.png',
+    tint: const Color(0xFFF3B3C8),
+    onTap: (ctx) => openCompatibilityMap(ctx),
+  ),
+  GHomeV2PhotoCard(
+    title: '소원방',
+    asset: 'assets/images/guinji_home_v2/sections/section-wish.png',
+    tint: const Color(0xFFF3B3C8),
+    onTap: (ctx) => openSubScreen(ctx, SHomeV2Category.wish),
+  ),
+  GHomeV2PhotoCard(
+    title: '타로',
+    asset: 'assets/images/guinji_home_v2/sections/section-tarot.png',
+    tint: const Color(0xFFD6B4F2),
+    onTap: (ctx) => openSubScreen(ctx, SHomeV2Category.tarot),
+  ),
+  GHomeV2PhotoCard(
+    title: '정통사주',
+    asset: 'assets/images/guinji_home_v2/sections/section-saju.png',
+    tint: const Color(0xFFF5CF6A),
+    onTap: (ctx) => openSubScreen(
+      ctx,
+      SHomeV2Category.saju,
+      tapPosition: sajuCardCenterOf(ctx),
+    ),
+  ),
+  GHomeV2PhotoCard(
+    title: '귀인지도',
+    asset: 'assets/images/guinji_home_v2/sections/section-guide.png',
+    tint: const Color(0xFFF3B3C8),
+    onTap: (ctx) => openSubScreen(ctx, SHomeV2Category.guide),
+  ),
+  GHomeV2PhotoCard(
+    title: '관상',
+    asset: 'assets/images/guinji_home_v2/sections/section-face.png',
+    tint: const Color(0xFFF6E2BF),
+    onTap: (ctx) => openFaceReading(ctx),
+  ),
+  GHomeV2PhotoCard(
+    title: '손금',
+    asset: 'assets/images/guinji_home_v2/sections/section-palm.png',
+    tint: const Color(0xFFBFE6CF),
+    onTap: (ctx) => openPalmReading(ctx),
+  ),
+];

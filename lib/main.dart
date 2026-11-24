@@ -75,7 +75,7 @@ Future<void> main() async {
   // 주석 참고). 조회가 끝나는 즉시(보통 수백ms~수초 이내) 이후의 광고 노출
   // 판단부터 자동으로 원격값이 반영된다.
   AdRemoteConfigService.load();
-  // [귀인지도 딥링크 버그수정 — Phase A] `fortunefusion://g/{token}` 커스텀
+  // [귀인지도 딥링크 버그수정 — Phase A] `guinjido://g/{token}` 커스텀
   // 스킴 딥링크 수신을 앱 부팅 시점에 등록한다. await 하지 않는 이유: 이
   // 초기화가 runApp보다 늦게 끝나도(콜드 스타트 초기 링크 처리) 문제없이
   // 동작하도록 설계되어 있고(GuinjiDeepLinkHandler.init 내부에서 프레임 콜백

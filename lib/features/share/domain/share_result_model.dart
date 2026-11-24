@@ -1,4 +1,4 @@
-/// 결과 공유(Share Result) 기능 — 귀인지도_결과공유_개발제안서(sintong-share-proposal.pdf)
+/// 결과 공유(Share Result) 기능 — 귀인지도_결과공유_개발제안서(guinji-share-proposal.pdf)
 /// 대응 도메인 모델.
 ///
 /// [2027-02 6개 카테고리 통일] 소원방(wish)/타로(tarot)/정통사주(saju)/

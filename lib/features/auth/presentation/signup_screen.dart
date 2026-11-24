@@ -442,7 +442,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     focusNode: _emailFocusNode,
                     label: '이메일',
                     required: true,
-                    hintText: 'example@fortunefusion.app',
+                    hintText: 'example@guinjido.app',
                     // [§4 이메일 중복확인] blur 직후 확인 메시지가 있으면
                     // 그것을 우선 표시하고, 아직 확인 전이면 기존 기본
                     // 안내 문구('로그인 시 사용됩니다')를 그대로 보여준다.
