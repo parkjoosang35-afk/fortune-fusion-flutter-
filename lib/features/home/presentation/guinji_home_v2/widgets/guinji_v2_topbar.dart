@@ -13,6 +13,7 @@ import '../../../../auth/application/auth_provider.dart';
 import '../../../../notification/notification_provider.dart';
 import '../../../../wallet/application/wallet_provider.dart';
 import '../../../../../core/sound/guinji_sound_service.dart';
+import '../../../../pouch_pay/presentation/pouch_store_screen.dart';
 import '../guinji_home_v2_tokens.dart';
 
 class GuinjiV2TopBar extends StatelessWidget {
@@ -59,6 +60,24 @@ class GuinjiV2TopBar extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // [곳간(복주머니 상점) 진입점 — 사용자 요청 "평상시에도 복주머니을
+          // 구입해야할수 있는데"] 기존에는 잔액 부족 시에만(ShortageQuickSheet)
+          // 노출되던 곳간(PouchStoreScreen)을 메인 홈 상단바에도 상시 노출한다.
+          Semantics(
+            identifier: 'home_topbar_open_store',
+            button: true,
+            child: _CircleIconBtn(
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const PouchStoreScreen())),
+              child: const Icon(
+                Icons.storefront_rounded,
+                size: 16,
+                color: Colors.white,
               ),
             ),
           ),

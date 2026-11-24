@@ -15,6 +15,7 @@ import '../../wallet/application/wallet_provider.dart';
 import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../pass/presentation/pass_time_format.dart';
+import '../../pouch_pay/presentation/pouch_store_screen.dart';
 import 'my_fortune_records_screen.dart';
 import 'theme/mypage_minimal_theme.dart';
 
@@ -571,6 +572,31 @@ class _WalletCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          // [곳간(복주머니 상점) 진입점 — 사용자 요청 "마이페이지에 있던지
+          // 평상시에도 복주머니을 구입해야할수 있는데"] 지갑 카드 하단에
+          // 유료 곳간(PouchStoreScreen)으로 가는 전용 버튼을 추가한다.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+            child: Semantics(
+              identifier: 'mypage_wallet_open_store',
+              button: true,
+              child: _WalletButton(
+                label: '곳간에서 복주머니 담기 ›',
+                variant: _WalletButtonVariant.soft,
+                onTap: () {
+                  if (!isLoggedIn) {
+                    Navigator.of(context).pushNamed('/login');
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const PouchStoreScreen(),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],

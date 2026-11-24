@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../theme/lucky_box_tokens.dart';
 import '../../application/pouch_box_provider.dart';
 import '../../../wallet/application/wallet_provider.dart';
+import '../../../pouch_pay/presentation/pouch_store_screen.dart';
 import 'lucky_box_tile.dart';
 import 'mini_pouch_icon.dart';
 
@@ -40,7 +41,14 @@ class PouchGridView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Header(balance: balance),
-            const SizedBox(height: LuckyBoxTokens.sp6),
+            const SizedBox(height: LuckyBoxTokens.sp3),
+            // [곳간(복주머니 상점) 진입점 — 사용자 요청 "평상시에도 복주머니을
+            // 구입해야할수 있는데"] 이 화면(무료 행운상자)은 하단바 "복주머니"
+            // 탭 자체이므로, 유료 곳간(PouchStoreScreen)으로 가는 다리를 바로
+            // 여기에 둔다 — 무료 적립과 유료 구매를 헷갈리지 않도록 "직접 담기"
+            // 라는 분명한 문구로 구분한다.
+            const _StoreQuickLink(),
+            const SizedBox(height: LuckyBoxTokens.sp3),
             const Center(child: _HeaderChip()),
             const SizedBox(height: LuckyBoxTokens.sp4),
             const Center(child: _HeroTitle()),
@@ -136,6 +144,64 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// [곳간 퀵링크] 무료 행운상자 그리드 상단에 얹는 작은 배너. 탭하면 유료
+/// 곳간(PouchStoreScreen)으로 이동한다 — "오늘 상자 다 썼어도 더 담고
+/// 싶다"는 평상시 니즈를 이 화면 안에서 바로 해결해준다.
+class _StoreQuickLink extends StatelessWidget {
+  const _StoreQuickLink();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      identifier: 'pouch_box_open_store',
+      button: true,
+      child: Material(
+        color: LuckyBoxTokens.bgSofter,
+        borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PouchStoreScreen()),
+          ),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: LuckyBoxTokens.sp4,
+              vertical: LuckyBoxTokens.sp3,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(LuckyBoxTokens.rPill),
+              border: Border.all(color: LuckyBoxTokens.line),
+            ),
+            child: Row(
+              children: [
+                const MiniPouchIcon(size: 18, lit: true),
+                const SizedBox(width: LuckyBoxTokens.sp2),
+                Expanded(
+                  child: Text(
+                    '지금 바로 곳간에서 복주머니 담기',
+                    style: LuckyBoxTokens.bodyText.copyWith(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: LuckyBoxTokens.fgPrimary,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: LuckyBoxTokens.fgMuted,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
