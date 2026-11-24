@@ -31,7 +31,7 @@ class TarotHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<TarotAudioController>();
-    // [신통방통 사운드 배치 개발 기획서 §5.1] tarot 라우트 BGM(04_tarot_W)
+    // [귀인지도 사운드 배치 개발 기획서 §5.1] tarot 라우트 BGM(04_tarot_W)
     // 트리거(앰비언스 없음). 기존 TarotAudioController(카드 SFX 전용)와는
     // 별개 계층 — BGM은 SintongSoundService가, UI SFX는 기존 컨트롤러가
     // 각자 담당한다(§2 3레이어 아키텍처).

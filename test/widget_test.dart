@@ -1,9 +1,9 @@
-// 신통방통(Fortune Fusion) 앱 기본 스모크 테스트
+// 귀인지도 앱 기본 스모크 테스트
 // 앱이 크래시 없이 기동하여 SplashScreen이 표시되는지 확인한다.
 //
 // [2026-08 갱신] 인트로 전면 개편(커밋 e1406f7)으로 SplashScreen이
-// "Fortune Fusion" 텍스트 + CircularProgressIndicator 조합에서
-// 로고 아이콘 + "신통방통" 타이틀 + FadeTransition 조합으로 교체됐으나
+// "귀인지도" 텍스트 + CircularProgressIndicator 조합에서
+// 로고 아이콘 + "귀인지도" 타이틀 + FadeTransition 조합으로 교체됐으나
 // 이 테스트가 갱신되지 않아 실패하고 있었다. 현재 SplashScreen
 // (lib/features/auth/presentation/splash_screen.dart)의 실제 렌더링
 // 내용에 맞춰 검증 대상을 갱신한다.
@@ -24,7 +24,7 @@ void main() {
 
     // 최신 스플래시는 네 글자 워드마크를 개별 위젯으로 표시한다.
     expect(find.byType(SplashScreen), findsOneWidget);
-    expect(find.bySemanticsLabel('신통방통'), findsOneWidget);
+    expect(find.bySemanticsLabel('귀인지도'), findsOneWidget);
 
     // [타이머 정리] SplashScreen._bootstrap()이 addPostFrameCallback으로 예약한
     // Future.wait(...Future.delayed(1300ms)...)이 테스트 종료 시점까지 남아있으면

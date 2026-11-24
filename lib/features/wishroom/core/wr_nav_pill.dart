@@ -1,11 +1,11 @@
-// 공용 NavPill(뒤로가기+신통방통 홈) + "신통방통 홈으로 갈까요" 확인시트.
+// 공용 NavPill(뒤로가기+귀인지도 홈) + "귀인지도 홈으로 갈까요" 확인시트.
 // app2/fx2.jsx › NavPill() · shell2.jsx › app.back()/app.exitHome()/exitAsk 1:1.
 //
 // [버그수정 — 전수 감사로 발견] 원본은 TopBar(nav=true)가 기본값이라 모든 메인
 // 화면(홈·탐색·알림·꾸미기·보관함·캐릭터샵·타인의 소원방) 좌상단에 NavPill이
 // 항상 떠 있다. 기존 Flutter 구현은 WrNavPill 클래스만 존재할 뿐(Welcome 화면
 // 전용) 다른 화면 어디에도 쓰이지 않았다. 이 파일은 WrNavPill을 재노출하고,
-// "뒤로가기 히스토리가 없으면(=탭 루트) 신통방통 홈 확인" 로직은 Flutter
+// "뒤로가기 히스토리가 없으면(=탭 루트) 귀인지도 홈 확인" 로직은 Flutter
 // Navigator 1.0 + IndexedStack 구조에 맞춰 단순화한다:
 //   - onBack(): Navigator.maybePop()으로 push된 화면(캐릭터샵/타인방 등)에서는
 //     그냥 뒤로 가고, WishRoomShell 탭 루트(= push된 라우트가 없음)에서는
@@ -42,7 +42,7 @@ void wrReturnToTab(BuildContext context, int index) {
 
 /// 탭 루트(= 더 이상 pop할 화면이 없음)에서 호출되는 뒤로가기.
 /// Navigator.maybePop()이 실패(= 이 라우트가 네비게이션 스택의 바닥)하면
-/// "신통방통 홈으로 갈까요" 확인시트를 띄운다. push된 화면(캐릭터샵·타인의
+/// "귀인지도 홈으로 갈까요" 확인시트를 띄운다. push된 화면(캐릭터샵·타인의
 /// 소원방 등)에서는 그냥 maybePop()만으로 충분하므로 이 함수를 쓰지 않는다.
 Future<void> wrBackOrAskExit(BuildContext context, {String? message}) async {
   final popped = await Navigator.of(context).maybePop();
@@ -72,7 +72,7 @@ void _showExitAskSheet(BuildContext context, {String? message}) {
           children: [
             const Text('🕯', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 10),
-            Text('신통방통 홈으로 갈까요', style: WrF.display(18)),
+            Text('귀인지도 홈으로 갈까요', style: WrF.display(18)),
             const SizedBox(height: 6),
             Text(
               message ?? '촛불은 계속 켜져 있어요. 언제든 다시 오세요.',

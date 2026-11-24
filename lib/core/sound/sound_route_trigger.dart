@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'sintong_sound_service.dart';
 
-/// [신통방통 사운드 배치 개발 기획서 §5.1/§9.2] 8개 메뉴 화면 각각에
+/// [귀인지도 사운드 배치 개발 기획서 §5.1/§9.2] 8개 메뉴 화면 각각에
 /// "이 화면은 어떤 BGM·앰비언스 라우트인지"를 선언하기만 하면 되도록 만든
 /// 얇은 래퍼. `StatefulWidget`의 initState에 직접 호출을 추가하는 대신
 /// 이 위젯으로 감싸면, StatelessWidget 화면(예: TarotHomeScreen)에도

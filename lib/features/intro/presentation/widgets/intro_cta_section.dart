@@ -66,7 +66,7 @@ class IntroCTASection extends StatelessWidget {
                 IntroTitleText(
                   title,
                   style: IntroTextStyles.title(fontSize: 30),
-                  highlight: '신통방통',
+                  highlight: '귀인지도',
                   highlightColors: const [
                     IntroPalette.gold,
                     IntroPalette.primary,
@@ -192,7 +192,7 @@ class _IntroHeroImage extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Semantics(
-              label: '신통방통 캐릭터',
+              label: '귀인지도 캐릭터',
               child: Image.asset(
                 asset,
                 fit: BoxFit.contain,

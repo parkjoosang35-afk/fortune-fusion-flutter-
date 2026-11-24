@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_unified_style.dart';
 
-/// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] §3 섹션 타이틀 규칙
+/// [귀인지도 서브 디자인 통일 마스터 프롬프트] §3 섹션 타이틀 규칙
 ///
 /// 짧고 명확한 좌측 정렬 타이틀. 필요 시 우측에 "전체보기"류 텍스트 액션을
 /// 붙일 수 있다.

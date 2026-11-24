@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../theme/saju_dark_tokens.dart';
 import '../utils/saju_motion_prefs.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] 공용 베이스 위젯 모음.
+/// [귀인지도 정통사주 리뉴얼 — 다크 핸드오프] 공용 베이스 위젯 모음.
 /// `design_handoff_jeongtong_saju_v3/design_files/saju/screens-a.jsx`의
 /// `DarkBase`/`StarField`/`SJTopBar`/`.sj-btn-*`을 1:1로 Flutter화.
 

@@ -66,7 +66,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
         context.read<TarotProvider>().selectFromHistory(widget.resultId!);
       });
     }
-    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // [귀인지도 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
     // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,7 +107,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     }
   }
 
-  // [REQ-07 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기기(갤러리) 저장
+  // [REQ-07 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기(갤러리) 저장
   // 전용. 토스트/성공 판정은 saveOriginalResult 내부(REQ-05 반영)가 전담하며,
   // 여기서는 서버 기록을 함께 저장하지 않는다 — "기록에 저장되었어요" 같은
   // 기기 저장과 무관한 문구가 뜨지 않도록 분리.
@@ -302,7 +302,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
     ShareService.shareResult(
       context,
       resultType: ShareResultType.tarot,
-      title: '${view.heroCard.nameKr} · 신통방통 타로',
+      title: '${view.heroCard.nameKr} · 귀인지도 타로',
       description: view.oneLiner,
       payload: {
         // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 카드별 스프레드
@@ -376,7 +376,7 @@ class _TarotResultScreenState extends State<TarotResultScreen> {
       popped = true;
 
       if (!mounted) return;
-      await ShareService.shareImageDirectly(context, '신통방통 타로 결과', bytes);
+      await ShareService.shareImageDirectly(context, '귀인지도 타로 결과', bytes);
     } catch (e) {
       if (!popped && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();

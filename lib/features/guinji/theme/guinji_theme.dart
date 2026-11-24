@@ -79,7 +79,7 @@ class GuinjiColors {
   static const ohaengSu = Color(0xFF8DBFD6); // 水
 }
 
-/// 타이포 폰트 패밀리 — [2026 디자인 핸드오프 v5 — SPEC.md §1] "신통방통
+/// 타이포 폰트 패밀리 — [2026 디자인 핸드오프 v5 — SPEC.md §1] "귀인지도
 /// 통합 폰트 1종" 요구에 따라 `GmText`의 display/body/ui/mono 4개 이름이
 /// 전부 Pretendard 하나로 통일됐다(위계는 굵기/자간으로만 구현). 이름
 /// 체계는 기존 호출부 호환을 위해 그대로 유지한다.

@@ -8,7 +8,7 @@ import '../../sintong/widgets/bangtong_fairy_avatar.dart';
 import '../../sintong/widgets/sintong_screen_bg.dart';
 import '../application/palm_provider.dart';
 
-/// [관상·손금 신통방통 "새벽 한지" 리스킨] AI 손금 분석중(로딩) 화면.
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] AI 손금 분석중(로딩) 화면.
 ///
 /// [핵심 원칙 - 실제 분석 중 표시] FaceAnalyzingScreen과 동일하게, 스캔
 /// 애니메이션은 실제 [PalmProvider.analyze] API 호출이 진행되는 동안

@@ -24,7 +24,7 @@ class _WalletScreenState extends State<WalletScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WalletProvider>().load();
-      // [신통방통 복주머니 광고 적립 시스템] 지갑 화면 진입 시 노출 가능한
+      // [귀인지도 복주머니 광고 적립 시스템] 지갑 화면 진입 시 노출 가능한
       // 광고 목록을 함께 로드한다(관리자 OFF/기간종료 시 목록이 비어와
       // 카드 자체가 자동으로 숨겨진다 — 재배포 없이 즉시 반영).
       context.read<FortuneAdProvider>().load();

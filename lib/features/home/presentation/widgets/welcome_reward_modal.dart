@@ -261,7 +261,7 @@ class _ModalCardState extends State<_ModalCard> {
               _buildEyebrow(),
               const SizedBox(height: 16),
               IntroTitleText(
-                '신통방통에\n오신 걸 환영합니다',
+                '귀인지도에\n오신 걸 환영합니다',
                 style: IntroTextStyles.modalTitle(),
                 highlight: '환영합니다',
                 highlightColors: const [

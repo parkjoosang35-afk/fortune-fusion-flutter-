@@ -5,7 +5,7 @@ import '../../features/pass/presentation/pass_gate_helper.dart';
 /// [홈 "상담" 카드 → "관상/손금" 통합 카드 교체] 관상/손금을 하나의 카드로
 /// 합쳐 눌렀을 때 나타나는 선택 바텀시트.
 ///
-/// [관상·손금 신통방통 "새벽 한지" 리스킨] 시트 UI를 핸드오프의
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] 시트 UI를 핸드오프의
 /// [HomeReadingSheet](觀·紋 스탬프 + 실루엣 + 마법진 모티프)로 교체했다.
 /// 기존 라우팅 로직(오늘의 관상 → `/ai-fortune/face/capture`, 손금 →
 /// `/ai-fortune/palm/capture`, 둘 다 [navigateWithPassGate]로 열림패스

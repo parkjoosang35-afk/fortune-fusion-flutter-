@@ -1,4 +1,4 @@
-// 신통방통 소원방 · 도메인 모델 v2.6
+// 귀인지도 소원방 · 도메인 모델 v2.6
 // 기준: 프로토타입 prototype/app/api.js 의 roomView() / meView() 응답 필드 (= 서버 응답 계약)
 // 실제 프로젝트에서는 freezed + json_serializable 로 전환 권장. 필드명은 그대로 유지하세요.
 

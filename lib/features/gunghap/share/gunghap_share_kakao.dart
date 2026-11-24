@@ -117,7 +117,7 @@ Future<void> shareGunghapInvite(
   await safeShareText(
     context,
     message,
-    subject: '궁합지도 초대 · 신통방통',
+    subject: '궁합지도 초대 · 귀인지도',
     copiedMessage: '초대 메시지를 복사했어요. 카카오톡 등 원하는 앱에 붙여넣어 전달해 주세요.',
     failedMessage: '공유 시트를 열 수 없어 링크를 복사했어요.',
   );

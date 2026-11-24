@@ -17,7 +17,7 @@ Future<bool> saveImageBytesToGallery(Uint8List bytes, {required String name}) as
   return result.isSuccess;
 }
 
-/// [REQ-05 — 신통방통_저장기능_정상화_개발지시서_v1.0] 실패 원인별 분기를
+/// [REQ-05 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 실패 원인별 분기를
 /// 제공하는 상세 버전. `catch (_) { return false; }`로 모든 예외를
 /// 뭉개던 기존 구조(P-08-1)를 개선해, `GalException.type`을 구분하고
 /// [GallerySaveFailureReason]으로 매핑한다.

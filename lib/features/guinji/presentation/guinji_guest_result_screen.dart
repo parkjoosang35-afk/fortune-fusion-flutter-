@@ -94,13 +94,13 @@ class GuinjiGuestResultScreen extends StatelessWidget {
   /// 점수·근거 요약만 포함).
   Future<void> _handleShare(BuildContext context) async {
     final meta = guinjiRelationMetaOf(relationKey);
-    final message = '$hostName님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
+    final message = '$hostName님과의 관계는 "${meta.label}"예요 · 귀인지도';
     try {
       await ShareService.shareResult(
         context,
         resultType: ShareResultType.relationship,
         title: message,
-        description: '${meta.label} · 신통방통 귀인지도',
+        description: '${meta.label} · 귀인지도',
         payload: {
           'kind': 'relationship',
           'relationType': meta.key,
@@ -111,7 +111,7 @@ class GuinjiGuestResultScreen extends StatelessWidget {
           'score': score,
           'note': evidenceSummary,
         },
-        subject: '신통방통 귀인지도',
+        subject: '귀인지도',
       );
     } catch (_) {
       if (context.mounted) {

@@ -6,7 +6,7 @@ import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/fortune_ad_model.dart';
 
-/// [신통방통 복주머니 광고 적립 시스템] admin_web 공개 API
+/// [귀인지도 복주머니 광고 적립 시스템] admin_web 공개 API
 /// (`GET /api/ads/fortune`, `POST /api/ads/{adId}/start`,
 /// `POST /api/ads/{adId}/complete`, `GET /api/ads/{adId}/today-status`)를
 /// 호출한다. WalletRepository와 동일하게 userId는 AuthTokenStore(폴백 1)를 사용한다.

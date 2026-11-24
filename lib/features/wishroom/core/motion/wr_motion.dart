@@ -1,4 +1,4 @@
-// 신통방통 소원방 · Motion tokens (wishroom.css keyframes 1:1)
+// 귀인지도 소원방 · Motion tokens (wishroom.css keyframes 1:1)
 // 규칙: 크롬 애니메이션 ≥ 1s, 스프링 바운스 버튼 금지. 파티클만 빠르게.
 import 'package:flutter/animation.dart';
 

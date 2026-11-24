@@ -5,7 +5,7 @@ import '../../home/domain/manseryeok/phase3_analysis_engine.dart';
 import '../../home/domain/manseryeok/phase4_analysis_engine.dart';
 import '../../home/domain/manseryeok/saju_profile.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프 시각화 어댑터]
+/// [귀인지도 정통사주 리뉴얼 — 다크 핸드오프 시각화 어댑터]
 ///
 /// 02(출생정보 입력 프리뷰)·03(분석중 세레모니)·04(분석완료) 화면이 보여주는
 /// "원국/오행/음양균형/대운" 시각화는 실제 사용자의 생년월일로 계산된 값을

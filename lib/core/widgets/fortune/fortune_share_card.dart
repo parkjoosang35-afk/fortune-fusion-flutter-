@@ -88,7 +88,7 @@ class FortuneShareCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text('Fortune Fusion · 신통방통', style: UnifiedText.caption()),
+              Text('귀인지도', style: UnifiedText.caption()),
             ],
           ),
         ],

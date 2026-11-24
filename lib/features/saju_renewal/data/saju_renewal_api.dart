@@ -8,7 +8,7 @@ import '../../../core/config/env_config.dart';
 import 'models/topic_card.dart';
 import 'models/interpret_result.dart';
 
-/// [신통방통 정통사주 리뉴얼 — STEP 6.5 Flutter 연동] STEP 3~4에서 완성된
+/// [귀인지도 정통사주 리뉴얼 — STEP 6.5 Flutter 연동] STEP 3~4에서 완성된
 /// 신규 API 2종(`/api/public/saju-renewal/topics/select`,
 /// `/api/public/saju-renewal/interpret`)만 호출하는 전용 클라이언트.
 ///

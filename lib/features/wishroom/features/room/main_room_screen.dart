@@ -674,7 +674,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
 
   // app2/fx2.jsx › NavPill onBack=app.back · onExitHome=app.exitHome 1:1.
   // 홈은 WishRoomShell의 탭 루트(= push된 화면 없음)이므로 뒤로가기를 누르면
-  // 항상 "신통방통 홈으로 갈까요" 확인시트가 뜬다(원본 exitAsk와 동일).
+  // 항상 "귀인지도 홈으로 갈까요" 확인시트가 뜬다(원본 exitAsk와 동일).
   void _onBack() => wrBackOrAskExit(context);
   void _onExitHome() => wrExitHome(context);
 
@@ -852,7 +852,7 @@ class _MainRoomScreenState extends State<MainRoomScreen>
                       child: Stack(
                         children: [
                           // TopBar — app2/fx2.jsx › TopBar({nav=true, right}) 1:1: 좌측 NavPill(뒤로가기+
-                          // 신통방통 홈), 우측 PouchPill. [버그수정 — 전수감사] 기존엔 NavPill이 전체
+                          // 귀인지도 홈), 우측 PouchPill. [버그수정 — 전수감사] 기존엔 NavPill이 전체
                           // 화면 어디에도 없었고 PouchPill이 좌측에 있었다(원본은 우측).
                           Positioned(
                             key: const ValueKey('navPill'),
@@ -4101,7 +4101,7 @@ class _ShareSheetState extends State<_ShareSheet> {
   String get _shareMessage {
     final p = context.read<WishRoomProvider>();
     final nick = p.me?.nick ?? '나';
-    return '[신통방통 소원방] $nick님의 소원방에 초대해요\n"${widget.room.text}"\n촛불 하나 함께 밝혀주세요';
+    return '[귀인지도 소원방] $nick님의 소원방에 초대해요\n"${widget.room.text}"\n촛불 하나 함께 밝혀주세요';
   }
 
   Future<void> _copy() async {

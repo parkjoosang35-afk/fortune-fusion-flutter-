@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-/// [REQ-09 — 신통방통_저장기능_정상화_개발지시서_v1.0] 저장 파일명 규칙 통일.
+/// [REQ-09 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 저장 파일명 규칙 통일.
 ///
 /// 규칙: `sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}`
 /// (서비스: saju | tarot | face | palm | guinji | compat | wish | category 등)

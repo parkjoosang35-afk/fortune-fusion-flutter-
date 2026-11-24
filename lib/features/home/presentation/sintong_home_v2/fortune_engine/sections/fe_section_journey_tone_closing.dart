@@ -14,7 +14,7 @@ class FeJourneySection extends StatelessWidget {
   const FeJourneySection({super.key});
 
   static const _items = [
-    ['첫 화면', '"신통방통 — 운세를 지어내지 않습니다. 계산하고, 대조하고, 근거를 보여드립니다."'],
+    ['첫 화면', '"귀인지도 — 운세를 지어내지 않습니다. 계산하고, 대조하고, 근거를 보여드립니다."'],
     ['온보딩', '"생년월일시는 여덟 글자가 되고, 얼굴은 비율이 되고, 손은 네 개의 선이 됩니다."'],
     ['조합 선택', '"29가지 조합, 전부 열려 있습니다. 가벼운 단일 리딩부터 다섯 엔진의 오경 종합까지."'],
     ['결과 상단', '"첫 문장을 읽기 전에, 몇 개의 관점이 동의하고 몇 개가 갈렸는지부터 보세요."'],
@@ -285,7 +285,7 @@ class FeToneSection extends StatelessWidget {
   }
 }
 
-/// 13. HONESTLIMITS + 신통방통의 약속 (클로징).
+/// 13. HONESTLIMITS + 귀인지도의 약속 (클로징).
 class FeClosingSection extends StatelessWidget {
   const FeClosingSection({super.key});
   @override
@@ -328,7 +328,7 @@ class FeClosingSection extends StatelessWidget {
                           color: FeColors.muted,
                         ),
                         children: [
-                          TextSpan(text: '신통방통은 '),
+                          TextSpan(text: '귀인지도는 '),
                           TextSpan(
                             text: '전통 해석 체계를 코드로 구현한 자기 성찰 도구',
                             style: TextStyle(
@@ -398,7 +398,7 @@ class FeClosingSection extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          '✦ 신통방통의 약속 ✦',
+                          '✦ 귀인지도의 약속 ✦',
                           style: TextStyle(
                             fontFamily: FeFonts.body,
                             fontWeight: FontWeight.w700,
@@ -431,7 +431,7 @@ class FeClosingSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         const Text(
-                          '"결과만 파는 운세는 팔짱을 끼고 있고,\n신통방통은 계산서를 함께 줍니다."',
+                          '"결과만 파는 운세는 팔짱을 끼고 있고,\n귀인지도는 계산서를 함께 줍니다."',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: FeFonts.body,

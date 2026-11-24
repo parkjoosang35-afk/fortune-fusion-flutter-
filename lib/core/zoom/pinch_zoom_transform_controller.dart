@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// [신통방통 전역 핀치 확대 시스템 — Transform Controller]
+/// [귀인지도 전역 핀치 확대 시스템 — Transform Controller]
 ///
 /// 두 손가락의 위치/거리 변화를 실제 확대 배율(scale)과 이동(offset)
 /// 값으로 변환하는 순수 계산 로직. UI나 제스처 감지와 완전히 분리되어

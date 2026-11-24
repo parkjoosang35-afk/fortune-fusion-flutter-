@@ -28,7 +28,7 @@ void main() {
   // 안내 문구를 함께 전달하는 경우가 많다.
   const longText =
       'https://sintong.kr/share/result/abcdefg1234567890?ref=guinji&from=kakao\n'
-      '신통방통에서 확인한 나의 2026년 신년운세를 함께 확인해보세요!';
+      '귀인지도에서 확인한 나의 2026년 신년운세를 함께 확인해보세요!';
 
   for (final (size, textScale) in conditions) {
     testWidgets(

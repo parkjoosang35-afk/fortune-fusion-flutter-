@@ -1,4 +1,4 @@
-// [신통방통 반응형 화면 규격 통일 지시서] 온보딩 "재미·참고용 콘텐츠 안내"
+// [귀인지도 반응형 화면 규격 통일 지시서] 온보딩 "재미·참고용 콘텐츠 안내"
 // 바텀시트(showOnboardingNoticeSheet, onboarding_notice_sheet.dart) 오버플로
 // 회귀 테스트.
 //

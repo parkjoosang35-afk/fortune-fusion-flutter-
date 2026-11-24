@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_app/features/share/application/share_service.dart';
 import 'package:flutter_app/features/share/domain/share_result_model.dart';
 
-/// [신통방통 앱·웹 공유 근본 정상화 — 2026-11]
+/// [귀인지도 앱·웹 공유 근본 정상화 — 2026-11]
 ///
 /// 과거(2026-10-14) 계약: 앱 분기는 원본 PNG를 OS 공유 시트로 직접
 /// 전송하고 서버 업로드·공유 링크 생성·동의 팝업이 전혀 없었다.
@@ -123,7 +123,7 @@ void main() {
       });
       await tester.pump();
       await tester.pumpAndSettle();
-      // [신통방통 공유 근본 정상화] 앱도 웹과 동일하게 원본 공개 동의
+      // [귀인지도 공유 근본 정상화] 앱도 웹과 동일하게 원본 공개 동의
       // 팝업을 먼저 보여준다 — 서버에 이미지를 업로드하기 전이므로.
       expect(find.text('이 결과 그대로 공개할까요?'), findsOneWidget);
       // 두 번째 탭(다이얼로그 확인)은 단지 showDialog의 Future를
@@ -166,7 +166,7 @@ void main() {
     // 포함돼야 한다 — 이게 없으면 받는 사람이 특정 결과로 돌아올 방법이
     // 없다(§3-A의 핵심 요구사항, 과거 버그의 직접적 증상).
     expect(textParam, contains('/r/appQaShare01'));
-    expect(textParam, contains('신통방통에서 확인했어요'));
+    expect(textParam, contains('귀인지도에서 확인했어요'));
     if (EnvConfig.appDownloadUrl.isEmpty) {
       expect(textParam, isNot(contains('앱 설치:')));
     }

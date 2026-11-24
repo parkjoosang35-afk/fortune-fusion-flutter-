@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 00 · 앱 셸 → 진입/복귀
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 00 · 앱 셸 → 진입/복귀
 /// 전환.
 ///
 /// docs/03_화면명세.md §00:

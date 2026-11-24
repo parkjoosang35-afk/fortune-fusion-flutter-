@@ -46,7 +46,7 @@ class _GenericFortuneResultScreenState
   bool _saved = false;
   bool _loading = true;
   FortuneCategoryEntry? _entry;
-  // [REQ-06/REQ-07 - 신통방통_저장기능_정상화_개발지시서_v1.0] 기기(갤러리)
+  // [REQ-06/REQ-07 - 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기(갤러리)
   // 저장용 캡처 키. 기존 "저장"(서버 기록 저장)과 별도 버튼/동작으로 분리한다.
   final _originalResultKey = GlobalKey();
 

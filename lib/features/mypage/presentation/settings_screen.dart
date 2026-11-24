@@ -35,7 +35,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   // [알림 실제 발송 연동] 카테고리별 on/off 토글. admin_web
   // `notification_preferences` 테이블의 화이트리스트를 그대로 노출한다.
-  // [신통방통 관리자 최종 정리 지시서 §3 "알림 관리"] "matching" 카테고리는
+  // [귀인지도 관리자 최종 정리 지시서 §3 "알림 관리"] "matching" 카테고리는
   // 서버 어디서도 실제 알림을 생성하지 않는 죽은 선택지로 확인되어
   // 서버 API(/api/public/notifications/preferences) 화이트리스트에서
   // 제거되었다. 이 화면은 서버가 반환하는 카테고리 목록을 그대로 렌더링하는

@@ -17,7 +17,7 @@ Widget buildAdScriptView(String html, {required double height}) {
     ..setBackgroundColor(Colors.transparent)
     ..loadHtmlString(wrapped);
 
-  // [신통방통 전역 핀치 확대 시스템 — 제외 구역] 광고 WebView는 네이티브
+  // [귀인지도 전역 핀치 확대 시스템 — 제외 구역] 광고 WebView는 네이티브
   // 플랫폼 뷰라 화면 캡처 기반 전역 확대와 호환되지 않고, 광고 영역은
   // 지시서 §6 "광고 및 결제 기능과 확대 엔진 분리" 요구에 따라 제외한다.
   return PinchZoomDisabled(

@@ -12,7 +12,7 @@ import '../../result_access/data/result_access_repository.dart';
 import '../../result_access/domain/pending_result_access_return.dart';
 import '../../result_access/domain/result_access_model.dart';
 
-/// [신통방통 정통사주 리뉴얼] 화면06 결과보기 게이트.
+/// [귀인지도 정통사주 리뉴얼] 화면06 결과보기 게이트.
 ///
 /// [결과보기 게이트 시각 통일 — 2026] 기존에는 `saju_dark_tokens.dart`
 /// (SajuViolet/SajuGold/SajuInk 다크 자수정+금빛 테마)로 스킨되어 있었으나,

@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_service_tile.dart
-// [신통방통 메인 매핑] C-06 · ServiceTile — Handoff.html §06
+// [귀인지도 메인 매핑] C-06 · ServiceTile — Handoff.html §06
 // 썸네일(56×56, radius12) + 서비스명(Fraunces italic 18) + 설명
 // (Pretendard 11px inkMute) + 우측 원형 액션 버튼(34×34).
 // card-warm 변형(손금·관상)은 배경 cardTint(#FAF6EE) + border 투명.

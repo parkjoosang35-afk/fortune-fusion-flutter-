@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sound_config.dart';
 
-/// [신통방통 사운드 배치 개발 기획서 v1.0 — 2026-10-21 / shindang_DEV_HANDOVER]
+/// [귀인지도 사운드 배치 개발 기획서 v1.0 — 2026-10-21 / shindang_DEV_HANDOVER]
 /// 앱 전역에서 사용하는 단일 사운드 서비스. BGM 크로스페이드, 앰비언스,
 /// 전환 표식음, 덕킹, UI SFX 재생을 모두 이 클래스 하나가 담당한다.
 ///
@@ -408,7 +408,7 @@ class SintongSoundService extends ChangeNotifier with WidgetsBindingObserver {
   /// 저절로 되돌아온다 — 결과 화면 코드는 공개 애니메이션 시작 시 이
   /// 한 줄만 호출하면 된다.
   ///
-  /// [REQ — 신통방통 사운드 배치 기획서 §5.2 핵심 원칙] "결과 공개 순간"의
+  /// [REQ — 귀인지도 사운드 배치 기획서 §5.2 핵심 원칙] "결과 공개 순간"의
   /// 1.2~1.5초 무음은 이 앱에서 가장 중요한 사운드 설계다 — 14_reward가
   /// 훨씬 크게 느껴지도록 음악을 비켜준다.
   Future<void> duckMomentary(String profileKey) async {

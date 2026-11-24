@@ -1,4 +1,4 @@
-// [신통방통 반응형 화면 규격 통일 지시서] 로그인 유도 바텀시트
+// [귀인지도 반응형 화면 규격 통일 지시서] 로그인 유도 바텀시트
 // (showLoginRequiredSheet, pass_gate_helper.dart) 오버플로 회귀 테스트.
 //
 // [확인된 실제 버그 1건 - debugDumpRenderTree로 근본원인 확정]

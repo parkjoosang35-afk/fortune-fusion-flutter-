@@ -1,4 +1,4 @@
-/// [신통방통 앱·웹 비회원 둘러보기 및 로그인 연속성 — 정통사주 리뉴얼]
+/// [귀인지도 앱·웹 비회원 둘러보기 및 로그인 연속성 — 정통사주 리뉴얼]
 /// 귀인지도(`pending_guinji_join.dart`의 `PendingGuinjiMapEntryStore`/
 /// `GuinjiMapEntryDraft`)와 완전히 동일한 목적·구조의 전용 저장소다.
 ///

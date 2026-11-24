@@ -141,7 +141,7 @@ class _GunghapShareCardScreenState extends State<GunghapShareCardScreen> {
       await safeShareText(
         context,
         message,
-        subject: '궁합지도 결과 공유 · 신통방통',
+        subject: '궁합지도 결과 공유 · 귀인지도',
         copiedMessage: '공유 메시지를 복사했어요. 원하는 앱에 붙여넣어 전달해 주세요.',
         failedMessage: '공유 시트를 열 수 없어 메시지를 복사했어요.',
       );
@@ -177,7 +177,7 @@ class _GunghapShareCardScreenState extends State<GunghapShareCardScreen> {
     await safeShareText(
       context,
       message,
-      subject: '궁합지도 결과 공유 · 신통방통',
+      subject: '궁합지도 결과 공유 · 귀인지도',
       copiedMessage: '공유 메시지를 복사했어요. 카카오톡 등 원하는 앱에 붙여넣어 전달해 주세요.',
       failedMessage: '공유 시트를 열 수 없어 메시지를 복사했어요.',
     );

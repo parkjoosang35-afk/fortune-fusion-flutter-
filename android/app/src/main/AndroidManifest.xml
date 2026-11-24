@@ -41,7 +41,7 @@
         android:maxSdkVersion="29"/>
 
     <application
-        android:label="Fortune Fusion"
+        android:label="귀인지도"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
@@ -124,7 +124,7 @@
                 <data android:scheme="fortunefusion" android:host="g"/>
                 <!-- [귀인지도 바이럴 랜딩 - ServiceGrid 신설] 바이럴 랜딩페이지
                      (admin_web `/g/[token]`)의 "소원방/타로/정통사주/오늘의
-                     운세" 카드가 누르는 즉시 신통방통 앱의 해당 화면으로
+                     운세" 카드가 누르는 즉시 귀인지도 앱의 해당 화면으로
                      바로 이동하도록, 위 `g` host와 별개로 `svc` host를 신규
                      등록한다. `fortunefusion://svc/{key}` 형태이며 key는
                      wish-room|tarot|jeontong|today 중 하나(자세한 매핑은
@@ -200,7 +200,7 @@
                  리다이렉트. 스킴은 반드시 "kakao" + 네이티브 앱 키(REST API
                  키가 아님) 형태여야 하며, 카카오 디벨로퍼스 콘솔의 네이티브
                  앱 키(6372a58baa9ce5d09bcc7edf0d38fc75)와 일치해야 한다. -->
-            <intent-filter android:label="Fortune Fusion">
+            <intent-filter android:label="귀인지도">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
@@ -220,7 +220,7 @@
         <service
             android:name=".WishRoomWallpaperService"
             android:exported="true"
-            android:label="Fortune Fusion"
+            android:label="귀인지도"
             android:permission="android.permission.BIND_WALLPAPER">
             <intent-filter>
                 <action android:name="android.service.wallpaper.WallpaperService"/>

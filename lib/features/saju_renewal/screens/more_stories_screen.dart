@@ -13,7 +13,7 @@ import '../widgets/saju_base_widgets.dart';
 import 'story_preview_screen.dart';
 import 'error_screen.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑧ 다른 사주
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑧ 다른 사주
 /// 이야기 후보 목록. `design_files/saju/screens-b.jsx`의 `ScreenOthers`를
 /// 재현한다 — 카드형 레이아웃(장면 조명 그라데이션 + 글리프 + "시기"
 /// 배지 + "열어 보기 →")만 다크 스타일로 재스킨하고, 데이터 선정 로직은

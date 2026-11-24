@@ -5,7 +5,7 @@ import '../widgets/midnight_bottom_nav.dart';
 /// [AppShell] 바깥에서 push된 화면들(정통사주/타로/귀인지도/소원방 push
 /// 인스턴스)에도 동일하게 노출하기 위한 공유 위젯.
 ///
-/// [배경 — 사용자 리포트] "우리 신통방통에 모든 정통사주 타로 소원방
+/// [배경 — 사용자 리포트] "우리 귀인지도에 모든 정통사주 타로 소원방
 /// 귀인지도 관련 화면에 하단 메뉴가 없어" → "메인에 하단바을 다 넣어줘".
 /// 이 화면들은 `AppShell`의 `IndexedStack` 밖에서 별도 Navigator 라우트로
 /// 열리기 때문에(`Navigator.push`/`pushNamed`) AppShell 자체의

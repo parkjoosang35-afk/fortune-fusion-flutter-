@@ -29,7 +29,7 @@ class SocialAuthConfig {
   /// kakao_flutter_sdk_common의 `KakaoSdk.appKey`는 웹 플랫폼에서 이 값을
   /// 사용한다(kIsWeb ? javaScriptAppKey : nativeAppKey).
   ///
-  /// 카카오 디벨로퍼스 > 신통방통(App ID 1571801) > 플랫폼 키 > JavaScript
+  /// 카카오 디벨로퍼스 > 귀인지도(App ID 1571801) > 플랫폼 키 > JavaScript
   /// 키(Default JS Key)에서 발급받은 값. Web 플랫폼(사이트 도메인
   /// `https://sintong.kr`) 등록 후 발급됨.
   ///

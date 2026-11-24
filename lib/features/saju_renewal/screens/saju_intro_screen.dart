@@ -7,7 +7,7 @@ import '../theme/saju_dark_tokens.dart';
 import '../widgets/saju_visual_widgets.dart';
 import 'saju_renewal_home_screen.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프 v4 신규] 화면 00-I ·
+/// [귀인지도 정통사주 리뉴얼 — 다크 핸드오프 v4 신규] 화면 00-I ·
 /// 정통사주 인트로(섹션 진입 의식).
 ///
 /// `docs/03_화면명세.md` §"00-I · 정통사주 인트로" · `docs/04_모션.md`의

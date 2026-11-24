@@ -1,7 +1,7 @@
 import '../../auth/domain/user_model.dart';
 import 'jeontong_input.dart';
 
-/// [신통방통 2단계 - 회원/운세 프로필 통합] 로그인 회원의 서버 프로필
+/// [귀인지도 2단계 - 회원/운세 프로필 통합] 로그인 회원의 서버 프로필
 /// ([UserModel] — `users`+`user_profiles` 대응 DTO)을 정통사주 계산
 /// 파이프라인이 이미 사용하는 [JeontongInput] 값 객체로 변환하는 순수
 /// 어댑터.

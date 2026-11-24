@@ -71,7 +71,7 @@ class _OzCardPeekModalState extends State<OzCardPeekModal>
                     ),
                   ),
                   const SizedBox(height: 14),
-                  // [신통방통 전역 핀치 확대 시스템 통합 — 개별 확대
+                  // [귀인지도 전역 핀치 확대 시스템 통합 — 개별 확대
                   // 제거] 과거 여기 있던 개별 InteractiveViewer(1~4배)는
                   // 제거했다. 지시서 §1 "개별 이미지/화면별 확대 방식은
                   // 금지한다"에 따라, 이 모달도 `app.dart`에 전역 삽입된

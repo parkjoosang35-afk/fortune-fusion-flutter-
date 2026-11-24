@@ -182,7 +182,7 @@ class FeMarqueeSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return const FeMarquee(
       items: [
-        '신통방통, 사실이 신통하다',
+        '귀인지도, 사실이 신통하다',
         '다섯 개의 거울, 하나의 대조',
         '갈림까지 보여주는 운세',
         '적중률 대신 근거를',

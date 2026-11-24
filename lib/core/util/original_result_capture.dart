@@ -14,7 +14,7 @@ Future<Uint8List> captureOriginalResult(
   List<GlobalKey> trailingKeys = const [],
   List<GlobalKey> overlayKeys = const [],
 }) async {
-  // [REQ-10 — 신통방통_저장기능_정상화_개발지시서_v1.0 / P-06 근본 조치]
+  // [REQ-10 — 귀인지도_저장기능_정상화_개발지시서_v1.0 / P-06 근본 조치]
   // 과거 안전망(프레임 대기 + 유예시간, 아래 try 블록)은 "확률을 낮출 뿐"
   // 근본 해결이 아니었다 — 캡처 영역 내 AdSense `HtmlElementView`(플랫폼
   // 뷰)가 Flutter의 Skia 캔버스와 별도 브라우저 합성 레이어에서 그려지는
@@ -213,7 +213,7 @@ Future<bool> saveOriginalResult(
       trailingKeys: trailingKeys,
       overlayKeys: overlayKeys,
     );
-    // [REQ-05 — 신통방통_저장기능_정상화_개발지시서_v1.0] 원인 구분 없이
+    // [REQ-05 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 원인 구분 없이
     // bool만 보고 "저장 권한 또는 다운로드 설정을 확인해주세요"로 일괄
     // 안내하던 것을, GallerySaveResult의 실패 원인(권한 거부/공간 부족/
     // 형식 오류/기타)별 문구로 교체했다.

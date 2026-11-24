@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §6-A 카드 스타일
+/// [귀인지도 디자인 우선 리디자인 프롬프트] §6-A 카드 스타일
 ///
 /// 화이트/옅은 라벤더 배경, 라운드 20~24, 1px 연보라/연회색 보더,
 /// 은은한 그림자, 넉넉한 패딩을 표준화한 프리미엄 카드 컨테이너.

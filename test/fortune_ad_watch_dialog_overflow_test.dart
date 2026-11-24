@@ -1,4 +1,4 @@
-// [신통방통 반응형 화면 규격 통일 지시서] 복주머니 광고 시청 팝업
+// [귀인지도 반응형 화면 규격 통일 지시서] 복주머니 광고 시청 팝업
 // (FortuneAdWatchDialog) 오버플로 회귀 테스트.
 //
 // [2026-11-11 반응형 전수 점검 — 2차 수정]
@@ -44,7 +44,7 @@ import 'package:flutter_app/features/fortune_ad/domain/fortune_ad_model.dart';
 import 'package:flutter_app/features/fortune_ad/presentation/fortune_ad_watch_dialog.dart';
 
 const _longTitle =
-    '신통방통 복주머니 무료 충전 이벤트 광고 — 끝까지 시청하면 큰 혜택이 쏟아지는 특별한 프로모션 영상입니다 (매우 긴 제목 테스트)';
+    '귀인지도 복주머니 무료 충전 이벤트 광고 — 끝까지 시청하면 큰 혜택이 쏟아지는 특별한 프로모션 영상입니다 (매우 긴 제목 테스트)';
 
 const _longErrorMessage =
     '지금은 네트워크 상태가 불안정하거나 서버 쪽 일시적인 오류로 인해 보상 지급 요청을 처리할 수 없습니다. '

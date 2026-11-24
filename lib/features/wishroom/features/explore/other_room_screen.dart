@@ -169,8 +169,8 @@ class _OtherRoomScreenState extends State<OtherRoomScreen> {
             ))),
             if (!_peek) SafeArea(child: WrCanvasScaler(child: Stack(children: [
               // TopBar — app2/screens-b2.jsx › OtherRoom() TopBar(title=...) nav 기본값
-              // true로 NavPill(뒤로가기+신통방통 홈)이 온다. [버그수정 — 전수감사] 기존엔
-              // 단순 뒤로가기 아이콘만 있고 "신통방통 홈" 버튼이 없었다.
+              // true로 NavPill(뒤로가기+귀인지도 홈)이 온다. [버그수정 — 전수감사] 기존엔
+              // 단순 뒤로가기 아이콘만 있고 "귀인지도 홈" 버튼이 없었다.
               Positioned(top: 52, left: 14, child: WrNavPill(
                 onBack: () => Navigator.of(context).maybePop(),
                 onExitHome: () => wrExitHome(context))),

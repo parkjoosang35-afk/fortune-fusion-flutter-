@@ -147,9 +147,9 @@ Widget wrBottomNavBar(
                   );
                 },
               ),
-            // [버그수정 — 사용자 리포트: "하단바에 신통방통 메인으로
+            // [버그수정 — 사용자 리포트: "하단바에 귀인지도 메인으로
             // 들어가는 홈바가없고"] 다른 탭과 동일한 터치 영역/스타일로
-            // "신통방통" 홈 탭을 추가해 wrExitHome()으로 앱 루트까지 pop한다.
+            // "귀인지도" 홈 탭을 추가해 wrExitHome()으로 앱 루트까지 pop한다.
             SizedBox(
               width: WrSize.navItemW,
               height: 48,
@@ -160,12 +160,12 @@ Widget wrBottomNavBar(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // [v5 S2] 매핑표 "神 신통방통" — app3/shell.jsx
+                      // [v5 S2] 매핑표 "神 귀인지도" — app3/shell.jsx
                       // nav-home 버튼("神" 글리프)과 동일.
                       const Text('神', style: TextStyle(fontSize: 17, color: WrC.muted)),
                       const SizedBox(height: 3),
                       const Text(
-                        '신통방통',
+                        '귀인지도',
                         style: TextStyle(fontSize: 10, color: WrC.muted),
                       ),
                     ],

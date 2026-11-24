@@ -19,7 +19,7 @@ import '../application/palm_provider.dart';
 import '../domain/palm_model.dart';
 import '../../../../core/sound/sound_route_trigger.dart';
 
-/// [관상·손금 신통방통 "새벽 한지" 리스킨] AI 손금 인트로/촬영 화면.
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] AI 손금 인트로/촬영 화면.
 ///
 /// 기존 로직(image_picker 기반 2단계 플로우: 사진 선택 → 미리보기 →
 /// "분석 시작" 버튼 → PalmProvider.analyze() → analyzing 라우트 이동)은
@@ -114,7 +114,7 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
     final hasImage = selectedImageBytes != null;
     final handSide = palmProvider.handSide;
 
-    // [신통방통 사운드 배치 개발 기획서 §5.1] palm 라우트 BGM(07_palm_E)
+    // [귀인지도 사운드 배치 개발 기획서 §5.1] palm 라우트 BGM(07_palm_E)
     // 트리거(앰비언스 없음).
     return SoundRouteTrigger(
       routeKey: 'palm',
@@ -219,7 +219,7 @@ class _PalmCaptureScreenState extends State<PalmCaptureScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // [신통방통 리스킨] 손 선택 토글 — 분석 전에만 변경 가능
+                  // [귀인지도 리스킨] 손 선택 토글 — 분석 전에만 변경 가능
                   if (!hasImage) ...[
                     Row(
                       children: [
@@ -366,7 +366,7 @@ class _IconBtn extends StatelessWidget {
   }
 }
 
-/// [신통방통 리스킨] 왼손/오른손 선택 토글 칩.
+/// [귀인지도 리스킨] 왼손/오른손 선택 토글 칩.
 class _HandToggle extends StatelessWidget {
   final String label;
   final String sub;

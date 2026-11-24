@@ -19,7 +19,7 @@ import 'package:flutter/foundation.dart' show immutable;
 /// - [name]은 선택 입력이며 비어 있으면 null로 정규화한다(빈 문자열 저장
 ///   방지 — 다운스트림에서 "이름 없음"과 "빈 문자열"을 혼동하지 않도록).
 ///
-/// [신통방통 2단계 - 회원/운세 프로필 통합] [isLeapMonth]/[birthTimeUnknown]
+/// [귀인지도 2단계 - 회원/운세 프로필 통합] [isLeapMonth]/[birthTimeUnknown]
 /// 2개 필드를 추가한다. PHASE1~4 계산엔진 자체는 수정하지 않았으며, 이
 /// 값 객체가 [JeontongReportBuilder.build]/[buildProfileAndSajuResultViaPhase1to4]
 /// 에 이미 존재하던 파라미터를 그대로 통과시키는 역할만 한다.

@@ -7,7 +7,7 @@ import 'manseryeok/saju_profile.dart' show SajuProfile;
 import 'manseryeok/saju_result_adapter.dart';
 import 'saju_engine.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 69종 UI 레이어 제거]
+/// [귀인지도 정통사주 리뉴얼 — 69종 UI 레이어 제거]
 ///
 /// 이 클래스는 과거 "정통사주 69종"(jeontong_eighty) UI 전용 콘텐츠
 /// 생성기(`build()`, `_tryBuildRealReport()`, 결정론적 랜덤 콘텐츠 풀 등)를

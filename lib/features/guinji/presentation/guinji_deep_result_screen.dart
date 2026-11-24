@@ -88,7 +88,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
   /// 앱은 전체 PNG를 직접 전달하고 웹은 공개 동의 후 결과페이지를 생성한다.
   Future<void> _shareDeep(BuildContext context) async {
     final meta = guinjiRelationMetaOf(person.relation);
-    final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
+    final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 귀인지도';
     try {
       // [웹·앱 공유 캡처 경로 정상화 — 2026-12] `ShareService.shareResult`가
       // 이제 플랫폼 공통으로 `WebAdService.isCapturing` 가드를 거쳐 안전하게
@@ -102,7 +102,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
         context,
         resultType: ShareResultType.relationship,
         title: message,
-        description: '${meta.label} · 신통방통 귀인지도',
+        description: '${meta.label} · 귀인지도',
         // [웹 결과페이지 빈 화면 버그 수정 — 2026-11] 과거에는 0/1 플래그만
         // 보내 웹에서 빈 화면("관계 분석 내용이 준비되지 않았어요")만 떴다.
         // 10장 유료 풀이(guinji_deep_text.dart) 전문은 무단 공개가 되므로
@@ -125,7 +125,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
           'ohaeng': person.ohaeng,
           'note': person.note,
         },
-        subject: '신통방통 귀인지도',
+        subject: '귀인지도',
         preCapturedPng: png,
       );
     } catch (_) {
@@ -608,7 +608,7 @@ class GuinjiDeepResultScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
+                        // [REQ-08 — 귀인지도_저장기능_정상화_개발지시서_v1.0]
                         // 기기 저장 버튼 문구/아이콘을 전 화면 공통
                         // "이미지로 저장" + download_rounded로 통일.
                         child: OutlinedButton.icon(

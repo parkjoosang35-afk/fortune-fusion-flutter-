@@ -236,7 +236,7 @@ class TarotShareReportCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text('Fortune Fusion · 신통방통 타로', style: TarotTextStyles.caption),
+              Text('귀인지도 타로', style: TarotTextStyles.caption),
             ],
           ),
         ],

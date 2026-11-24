@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../fe_tokens.dart';
 import '../fe_widgets.dart';
 
-/// 2. WHY — 보통의 운세 vs 신통방통 대비 카드.
+/// 2. WHY — 보통의 운세 vs 귀인지도 대비 카드.
 class FeWhySection extends StatelessWidget {
   const FeWhySection({super.key});
   @override
@@ -156,7 +156,7 @@ class _FeVsCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            lit ? '신통방통' : '보통의 운세',
+            lit ? '귀인지도' : '보통의 운세',
             style: TextStyle(
               fontFamily: FeFonts.mono,
               fontSize: 10,

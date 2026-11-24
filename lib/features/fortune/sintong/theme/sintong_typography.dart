@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // SINTONG TYPOGRAPHY — Font Families + Semantic Scale
-// 신통방통 소원방 · Design System v1.0
+// 귀인지도 소원방 · Design System v1.0
 //
 // 사용법:
 //   Text('관상', style: SintongType.displayLg)

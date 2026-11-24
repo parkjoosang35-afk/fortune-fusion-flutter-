@@ -5,7 +5,7 @@
 //  fontDisplay/fontBody/fontMono family 이름(NotoSerifKR/GowunBatang/
 //  IBMPlexMono)은 이미 pubspec.yaml에 등록된 wish_room 전용 폰트 3종과
 //  완전히 동일한 family 이름이라 별도 폰트 추가 없이 그대로 재사용된다.
-//  Palette: 라이트 (신통방통 앱 실제 톤)
+//  Palette: 라이트 (귀인지도 앱 실제 톤)
 // ============================================================
 
 import 'package:flutter/material.dart';

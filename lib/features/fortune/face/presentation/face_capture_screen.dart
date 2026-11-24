@@ -18,7 +18,7 @@ import '../../sintong/widgets/sintong_screen_bg.dart';
 import '../application/face_provider.dart';
 import '../../../../core/sound/sound_route_trigger.dart';
 
-/// [관상·손금 신통방통 "새벽 한지" 리스킨] AI 관상 인트로/촬영 화면.
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] AI 관상 인트로/촬영 화면.
 ///
 /// 기존 로직(image_picker 기반 2단계 플로우: 사진 선택 → 미리보기 →
 /// "분석 시작" 버튼 → FaceProvider.analyze() → analyzing 라우트 이동)은
@@ -118,7 +118,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     final selectedImageBytes = context.watch<FaceProvider>().selectedImageBytes;
     final hasImage = selectedImageBytes != null;
 
-    // [신통방통 사운드 배치 개발 기획서 §5.1] face 라우트 BGM(06_face_E)
+    // [귀인지도 사운드 배치 개발 기획서 §5.1] face 라우트 BGM(06_face_E)
     // 트리거(앰비언스 없음).
     return SoundRouteTrigger(
       routeKey: 'face',

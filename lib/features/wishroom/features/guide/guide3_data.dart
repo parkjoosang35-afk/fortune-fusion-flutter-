@@ -118,7 +118,7 @@ const Map<String, Guide3Item> kGuide3 = {
       Guide3Step('🧧', '결제하기를 눌러요'),
       Guide3Step('🧾', '영수증이 나오면 끝'),
     ],
-    promise: '모자라면 활동으로 모으거나 신통방통에서 충전해요.',
+    promise: '모자라면 활동으로 모으거나 귀인지도에서 충전해요.',
   ),
   'entrust': Guide3Item(
     img: 'poses/F00_free_pray.png',

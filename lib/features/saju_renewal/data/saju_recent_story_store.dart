@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models/topic_card.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 화면① "최근 본 이야기" 카드]
+/// [귀인지도 정통사주 리뉴얼 — 화면① "최근 본 이야기" 카드]
 /// docs/03_화면명세.md §01 "최근 본 이야기 카드" — 재방문 시에만 노출되는
 /// 카드가 참조할 "마지막으로 상세(07)까지 본 이야기" 1건을 로컬에 보관한다.
 ///

@@ -523,7 +523,7 @@ class _WishPreviewBlock extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                section.title ?? '신통방통 소원방',
+                section.title ?? '귀인지도 소원방',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,

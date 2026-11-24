@@ -56,7 +56,7 @@ import '../../../core/sound/sintong_sound_service.dart';
 ///    [saveImageBytesToGallery](Android: gal 패키지로 실제 갤러리 저장,
 ///    Web: 브라우저 다운로드)를 호출해 실제로 저장하고, "공유하기"만
 ///    OS 공유 시트를 연다.
-/// 2) 공유 텍스트가 "나의 귀인지도 · 신통방통"처럼 지나치게 짧아 받는
+/// 2) 공유 텍스트가 "나의 귀인지도 · 귀인지도"처럼 지나치게 짧아 받는
 ///    사람이 무엇을 받았는지 알기 어려웠다. 이제 소유자 이름·귀인 수·
 ///    앱 안내 문구가 담긴 구체적인 문장 + 앱 링크로 교체한다.
 class GuinjiResultCardScreen extends StatefulWidget {
@@ -86,7 +86,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   @override
   void initState() {
     super.initState();
-    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // [귀인지도 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
     // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -109,7 +109,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
   /// [비식별 원칙] 카드에 이름을 노출하지 않는 원칙은 그대로 유지하되,
   /// 공유 문구(카톡 등 텍스트로만 먼저 보이는 부분)에는 받는 사람이
   /// "무엇을 공유받았는지" 한눈에 알 수 있도록 소유자 이름·귀인 수·앱
-  /// 안내를 구체적으로 담는다. 기존 '나의 귀인지도 · 신통방통' 한 줄만으로는
+  /// 안내를 구체적으로 담는다. 기존 '나의 귀인지도 · 귀인지도' 한 줄만으로는
   /// "뭘 공유한 건지 모르겠다"는 사용자 불만으로 이어졌었다.
 
   /// [2026-11 버그수정 — "이미지 저장이 뭘 하는지 모르겠다"] 캡처한 카드를
@@ -126,7 +126,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
         AppToast.show(context, '카드를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.');
         return;
       }
-      // [REQ-05 — 신통방통_저장기능_정상화_개발지시서_v1.0] 실패 원인을
+      // [REQ-05 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 실패 원인을
       // 구분해 안내한다(과거에는 모든 실패가 "권한을 확인해주세요"로
       // 뭉뚱그려져, 저장 공간 부족 사용자가 엉뚱한 설정을 뒤지게 됨).
       // [REQ-09] 파일명 규칙을 sintong_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}로
@@ -232,8 +232,8 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
       await ShareService.shareResult(
         context,
         resultType: ShareResultType.relationship,
-        title: '${widget.ownerName}님의 귀인지도 · 신통방통',
-        description: '내 주변 귀인 $cheonGwii명을 포함해 신통방통이 관계유형을 찾아줬어요.',
+        title: '${widget.ownerName}님의 귀인지도 · 귀인지도',
+        description: '내 주변 귀인 $cheonGwii명을 포함해 귀인지도가 관계유형을 찾아줬어요.',
         payload: {
           // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 관계유형별
           // 인원수를 카드형 집계로 보여줄 수 있도록 구조화 필드를
@@ -242,7 +242,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
           'ownerName': widget.ownerName,
           'relationCounts': relationCounts,
           'category': '귀인지도',
-          'summary': '내 주변 귀인 $cheonGwii명을 포함해 신통방통이 관계유형을 찾아줬어요.',
+          'summary': '내 주변 귀인 $cheonGwii명을 포함해 귀인지도가 관계유형을 찾아줬어요.',
           'highlights': [
             for (final key in guinjiRelationOrder)
               '${guinjiRelationMetaOf(key).label} ${relationCounts[key]}명',
@@ -258,7 +258,7 @@ class _GuinjiResultCardScreenState extends State<GuinjiResultCardScreen> {
 
   /// "공유하기" 버튼 탭.
   ///
-  /// [신통방통 앱·웹 공유 근본 정상화 — 2026-11] 과거에는 웹만
+  /// [귀인지도 앱·웹 공유 근본 정상화 — 2026-11] 과거에는 웹만
   /// [_shareViaLink]( /r/{id} 서버 공유 링크 생성 )를 쓰고 앱은
   /// [_captureAndShare](이미지만 OS 공유 시트로 전송, 공유 링크 없음)를
   /// 써서 — 앱에서 공유받은 사람은 애초에 특정 결과로 돌아올 링크 자체가
@@ -823,7 +823,7 @@ class _TheCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Center(
-                  child: _MonoLabel('SINTONG BANGTONG · 신통방통', fontSize: 7),
+                  child: _MonoLabel('SINTONG BANGTONG · 귀인지도', fontSize: 7),
                 ),
               ],
             ),

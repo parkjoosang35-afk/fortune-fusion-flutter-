@@ -107,7 +107,7 @@ import '../../features/guinji/presentation/guinji_map_ranking_screen.dart';
 // 도착 화면. `/g/{token}`(귀인지도 게스트 참여)과 동일한 패턴으로 named
 // route 진입 전 별도 분기 처리한다(아래 참고).
 import '../../features/share/presentation/shared_result_screen.dart';
-// [신통방통 정통사주 리뉴얼] 유일한 신규 정통사주 화면. 죽은 saju_v3 및
+// [귀인지도 정통사주 리뉴얼] 유일한 신규 정통사주 화면. 죽은 saju_v3 및
 // 기존 jeontong_eighty UI는 삭제되었으며, 구 라우트들은 모두 이 화면으로
 // legacy redirect 처리된다.
 import '../../features/saju_renewal/screens/saju_renewal_home_screen.dart';
@@ -266,7 +266,7 @@ class AppRouter {
       // 완전히 대체했고, 이 named route를 호출하는 코드가 앱 전체(딥링크 포함)
       // 어디에도 없음을 확인해 죽은 라우트만 제거한다. 화면 파일 자체
       // (onboarding_screen.dart)는 향후 참조 가능성을 배제할 수 없어 보존한다.
-      // [신통방통 회원가입·본인 사주정보 통합 흐름 — 전면 검수 지시서,
+      // [귀인지도 회원가입·본인 사주정보 통합 흐름 — 전면 검수 지시서,
       // 2026-11] `/login`·`/signup`의 실제 목적지를 "02 회원가입/로그인
       // 선택"(SignupChoiceScreen, 카카오·구글·이메일 3버튼)으로 바꾼다.
       // 기존 이메일 전용 화면(LoginScreen/SignupScreen)은 삭제하지 않고
@@ -302,7 +302,7 @@ class AppRouter {
         );
 
       // [귀인지도 Phase G-1: 라우트 스캐폴딩] 홈 배너 캐러셀 Slide 1
-      // ("귀인지도") CTA의 진입점. 신통방통_귀인지도_최종_개발계획서_v2.0.md
+      // ("귀인지도") CTA의 진입점. 귀인지도_최종_개발계획서_v2.0.md
       // §1은 `/guinji`(첫 진입 시 온보딩, 재방문 시 지도)를 요구하지만, 이
       // Phase에서는 온보딩 화면 1개만 우선 연결한다(재방문 분기·지도 화면은
       // 후속 Phase). go_router가 아닌 기존 Navigator(onGenerateRoute) 관례를
@@ -579,7 +579,7 @@ class AppRouter {
       case '/home/all-categories':
         return _pageNamed('/home/all-categories', const AllCategoriesScreen());
 
-      // [신통방통 메인 "전체보기" → "운세 엔진" 교체] 하단 시트 헤더
+      // [귀인지도 메인 "전체보기" → "운세 엔진" 교체] 하단 시트 헤더
       // 버튼이 이 라우트로 이동한다(sintong_v2_sheet.dart). 기존
       // '/home/all-categories' 라우트/화면은 다른 진입점
       // (generic_fortune_result_screen.dart 등)이 여전히 참조하므로
@@ -604,7 +604,7 @@ class AppRouter {
       case '/free-pass-gate':
         return _pageNamed('/free-pass-gate', const FreePassGateScreen());
 
-      // ── [신통방통 정통사주 리뉴얼 — 기존 메뉴/시스템 정리] 아래 구
+      // ── [귀인지도 정통사주 리뉴얼 — 기존 메뉴/시스템 정리] 아래 구
       // 라우트들(기존 "정통사주 69종" jeontong_eighty UI + 죽은 베타
       // saju_v3)은 신규 정통사주(saju_renewal) 하나로 완전히 통합되어
       // 화면 자체는 삭제되었다. 과거 북마크/딥링크/
@@ -636,7 +636,7 @@ class AppRouter {
       case '/gunghap/story':
         return _pageNamed('/gunghap/story', const GunghapStoryScreen());
 
-      // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
+      // [귀인지도 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주
       // 이야기" 흐름 진입점. STEP1~6 백엔드(saju_engine_v3.3/topics-select/
       // interpret)는 무수정, 이 라우트는 그 결과를 소비하는 클라이언트
       // 화면(SajuRenewalHomeScreen)만 연결한다. 기존 saju_v3('/saju/v3',
@@ -714,7 +714,7 @@ class AppRouter {
           const CrossCheckResultScreen(),
         );
 
-      // ── [신통방통 정통사주 리뉴얼 — 기존 AI 사주 정리] 기존 AI/LLM 기반
+      // ── [귀인지도 정통사주 리뉴얼 — 기존 AI 사주 정리] 기존 AI/LLM 기반
       // 사주(`lib/features/fortune/saju/`)는 완전히 제거되었다. 과거
       // 북마크, 마이페이지 "사주 히스토리", `PendingResultAccessReturn.
       // returnRoute` 등에 남아있을 수 있는 구 경로를 전부 안전하게

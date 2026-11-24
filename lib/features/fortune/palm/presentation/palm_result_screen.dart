@@ -21,7 +21,7 @@ import '../../shared/presentation/reading_disclosure_widgets.dart';
 import '../../shared/presentation/seal_reading_flow.dart';
 import '../../../../core/sound/sintong_sound_service.dart';
 
-/// [관상·손금 신통방통 "새벽 한지" 리스킨] 손금 결과 화면.
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] 손금 결과 화면.
 ///
 /// [기존 시스템 유지 원칙] 결과 페이지 표준 스켈레톤인 [ResultCardStack]은
 /// 사주/타로/관상 결과 화면과 공유되는 컴포넌트이므로 내부 구조·스타일은
@@ -56,7 +56,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         context.read<PalmProvider>().selectFromHistory(widget.resultId!);
       });
     }
-    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // [귀인지도 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
     // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -202,7 +202,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
             ReadingArtifactBuilder.fromPalm(result),
           ),
         ),
-        // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기기 저장
+        // [REQ-08 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기 저장
         // 버튼 문구를 전 화면 공통 "이미지로 저장"으로 통일.
         ResultCta(
           label: '이미지로 저장',
@@ -254,7 +254,7 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
     ShareService.shareResult(
       context,
       resultType: ShareResultType.palm,
-      title: '손금 결과 · 신통방통',
+      title: '손금 결과 · 귀인지도',
       description: result.summary,
       payload: {
         // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 생명선/두뇌선/

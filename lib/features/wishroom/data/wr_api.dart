@@ -1,5 +1,5 @@
-// 신통방통 소원방 · REST 클라이언트 v2.6 — 전체 계약: docs/API_CONTRACT.md
-// (원본 핸드오프는 dio 기반이었으나, 기존 신통방통 앱 컨벤션(provider+http)에
+// 귀인지도 소원방 · REST 클라이언트 v2.6 — 전체 계약: docs/API_CONTRACT.md
+// (원본 핸드오프는 dio 기반이었으나, 기존 귀인지도 앱 컨벤션(provider+http)에
 // 맞춰 http 패키지로 재작성했다. WrRepository 인터페이스 자체는 원본과 1:1 동일
 // 하게 유지한다 — 화면 코드가 이 인터페이스에만 의존하도록.)
 //

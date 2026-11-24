@@ -11,7 +11,7 @@
 
 | # | 기능 | 관련 파일 | 수정 여부 | 웹에서 확인 불가능한 이유 | 상태 |
 |---|---|---|---|---|---|
-| 1 | 홈 화면 앱 아이콘 라벨 "신통방통" 표시 | `android/app/src/main/AndroidManifest.xml` (`android:label`) | ✅ 수정 완료 (commit `ec67903`) | 웹에는 홈 화면 아이콘 개념 자체가 없음 | 최종 APK에서 재확인 필요 |
+| 1 | 홈 화면 앱 아이콘 라벨 "귀인지도" 표시 | `android/app/src/main/AndroidManifest.xml` (`android:label`) | ✅ 수정 완료 (commit `ec67903`) | 웹에는 홈 화면 아이콘 개념 자체가 없음 | 최종 APK에서 재확인 필요 |
 | 2 | 신당 결제 후 시스템 뒤로가기(물리/제스처) 차단 | `PopScope(canPop: false, ...)` — 신당 전 화면 공통 | 기존 구현(변경 없음) | 웹 브라우저 "뒤로가기"와 Android 시스템 백 제스처는 동작 방식이 다름(웹은 브라우저 히스토리, Android는 OS 레벨 제스처/버튼) | 최종 APK에서 재확인 필요 |
 | 3 | 신당 결제 후 화면 내 "←" 버튼이 결제화면(hall)을 재호출하지 않는지 | `ConnectScreen`, `TalkScreen` 등 | ✅ 수정 완료 (commit `4ef8692`, `ec67903`) | 네비게이션 스택 동작 자체는 프리뷰에서도 확인 가능하나, 실제 결제 연동(토스페이먼츠 등 네이티브 SDK) 후 전체 플로우는 Android에서만 재현 가능 | 프리뷰로 1차 확인 가능 / 최종은 Android 재확인 |
 | 4 | 카카오 로그인 딥링크 (`kakao6372a...://oauth`) | `AndroidManifest.xml` intent-filter | 라벨만 수정(`ec67903`), 기능 자체는 기존 유지 | 딥링크/카카오 SDK는 네이티브 Android 환경에서만 동작 | 최종 APK에서 재확인 필요 |

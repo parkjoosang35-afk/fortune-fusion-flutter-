@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] Reduce Motion(시스템 설정)
+/// [귀인지도 정통사주 리뉴얼 — 다크 핸드오프] Reduce Motion(시스템 설정)
 /// 감지 헬퍼.
 ///
 /// docs/08_QA_체크리스트.md "E. 모션·접근성" §3 "Reduce Motion On: 회전·

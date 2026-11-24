@@ -112,7 +112,7 @@ class _IntroSheet extends StatelessWidget {
                     const SizedBox(height: 10),
                     // 3. 설명문
                     Text(
-                      '신통방통 정통사주로 본 궁합이 한 장의 지도로 모여요. 나를 중심으로 어떤 인연이 곁에 있는지 살펴보세요.',
+                      '귀인지도 정통사주로 본 궁합이 한 장의 지도로 모여요. 나를 중심으로 어떤 인연이 곁에 있는지 살펴보세요.',
                       style: GHText.ui(size: 13.5, color: GHColors.gray, height: 1.6),
                     ),
                     const SizedBox(height: 18),

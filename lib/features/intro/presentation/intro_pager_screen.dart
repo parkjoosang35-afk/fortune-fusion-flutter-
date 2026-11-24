@@ -502,7 +502,7 @@ class _RiseFadeIn extends StatelessWidget {
   }
 }
 
-/// TopBar — 좌: 브랜드 마크+「신통방통」+「SINTONG」, 우: 「건너뛰기」.
+/// TopBar — 좌: 브랜드 마크+「귀인지도」+「SINTONG」, 우: 「건너뛰기」.
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.onSkip});
 
@@ -545,7 +545,7 @@ class _TopBar extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '신통방통',
+              '귀인지도',
               style: GoogleFonts.notoSerifKr(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

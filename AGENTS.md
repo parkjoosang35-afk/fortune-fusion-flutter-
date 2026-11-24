@@ -1,7 +1,7 @@
-# 신통방통 Flutter 앱 — 공통 운영 지침 (필수 준수)
+# 귀인지도 Flutter 앱 — 공통 운영 지침 (필수 준수)
 
-이 프로젝트(flutter_app, 신통방통 Android/Flutter 앱)의 모든 개발·빌드·배포 작업은
-**`OPERATIONS_POLICY.md`** (이 프로젝트 루트, 신통방통 개발·Preview·운영 배포 통합
+이 프로젝트(flutter_app, 귀인지도 Android/Flutter 앱)의 모든 개발·빌드·배포 작업은
+**`OPERATIONS_POLICY.md`** (이 프로젝트 루트, 귀인지도 개발·Preview·운영 배포 통합
 지침서)를 반드시 따른다. 원본은 `/home/user/OPERATIONS_POLICY.md`에도 있으며, 두
 파일은 동일 내용을 유지해야 한다(원본 수정 시 이 프로젝트의 사본도 함께 갱신할 것).
 
@@ -23,7 +23,7 @@
 
 ---
 
-# 신통방통 상시 개발 및 APK 배포 규칙 (2026-11-04 등록)
+# 귀인지도 상시 개발 및 APK 배포 규칙 (2026-11-04 등록)
 
 아래는 `OPERATIONS_POLICY.md` §9(Flutter 앱 — 프리뷰 우선 개발 및 Release APK 배포
 규칙)를 요약한 것이다. **전문은 반드시 이 프로젝트의 `OPERATIONS_POLICY.md` §9를
@@ -70,6 +70,6 @@
 
 ## 최종 적용
 
-이 규칙은 궁합지도와 오늘의 운세뿐 아니라 신통방통 전체 프로젝트(flutter_app)에
+이 규칙은 궁합지도와 오늘의 운세뿐 아니라 귀인지도 전체 프로젝트(flutter_app)에
 적용한다. 새로운 기능 개발, 기존 기능 수정, UI 변경, API 변경, APK 배포 작업에
 공통 적용한다.

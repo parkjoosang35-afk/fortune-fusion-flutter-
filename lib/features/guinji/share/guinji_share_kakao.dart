@@ -181,7 +181,7 @@ FeedTemplate guinjiRelationDetailTemplate({
 }) => FeedTemplate(
   content: Content(
     title: '$personName님과의 관계는 "$relationLabel"예요', // K-1류 ≤24자 내외
-    description: '케미 점수 $score점 · 신통방통 귀인지도', // K-2류
+    description: '케미 점수 $score점 · 귀인지도', // K-2류
     imageUrl: Uri.parse(ogImageUrl),
     imageWidth: 1200,
     imageHeight: 630,

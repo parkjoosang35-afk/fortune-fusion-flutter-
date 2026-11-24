@@ -1,4 +1,4 @@
-/// [신통방통 정통사주 리뉴얼 — STEP 6.5] admin_web
+/// [귀인지도 정통사주 리뉴얼 — STEP 6.5] admin_web
 /// `topic-contract-adapter.ts`의 `TopicCard`(docs/11_API_계약서.md §2)에
 /// 1:1 대응하는 Flutter 도메인 모델.
 ///

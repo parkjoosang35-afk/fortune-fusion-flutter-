@@ -1,4 +1,4 @@
-// 신통방통 소원방 v2.6 · 전역 Provider
+// 귀인지도 소원방 v2.6 · 전역 Provider
 // wallet_provider.dart 패턴(ChangeNotifier + Repository 주입 + load() + clearOnLogout())을
 // 그대로 따른다. 화면들은 이 Provider 하나만 참조하며, WrRepository(=wr_api.dart)를
 // 통해 서버와 통신한다. 정적 카탈로그(아이템/캐릭터 그림·텍스트)는 WrCatalog.I를 직접

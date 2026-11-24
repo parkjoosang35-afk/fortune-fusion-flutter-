@@ -39,7 +39,7 @@ import 'widgets/auth_primary_button.dart';
 /// `build()`(순수 UI)만 교체했다.
 ///
 /// [6-7-4-B-4 전면개정 — 2026-10-29] 사용자가 제공한
-/// `신통방통_이용약관_개인정보처리방침_개정판.md`의 "A-1. 가입 화면 동의
+/// `귀인지도_이용약관_개인정보처리방침_개정판.md`의 "A-1. 가입 화면 동의
 /// 항목 재구성" 지시에 따라 기존 2개(이용약관+개인정보) 구조를 4개로
 /// 확장했다: [필수] 만14세 이상 / [필수] 이용약관 / [필수] 개인정보처리방침 /
 /// [선택] 마케팅·광고성 정보 수신(기본값 해제). 필수 3개 미동의 시 가입
@@ -414,7 +414,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         IntroTitleText(
-                          '신통방통과 함께\n운명을 탐험해보세요',
+                          '귀인지도와 함께\n운명을 탐험해보세요',
                           style: IntroTextStyles.formTitle(),
                           highlight: '운명',
                           highlightColors: const [

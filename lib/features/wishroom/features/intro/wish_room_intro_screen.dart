@@ -106,7 +106,7 @@ class _WishRoomIntroScreenState extends State<WishRoomIntroScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // [신통방통 사운드 배치 개발 기획서 §5.1] wish(소원방) 라우트
+    // [귀인지도 사운드 배치 개발 기획서 §5.1] wish(소원방) 라우트
     // BGM(05_wish_E) + 앰비언스(amb_03_candle) 트리거. 로딩/웰컴/인트로
     // 어느 분기든 "소원방 영역에 들어왔다"는 사실은 동일하므로 Consumer
     // 바깥(이 화면 진입 자체)에서 1회 트리거한다.
@@ -392,7 +392,7 @@ class _ShortIntroBodyState extends State<_ShortIntroBody> {
 }
 
 /// st<=1 스플래시 단계 — cam-in 2s + halo-rays + PetalRain(16, 3-5s, spread 1.5)
-/// + 잉크 타이틀 블록(神通萬通·SINTONG / 신통방통 / 당신의 소원이 빛이 되는 곳)
+/// + 잉크 타이틀 블록(神通萬通·SINTONG / 귀인지도 / 당신의 소원이 빛이 되는 곳)
 /// + [showLoading=true 일 때만] "소원방으로 들어가고 있어요" + 로딩바 .9s.
 class _SplashStage extends StatefulWidget {
   const _SplashStage({required this.showLoading});
@@ -663,7 +663,7 @@ class _RevealStage extends StatelessWidget {
   }
 }
 
-/// .mono "神通萬通 · SINTONG" + .disp "신통방통"(핑크 그라디언트) + .serif 부제.
+/// .mono "神通萬通 · SINTONG" + .disp "귀인지도"(핑크 그라디언트) + .serif 부제.
 /// ink 1.6-2s 애니메이션(透明→불투명 + blur 8→0).
 class _InkTitleBlock extends StatelessWidget {
   const _InkTitleBlock({required this.subtitle});
@@ -687,7 +687,7 @@ class _InkTitleBlock extends StatelessWidget {
               colors: [Color(0xFFFFF6EC), Color(0xFFFFC8D8), Color(0xFFFF8FB1)],
               stops: [0, .6, 1],
             ).createShader(b),
-            child: Text('신통방통', style: WrF.display(44, color: Colors.white)),
+            child: Text('귀인지도', style: WrF.display(44, color: Colors.white)),
           ),
           const SizedBox(height: 8),
           Text(
@@ -823,7 +823,7 @@ class _WelcomeScreen extends StatelessWidget {
                           stops: [0, .6, 1],
                         ).createShader(b),
                         child: Text(
-                          '신통방통 소원방',
+                          '귀인지도 소원방',
                           style: WrF.display(42, color: Colors.white),
                         ),
                       ),
@@ -989,7 +989,7 @@ class _RiseInState extends State<_RiseIn> with SingleTickerProviderStateMixin {
   }
 }
 
-/// NavPill — 뒤로가기 + 신통방통 홈 pill. app2/fx2.jsx › NavPill() 1:1.
+/// NavPill — 뒤로가기 + 귀인지도 홈 pill. app2/fx2.jsx › NavPill() 1:1.
 /// 모든 화면 좌상단 공통이므로 다른 화면에서도 재사용 가능하도록 public으로 노출.
 class WrNavPill extends StatelessWidget {
   const WrNavPill({super.key, required this.onBack, required this.onExitHome});

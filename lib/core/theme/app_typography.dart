@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §5 폰트 시스템
+/// [귀인지도 디자인 우선 리디자인 프롬프트] §5 폰트 시스템
 ///
 /// Pretendard 기준 타이포 위계를 중앙 관리한다. 화이트 프리미엄 리디자인
 /// 대상 화면(HomeScreen 등)은 이 클래스의 스타일을 우선 사용하고,

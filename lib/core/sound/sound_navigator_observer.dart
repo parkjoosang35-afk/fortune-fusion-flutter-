@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'sintong_sound_service.dart';
 
-/// [신통방통 사운드 배치 개발 기획서 §8.1 공통 이벤트 nav.push/nav.pop]
+/// [귀인지도 사운드 배치 개발 기획서 §8.1 공통 이벤트 nav.push/nav.pop]
 /// "스택에 새 화면 push 완료" → `07_page_in`, "뒤로가기·모달 닫기" →
 /// `08_page_back`을 앱 전체 단일 지점에서 재생한다.
 ///

@@ -21,7 +21,7 @@ import 'widgets/fortune_matrix_section.dart';
 import '../../../core/router/app_router.dart' show AppRouter;
 import '../../saju_renewal/navigation/saju_dimension_transition.dart';
 
-/// [전체보기 카테고리 허브] Fortune Fusion(신통방통) 앱 전체 카테고리를 한 화면에서
+/// [전체보기 카테고리 허브] 귀인지도 앱 전체 카테고리를 한 화면에서
 /// 파악·탐색할 수 있게 만드는 허브 페이지.
 ///
 /// 점신류 앱의 "카테고리 풍부함"을 벤치마킹하되 그대로 베끼지 않고, 우리 서비스
@@ -217,7 +217,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// [미연동 콘텐츠 삭제] "테마 운세"(별자리/혈액형/꿈해몽 등 전부
   /// 미연동)와 "행운/정화"(행운의번호/살풀이 전부 미연동) 그룹은
   /// _categoryGroups에서 통째로 삭제했으므로 매핑도 함께 제거한다.
-  /// [신통방통 정통사주 리뉴얼] admin DB "saju" 그룹(재물운/직업운/애정운 등
+  /// [귀인지도 정통사주 리뉴얼] admin DB "saju" 그룹(재물운/직업운/애정운 등
   /// 6개 카테고리)이 전부 구 AI 사주 라우트(`/ai-fortune/saju/input`)를
   /// 가리키고 있어, 이 매핑을 남겨두면 방금 정리한 정적 "사주" 그룹(내 사주
   /// 분석하기 1개)이 admin 데이터로 다시 덮어써져 중복 진입점이 재노출된다.
@@ -622,7 +622,7 @@ class _FeaturedGrid extends StatelessWidget {
   )
   onTap;
 
-  // [신통방통 정통사주 리뉴얼] "정통사주" 대표카테고리 카드를 유일한 신규
+  // [귀인지도 정통사주 리뉴얼] "정통사주" 대표카테고리 카드를 유일한 신규
   // 정통사주(saju_renewal, `/saju-renewal`)로 연결한다. 기존 jeontong_eighty
   // 69종 UI/saju_v3 데모/기존 AI 사주는 모두 제거되었다.
   static const _items = [
@@ -833,7 +833,7 @@ _categoryGroups = [
   // 명칭 혼선을 일으켰다. "정통사주"는 실제 PHASE1~4 화면으로, 나머지 하나는
   // "AI 사주"로 이름을 정정해 두 항목이 서로 다른 실제 화면을 가리키도록
   // 정리한다(라우트/화면 자체는 기존 것을 그대로 재사용, 신규 개발 없음).
-  // [신통방통 정통사주 리뉴얼] "정통사주"/"사주 해석"/"정통사주 v3(베타)"
+  // [귀인지도 정통사주 리뉴얼] "정통사주"/"사주 해석"/"정통사주 v3(베타)"
   // 3개로 나뉘어져 있던 "사주" 그룹을 유일한 신규 정통사주(saju_renewal)
   // 하나로 통합한다.
   (

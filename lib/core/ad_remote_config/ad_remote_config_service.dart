@@ -5,7 +5,7 @@ import '../config/env_config.dart';
 import '../web_ads/web_ad_config.dart';
 import '../web_ads/web_ad_service.dart';
 
-/// [신통방통 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
+/// [귀인지도 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
 /// admin_web의 `GET /api/public/ad-config` 공개 API를 앱 시작 시 1회 조회해,
 /// AdMob의 노출 킬스위치(isEnabled)와 WebAdConfig(AdSense)의 컴파일타임
 /// 기본값을 런타임에 덮어쓰는 서비스.

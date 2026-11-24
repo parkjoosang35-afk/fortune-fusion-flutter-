@@ -557,7 +557,7 @@ class _ShopScreenState extends State<ShopScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
       child: Text(
-        '복주머니 1개 = 10원 · 모은 복주머니는 신통방통 어디서나 함께 써요',
+        '복주머니 1개 = 10원 · 모은 복주머니는 귀인지도 어디서나 함께 써요',
         textAlign: TextAlign.center,
         style: WrF.body(11, color: WrC.muted),
       ),

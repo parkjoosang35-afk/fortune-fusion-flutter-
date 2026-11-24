@@ -33,7 +33,7 @@ class PolicyWebView extends StatelessWidget {
       });
     }
 
-    // [신통방통 전역 핀치 확대 시스템 — 제외 구역] Flutter Web의 플랫폼
+    // [귀인지도 전역 핀치 확대 시스템 — 제외 구역] Flutter Web의 플랫폼
     // 뷰(HtmlElementView는 실제 DOM 요소)는 별도 합성 레이어로 렌더링되어
     // RenderRepaintBoundary.toImage() 캐처에 포함되지 않거나 빈 영역으로
     // 나타나므로 제외한다.

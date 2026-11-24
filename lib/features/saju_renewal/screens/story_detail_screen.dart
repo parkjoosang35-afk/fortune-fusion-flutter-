@@ -25,7 +25,7 @@ import 'more_stories_screen.dart';
 import '../../../core/util/original_result_capture.dart';
 import '../../../core/util/save_filename.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑦ 상세 사주
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑦ 상세 사주
 /// 해석. `design_files/saju/screens-b.jsx`의 `ScreenDetail`을 재현한다 —
 /// 5단 서사(핵심·왜·생활·시기·포인트) + 목차 칩 + 블록 사이 근거 +
 /// 시기(n=4) 블록 전용 대운 스트림 카드.
@@ -112,7 +112,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     _profile = context.read<SajuRenewalProvider>().visualProfileFor(user);
     _persistRecentStory();
     _persistFortuneRecord();
-    // [신통방통 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // [귀인지도 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
     // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
     // 1500ms) 트리거.
     WidgetsBinding.instance.addPostFrameCallback((_) {

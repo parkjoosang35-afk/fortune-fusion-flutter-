@@ -80,7 +80,7 @@ class _OnboardingNoticeSheet extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                '신통방통의 사주·운세 풀이는 전통 명리 이론을 바탕으로 한\n'
+                '귀인지도의 사주·운세 풀이는 전통 명리 이론을 바탕으로 한\n'
                 '재미와 참고를 위한 이야기예요.\n'
                 '중요한 결정은 당신의 마음과 함께 내려주세요.',
                 textAlign: TextAlign.center,

@@ -3,7 +3,7 @@ import '../../../core/api/api_result.dart';
 import '../data/fortune_ad_repository.dart';
 import '../domain/fortune_ad_model.dart';
 
-/// [신통방통 복주머니 광고 적립 시스템] 복주머니 화면의 "광고 보고 충전" 카드가
+/// [귀인지도 복주머니 광고 적립 시스템] 복주머니 화면의 "광고 보고 충전" 카드가
 /// 참조하는 전역 상태. 광고 목록 캐시 + 시청시작/완료 API 위임을 담당한다.
 /// 실제 화면 흐름(팝업 단계 전환/타이머)은 [FortuneAdWatchDialog]가 담당하고,
 /// 이 Provider는 API 호출만 얇게 감싼다(§15: 상태와 통신 책임 분리).

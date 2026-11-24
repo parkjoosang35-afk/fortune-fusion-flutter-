@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// [신통방통 전역 핀치 확대 시스템 — Boundary Controller]
+/// [귀인지도 전역 핀치 확대 시스템 — Boundary Controller]
 ///
 /// 확대된 콘텐츠가 화면 경계 밖으로 과도하게 벗어나지 않도록 이동값을
 /// 제한한다. 지시서 §3 "화면 경계 제한", §6 "무한 이동 방지" 요구사항에

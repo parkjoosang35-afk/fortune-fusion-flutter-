@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>신통방통</string>
+	<string>귀인지도</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -47,8 +47,8 @@
 	<true/>
 	<!-- [REQ-01] gal 패키지가 iOS 사진 앱(갤러리) 저장을 위해 요구하는 권한 키.
 	     이 키가 없으면 저장 시도 시 권한 요청 프롬프트가 정상 동작하지 않아
-	     설정 > 사진 > 신통방통에 "사진에 추가" 항목 자체가 노출되지 않을 수
-	     있고, 저장 함수는 항상 false를 반환한다. (신통방통_저장기능_정상화_
+	     설정 > 사진 > 귀인지도에 "사진에 추가" 항목 자체가 노출되지 않을 수
+	     있고, 저장 함수는 항상 false를 반환한다. (귀인지도_저장기능_정상화_
 	     개발지시서_v1.0 §4 P-01 / §6 REQ-01) -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>운세 결과 이미지를 사진 앱(갤러리)에 저장하기 위해 사용합니다.</string>

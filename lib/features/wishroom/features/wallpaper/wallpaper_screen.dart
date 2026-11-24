@@ -197,7 +197,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
   /// 배경화면을 바꾸지 않고 현재 소원방의 정지 프레임만 갤러리(사진 앱,
   /// 웹은 브라우저 다운로드)에 저장한다.
   ///
-  /// [REQ-09 — 신통방통_저장기능_정상화_개발지시서_v1.0] 과거에는 이 화면만
+  /// [REQ-09 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 과거에는 이 화면만
   /// '이미지가 저장됐어요'/'정지 이미지 파일 다운로드를 요청했어요'라는
   /// 별도 문구를 썼으나, REQ-09가 전 화면 공통 성공 문구("갤러리에
   /// 저장했어요" / "파일 다운로드를 시작했어요")로 통일할 것을 명시
@@ -322,8 +322,8 @@ class _WallpaperScreenState extends State<WallpaperScreen> with WidgetsBindingOb
             SafeArea(
             child: Column(children: [
               // app2/wallpaper2.jsx › TopBar(title="소원방 배경화면") nav 기본값 true로
-              // NavPill(뒤로가기+신통방통 홈)이 좌측에 온다. [버그수정 — 전수감사] 기존엔
-              // 단순 뒤로가기 아이콘만 있고 "신통방통 홈" 버튼이 없었다.
+              // NavPill(뒤로가기+귀인지도 홈)이 좌측에 온다. [버그수정 — 전수감사] 기존엔
+              // 단순 뒤로가기 아이콘만 있고 "귀인지도 홈" 버튼이 없었다.
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                 child: Row(children: [
@@ -887,7 +887,7 @@ class WPWebInstallGuide extends StatelessWidget {
           Text('앱 연결이 필요해요', style: WrF.display(18)),
           const SizedBox(height: 8),
           Text(
-            '라이브 배경화면은 휴대폰에 설치된 신통방통 앱이 직접 설정해요.\n'
+            '라이브 배경화면은 휴대폰에 설치된 귀인지도 앱이 직접 설정해요.\n'
             '앱이 없거나 열리지 않았다면 아래에서 설치한 뒤, 같은 계정으로 들어와\n'
             '같은 소원방을 다시 확인해 주세요.',
             style: WrF.body(12.5, color: WrC.muted, height: 1.6),

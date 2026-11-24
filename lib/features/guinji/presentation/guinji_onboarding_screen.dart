@@ -166,7 +166,7 @@ class _GuinjiOnboardingScreenState extends State<GuinjiOnboardingScreen> {
       user?.birthTimeUnknown ?? true,
     );
 
-    // [신통방통 사운드 배치 개발 기획서 §5.1] guide(귀인지도) 라우트
+    // [귀인지도 사운드 배치 개발 기획서 §5.1] guide(귀인지도) 라우트
     // BGM(03_guide_E) 트리거(앰비언스 없음).
     return SoundRouteTrigger(
       routeKey: 'guide',
@@ -523,7 +523,7 @@ class _ProfileCard extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.only(top: 12),
                     child: Text(
-                      '기존 신통방통 프로필을 그대로 씁니다.\n수정하려면 여기를 톡톡.',
+                      '기존 귀인지도 프로필을 그대로 씁니다.\n수정하려면 여기를 톡톡.',
                       style: TextStyle(
                         fontFamily: GuinjiFonts.ui,
                         fontSize: 11,

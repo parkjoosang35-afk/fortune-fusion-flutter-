@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_home_v2_tokens.dart
-// [신통방통 홈 v2 전면 교체 — design_handoff_sintong_main.zip]
+// [귀인지도 홈 v2 전면 교체 — design_handoff_sintong_main.zip]
 //
-// 사용자가 업로드한 두 번째 디자인 핸드오프(README.md 기준 "신통방통
+// 사용자가 업로드한 두 번째 디자인 핸드오프(README.md 기준 "귀인지도
 // 메인 스크린" — 다크 히어로 캐러셀 + 다크 시트 + 5개 카테고리 진입
 // 목차 화면)를 그대로 재현하기 위한 디자인 토큰.
 //
@@ -29,7 +29,7 @@ import 'package:flutter/material.dart';
 // [폰트 깨짐(□) 버그 수정 — 2026-09-22 사용자 리포트]
 // 기존에는 이 화면 전용으로 google_fonts 패키지(GoogleFonts.notoSansKr/
 // inter/instrumentSerif)를 써서 폰트를 "런타임에 구글 폰트 서버에서
-// 다운로드"하는 방식이었다. 앱 나머지 전체(상단바 '신통방통', 하단
+// 다운로드"하는 방식이었다. 앱 나머지 전체(상단바 '귀인지도', 하단
 // 네비게이션 등)는 이미 로컬에 내장된 'Pretendard' 폰트를 쓰고 있어
 // 네트워크 상태와 무관하게 항상 정상 표시되는데, 이 화면만 예외로
 // 네트워크 폰트에 의존해 모바일 환경에서 폰트 다운로드가 지연/실패하면
@@ -48,7 +48,7 @@ const List<String> _kHanjaFallback = ['NotoSerifKR'];
 // 로컬 asset으로 번들돼 있어(앱 전역 'IBMPlexMono'/'GowunBatang' 폰트를
 // 이미 쓰는 화면이 있음 — app_unified_style.dart 참고) 네트워크 폰트
 // 없이 100% 로컬 렌더링이 보장된다. Mono/Gowun 폰트는 한글·한자 글리프를
-// 포함하지 않으므로, 혼용 문자열(예: "신통방통 · 神通方通")에서 누락
+// 포함하지 않으므로, 혼용 문자열(예: "귀인지도 · 神通方通")에서 누락
 // 글리프가 Pretendard/NotoSerifKR로 자동 대체되도록 fallback을 둔다.
 const List<String> _kMonoFallback = ['Pretendard', 'NotoSerifKR'];
 const List<String> _kBodyFallback = ['Pretendard'];
@@ -283,7 +283,7 @@ class SHomeV2Text {
   );
 
   /// Brand mono — Pretendard 10.5, tracking .12em uppercase
-  /// [폰트 중앙화] 상단바 '신통방통' 브랜드 텍스트 — 메뉴/라벨급
+  /// [폰트 중앙화] 상단바 '귀인지도' 브랜드 텍스트 — 메뉴/라벨급
   /// 강조 규칙(700)에 맞춰 600 -> 700로 상향.
   static TextStyle brandMono({Color color = Colors.white}) => TextStyle(
     fontFamily: 'Pretendard',

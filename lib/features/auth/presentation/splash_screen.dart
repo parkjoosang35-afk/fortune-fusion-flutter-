@@ -12,11 +12,11 @@ import '../../result_access/domain/pending_result_access_return.dart';
 import '../../../core/router/web_share_entry.dart';
 import '../application/auth_provider.dart';
 
-/// [2026-10 스플래시 디자인 교체 — "신통방통" 워드마크 애니메이션]
+/// [2026-10 스플래시 디자인 교체 — "귀인지도" 워드마크 애니메이션]
 /// `design_handoff_splash` 핸드오프(`splash.html`)를 그대로 이식한다.
 ///
 /// 배경은 기존 로딩 화면(`sintong.kr/app/`)과 동일한 보라 그라데이션을
-/// 유지하고(핸드오프 §4-1, "변경 금지"), 중앙 컨텐츠만 "신통방통" 글자
+/// 유지하고(핸드오프 §4-1, "변경 금지"), 중앙 컨텐츠만 "귀인지도" 글자
 /// 4개의 3D 플립 → 인장(神通萬通) 4개 팝 → 가는 선 → 영문 스크램블 →
 /// 흰 빛 스윕 → 퇴장 순서로 재생되는 약 7.3초짜리 시퀀스로 교체했다.
 ///
@@ -228,7 +228,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    // [신통방통 2단계 - 로컬 → 서버 1회성 마이그레이션] 세션 복원(=로그인
+    // [귀인지도 2단계 - 로컬 → 서버 1회성 마이그레이션] 세션 복원(=로그인
     // 상태 확정) 직후, 로그인 사용자에 한해 로컬 JeontongProfileStore 값을
     // 서버 UserProfile로 1회 옮긴다. 조건은 함수 내부에서 전부 판단하므로
     // (비로그인/이미 서버 데이터 있음/로컬 데이터 없음이면 아무 것도 하지
@@ -238,7 +238,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (authProvider.isLoggedIn) {
       final migration = await migrateLocalJeontongProfileToServer(authProvider);
       if (kDebugMode) {
-        debugPrint('[신통방통 2단계 마이그레이션] $migration');
+        debugPrint('[귀인지도 2단계 마이그레이션] $migration');
       }
     }
 
@@ -373,7 +373,7 @@ class _SplashMark extends StatelessWidget {
             final elapsed = introT * _SplashTiming.outroStart;
 
             Widget content = Semantics(
-              label: '신통방통',
+              label: '귀인지도',
               child: ExcludeSemantics(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

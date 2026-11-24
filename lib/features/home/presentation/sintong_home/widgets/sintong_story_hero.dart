@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_story_hero.dart
-// [신통방통 메인 매핑] C-04 · StoryHero — design_handoff_story_hero.zip
+// [귀인지도 메인 매핑] C-04 · StoryHero — design_handoff_story_hero.zip
 // "귀인지도" 소개용 5컷 × 6초 = 30초 무한 루프 스토리 슬라이드.
 //
 // 스펙(README.md + story_hero_prototype.html — 소스 오브 트루스):

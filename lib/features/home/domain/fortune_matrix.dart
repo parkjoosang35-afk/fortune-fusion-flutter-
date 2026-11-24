@@ -1,4 +1,4 @@
-/// [운섹션 37 카테고리 정리 - 미연동 콘텐츠 삭제] Fortune Fusion(신통방통)
+/// [운섹션 37 카테고리 정리 - 미연동 콘텐츠 삭제] 귀인지도
 /// 운세 섹션 카테고리 매트릭스.
 ///
 /// 타로(Ta-001~Ta-015, `/ai-fortune/tarot/*`, `/tarot/*`)는 별도로 이미
@@ -140,7 +140,7 @@ class FortuneMatrix {
   /// 공용 결과 화면(신규 카테고리) 라우트.
   static const String genericCategoryRoute = '/fortune/category';
 
-  // [신통방통 정통사주 리뉴얼] S그룹(사주 5개, 전부 구 AI 사주 라우트
+  // [귀인지도 정통사주 리뉴얼] S그룹(사주 5개, 전부 구 AI 사주 라우트
   // `/ai-fortune/saju/input`로 연결)은 groups에서 제외한다. 사주는 이제
   // saju_renewal 단일 진입점(`/saju-renewal`)으로 통일되었으므로, 37가지
   // 운세 한눈에 보기(FortuneMatrixSection)에는 더 이상 노출하지 않는다.
@@ -301,7 +301,7 @@ class FortuneMatrix {
     ],
   );
 
-  // ── S: 사주 (5) — [신통방통 정통사주 리뉴얼] groups에서 제외되어 더 이상
+  // ── S: 사주 (5) — [귀인지도 정통사주 리뉴얼] groups에서 제외되어 더 이상
   // 사용되지 않지만, 과거 구조 참고용으로 데이터 자체는 보존한다.
   // ignore: unused_field
   static final _sGroup = FortuneCategoryGroupEntry(

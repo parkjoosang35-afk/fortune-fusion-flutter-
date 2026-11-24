@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_home_tokens.dart
-// [신통방통 메인 매핑 - design_handoff_sintongbangtong_home.zip]
+// [귀인지도 메인 매핑 - design_handoff_sintongbangtong_home.zip]
 // 홈 화면 전면 리메이크 디자인 토큰. `Handoff.html` §03/§04/§05 스펙을
 // 그대로 상수화한다. 이 화면(sintong_home/*)에서만 사용하며, 앱 전역
 // UnifiedColors/UnifiedText(다른 화면들이 참조)는 건드리지 않는다.

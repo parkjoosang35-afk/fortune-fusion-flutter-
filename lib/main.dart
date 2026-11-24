@@ -67,7 +67,7 @@ Future<void> main() async {
   // 실계산 경로로 전환된다(jeontong_eighty_report_builder.dart 참고).
   SajuRules.preload();
   SajuFortuneRules.preload();
-  // [신통방통 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
+  // [귀인지도 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
   // admin_web의 AdMob isEnabled / AdSense(퍼블리셔ID+서비스별+포맷별) 원격
   // 설정을 앱 시작 시 조회한다. await 하지 않는 이유: 네트워크 응답을
   // 기다리며 앱 시작을 블로킹하면 안 되고, 조회가 끝나기 전까지는 기존

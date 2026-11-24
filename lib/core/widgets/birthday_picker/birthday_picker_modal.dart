@@ -1,6 +1,6 @@
 /// [BirthdayPickerModal 포팅 — 4/4: 메인 위젯]
 ///
-/// 원본: `handoff-extract/BirthdayPickerModal.jsx`(835줄) — 신통방통
+/// 원본: `handoff-extract/BirthdayPickerModal.jsx`(835줄) — 귀인지도
 /// 소원방 디자인 핸드오프 패키지의 생년월일+태어난시간 입력 모달을
 /// Flutter Dart 위젯으로 재구현한다. 정통사주69/AI사주/궁합 등 앱 전역의
 /// 기존 OS 기본 캘린더(`showDatePicker`/`showTimePicker`) 입력 화면을

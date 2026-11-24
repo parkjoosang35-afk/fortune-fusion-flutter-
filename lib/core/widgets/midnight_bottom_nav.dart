@@ -2,12 +2,12 @@
 // FILE: midnight_bottom_nav.dart
 // [하단바 리디자인 2차 — design_handoff_sintong_main.zip "Midnight Navy"]
 //
-// 사용자 요청: "신통방통 전체 하단바도 지금 준걸로 전체 다 바꿔줬으면해"
+// 사용자 요청: "귀인지도 전체 하단바도 지금 준걸로 전체 다 바꿔줬으면해"
 // — 기존 "심야의 신전" Variant A(어두운 보라/#0E0A14 톤)를, 홈 화면과
 // 함께 새로 핸드오프된 Midnight Navy(#0B1326/#070D1B + Champagne
 // Gold #D4AF37/#EBD58E) 톤으로 전면 교체한다. 이 위젯은 앱 전역에서
 // 공유되므로(AppShell + MainBottomNavBar + 신당/정통사주/궁합 등 여러
-// Scaffold가 직접 참조) 한 곳만 고치면 "신통방통 전체 하단바"가 자동으로
+// Scaffold가 직접 참조) 한 곳만 고치면 "귀인지도 전체 하단바"가 자동으로
 // 전부 바뀐다 — 호출부를 일일이 찾아 수정할 필요가 없다.
 //
 // 탭 구성(홈/신당부적/복주머니/마이)과 "인덱스가 의미하는 라우트"는 이번
@@ -128,7 +128,7 @@ const List<MidnightNavTabData> kMidnightNavTabs = [
 String _iconAsset(String key, {required bool active}) =>
     'assets/icons/bottom_nav/ic_nav_${key}_${active ? 'active' : 'default'}.svg';
 
-/// 신통방통 "심야의 신전" 하단 탭바 — 공용 위젯.
+/// 귀인지도 "심야의 신전" 하단 탭바 — 공용 위젯.
 ///
 /// [AppShell]의 `IndexedStack` 하단과, `AppShell` 바깥에서 push된 화면들
 /// (정통사주/타로/귀인지도 등)의 `MainBottomNavBar` 양쪽에서 동일하게

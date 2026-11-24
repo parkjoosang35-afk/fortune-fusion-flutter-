@@ -92,7 +92,7 @@ class GmTopBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                       const SizedBox(width: 6),
                       const Text(
-                        '신통방통',
+                        '귀인지도',
                         style: TextStyle(
                           fontFamily: GmText.display,
                           fontSize: 13,

@@ -1,6 +1,6 @@
 /// 04A 도메인 A `users`+`user_profiles` 대응 Dart 모델(DTO)
 ///
-/// [신통방통 2단계 - 회원/운세 프로필 통합] isLeapMonth(윤달 여부)/
+/// [귀인지도 2단계 - 회원/운세 프로필 통합] isLeapMonth(윤달 여부)/
 /// birthTimeUnknown(출생시간 모름 여부)/birthPlace(출생지역) 3개 필드를
 /// 추가한다. 계산엔진(ManseryeokCoreEngine, PHASE1~4)이 이미 지원하는
 /// BirthInfo.isLeapMonth/birthPlace를 그대로 연결하는 값이며, 계산 로직
@@ -15,7 +15,7 @@ class UserModel {
   final String nickname;
   final String? email;
   // [신당(THE SHRINE) U12 어뷰징 방지 — 실명 필드] 닉네임과 별개의 실명.
-  // 신통방통은 가입 시 닉네임만 받고 실명을 받지 않았으므로(사용자 확정:
+  // 귀인지도는 가입 시 닉네임만 받고 실명을 받지 않았으므로(사용자 확정:
   // "실명으로 해야해"), 이 필드는 마이페이지에서 추가로 1회 입력받으면만
   // 채워진다(기존 회원은 null). 신당 ConnectScreen이 이 값이 없으면 "실명
   // 등록 필요" 안내로 분기한다.

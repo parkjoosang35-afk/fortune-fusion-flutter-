@@ -9,7 +9,7 @@ import 'pinch_zoom_gesture_controller.dart';
 import 'pinch_zoom_render_controller.dart';
 import 'pinch_zoom_transform_controller.dart';
 
-/// [신통방통 전역 핀치 확대 시스템 — 통합 매니저]
+/// [귀인지도 전역 핀치 확대 시스템 — 통합 매니저]
 ///
 /// `MaterialApp.builder`에 한 번만 끼워 넣으면, 그 아래 전체 화면(모든
 /// 라우트, 팝업, 모달 포함)에서 "두 손가락을 벌리면 확대, 모으면 축소,

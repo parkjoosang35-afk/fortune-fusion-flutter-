@@ -30,7 +30,7 @@ class JeontongProfileStore extends ChangeNotifier {
     'birthDateTimeUtc': input.birthDateTimeUtc.toIso8601String(),
     'gender': input.gender,
     'isLunar': input.isLunar,
-    // [신통방통 2단계] 로컬 저장에도 윤달/출생시간모름 상태를 함께 보존한다
+    // [귀인지도 2단계] 로컬 저장에도 윤달/출생시간모름 상태를 함께 보존한다
     // (반영사항1: birthTimeUnknown은 로컬 전용이 아니라 서버에도 저장
     // 가능해야 한다는 지시 — 로컬 스토어 자체도 계속 지원해야 함).
     'isLeapMonth': input.isLeapMonth,

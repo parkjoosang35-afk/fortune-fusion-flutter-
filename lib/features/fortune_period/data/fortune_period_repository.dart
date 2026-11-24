@@ -7,7 +7,7 @@ import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/fortune_period_model.dart';
 
-/// [신통방통 오늘의 운세] admin_web 공개 API
+/// [귀인지도 오늘의 운세] admin_web 공개 API
 /// `GET /api/public/fortune-period/today*` 를 호출하는 Repository.
 ///
 /// [2026-11] 기존 주간/월간은 삭제되었고(서버가 410 Gone 응답), `kind`

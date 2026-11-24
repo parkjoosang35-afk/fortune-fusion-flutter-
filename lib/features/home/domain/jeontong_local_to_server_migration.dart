@@ -5,7 +5,7 @@ import '../../auth/application/auth_provider.dart';
 import '../data/jeontong_profile_store.dart';
 import 'jeontong_input.dart';
 
-/// [신통방통 2단계 - 로컬 → 서버 1회성 마이그레이션]
+/// [귀인지도 2단계 - 로컬 → 서버 1회성 마이그레이션]
 ///
 /// 기존에(서버 UserProfile 통합 이전 또는 로그인 이전) 로컬(SharedPreferences)
 /// [JeontongProfileStore]에 저장해두었던 사주 입력값을, 로그인한 회원의 서버

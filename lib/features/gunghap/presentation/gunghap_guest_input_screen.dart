@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: gunghap_guest_input_screen.dart
-// [신통방통 궁합지도 개발 지시서 §2③] 게스트 본인 사주정보 입력 화면.
+// [귀인지도 궁합지도 개발 지시서 §2③] 게스트 본인 사주정보 입력 화면.
 // `/gh/{token}` 딥링크로 진입한다.
 //
 // [절대 원칙 — 비회원 완결] 이 화면은 로그인 상태와 완전히 무관하게
@@ -23,7 +23,7 @@
 //     API(gunghap_repository.dart)는 이 선택 동의 필드를 받지 않으므로
 //     (요청 바디 스키마 참고) 현재는 클라이언트 전용 안내용 체크박스로만
 //     동작한다(서버 계약을 변경하지 않는 "로직 유지" 원칙).
-//   - 「신통방통 앱 설치하기」 보조 버튼, 개인정보 안내 시트(§5 S14,
+//   - 「귀인지도 앱 설치하기」 보조 버튼, 개인정보 안내 시트(§5 S14,
 //     02_DATA_APPENDIX.md §5) 추가.
 // 폼 필드 구성·검증·제출 로직([_handleSubmit], [joinAnonymous] 호출)은
 // 이번 리디자인에서 전혀 손대지 않았다 — 오직 시각 레이어만 교체했다.
@@ -44,7 +44,7 @@ import 'gunghap_calculating_screen.dart';
 import 'gunghap_guest_result_screen.dart';
 import 'gunghap_result_screen.dart';
 
-/// [S14 명세] 「신통방통 앱 설치하기」 보조 버튼 타깃.
+/// [S14 명세] 「귀인지도 앱 설치하기」 보조 버튼 타깃.
 const _kPlayStoreUrl =
     'https://play.google.com/store/apps/details?id=com.fortunefusion.fortune';
 
@@ -680,9 +680,9 @@ class _GunghapGuestInputScreenState extends State<GunghapGuestInputScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-                // [S14 명세] 「신통방통 앱 설치하기」 보조 버튼.
+                // [S14 명세] 「귀인지도 앱 설치하기」 보조 버튼.
                 GHButton(
-                  label: '신통방통 앱 설치하기',
+                  label: '귀인지도 앱 설치하기',
                   variant: GHButtonVariant.secondary,
                   onPressed: () => launchUrl(
                     Uri.parse(_kPlayStoreUrl),
@@ -1090,7 +1090,7 @@ class _GhPrivacySheet extends StatelessWidget {
         '$name님에게는 궁합 결과만 보여요. 생년월일과 출생 정보는 아래 선택 '
             '동의 시에만 공개돼요.',
       ),
-      ('보관 기간', '신통방통 개인정보 처리방침에 따름 · 확정 후 표기'),
+      ('보관 기간', '귀인지도 개인정보 처리방침에 따름 · 확정 후 표기'),
       ('삭제', '결과 화면의 「내 정보 삭제」에서 언제든지 지울 수 있어요'),
     ];
     return SafeArea(

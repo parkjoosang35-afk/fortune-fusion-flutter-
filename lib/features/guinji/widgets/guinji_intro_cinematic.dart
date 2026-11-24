@@ -394,7 +394,7 @@ class _GuinjiIntroCinematicState extends State<GuinjiIntroCinematic>
             ),
           ),
 
-          // [SPEC §6 H1 "좌상 ← (40, top 58)" · 동작 "신통방통 홈으로 pop"]
+          // [SPEC §6 H1 "좌상 ← (40, top 58)" · 동작 "귀인지도 홈으로 pop"]
           // 이전까지는 뒤로가기 버튼이 전혀 없어 QA_CHECKLIST.md
           // "H1 … ← 뒤로" 항목을 위반했다.
           Positioned(

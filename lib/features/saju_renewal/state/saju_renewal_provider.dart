@@ -9,7 +9,7 @@ import '../data/models/interpret_result.dart';
 import '../data/saju_visual_adapter.dart';
 import '../domain/saju_exhaustion_notification_service.dart';
 
-/// [신통방통 정통사주 리뉴얼 — STEP 6.5] 화면 전환만으로 데이터를 임시
+/// [귀인지도 정통사주 리뉴얼 — STEP 6.5] 화면 전환만으로 데이터를 임시
 /// 전달하지 않도록(지시서 §상태관리 요구사항), 사용자 흐름 전체를 명확한
 /// 상태 enum + 모델로 관리하는 전역 Provider.
 ///

@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_home_v2_screen.dart
-// [신통방통 홈 v2 전면 교체 — design_handoff_sintong_main.zip]
+// [귀인지도 홈 v2 전면 교체 — design_handoff_sintong_main.zip]
 //
-// 사용자가 두 번째로 업로드한 디자인 핸드오프(README.md "신통방통 메인
+// 사용자가 두 번째로 업로드한 디자인 핸드오프(README.md "귀인지도 메인
 // 스크린")를 그대로 재현한 새 홈 화면. 기존 v1(화이트 프리미엄,
 // sintong_home/) 대신 이 화면을 [AppShell] 0번 탭에 배선한다.
 //
@@ -102,7 +102,7 @@ class _SintongHomeV2ScreenState extends State<SintongHomeV2Screen> {
 
   @override
   Widget build(BuildContext context) {
-    // [신통방통 사운드 배치 개발 기획서 §5.1] main 라우트 BGM(01_main_E)
+    // [귀인지도 사운드 배치 개발 기획서 §5.1] main 라우트 BGM(01_main_E)
     // + 앰비언스(amb_01_courtyard) 트리거. 이 화면은 AppShell의 IndexedStack
     // 0번 탭으로 항상 마운트돼 있어(dispose 안 됨) initState는 앱 최초
     // 진입 시 1회만 호출되지만, 그것이 바로 "기본 베이스 화면" BGM으로서
@@ -220,7 +220,7 @@ class _HeroVideoCaption extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '신통방통 · 神通方通',
+            '귀인지도 · 神通方通',
             textAlign: TextAlign.center,
             style: SHomeV2Text.heroEyebrow(),
           ),

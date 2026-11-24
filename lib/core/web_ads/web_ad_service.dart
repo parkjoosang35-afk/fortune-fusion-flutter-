@@ -30,7 +30,7 @@ import 'web_ad_page_level.dart';
 class WebAdService {
   WebAdService._();
 
-  // [REQ-10 — 신통방통_저장기능_정상화_개발지시서_v1.0 / P-06] 웹 결과
+  // [REQ-10 — 귀인지도_저장기능_정상화_개발지시서_v1.0 / P-06] 웹 결과
   // 캡처(`captureOriginalResult`)가 진행되는 동안에는 true. AdSense
   // `HtmlElementView`(플랫폼 뷰)는 Flutter의 Skia 캔버스와 별도의 브라우저
   // 합성 레이어에서 그려지므로, `RenderRepaintBoundary.toImage()` 호출

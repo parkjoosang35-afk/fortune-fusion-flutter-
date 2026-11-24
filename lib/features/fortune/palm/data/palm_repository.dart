@@ -47,7 +47,7 @@ class PalmRepository {
               'Content-Type': 'application/json',
               ...await AuthTokenStore.authHeader(),
             },
-            // [신통방통 리스킨] hand 파라미터를 함께 전송한다. 서버가 아직
+            // [귀인지도 리스킨] hand 파라미터를 함께 전송한다. 서버가 아직
             // 활용하지 않더라도 추가 필드는 무시되므로 안전하며, 추후
             // 백엔드가 왼손/오른손별 해석을 지원할 때 바로 연동 가능하다.
             body: jsonEncode({

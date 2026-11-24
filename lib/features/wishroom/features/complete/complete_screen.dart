@@ -194,7 +194,7 @@ class _CompleteScreenState extends State<CompleteScreen> {
     ShareService.shareResult(
       context,
       resultType: ShareResultType.wish,
-      title: '${room.owner}님의 소원이 이루어졌어요 · 신통방통',
+      title: '${room.owner}님의 소원이 이루어졌어요 · 귀인지도',
       description: '${room.daysLit}일 동안 밝혔던 소원이 하늘에 닿았어요.',
       payload: {
         'kind': 'wish',
@@ -775,7 +775,7 @@ class _BottomCard extends StatelessWidget {
           spacing: 4,
           runSpacing: 4,
           children: [
-            // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0] 기기
+            // [REQ-08 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기
             // 저장 버튼 문구/아이콘을 전 화면 공통 "이미지로 저장" +
             // download_rounded로 통일.
             TextButton.icon(

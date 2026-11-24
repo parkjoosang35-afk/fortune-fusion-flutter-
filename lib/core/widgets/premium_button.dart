@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
-/// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] §3 버튼 규칙(v2)
+/// [귀인지도 서브 디자인 통일 마스터 프롬프트] §3 버튼 규칙(v2)
 ///
 /// Primary CTA: Deep Navy→Main Purple 그라디언트(홈 히어로 등 기존 화면 유지).
 /// Black CTA: 순수 블랙 배경 + 화이트 텍스트 — 기준 시안의 메인 액션 버튼

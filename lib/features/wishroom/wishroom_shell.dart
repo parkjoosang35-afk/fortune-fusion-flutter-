@@ -1,6 +1,6 @@
-// 신통방통 소원방 v5 S2 · 내부 6탭(5탭+홈버튼) 셸.
+// 귀인지도 소원방 v5 S2 · 내부 6탭(5탭+홈버튼) 셸.
 // [v5 S2 — CHECKLIST.md "하단바 6칸: 神 · 내 소원 · 수호자 · 함께 빌기 · 상점 · 보관함
-// (알림 → 상단 🔔)"] 기존 5탭(내소원방·소원방·알림·꾸미기·보관함)+별도 신통방통
+// (알림 → 상단 🔔)"] 기존 5탭(내소원방·소원방·알림·꾸미기·보관함)+별도 귀인지도
 // 홈버튼 구조를, 프로토타입 app3/shell.jsx의 TABS 배열 그대로(神 홈버튼 + home·
 // guardians·together·shop·vault 5탭)로 재구성한다. 알림 탭은 하단바에서 빠지고
 // (화면 자체는 유지, 상단 벨 진입은 main_room_screen.dart TopBar 작업에서 별도
@@ -258,12 +258,12 @@ class _WishRoomShellState extends State<WishRoomShell> {
                           );
                         },
                       ),
-                    // [버그수정 — 사용자 리포트: "하단바에 신통방통 메인으로
+                    // [버그수정 — 사용자 리포트: "하단바에 귀인지도 메인으로
                     // 들어가는 홈바가없고"] 소원방 모듈 5탭 어디에도 앱의
-                    // 메인 화면(신통방통 홈)으로 돌아가는 진입점이 바텀탭에
+                    // 메인 화면(귀인지도 홈)으로 돌아가는 진입점이 바텀탭에
                     // 없었다(각 화면 상단 WrNavPill의 홈 아이콘만 있었는데,
                     // 스크롤하면 가려지거나 사용자가 찾지 못했다). 다른 탭과
-                    // 동일한 터치 영역/스타일로 "신통방통" 홈 탭을 추가해
+                    // 동일한 터치 영역/스타일로 "귀인지도" 홈 탭을 추가해
                     // wrExitHome()으로 앱 루트까지 pop한다.
                     SizedBox(
                       width: WrSize.navItemW,
@@ -275,7 +275,7 @@ class _WishRoomShellState extends State<WishRoomShell> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // [v5 S2] 매핑표 "神 신통방통" — app3/shell.jsx
+                              // [v5 S2] 매핑표 "神 귀인지도" — app3/shell.jsx
                               // nav-home 버튼("神" 글리프)과 동일하게 교체.
                               Text(
                                 '神',
@@ -286,7 +286,7 @@ class _WishRoomShellState extends State<WishRoomShell> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                '신통방통',
+                                '귀인지도',
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: WrC.muted,

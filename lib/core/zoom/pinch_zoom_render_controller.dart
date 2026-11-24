@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// [신통방통 전역 핀치 확대 시스템 — Render Controller]
+/// [귀인지도 전역 핀치 확대 시스템 — Render Controller]
 ///
 /// 전역 핀치 확대는 "그 순간 화면에 그려져 있는 실제 위젯 트리"를
 /// 고해상도로 캡처해 확대 레이어에 표시하는 "돋보기(magnifier)" 방식을

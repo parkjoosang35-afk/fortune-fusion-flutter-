@@ -24,8 +24,8 @@ const Map<String, GuideItem> kGuide = {
     'Lv.2 벚꽃 화병 · Lv.3 향로 · Lv.4 꽃등불 · Lv.5 소원함이 빛나고',
     'Lv.7 천장에 별 · Lv.8 복주머니 · Lv.10엔 달창에 금빛 마법진이 떠요.',
   ], tip: '성장 점수 = 정성 + 응원 × 0.5 + 받은 복주머니 × 10'),
-  'pouch': GuideItem(icon: 'pouch', title: '복주머니', sub: '신통방통 공용 재화', body: [
-    '신통방통 앱 어디서나 함께 쓰는 복주머니예요. 소원방에서 모은 것도, 쓴 것도 모두 같은 주머니예요.',
+  'pouch': GuideItem(icon: 'pouch', title: '복주머니', sub: '귀인지도 공용 재화', body: [
+    '귀인지도 앱 어디서나 함께 쓰는 복주머니예요. 소원방에서 모은 것도, 쓴 것도 모두 같은 주머니예요.',
     '출석 · 정성 10회 · 미션으로 모으고',
     '캐릭터 · 꾸미기 · 다른 분께 선물하는 데 써요.',
   ], tip: '복주머니는 돈으로 살 수 없어요. 복은 사고파는 게 아니니까요'),
@@ -78,6 +78,6 @@ const List<TourStep> kTour = [
   TourStep(id: 'devotion', x: 195, y: 712, r: 70, line: '하루 10번, 여기를 눌러 정성을 보태요'),
   TourStep(id: 'level', x: 195, y: 112, r: 70, line: '정성이 쌓이면 방이 Lv.10까지 자라요'),
   TourStep(id: 'character', x: 108, y: 470, r: 95, line: '당신 대신 방을 지켜주는 수호자예요'),
-  TourStep(id: 'pouch', x: 66, y: 72, r: 46, line: '신통방통 공용 복주머니. 누르면 모으는 곳이 열려요'),
+  TourStep(id: 'pouch', x: 66, y: 72, r: 46, line: '귀인지도 공용 복주머니. 누르면 모으는 곳이 열려요'),
   TourStep(id: 'wish', x: 195, y: 632, r: 80, line: '이루어질 때까지 머무는 당신의 소원'),
 ];

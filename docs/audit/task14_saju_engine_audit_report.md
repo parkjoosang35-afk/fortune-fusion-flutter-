@@ -1,4 +1,4 @@
-# 신통방통 정통사주 엔진 15개 실행·조합 추적 검수 보고서 (Task 14)
+# 귀인지도 정통사주 엔진 15개 실행·조합 추적 검수 보고서 (Task 14)
 
 > 작성 원칙: 모든 서술은 실제 코드 Read/Bash 조회 결과만 근거로 한다. 추측·가정은
 > 전부 "미확인"으로 명시한다. 기존 계산 로직·정책은 전혀 수정하지 않았다(read-only
@@ -16,7 +16,7 @@
 
 ## 0. 가장 먼저 확정해야 할 사실 — "3개의 완전히 다른 사주 시스템"이 공존한다
 
-이번 검수에서 가장 중요한 발견은, "신통방통 사주"라는 이름 아래 실제로는 **서로
+이번 검수에서 가장 중요한 발견은, "귀인지도 사주"라는 이름 아래 실제로는 **서로
 전혀 다른 계산 로직을 쓰는 3개의 독립 시스템**이 코드베이스에 존재한다는 점이다.
 이를 먼저 구분하지 않으면 "15개 엔진"이 무엇을 가리키는지조차 혼동된다.
 
@@ -24,7 +24,7 @@
 |---|---|---|---|---|
 | ① | **PHASE1~4 신규 만세력 엔진**(`lib/features/home/domain/manseryeok/`) | **Flutter/Dart 자체 계산**(순수 로컬, 서버 호출 없음) | ✅ **현재 운영 중** — 귀인지도/DoorEngineGateway/SajuVisualAdapter 3개 경로에서 실사용 | 이번 지시서 §2가 나열한 **15개 구성요소가 전부 여기 속함**. 본 보고서의 핵심 조사 대상. |
 | ② | **레거시 AI사주**(`/ai-fortune/saju/*`, `lib/features/fortune/saju/`, admin_web `POST /api/public/fortune/saju`) | admin_web 서버의 `computeChart()`(**해시 기반 가짜 명식**, 실제 역학 계산 아님) → `buildSajuJudgment()`(판정) → LLM(해석) → `checkSajuResult()`(검증) → `renderSajuLlmResult()`(표현). 내부 5단계 상세는 §5-1 참고. | ❌ **완전 제거됨** — `lib/features/fortune/saju/` 디렉토리 자체가 Flutter 코드베이스에 더 이상 존재하지 않는다(`find` 결과 0건, `SajuRepository` 클래스도 0건). `app_router.dart`가 해당 라우트를 전부 `/saju-renewal`로 강제 리다이렉트 중. | `feature_flags.dart`의 "4단계 점진 전환" 계획 문서는 과거 계획이며, 실제로는 이미 코드 자체가 삭제된 상태(계획보다 앞서 실행됨). **"엔진 코드 존재 ≠ 실제 실행"의 역방향 사례** — 즉 서버(route.ts)엔 코드가 남아있지만 호출하는 클라이언트가 없어 사실상 죽은 엔드포인트. |
-| ③ | **신통방통 정통사주 리뉴얼(topic 기반, "69종"이 아니라 "29종")**(admin_web `src/lib/saju-renewal/*`, Flutter `lib/features/saju_renewal/`) | **별도의 Python FastAPI 서버**(`saju_engine_v3.3`, `/saju/v3/facts`)가 사주원국을 계산 → admin_web이 그 결과를 "Fact"로 받아 29종 주제 중 후보를 스코어링 선정 → LLM이 해석 텍스트만 생성 | ✅ **현재 운영 중** — `SajuRenewalApi`(Flutter)가 `/api/public/saju-renewal/topics/select`와 `/api/public/saju-renewal/interpret`만 호출 | **①과 ③은 완전히 다른 계산 엔진**(①=Dart `ManseryeokCoreEngine`, ③=별도 Python 프로세스 `saju_engine_v3.3`)이며 서로 데이터를 주고받지 않는다. |
+| ③ | **귀인지도 정통사주 리뉴얼(topic 기반, "69종"이 아니라 "29종")**(admin_web `src/lib/saju-renewal/*`, Flutter `lib/features/saju_renewal/`) | **별도의 Python FastAPI 서버**(`saju_engine_v3.3`, `/saju/v3/facts`)가 사주원국을 계산 → admin_web이 그 결과를 "Fact"로 받아 29종 주제 중 후보를 스코어링 선정 → LLM이 해석 텍스트만 생성 | ✅ **현재 운영 중** — `SajuRenewalApi`(Flutter)가 `/api/public/saju-renewal/topics/select`와 `/api/public/saju-renewal/interpret`만 호출 | **①과 ③은 완전히 다른 계산 엔진**(①=Dart `ManseryeokCoreEngine`, ③=별도 Python 프로세스 `saju_engine_v3.3`)이며 서로 데이터를 주고받지 않는다. |
 
 **"69종"이라는 사용자의 표현에 대한 정정(가장 중요한 정정 사항)**: 코드베이스
 전수 검색(`grep -rn "69"`) 결과, "69종"은 **현재 운영되지 않는 레거시 체계**를

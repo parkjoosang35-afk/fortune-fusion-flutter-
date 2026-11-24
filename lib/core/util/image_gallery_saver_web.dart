@@ -5,7 +5,7 @@ import 'package:web/web.dart' as web;
 
 import 'gallery_save_result.dart';
 
-/// [REQ-04 — 신통방통_저장기능_정상화_개발지시서_v1.0] Web 전용 구현.
+/// [REQ-04 — 귀인지도_저장기능_정상화_개발지시서_v1.0] Web 전용 구현.
 /// `gal` 패키지는 Web 플랫폼을 지원하지 않으므로(pub.dev platforms 목록에
 /// web 없음), 브라우저 표준 방식(Blob URL + 임시 `<a download>` 클릭)으로
 /// PNG 파일 다운로드를 트리거한다. 사용자의 브라우저 "다운로드" 폴더에

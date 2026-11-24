@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프 적용]
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프 적용]
 /// `design_handoff_jeongtong_saju_v3/docs/01_디자인토큰.md` +
 /// `design_files/saju/saju-tokens.css` + `colors_and_type.css`를
 /// 1:1로 Flutter 토큰으로 옮긴 것.

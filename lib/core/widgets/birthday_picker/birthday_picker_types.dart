@@ -1,6 +1,6 @@
 /// [BirthdayPickerModal 포팅 — 1/4: 데이터 모델]
 ///
-/// 원본: `handoff-extract/BirthdayPickerModal.jsx`(신통방통 소원방 디자인
+/// 원본: `handoff-extract/BirthdayPickerModal.jsx`(귀인지도 소원방 디자인
 /// 핸드오프 패키지)의 상수·검증 로직을 Dart로 그대로 옮긴다. 이 위젯은
 /// 정통사주69/AI사주/궁합 등 앱 전역의 생년월일+태어난시간 입력 화면을
 /// 하나의 디자인으로 통일하기 위한 공용 컴포넌트다.

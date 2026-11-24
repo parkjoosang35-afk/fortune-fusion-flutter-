@@ -13,7 +13,7 @@ import '../widgets/saju_visual_widgets.dart';
 import 'analysis_complete_screen.dart';
 import 'error_screen.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면③ 분석 중
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면③ 분석 중
 /// (9단계 세레모니). `design_files/saju/screens-a.jsx`의 `ScreenAnalyze`와
 /// `docs/04_모션.md`의 9단계 타이밍 표를 재현한다.
 ///

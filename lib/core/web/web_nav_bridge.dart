@@ -1,6 +1,6 @@
 /// [PC 랜딩 연동 — postMessage 기반 양방향 라우팅 동기화]
 ///
-/// [배경] 신통방통 PC 웹 랜딩(sintong.kr/)은 이 앱을 `sintong.kr/app/`에
+/// [배경] 귀인지도 PC 웹 랜딩(sintong.kr/)은 이 앱을 `sintong.kr/app/`에
 /// iframe으로 띄우고, 왼쪽 메뉴 클릭 시 iframe 내부 화면을 해당 서비스로
 /// 이동시키려 한다. 처음 디자인 지시서는 `iframe.contentWindow.location.hash`를
 /// 직접 바꾸는 방식을 제안했으나, 실측 결과 이 방식은 작동하지 않았다:

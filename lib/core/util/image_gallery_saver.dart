@@ -21,7 +21,7 @@
 // 웹 플랫폼을 지원하지 않으므로(pub.dev platforms 목록에 web 없음) 웹
 // 저장이 전면 실패한다.
 //
-// [REQ-04 재수정 — 2026-10-21, 신통방통_저장기능_정상화_개발지시서_v1.0]
+// [REQ-04 재수정 — 2026-10-21, 귀인지도_저장기능_정상화_개발지시서_v1.0]
 // ⚠️ 1차 수정(kIsWeb 무조건부 import)은 위 P-03을 없앴지만, 더 심각한
 // 신규 회귀를 유발했다: `image_gallery_saver_web.dart`(`package:web`,
 // dart:js_interop 기반)가 **모든 컴파일 타겟(Android/iOS VM, `flutter test`

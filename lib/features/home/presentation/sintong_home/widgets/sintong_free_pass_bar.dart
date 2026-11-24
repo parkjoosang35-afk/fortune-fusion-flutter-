@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_free_pass_bar.dart
-// [신통방통 메인 매핑] C-07 · FreePassBar — Handoff.html §06
+// [귀인지도 메인 매핑] C-07 · FreePassBar — Handoff.html §06
 // 검정 pill(bg #0F0F0F, radius999, height50) — 좌측 자물쇠+"프리패스"
 // 라벨, 우측 원형 green(ctaGreen) 화살표. 탭 시 구독/프리패스 화면 이동.
 //

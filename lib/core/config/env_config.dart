@@ -19,7 +19,7 @@ class EnvConfig {
 
   /// 공유 링크와 API가 서로 다른 운영/검수 환경을 가리키지 않게 한다.
   ///
-  /// [웹 공유 전용 — 신통방통 앱·웹 공유 정상화 지시서 §3-B] 앱 설치를
+  /// [웹 공유 전용 — 귀인지도 앱·웹 공유 정상화 지시서 §3-B] 앱 설치를
   /// 유도하지 않는 "웹 전용" 주소. Android App Links(pathPrefix="/r")와
   /// 겹치지 않도록 admin_web `web-result/[id]/page.tsx`가 의도적으로 별도
   /// 경로로 분리해뒀다 — 웹에서 공유할 때는 반드시 이 메서드만 사용한다.
@@ -27,8 +27,8 @@ class EnvConfig {
       .replace(path: '/web-result/${Uri.encodeComponent(shareId)}', query: null, fragment: null)
       .toString();
 
-  /// [앱 공유 전용 — 신통방통 앱·웹 공유 정상화 지시서 §3-A] Android App
-  /// Links 대상 `/r/{shareId}` 절대 URL. 받는 사람 기기에 신통방통 앱이
+  /// [앱 공유 전용 — 귀인지도 앱·웹 공유 정상화 지시서 §3-A] Android App
+  /// Links 대상 `/r/{shareId}` 절대 URL. 받는 사람 기기에 귀인지도 앱이
   /// 설치되어 있고 App Links 검증(autoVerify)이 성공한 상태면 OS가 이 링크를
   /// 클릭하는 즉시 앱의 [SharedResultScreen]으로 직접 연결한다(미설치이거나
   /// 검증 전/실패 상태면 동일 경로의 `/r/[id]` SSR 웹페이지로 자연스럽게
@@ -63,7 +63,7 @@ class EnvConfig {
     defaultValue: '',
   );
 
-  /// [신통방통 메인 히어로 영상 전환 지시서 v1.0 §5] 히어로 영상/포스터
+  /// [귀인지도 메인 히어로 영상 전환 지시서 v1.0 §5] 히어로 영상/포스터
   /// 자산이 서빙되는 base URL(호스트+경로 접두사, 트레일링 슬래시 없음).
   ///
   /// [CDN 미구축 상태의 임시 구조] 사용자 확정: "현재 S3+CloudFront는

@@ -175,7 +175,7 @@ const List<CareMenuInfo> kCareMenuInfos = [
       CareMenuStep('🧧', '사기 전에 꼭 한 번 더 확인', '지금 → 쓴 뒤 남는 양을 보여줘요'),
       CareMenuStep('🧾', '산 것은 내역에 남아요', '복주머니 1개 = 10원'),
     ],
-    note: '모자라면 활동으로 모으거나 신통방통에서 충전할 수 있어요.',
+    note: '모자라면 활동으로 모으거나 귀인지도에서 충전할 수 있어요.',
     lockKey: 'shop',
   ),
   CareMenuInfo(

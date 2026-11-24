@@ -17,7 +17,7 @@ import '../widgets/saju_result_access_gate_sheet.dart';
 import 'story_detail_screen.dart';
 import 'error_screen.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑤/⑨ 사주
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑤/⑨ 사주
 /// 이야기 미리보기. `design_files/saju/screens-b.jsx`의 `ScreenPreview`를
 /// 재현한다 — "다른 사주 이야기" 선택 후 두 번째 이후 이야기(화면⑨)도
 /// 조명(SceneBg)만 바뀔 뿐 동일 화면을 재사용한다(지시서 §범위).

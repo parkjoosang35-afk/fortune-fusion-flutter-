@@ -700,7 +700,7 @@ class _GuinjiMapGuestJoinScreenState extends State<GuinjiMapGuestJoinScreen> {
         // Flutter 웹 빌드(`sintong.kr/app/`)든 항상 SPEC의 "G1(앱)" 화면
         // 역할만 한다 — SPEC이 말하는 진짜 "W1(웹)"은 완전히 별개인
         // admin_web Next.js 페이지(`g/[token]/guinji-invite-interactive.tsx`)
-        // 다. 즉 이 화면 안에서 "신통방통 앱에서 열기" 버튼은 이미 앱 안에
+        // 다. 즉 이 화면 안에서 "귀인지도 앱에서 열기" 버튼은 이미 앱 안에
         // 있으므로 의미가 없어 넣지 않는다.
         const _GiDashedPointNotice(),
         const SizedBox(height: 10),

@@ -26,7 +26,7 @@ import 'features/notification/notification_provider.dart';
 import 'features/notification/data/notification_repository.dart';
 import 'features/attendance/application/attendance_provider.dart';
 import 'features/attendance/data/attendance_repository.dart';
-// [신통방통 정통사주 리뉴얼] 기존 saju(AI LLM)/saju_v3(죽은 베타) Provider는
+// [귀인지도 정통사주 리뉴얼] 기존 saju(AI LLM)/saju_v3(죽은 베타) Provider는
 // 완전히 제거되었다. 사주는 이제 SajuRenewalProvider(아래 참조) 하나로
 // 통일된다.
 import 'features/fortune/tarot/application/tarot_provider.dart';
@@ -98,7 +98,7 @@ import 'features/pouch_box/application/pouch_box_provider.dart';
 import 'features/pouch_box/data/pouch_box_repository.dart';
 import 'features/result_access/application/result_access_provider.dart';
 import 'features/result_access/data/result_access_repository.dart';
-// [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주 이야기"
+// [귀인지도 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주 이야기"
 // 흐름 전용 Provider. 기존 saju_v3/saju_repository(69종 그리드)와 완전히
 // 분리된 신규 feature이며, STEP1~6 백엔드(topics/select, interpret)는
 // 무수정 — 이 Provider는 그 결과를 소비하는 클라이언트 상태관리만 담당한다.
@@ -126,7 +126,7 @@ class App extends StatelessWidget {
         // 텍스트 크기 배율. MaterialApp.builder에서 TextScaler로 적용되어
         // 앱 전체(모든 결과페이지 포함)에 한 번에 반영된다.
         ChangeNotifierProvider(create: (_) => TextScaleProvider()),
-        // [신통방통 사운드 배치 개발 기획서 v1.2 — 2026-11] 8개 메뉴
+        // [귀인지도 사운드 배치 개발 기획서 v1.2 — 2026-11] 8개 메뉴
         // BGM·앰비언스·18종 UI SFX(전환 표식음 포함)를 담당하는 전역 단일
         // 서비스. [2026-11 중앙 라우팅 전환] BGM 전환은 더 이상 화면별
         // SoundRouteTrigger에만 의존하지 않고, 아래 navigatorObservers의
@@ -147,7 +147,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => IntroConfigProvider(IntroConfigRepository()),
         ),
-        // [자율 정리 - 정책 위반 무력화] 신통방통은 "적립률(등급 배율)" 개념이
+        // [자율 정리 - 정책 위반 무력화] 귀인지도는 "적립률(등급 배율)" 개념이
         // 없는 무료 광고형 구조다(복주머니는 항상 1:1 지급). 과거 등급 배율을
         // WalletProvider에 주입하던 ProxyProvider 연결을 제거하고 단순
         // ChangeNotifierProvider로 되돌린다(WalletProvider.earn()은 배율 없이
@@ -155,7 +155,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => WalletProvider(WalletRepository()),
         ),
-        // [신통방통 복주머니 광고 적립 시스템] 지갑 화면의 "광고 보고 충전" 카드가
+        // [귀인지도 복주머니 광고 적립 시스템] 지갑 화면의 "광고 보고 충전" 카드가
         // 참조하는 광고 목록 전역 상태. WalletProvider와 별도 원장이지만 지급
         // 자체는 WalletProvider.load()로 재조회하는 동일한 서버-확정 패턴을 쓴다.
         ChangeNotifierProvider(
@@ -249,7 +249,7 @@ class App extends StatelessWidget {
           update: (_, pass, __) => AccessChecker(pass: pass),
         ),
         // ── 기능별 Provider ──
-        // [신통방통 정통사주 리뉴얼] 여기 있던 SajuProvider(기존 AI LLM 사주)와
+        // [귀인지도 정통사주 리뉴얼] 여기 있던 SajuProvider(기존 AI LLM 사주)와
         // SajuV3Provider(죽은 베타 69종 엔진 연동)는 완전히 제거되었다. 사주는
         // SajuRenewalProvider(아래 참조, '/saju-renewal') 하나로 통일된다.
         ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),
@@ -290,7 +290,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => SubscriptionProvider(SubscriptionRepository()),
         ),
-        // [코인/포인트 잔재 제거] 과거 "신통방통 소원방"(wish_room) 모듈이 쓰던
+        // [코인/포인트 잔재 제거] 과거 "귀인지도 소원방"(wish_room) 모듈이 쓰던
         // 복주머니와 별개인 자체 화폐("조각"/달빛 크리스탈) 경제는 완전히
         // 삭제했다. 이 앱의 유일한 재화는 복주머니(LuckPouchProvider)뿐이다.
         // [소원방 v2.6 전면 재구축] 구 소원벽게시판(WishWallProvider/
@@ -333,7 +333,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => WishRoomProvider(ApiRepository()),
         ),
-        // [신통방통 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규
+        // [귀인지도 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규
         // "사주 이야기" 흐름 전역 상태. baseUrl은 다른 신규 API Provider와
         // 동일하게 EnvConfig.adminApiBaseUrl 기반으로 조립한다(하드코딩
         // 금지). 기존 saju_v3/SajuProvider와 독립적으로 동작한다.
@@ -377,7 +377,7 @@ class App extends StatelessWidget {
                 WebNavBridgeObserver(),
                 SoundNavigatorObserver(context.read<SintongSoundService>()),
               ],
-              title: '신통방통',
+              title: '귀인지도',
               debugShowCheckedModeBanner: false,
               // [다크 베이스 — 사용자 피드백] 화면 전환 순간 흰/아이보리로
               // 번쩍이던 것은 MaterialPageRoute의 새 페이지 베이스색이
@@ -448,7 +448,7 @@ class App extends StatelessWidget {
                         ).copyWith(textScaler: TextScaler.linear(qaScale)),
                         child: guarded,
                       );
-                // [신통방통 전역 핀치 확대 시스템] MaterialApp.builder는
+                // [귀인지도 전역 핀치 확대 시스템] MaterialApp.builder는
                 // Navigator(모든 화면/팝업/모달)의 공통 조상이므로, 여기
                 // 한 곳에만 끼워 넣으면 앱 전체 화면에서 동일한 두 손가락
                 // 핀치 확대 경험이 자동으로 적용된다. 개별 화면이 이
@@ -528,18 +528,18 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     auth.registerLogoutCallback(
       context.read<NameFortuneProvider>().clearOnLogout,
     );
-    // [신통방통 정통사주 리뉴얼] SajuProvider/SajuV3Provider 로그아웃
+    // [귀인지도 정통사주 리뉴얼] SajuProvider/SajuV3Provider 로그아웃
     // 콜백은 제거되었다 — 아래 SajuRenewalProvider.clearOnLogout이 동일한
     // 역할(개인정보 잔존 방지)을 담당한다.
     // [소원방 v2.6 재구축]
     auth.registerLogoutCallback(context.read<WishRoomProvider>().clearOnLogout);
-    // [신통방통 정통사주 리뉴얼 — STEP 6.5, 계정 격리 원칙] 사용자A의
+    // [귀인지도 정통사주 리뉴얼 — STEP 6.5, 계정 격리 원칙] 사용자A의
     // FACT/Topic Exposure 상태가 사용자B 화면에 섞이지 않도록 로그아웃
     // 시 메모리 상태를 초기화한다.
     auth.registerLogoutCallback(
       context.read<SajuRenewalProvider>().clearOnLogout,
     );
-    // [신통방통 정통사주 리뉴얼 — 화면① 재방문 카드] 사용자A가 마지막으로
+    // [귀인지도 정통사주 리뉴얼 — 화면① 재방문 카드] 사용자A가 마지막으로
     // 본 이야기가 사용자B의 재방문 카드로 노출되면 안 된다(계정 격리
     // 원칙과 동일 취지).
     auth.registerLogoutCallback(() {

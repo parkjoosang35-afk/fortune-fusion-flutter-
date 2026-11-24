@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_v2_topbar.dart
-// [신통방통 홈 v2] 히어로 위에 겹쳐지는 상태바+탑바 — README §status/
+// [귀인지도 홈 v2] 히어로 위에 겹쳐지는 상태바+탑바 — README §status/
 // §topbar 스펙(좌측 브랜드모노 라벨 + 우측 메뉴 버튼)을 그대로 재현하되,
 // 기존 화면(v1 SintongBrandAppBar)이 제공하던 지갑 잔액/알림 뱃지/
 // 프로필 진입 기능을 잃지 않도록 메뉴 버튼 대신 3개의 원형 아이콘
@@ -27,7 +27,7 @@ class SintongV2TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(22, 24, 22, 0),
       child: Row(
         children: [
-          Text('신통방통', style: SHomeV2Text.brandMono()),
+          Text('귀인지도', style: SHomeV2Text.brandMono()),
           const Spacer(),
           // 코인 pill — 지갑 잔액(기존 v1 기능 유지).
           GestureDetector(

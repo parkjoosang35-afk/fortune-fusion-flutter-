@@ -210,7 +210,7 @@ class GuinjiDeepLinkHandler {
     }
 
     // ── 7) 궁합지도 초대(`gh`) ───────────────────────────────────────
-    // [신통방통 궁합지도 개발 지시서 §2③] `fortunefusion://gh/{token}` /
+    // [귀인지도 궁합지도 개발 지시서 §2③] `fortunefusion://gh/{token}` /
     // `https://sintong.kr/gh/{token}`. '/r'·'/w'·'/coupon'과 동일한
     // 패턴으로 AppRouter의 '/gh/{token}' named route로 위임한다
     // ([GunghapGuestInputScreen]이 비로그인 게스트 사주입력을 담당).
@@ -239,7 +239,7 @@ class GuinjiDeepLinkHandler {
   ///   - `wish-room`  → `/wish-room`(소원방 게이트, home_screen과 동일)
   ///   - `tarot`      → [AppRouter.tarotIntroRoute](타로 인트로 스플래시,
   ///                    home_screen 진입점과 동일)
-  ///   - `jeontong`   → [신통방통 정통사주 리뉴얼] 유일한 신규 정통사주(`/saju-renewal`,
+  ///   - `jeontong`   → [귀인지도 정통사주 리뉴얼] 유일한 신규 정통사주(`/saju-renewal`,
   ///                    saju_renewal)로 연결한다(구 69종 부적게이트는 제거됨).
   ///   - `today`      → 오늘의 운세는 2026-08-13 결정으로 정통사주에
   ///                    통합되었으므로(RemovedDailyFortuneStub 참고) 동일하게

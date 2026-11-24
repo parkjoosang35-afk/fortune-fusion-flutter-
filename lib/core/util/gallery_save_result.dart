@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-/// [REQ-09 — 신통방통_저장기능_정상화_개발지시서_v1.0] 저장 성공 토스트 문구를
+/// [REQ-09 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 저장 성공 토스트 문구를
 /// 전 화면 공통으로 통일한다: "갤러리에 저장했어요 / 파일 다운로드를
 /// 시작했어요". 과거에는 화면마다 "원래 결과 페이지를 갤러리에
 /// 저장했어요", "카드 이미지를 갤러리에 저장했어요" 등 대상 명사가 섞인
@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 String gallerySaveSuccessMessage() =>
     kIsWeb ? '파일 다운로드를 시작했어요.' : '갤러리에 저장했어요.';
 
-/// [REQ-05 — 신통방통_저장기능_정상화_개발지시서_v1.0] 저장 실패 원인을
+/// [REQ-05 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 저장 실패 원인을
 /// 구분하기 위한 결과 타입.
 ///
 /// 기존 `saveImageBytesToGallery()`는 `catch (_) { return false; }`로
@@ -49,7 +49,7 @@ enum GallerySaveFailureReason {
   String get userMessage => switch (this) {
     GallerySaveFailureReason.emptyBytes => '결과 이미지를 만들지 못했어요. 다시 시도해주세요.',
     GallerySaveFailureReason.accessDenied =>
-      '사진 권한이 꺼져 있어요. 설정 → 사진 → 신통방통에서 허용해주세요.',
+      '사진 권한이 꺼져 있어요. 설정 → 사진 → 귀인지도에서 허용해주세요.',
     GallerySaveFailureReason.notEnoughSpace =>
       '기기 저장 공간이 부족해요. 공간을 확보한 뒤 다시 시도해주세요.',
     GallerySaveFailureReason.notSupportedFormat => '이 이미지 형식은 저장할 수 없어요.',

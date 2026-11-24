@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_healing_bar.dart
-// [신통방통 메인 매핑] C-03 · HealingBar — Handoff.html §06
+// [귀인지도 메인 매핑] C-03 · HealingBar — Handoff.html §06
 // 🌿 아이콘 + "오늘의 힐링 한마디" 라벨(sage 11px/600) + 본문 2줄
 // (inkSoft 12.5px/1.5).
 //

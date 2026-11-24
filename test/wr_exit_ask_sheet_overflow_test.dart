@@ -1,4 +1,4 @@
-// [신통방통 반응형 화면 규격 통일 지시서] 소원방 공용 "신통방통 홈으로
+// [귀인지도 반응형 화면 규격 통일 지시서] 소원방 공용 "귀인지도 홈으로
 // 갈까요" 확인시트(_showExitAskSheet, wr_nav_pill.dart) 오버플로 테스트.
 //
 // [확인된 실제 버그 1건 - debugDumpRenderTree로 근본원인 확정]
@@ -66,7 +66,7 @@ void main() {
           debugDumpRenderTree();
         }
         expect(ex, isNull);
-        expect(find.text('신통방통 홈으로 갈까요'), findsOneWidget);
+        expect(find.text('귀인지도 홈으로 갈까요'), findsOneWidget);
         expect(find.text('머무를게요'), findsOneWidget);
         expect(find.text('홈으로'), findsOneWidget);
       },

@@ -3,7 +3,7 @@ import 'package:flutter_app/features/auth/application/auth_provider.dart';
 import 'package:flutter_app/features/auth/data/auth_repository.dart';
 import 'package:flutter_app/features/home/domain/jeontong_local_to_server_migration.dart';
 
-/// [신통방통 2단계 - 로컬 → 서버 1회성 마이그레이션] 회귀 테스트.
+/// [귀인지도 2단계 - 로컬 → 서버 1회성 마이그레이션] 회귀 테스트.
 ///
 /// 실제 HTTP 호출(AuthRepository.updateProfile 등)은 이 단위 테스트
 /// 범위 밖이다(네트워크 의존 배제) — 여기서는 함수 진입 시점의 "조건 판단"

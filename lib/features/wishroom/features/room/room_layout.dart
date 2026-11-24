@@ -1,4 +1,4 @@
-// 신통방통 소원방 · 방 배치 좌표 — prototype/app/room-layout.js 1:1 이식 (앱 방 · 꾸미기 · 배경화면 공용)
+// 귀인지도 소원방 · 방 배치 좌표 — prototype/app/room-layout.js 1:1 이식 (앱 방 · 꾸미기 · 배경화면 공용)
 // 좌표계 = 390×844 캔버스. 실제 화면에서는 scale = screenWidth / 390 으로 곱하세요.
 // 기본 방 = assets/wishroom/room-empty.jpg (창 · 탁자 · 연꽃 촛불 · 방석 · 빈 선반 · 벽 등잔만)
 // → 방에 보이는 물건은 전부 "레벨 해금" 또는 "사용자가 고른 꾸미기"에서만 나옵니다.

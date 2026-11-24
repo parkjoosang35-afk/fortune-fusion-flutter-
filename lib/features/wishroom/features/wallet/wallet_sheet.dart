@@ -137,7 +137,7 @@ class _WalletSheetState extends State<WalletSheet> {
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
-                // "내 복주머니" 라벨 + "신통방통 공용" 배지가 고정 Row로 배치돼
+                // "내 복주머니" 라벨 + "귀인지도 공용" 배지가 고정 Row로 배치돼
                 // 글자 확대(1.3배)+좁은 화면(320~360px) 조합에서 가로 폭을
                 // 넘어 11px RenderFlex overflow가 발생했다. Wrap으로 바꿔
                 // 공간이 부족하면 배지가 다음 줄로 자연스럽게 내려가게 한다
@@ -146,7 +146,7 @@ class _WalletSheetState extends State<WalletSheet> {
                   Text('내 복주머니', style: WrF.body(11.5, color: WrC.muted)),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
                     decoration: BoxDecoration(color: const Color(0x26F5CF6A), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x66F5CF6A))),
-                    child: Text('신통방통 공용', style: WrF.body(10, color: const Color(0xFFFFE7A0)))),
+                    child: Text('귀인지도 공용', style: WrF.body(10, color: const Color(0xFFFFE7A0)))),
                 ]),
                 Text('${me?.pouch ?? 0}', key: ValueKey(me?.pouch), style: WrF.display(36, color: Colors.white)),
                 if (_gotKey > 0) Text('+$_gotAmount 담겼어요', key: ValueKey('got$_gotKey'), style: WrF.body(12.5, color: WrC.glow)),
@@ -155,7 +155,7 @@ class _WalletSheetState extends State<WalletSheet> {
             const SizedBox(height: 14),
             Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black.withValues(alpha: .2),
                 borderRadius: BorderRadius.circular(12), border: Border.all(color: WrC.line, style: BorderStyle.solid)),
-              child: Text('신통방통 어디서 모은 복주머니든 소원방에서 그대로 쓸 수 있어요. 돈으로는 살 수 없어요.',
+              child: Text('귀인지도 어디서 모은 복주머니든 소원방에서 그대로 쓸 수 있어요. 돈으로는 살 수 없어요.',
                 style: WrF.body(11.5, color: WrC.muted, height: 1.6))),
             const SizedBox(height: 18),
             Text('오늘 모을 수 있는 복', style: WrF.display(14)),

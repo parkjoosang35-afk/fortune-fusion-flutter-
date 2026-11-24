@@ -67,7 +67,7 @@ class GmColors {
 
 class GmText {
   // ── [2026 디자인 핸드오프 v5 — SPEC.md §1] ──────────────────────────
-  // SPEC은 "신통방통 통합 폰트 1종"을 요구한다 — 위계는 글꼴을 바꾸는 게
+  // SPEC은 "귀인지도 통합 폰트 1종"을 요구한다 — 위계는 글꼴을 바꾸는 게
   // 아니라 굵기(FontWeight)/자간(letterSpacing)만으로 구현한다. SPEC의
   // placeholder family명은 `kGjFont = 'SintongUnified'`(실제 적용할
   // family가 아직 미정)이고, 프로젝트 전역에서 이미 Pretendard를 기본

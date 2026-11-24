@@ -2,13 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §8 그래픽 스타일
+/// [귀인지도 디자인 우선 리디자인 프롬프트] §8 그래픽 스타일
 ///
 /// 화이트 프리미엄 화면에서 쓰는 가볍고 깨끗한 감성 그래픽 모음.
 /// subtle gradient blobs, tiny stars, moon icon, glow rings, soft sparkles.
 /// 과한 3D 대신 아주 옅은 오파시티 도형으로 "공기감"을 표현한다.
 
-/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §9 애니메이션 방향
+/// [귀인지도 디자인 우선 리디자인 프롬프트] §9 애니메이션 방향
 /// "카드 등장 시 부드러운 fade + slight up motion"을 재사용 가능한 래퍼로 표준화.
 /// [delay]를 다르게 주면 섹션들이 순차적으로(stagger) 나타나는 효과를 낼 수 있다.
 class FadeSlideIn extends StatefulWidget {

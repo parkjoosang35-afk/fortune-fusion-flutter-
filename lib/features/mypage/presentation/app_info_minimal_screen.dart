@@ -10,7 +10,7 @@ import 'theme/mypage_toast.dart';
 /// [마이페이지 리뉴얼 · DEV 2026-11-06 §S16] "앱 정보" 화면.
 ///
 /// design_handoff_mypage_minimal.zip README §4 "S16 앱 정보" 스펙(로고
-/// "神通萬通" 40px 900 빨강 + "신통방통", 버전 pill "최신 버전 1.0.0"
+/// "神通萬通" 40px 900 빨강 + "귀인지도", 버전 pill "최신 버전 1.0.0"
 /// (업데이트가 있으면 "업데이트 하기"), 행: 오픈소스 라이선스 / 고객센터)에
 /// 따른 전면 신규 화면이다. 기존 `SettingsMinimalScreen`에서는 "앱 정보"
 /// 행이 버전 번호만 토스트로 보여주는 임시 구현이었는데, 이 화면으로
@@ -163,7 +163,7 @@ class _AppInfoMinimalScreenState extends State<AppInfoMinimalScreen> {
                         ),
                         const SizedBox(height: 6),
                         const Text(
-                          '신통방통',
+                          '귀인지도',
                           style: TextStyle(
                             fontFamily: MyPageFonts.ui,
                             fontWeight: FontWeight.w500,
@@ -192,7 +192,7 @@ class _AppInfoMinimalScreenState extends State<AppInfoMinimalScreen> {
                     title: '오픈소스 라이선스',
                     onTap: () => showLicensePage(
                       context: context,
-                      applicationName: '신통방통',
+                      applicationName: '귀인지도',
                       applicationVersion: _versionLabel,
                     ),
                   ),

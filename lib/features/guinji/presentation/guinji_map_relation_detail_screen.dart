@@ -210,7 +210,7 @@ class _GuinjiMapRelationDetailScreenState
   Future<void> _handleShare() async {
     final person = widget.person;
     final meta = guinjiRelationMetaOf(person.relation);
-    final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 신통방통 귀인지도';
+    final message = '${person.name}님과의 관계는 "${meta.label}"예요 · 귀인지도';
     if (!mounted) return;
     // [카카오 OG 결과페이지 공유 — 사용자 피드백] 텍스트만 보내면 카톡에
     // 링크 미리보기(OG)가 붙지 않는다. 서버 공유 시스템(/r/{shareId})에
@@ -220,7 +220,7 @@ class _GuinjiMapRelationDetailScreenState
         context,
         resultType: ShareResultType.relationship,
         title: message,
-        description: '${meta.label} · 신통방통 귀인지도',
+        description: '${meta.label} · 귀인지도',
         // [웹 결과페이지 빈 화면 버그 수정 — 2026-11] 과거에는 각 관계
         // 유형 키에 0/1 플래그만 담아 보냈는데, admin_web 웹 렌더러
         // (RelationshipView)는 사람이 읽을 요약 텍스트(summary)나
@@ -250,7 +250,7 @@ class _GuinjiMapRelationDetailScreenState
           'ohaeng': person.ohaeng,
           'note': person.note,
         },
-        subject: '신통방통 귀인지도',
+        subject: '귀인지도',
         originalResultKey: _originalResultKey,
         // [2026-귀인지도 수정요청 5 — 카카오톡 공유 근본 수정] 기존에는
         // 서버 공유 링크를 만들어도 네이티브에서 결국 기본 OS 공유
@@ -927,7 +927,7 @@ class _SpecialLockedCardState extends State<_SpecialLockedCard> {
   }
 
   // [2026-12 사용자 지시 "다 통일해" — 결과보기 게이트 시각 통일 3/3]
-  // 신통방통 안의 다른 두 결과보기 게이트(result_access_gate_sheet.dart,
+  // 귀인지도 안의 다른 두 결과보기 게이트(result_access_gate_sheet.dart,
   // saju_result_access_gate_sheet.dart)는 이미 coupang_pass_sheet.dart와
   // 동일한 한지 크림/부적 주홍 톤(MyPageColors)으로 리스킨했다. 귀인지도
   // '스페셜 해설' 잠금 카드도 동일한 패턴 — 로직(onUnlockFreePass/

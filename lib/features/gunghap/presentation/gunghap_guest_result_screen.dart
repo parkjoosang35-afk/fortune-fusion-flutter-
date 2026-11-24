@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: gunghap_guest_result_screen.dart
-// [신통방통 궁합지도 개발 지시서 §2③/§3] 게스트(초대받은 사람) 본인 화면.
+// [귀인지도 궁합지도 개발 지시서 §2③/§3] 게스트(초대받은 사람) 본인 화면.
 //
 // `GunghapGuestInputScreen._handleSubmit()`가 성공 직후 pushReplacement로
 // 도달한다. 전달받는 [result]는 `POST /gunghap/g/{token}/join` 응답을

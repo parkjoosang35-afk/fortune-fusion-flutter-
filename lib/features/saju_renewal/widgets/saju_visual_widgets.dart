@@ -6,7 +6,7 @@ import '../theme/saju_dark_tokens.dart';
 import '../data/saju_visual_adapter.dart';
 import '../utils/saju_motion_prefs.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] 사주 시각화 컴포넌트.
+/// [귀인지도 정통사주 리뉴얼 — 다크 핸드오프] 사주 시각화 컴포넌트.
 /// `design_files/saju/saju-components.jsx`의 Bagua/PillarGrid/ElementShard/
 /// ElementBars/BalanceGauge/LuckStream을 Flutter CustomPaint로 재현.
 

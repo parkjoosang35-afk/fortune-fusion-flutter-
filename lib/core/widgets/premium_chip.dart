@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
-/// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] §3 칩 규칙(v2)
+/// [귀인지도 서브 디자인 통일 마스터 프롬프트] §3 칩 규칙(v2)
 ///
 /// 기준 시안 반영: 선택 시 네온 옐로우그린(premiumNeonLime) 채움 + 다크 텍스트,
 /// 비선택 시 연회색(premiumInactiveGrey) 채움 + 보더 없음. 선택 전환 시

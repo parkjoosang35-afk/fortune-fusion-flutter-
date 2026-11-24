@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/auth_token_store.dart';
 import 'api_result.dart';
 
-/// [신통방통 엔진 통합 — STEP 2 "28개 Repository 공통 401 처리 지점"]
+/// [귀인지도 엔진 통합 — STEP 2 "28개 Repository 공통 401 처리 지점"]
 ///
 /// 지금까지 각 Repository(`TarotRepository`/`FaceRepository`/`PalmRepository`/
 /// `CompatibilityRepository`/`SajuRenewalApi` 등)는 401(토큰 만료/무효) 응답을

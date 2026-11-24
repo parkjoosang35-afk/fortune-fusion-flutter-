@@ -37,7 +37,7 @@ class _PolicyWebViewState extends State<PolicyWebView> {
 
   @override
   Widget build(BuildContext context) {
-    // [신통방통 전역 핀치 확대 시스템 — 제외 구역] 네이티브 플랫폼 뷰
+    // [귀인지도 전역 핀치 확대 시스템 — 제외 구역] 네이티브 플랫폼 뷰
     // (AndroidView/UiKitView 기반 WebView)는 별도 레이어로 합성되어
     // RenderRepaintBoundary.toImage() 캡처에 포함되지 않거나 빈 영역으로
     // 나타나는 Flutter의 알려진 제약이 있다. 또한 WebView 내부 페이지

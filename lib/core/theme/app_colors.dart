@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 /// Primary: 브랜드 보라/남색 계열(운세/신비 컨셉)
 /// Secondary: 복주머니/리워드 강조색(골드/옐로)
 ///
-/// [웹→앱 이식] "신통방통" 모바일웹의 "신비롭고 고급스러운 밤하늘(검정·남색·보라·금색)"
+/// [웹→앱 이식] "귀인지도" 모바일웹의 "신비롭고 고급스러운 밤하늘(검정·남색·보라·금색)"
 /// 디자인 시스템 팔레트를 그대로 이식하여 다크 테마를 기본 정체성으로 승격한다.
-/// (참고: 신통방통 css/style.css :root 변수 --bg-deep/--bg-navy/--purple/--gold 등)
+/// (참고: 귀인지도 css/style.css :root 변수 --bg-deep/--bg-navy/--purple/--gold 등)
 class AppColors {
   AppColors._();
 
   // ══════════════════════════════════════════════════════════════
   // [운세 앱 개발 프롬프트-메인 UI 리뉴얼] 현대카드 앱 스타일 팔레트
-  // 참고 스크린샷(신통방통 x 현대카드 앱) 정밀 색상 추출값.
+  // 참고 스크린샷(귀인지도 x 현대카드 앱) 정밀 색상 추출값.
   // 메인 홈 화면(라이트 모드)의 1차 소스오브트루스로 사용하고,
   // 기존 신비 컨셉 다크 팔레트(deepSpace 등)는 결과화면/리추얼 등에서 계속 활용.
   // ══════════════════════════════════════════════════════════════
@@ -71,18 +71,18 @@ class AppColors {
   };
 
   // ── Primary (보라/남색 - 신비/운세 컨셉) ──
-  // 신통방통 --purple 계열로 정밀 조정
+  // 귀인지도 --purple 계열로 정밀 조정
   static const Color primary = Color(0xFF7B4FD1); // --purple
   static const Color primaryDark = Color(0xFF4A2A8C); // --purple-deep
   static const Color primaryLight = Color(0xFFA97CF0); // --purple-light
   static const Color primaryContainer = Color(0xFFEDE7FF);
 
-  // 배경 그라디언트(신비로운 밤하늘 느낌) - 신통방통 --bg-deep/--bg-navy
+  // 배경 그라디언트(신비로운 밤하늘 느낌) - 귀인지도 --bg-deep/--bg-navy
   static const Color deepSpace = Color(0xFF05040F); // --bg-deep
   static const Color deepSpaceLight = Color(0xFF161335); // --bg-navy-2
 
   // ── Secondary (골드/옐로 - 복주머니/리워드) ──
-  // 신통방통 --gold 계열로 정밀 조정
+  // 귀인지도 --gold 계열로 정밀 조정
   static const Color secondary = Color(0xFFE0B356); // --gold
   static const Color secondaryDark = Color(0xFFA9772F); // --gold-deep
   static const Color secondaryLight = Color(0xFFF5D992); // --gold-light
@@ -116,15 +116,15 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  /// 신통방통 --gradient-purple 이식 - 보조 보라 그라디언트(부적/매칭 등 강조 영역)
+  /// 귀인지도 --gradient-purple 이식 - 보조 보라 그라디언트(부적/매칭 등 강조 영역)
   static const LinearGradient purpleGradient = LinearGradient(
     colors: [primaryDark, primary, primaryLight],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // ── Dark mode neutrals (07단계 §10 신규, 신통방통 팔레트로 정밀 조정) ──
-  // [Fortune Fusion UI 리뉴얼 프롬프트] 웹 프로토타입(딥네이비+골드/퍼플 우주 감성)
+  // ── Dark mode neutrals (07단계 §10 신규, 귀인지도 팔레트로 정밀 조정) ──
+  // [귀인지도 UI 리뉴얼 프롬프트] 웹 프로토타입(딥네이비+골드/퍼플 우주 감성)
   // 톤에 맞춰 다크 팔레트 값을 우주 감성 색상으로 갱신한다.
   // (이 상수들은 app_theme.dart의 dark ThemeData 생성에만 쓰이고, 화면 코드에서
   // 직접 참조되는 곳은 없어 값 변경이 다른 화면에 영향을 주지 않는다)
@@ -140,7 +140,7 @@ class AppColors {
     0x339D7BFF,
   ); // accentPurple 20%
 
-  /// 신통방통 --gradient-card 이식 - 다크 모드 카드 표면(옅은 화이트 오버레이 그라디언트)
+  /// 귀인지도 --gradient-card 이식 - 다크 모드 카드 표면(옅은 화이트 오버레이 그라디언트)
   /// 배경 위에 얹어 미세한 유리질감(glass-card)을 표현할 때 사용.
   static const LinearGradient cardGradientDark = LinearGradient(
     colors: [Color(0x0FFFFFFF), Color(0x03FFFFFF)],
@@ -155,7 +155,7 @@ class AppColors {
   static const Color goldGlowBorder = Color(0x3AFFD700);
 
   // ══════════════════════════════════════════════════════════════
-  // [Fortune Fusion UI 리뉴얼 프롬프트] 🌌 우주 감성 팔레트 (신규)
+  // [귀인지도 UI 리뉴얼 프롬프트] 🌌 우주 감성 팔레트 (신규)
   // 웹 프로토타입 톤 매칭. CosmicCard/StarryBackground/HeroFortuneCard 등
   // 신규 Presentation 위젯 전용으로 추가하는 토큰들이며, 기존 토큰(primary,
   // secondary, textPrimary 등)은 하위호환을 위해 그대로 유지한다.
@@ -231,7 +231,7 @@ class AppColors {
   }
 
   /// 아이콘 원형 배지 등의 컨테이너 배경 - 다크모드에서는 옅은 보라 대신
-  /// 카드보다 살짝 밝은 반투명 화이트(신통방통 유리질감)를 사용한다.
+  /// 카드보다 살짝 밝은 반투명 화이트(귀인지도 유리질감)를 사용한다.
   static Color containerOf(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? const Color(0x1FA97CF0) : primaryContainer;
@@ -262,7 +262,7 @@ class AppColors {
   };
 
   // ══════════════════════════════════════════════════════════════
-  // [Fortune Fusion 디자인 우선 리디자인 프롬프트] ✨ 화이트 프리미엄 팔레트 (신규)
+  // [귀인지도 디자인 우선 리디자인 프롬프트] ✨ 화이트 프리미엄 팔레트 (신규)
   //
   // 기존 다크 "우주(Cosmic)" 팔레트(bgPrimary/cosmicText* 등, 위 §섹션)는
   // FortuneHub/CommunityHub/LuckyBag/My 등 아직 손대지 않는 화면들이 광범위하게
@@ -324,7 +324,7 @@ class AppColors {
   static const Color premiumCardShadow = Color(0x146F5BFF);
 
   // ══════════════════════════════════════════════════════════════
-  // [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] ⚡ 액센트 확장 (신규)
+  // [귀인지도 서브 디자인 통일 마스터 프롬프트] ⚡ 액센트 확장 (신규)
   //
   // 첨부 기준 시안(화이트+소프트퍼플카드+블랙CTA+네온옐로우그린 복주머니) 반영.
   // 기존 premiumCtaGradient(네이비→퍼플)는 홈 화면에서 계속 쓰이므로 값을
@@ -346,7 +346,7 @@ class AppColors {
   static const Color premiumInactiveGreyText = Color(0xFF6B6B6F);
 
   // ══════════════════════════════════════════════════════════════
-  // [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] 홈 화면 기준 시안 전용 (신규)
+  // [귀인지도 서브 디자인 통일 마스터 프롬프트] 홈 화면 기준 시안 전용 (신규)
   //
   // 첨부 홈 화면 목업(화이트+블랙CTA+인디고 히어로카드+네온라임 원형버튼) 정밀 색상
   // 추출값. 기존 premiumHeroGradient(화이트→연라벤더)는 다른 화면에서 계속 쓰이므로

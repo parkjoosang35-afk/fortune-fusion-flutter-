@@ -482,7 +482,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
               context,
             ).pushNamedAndRemoveUntil('/home', (r) => false),
             child: const Text(
-              '신통방통 홈으로 가기',
+              '귀인지도 홈으로 가기',
               style: TextStyle(color: GmColors.muted),
             ),
           ),
@@ -593,7 +593,7 @@ class _SharedResultScreenState extends State<SharedResultScreen> {
             onPressed: () => Navigator.of(
               context,
             ).pushNamedAndRemoveUntil('/home', (r) => false),
-            child: const Text('신통방통 홈으로 가기'),
+            child: const Text('귀인지도 홈으로 가기'),
           ),
         ),
       ],

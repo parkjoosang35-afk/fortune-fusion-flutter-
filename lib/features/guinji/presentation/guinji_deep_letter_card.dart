@@ -475,7 +475,7 @@ class _GuinjiLetterPreviewOverlayState
     // 원본처럼 시트를 띄운 것 자체로 완료 처리한다(실제 수신 확인 API가
     // 없어 "성공"을 서버로 검증할 방법이 없기 때문 — SPEC §9-1 폴백
     // 원칙과 동일하게 가장 보수적으로 기능을 축소한 것).
-    await safeShareText(context, message, subject: '신통방통 귀인지도 편지');
+    await safeShareText(context, message, subject: '귀인지도 편지');
     if (!mounted) return;
     setState(() {
       _sending = false;

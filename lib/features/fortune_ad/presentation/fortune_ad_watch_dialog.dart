@@ -11,7 +11,7 @@ import '../../mypage/presentation/theme/mypage_success_celebration.dart';
 import '../application/fortune_ad_provider.dart';
 import '../domain/fortune_ad_model.dart';
 
-/// [신통방통 복주머니 광고 적립 시스템] 광고 시청 팝업 결과.
+/// [귀인지도 복주머니 광고 적립 시스템] 광고 시청 팝업 결과.
 enum FortuneAdWatchOutcome {
   /// 끝까지 시청 + 서버 지급 성공.
   granted,
@@ -50,7 +50,7 @@ class FortuneAdWatchResult {
   );
 }
 
-/// [신통방통 복주머니 광고 적립 시스템] 광고 시청 팝업 —
+/// [귀인지도 복주머니 광고 적립 시스템] 광고 시청 팝업 —
 /// 시작(자격확인) → 시청중(진행률/남은시간/보상, 중간종료시 보상없음) →
 /// 완료(서버검증) → 지급애니메이션("복주머니가 열렸습니다! +N") 순으로 진행한다.
 ///

@@ -14,7 +14,7 @@ import '../utils/saju_motion_prefs.dart';
 import 'saju_base_widgets.dart';
 import 'saju_visual_widgets.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] 남은 공용 위젯 모음.
+/// [귀인지도 정통사주 리뉴얼 — 다크 핸드오프] 남은 공용 위젯 모음.
 /// `design_files/saju/saju-components.jsx` 303~524행(TermText/Evidence/
 /// SealedCard/SceneBg×5/GuidePlaceholder)을 Flutter로 1:1 포팅한다.
 ///

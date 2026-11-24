@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../application/share_service.dart';
-// [REQ-04 — 신통방통_저장기능_정상화_개발지시서_v1.0] 이 파일은 기존에
+// [REQ-04 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 이 파일은 기존에
 // `if (dart.library.html)` 조건부 export로 직접 플랫폼 구현 파일을
 // import하고 있었다 — image_gallery_saver.dart에 이미 적용된 kIsWeb
 // 런타임 분기(REQ-04)를 우회하는 별도의 P-03 위험 지점이었다(dart2wasm
@@ -206,7 +206,7 @@ class _FullResultSheetState extends State<FullResultSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            '신통방통',
+                            '귀인지도',
                             style: TextStyle(
                               color: Color(0xFFE9C46A),
                               fontSize: 16,
@@ -257,7 +257,7 @@ class _FullResultSheetState extends State<FullResultSheet> {
             child: Row(
               children: [
                 Expanded(
-                  // [REQ-08 — 신통방통_저장기능_정상화_개발지시서_v1.0]
+                  // [REQ-08 — 귀인지도_저장기능_정상화_개발지시서_v1.0]
                   // 기기 저장 버튼 문구/아이콘을 전 화면 공통
                   // "이미지로 저장" + download_rounded로 통일.
                   child: OutlinedButton.icon(

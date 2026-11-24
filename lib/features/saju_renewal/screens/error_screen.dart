@@ -27,7 +27,7 @@ import 'story_preview_screen.dart';
 /// 바로 이어서 진행되게 한다.
 const Set<String> _kProfileFixReasons = {'GENDER_REQUIRED', 'BIRTH_INFO_REQUIRED'};
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 공용 오류 화면.
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 공용 오류 화면.
 ///
 /// [디자인 출처] `design_handoff_jeongtong_saju_v3`에는 전용 오류 화면
 /// JSX가 없다(화면00-09 어디에도 에러 상태 컴포넌트가 정의되어 있지

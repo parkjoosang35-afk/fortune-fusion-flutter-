@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// [신통방통 전역 핀치 확대 시스템 — Gesture Controller]
+/// [귀인지도 전역 핀치 확대 시스템 — Gesture Controller]
 ///
 /// ## 왜 GestureRecognizer/GestureDetector가 아니라 순수 Listener인가
 ///

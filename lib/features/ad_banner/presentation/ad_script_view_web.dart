@@ -56,7 +56,7 @@ Widget buildAdScriptView(String html, {required double height}) {
     });
   }
 
-  // [신통방통 전역 핀치 확대 시스템 — 제외 구역] 광고 DOM 요소는 별도
+  // [귀인지도 전역 핀치 확대 시스템 — 제외 구역] 광고 DOM 요소는 별도
   // 합성 레이어로 렌더링되어 전역 화면 캡처와 호환되지 않고,
   // 광고/결제 기능과 확대 엔진을 분리하라는 지시서 §6 요구에 따라 제외한다.
   return PinchZoomDisabled(

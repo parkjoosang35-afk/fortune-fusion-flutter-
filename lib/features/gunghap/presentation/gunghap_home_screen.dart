@@ -120,7 +120,7 @@ class _GunghapHomeScreenState extends State<GunghapHomeScreen> {
         : '나를 중심으로 도는\n인연의 별들';
 
     return GHScreen(
-      // [하단바 누락 수정] 신통방통 공용 하단 네비게이션 바
+      // [하단바 누락 수정] 귀인지도 공용 하단 네비게이션 바
       // (홈/신당부적/복주머니/마이)를 그대로 재사용한다. 궁합지도는
       // 홈 화면 "전체보기"에서 진입하므로 다른 push 화면들(정통사주/
       // 타로/귀인지도 등)과 동일하게 currentIndex: 0(홈)을 쓴다 —

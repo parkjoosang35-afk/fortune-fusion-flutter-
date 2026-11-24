@@ -12,7 +12,7 @@ import '../widgets/saju_visual_widgets.dart';
 import 'error_screen.dart';
 import 'story_preview_screen.dart';
 
-/// [신통방통 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면④ 분석 완료.
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면④ 분석 완료.
 /// `design_files/saju/screens-a.jsx`의 `ScreenComplete`를 1:1로 재현한다.
 ///
 /// [절대 금지] 내부 TopicID(예: MONEY_002)를 절대 노출하지 않는다 —

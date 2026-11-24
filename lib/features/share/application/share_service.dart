@@ -145,7 +145,7 @@ class ShareService {
       }
     }
     if (!context.mounted) return;
-    // [신통방통 앱·웹 공유 근본 정상화 — 2026-11] 공유 링크는 플랫폼 공통으로
+    // [귀인지도 앱·웹 공유 근본 정상화 — 2026-11] 공유 링크는 플랫폼 공통으로
     // 서버(POST /api/public/share, 원칙 3: 기존 백엔드 재사용)에 생성한다.
     // 과거에는 !kIsWeb 분기가 여기서 바로 return 하며 createShareLink()를
     // 전혀 호출하지 않아 앱 공유에는 공유 링크 자체가 없었다(핵심 버그).
@@ -204,7 +204,7 @@ class ShareService {
 
     if (!kIsWeb) {
       // [앱 전용 — §3-A] /r/{id}는 Android App Links 대상 주소다. 받는 사람
-      // 기기에 신통방통 앱이 설치·검증되어 있으면 OS가 바로 앱의
+      // 기기에 귀인지도 앱이 설치·검증되어 있으면 OS가 바로 앱의
       // SharedResultScreen으로 연결하고, 그렇지 않으면 동일 경로의 웹 결과
       // 페이지(/r/[id] SSR)로 자연스럽게 폴백한다(AndroidManifest.xml
       // pathPrefix="/r" 참고). 절대 /web-result로 바꿔치기하지 않는다 —
@@ -274,11 +274,11 @@ class ShareService {
     // 설치 안내는 확인된 Play Store 설정이 있을 때만 붙인다. 홈페이지로 대체하지 않는다.
     final store = Uri.tryParse(EnvConfig.appDownloadUrl);
     final storeReady = store?.scheme == 'https' && store?.host == 'play.google.com' && store?.path == '/store/apps/details' && store!.queryParameters['id']?.isNotEmpty == true;
-    // [신통방통 공유 근본 정상화] 공유 링크(shareUrl)가 있으면 이미지와 함께
+    // [귀인지도 공유 근본 정상화] 공유 링크(shareUrl)가 있으면 이미지와 함께
     // 반드시 본문에 포함한다 — 링크가 없으면 받는 사람이 특정 결과로
     // 돌아올 방법이 없어 §3-A 요구사항(해당 결과로 연결)을 만족하지 못한다.
     final linkLine = shareUrl != null ? '\n$shareUrl' : '';
-    final shareText = '$title$linkLine\n신통방통에서 확인했어요.${storeReady ? '\n앱 설치: $store' : ''}';
+    final shareText = '$title$linkLine\n귀인지도에서 확인했어요.${storeReady ? '\n앱 설치: $store' : ''}';
     void reportFailure() {
       if (!context.mounted) return;
       AppToast.show(context, '결과 이미지를 공유하지 못했어요. 이미지를 저장한 뒤 첨부하거나 다시 시도해주세요.', isError: true);
@@ -294,7 +294,7 @@ class ShareService {
           ),
         ],
         text: shareText,
-        subject: '신통방통 결과',
+        subject: '귀인지도 결과',
       );
       if (result.status == ShareResultStatus.unavailable) {
         reportFailure();
@@ -309,19 +309,19 @@ class ShareService {
     switch (type) {
       // ignore: deprecated_member_use_from_same_package
       case ShareResultType.fortune:
-        return '오늘의 운세 · 신통방통';
+        return '오늘의 운세 · 귀인지도';
       case ShareResultType.tarot:
-        return '타로 결과 · 신통방통';
+        return '타로 결과 · 귀인지도';
       case ShareResultType.face:
-        return '관상 결과 · 신통방통';
+        return '관상 결과 · 귀인지도';
       case ShareResultType.palm:
-        return '손금 결과 · 신통방통';
+        return '손금 결과 · 귀인지도';
       case ShareResultType.wish:
-        return '소원 성취 · 신통방통';
+        return '소원 성취 · 귀인지도';
       case ShareResultType.saju:
-        return '정통사주 결과 · 신통방통';
+        return '정통사주 결과 · 귀인지도';
       case ShareResultType.relationship:
-        return '귀인지도 결과 · 신통방통';
+        return '귀인지도 결과 · 귀인지도';
     }
   }
 }

@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_home_v2_routing.dart
-// [신통방통 홈 v2] 새 디자인(히어로 캐러셀/칩/하단 시트)의 6개 카테고리
+// [귀인지도 홈 v2] 새 디자인(히어로 캐러셀/칩/하단 시트)의 6개 카테고리
 // (귀인지도/정통사주/타로/소원방/관상/손금)를 눌렀을 때 이동할 목적지를
 // 한 곳에 모은다.
 //
@@ -55,7 +55,7 @@ void openSubScreen(
         context,
       ).push(MaterialPageRoute(builder: (_) => const GuinjiLandingScreen()));
     case SHomeV2Category.saju:
-      // [신통방통 정통사주 리뉴얼] 정통사주 — 유일한 신규 정통사주(saju_renewal)로
+      // [귀인지도 정통사주 리뉴얼] 정통사주 — 유일한 신규 정통사주(saju_renewal)로
       // 연결한다(구 69종 매트릭스 게이트는 제거됨).
       Navigator.of(context).pushNamed('/saju-renewal', arguments: tapPosition);
     case SHomeV2Category.tarot:

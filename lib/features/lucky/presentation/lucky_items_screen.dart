@@ -6,7 +6,7 @@ import '../../../core/widgets/premium_graphics.dart';
 /// [신규 화면 - 개운 아이템 · 행운 색·방위] 오행(목/화/토/금/수)별 색·방위·
 /// 맛·활동 정적 룰을 보여주는 화면.
 ///
-/// [신통방통 정통사주 리뉴얼] 기존에는 [SajuProvider.state](AI LLM 사주)를
+/// [귀인지도 정통사주 리뉴얼] 기존에는 [SajuProvider.state](AI LLM 사주)를
 /// read-only로 참조해 "부족 오행"을 자동 하이라이트했으나, SajuProvider가
 /// 완전히 제거되어 이 연동도 함께 제거한다. saju_renewal은 오행 데이터를
 /// 아직 이 화면과 공유하지 않으므로, 당분간 5개 오행을 모두 평시 안내

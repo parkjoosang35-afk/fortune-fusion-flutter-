@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = false);
     if (!mounted) return;
     if (ok) {
-      // [신통방통 2단계 - 로컬 → 서버 1회성 마이그레이션] 로그인이 방금
+      // [귀인지도 2단계 - 로컬 → 서버 1회성 마이그레이션] 로그인이 방금
       // 성공해 로그인 상태가 확정된 시점에도(스플래시의 세션 복원 경로와
       // 별개로 앱을 켜둔 채 로그인만 새로 하는 경우) 동일하게 1회 시도한다.
       // 함수 내부에서 이미 서버 데이터가 있으면 스킵하므로 중복 호출에도

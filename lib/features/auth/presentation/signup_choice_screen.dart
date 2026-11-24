@@ -20,7 +20,7 @@ import 'login_screen.dart';
 
 /// 02 "회원가입 선택" / "로그인 선택" 화면.
 ///
-/// [신통방통 회원가입·본인 사주정보 통합 흐름 — 전면 검수 지시서, 2026-11]
+/// [귀인지도 회원가입·본인 사주정보 통합 흐름 — 전면 검수 지시서, 2026-11]
 /// `design_handoff_signup_saju_profile/README.md` §02, `dev-spec.md` §2(화면
 /// 목록) 및 `design_files/flow-auth.jsx`의 `SignupChoose` 컴포넌트를 기준으로
 /// 신규 구현한다.
@@ -174,7 +174,7 @@ class _SignupChoiceScreenState extends State<SignupChoiceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _isLogin ? '다시 오셨네요\n로그인해 주세요' : '신통방통과 함께\n운명을 탐험해보세요';
+    final title = _isLogin ? '다시 오셨네요\n로그인해 주세요' : '귀인지도와 함께\n운명을 탐험해보세요';
     final highlight = _isLogin ? '로그인' : '운명';
     final desc = _isLogin
         ? '가입하신 방식으로 로그인해 주세요.'

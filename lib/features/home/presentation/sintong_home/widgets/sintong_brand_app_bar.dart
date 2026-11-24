@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // FILE: sintong_brand_app_bar.dart
-// [신통방통 메인 매핑] C-01 · BrandAppBar — Handoff.html §06
+// [귀인지도 메인 매핑] C-01 · BrandAppBar — Handoff.html §06
 // 좌측 브랜드 로고("신통" ink + "방통" ember, Fraunces Italic 20) +
 // 우측 코인 pill · 알림 벨 · 프로필 아바타(모두 30×30 원형 아이콘).
 //

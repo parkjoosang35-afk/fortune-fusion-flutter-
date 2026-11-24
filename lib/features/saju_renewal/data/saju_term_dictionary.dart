@@ -1,4 +1,4 @@
-/// [신통방통 정통사주 리뉴얼 — 다크 핸드오프] 용어 사전(termKey).
+/// [귀인지도 정통사주 리뉴얼 — 다크 핸드오프] 용어 사전(termKey).
 /// admin_web `interpret-term-dictionary.ts`의 `TERM_DICTIONARY`를
 /// 그대로 옮긴 것 — 서버(interpret 응답 본문에 박히는 `[[termKey|..]]`
 /// 마크업)와 클라이언트(탭 시 보여줄 시트 제목/설명)의 termKey 목록이

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/midnight_bottom_nav.dart';
-// [신통방통 홈 v2 전면 교체] 사용자 두 번째 디자인 핸드오프
+// [귀인지도 홈 v2 전면 교체] 사용자 두 번째 디자인 핸드오프
 // (design_handoff_sintong_main.zip)로 전면 교체 — 기존 v1
 // home_screen.dart(화이트 프리미엄 CMS 동적 섹션)는 더 이상 이 탭에
 // 배선하지 않는다(파일 자체는 프로젝트 관례상 보존).
@@ -119,7 +119,7 @@ class _AppShellState extends State<AppShell> {
   /// 모션은 `ShrineNav.rootRoute`가 기존 `_fadeRoute`를 그대로 재사용).
   Future<void> _openShrine() async {
     // [신당 계정 격리 버그 수정 — 2026-10-27] 신당은 ConnectScreen에서
-    // 연결한 회원의 memberId(= 실제 신통방통 로그인 유저 PK)를
+    // 연결한 회원의 memberId(= 실제 귀인지도 로그인 유저 PK)를
     // ShrineSessionProvider.state.memberId에 저장한다. 그런데 이
     // 상태는 로그인 세션과 무관하게 기기(SharedPreferences
     // 'shrine.v2')에 영구 보관되므로, "로그아웃 콜백 등록"만으로는
