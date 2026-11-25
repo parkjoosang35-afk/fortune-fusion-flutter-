@@ -44,7 +44,7 @@ const bool _kIosFlow = false;
 /// playPackage와 동일한 값이어야 한다(패키지명 불일치 금지 — 다른 파일에
 /// 이미 있는 상수를 임포트해 교차 기능 결합을 만들지 않고, 이 화면 전용
 /// 상수로 복제해 둔다. 값 변경 시 두 곳 모두 갱신 필요).
-const String _kPlayPackage = 'com.guinjido.app';
+const String _kPlayPackage = 'com.fortunefusion.fortune';
 String get _kPlayStoreUrl => 'https://play.google.com/store/apps/details?id=$_kPlayPackage';
 
 /// 앱의 `guinjido://svc/wish-room` 커스텀 스킴(AndroidManifest.xml ·

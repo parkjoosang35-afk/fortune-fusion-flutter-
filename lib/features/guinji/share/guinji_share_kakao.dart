@@ -21,7 +21,7 @@ import '../presentation/guinji_share_screen.dart'
 
 /// [확인 필요] 실제 Google Play 등록 패키지명으로 교체할 것
 /// (`android/app/build.gradle.kts`의 `applicationId`와 동일해야 함).
-const playPackage = 'com.guinjido.app';
+const playPackage = 'com.fortunefusion.fortune';
 
 /// 초대 링크 — 절대 변경 금지 API([buildGuinjiInviteLink])를 그대로 재사용.
 /// 호출할 때마다 새 캐시버스팅 코드(`?v=`)가 붙는다(카톡 OG 이미지 캐시 우회).

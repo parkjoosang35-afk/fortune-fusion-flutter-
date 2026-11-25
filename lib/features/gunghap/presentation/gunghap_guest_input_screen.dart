@@ -46,7 +46,7 @@ import 'gunghap_result_screen.dart';
 
 /// [S14 명세] 「귀인지도 앱 설치하기」 보조 버튼 타깃.
 const _kPlayStoreUrl =
-    'https://play.google.com/store/apps/details?id=com.guinjido.app';
+    'https://play.google.com/store/apps/details?id=com.fortunefusion.fortune';
 
 class GunghapGuestInputScreen extends StatefulWidget {
   const GunghapGuestInputScreen({super.key, required this.token});

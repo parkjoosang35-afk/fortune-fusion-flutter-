@@ -93,7 +93,7 @@ class WishActionSyncResult {
 /// 네이티브 큐를 소비해 서버로 전송하고, 서버가 확정/거절한 것만 ack한다.
 class WishActionSync {
   WishActionSync._();
-  static const _channel = MethodChannel('com.guinjido.app/wallpaper');
+  static const _channel = MethodChannel('com.fortunefusion.fortune/wallpaper');
   static const _sentKeysPrefKey = 'wr_wishaction_sent_keys'; // 서버 멱등키 미지원 보완용 로컬 중복방지(위 주석 참고)
   static const _maxSentKeysKept = 500; // 무한 증가 방지 — 최근 500개만 보관.
   static const _attemptCountsPrefKey = 'wr_wishaction_attempt_counts'; // {id: 시도횟수} — 중단조건 판정용.

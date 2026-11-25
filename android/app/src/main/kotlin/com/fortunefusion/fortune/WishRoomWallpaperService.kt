@@ -1,4 +1,4 @@
-package com.guinjido.app
+package com.fortunefusion.fortune
 
 import android.app.WallpaperColors
 import android.content.Context

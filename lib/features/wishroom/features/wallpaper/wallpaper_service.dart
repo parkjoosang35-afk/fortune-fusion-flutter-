@@ -59,7 +59,7 @@ extension WpErrorCodeX on WpErrorCode {
 
 class WallpaperService {
   WallpaperService._();
-  static const _channel = MethodChannel('com.guinjido.app/wallpaper');
+  static const _channel = MethodChannel('com.fortunefusion.fortune/wallpaper');
 
   /// 가장 마지막 네이티브 호출에서 발생한 실패 원인. 성공하면 각 메서드가
   /// 호출 시작 시점에 null로 재설정한다 — 화면은 호출 직후 이 값을 읽어

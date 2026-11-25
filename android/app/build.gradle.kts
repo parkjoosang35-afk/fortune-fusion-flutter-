@@ -26,8 +26,22 @@ plugins {
     // 플러그인이므로 제거한다(구글 로그인 기능에는 영향 없음).
 }
 
+// [패키지명 원복, 2026-11-25] Google Play Console에 "일회성 제품"
+// 등록을 위해 com.android.vending.BILLING 권한을 추가하며 임시로
+// applicationId를 com.guinjido.app으로 바꿨으나, Play Console에
+// 이미 com.fortunefusion.fortune(versionCode 18/19)으로 내부테스트
+// 트랙에 AAB가 업로드되어 있고 카카오 디벨로퍼스 콘솔에도 동일
+// 패키지명으로 등록돼 있어(둘 다 변경 이력 없음) applicationId를
+// com.fortunefusion.fortune으로 원복한다. 앱 표시 이름(label)은
+// AndroidManifest.xml에서 "귀인지도"로 그대로 유지 — applicationId는
+// 사용자에게 보이지 않는 내부 식별자이고 label과 무관하다.
+// ⚠️ 트레이드오프: admin_web의 sintong.kr/.well-known/assetlinks.json이
+// 이미 com.guinjido.app 기준으로 배포돼 있어(admin_web 읽기전용,
+// 이번 세션에서 수정 불가), App Links autoVerify 자동 앱 열기가
+// 당장은 동작하지 않고 기존 폴백(웹페이지 → "앱에서 열기" 버튼)
+// 경로로 동작한다.
 android {
-    namespace = "com.guinjido.app"
+    namespace = "com.fortunefusion.fortune"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -45,7 +59,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.guinjido.app"
+        applicationId = "com.fortunefusion.fortune"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

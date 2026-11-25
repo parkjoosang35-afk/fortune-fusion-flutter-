@@ -1,4 +1,4 @@
-package com.guinjido.app
+package com.fortunefusion.fortune
 
 import android.content.Context
 import android.content.SharedPreferences
