@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/router/app_navigator_key.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../auth/domain/user_model.dart';
 import '../../guinji/domain/pending_guinji_join.dart';
 import '../application/guinji_provider.dart';
 import '../character/guinji_character.dart';
@@ -134,8 +135,53 @@ class _GuinjiInputScreenState extends State<GuinjiInputScreen> {
   @override
   void initState() {
     super.initState();
+    _seedFromProfileIfNeeded();
     _nicknameController.addListener(_onPreviewInputChanged);
     _yearController.addListener(_onPreviewInputChanged);
+  }
+
+  /// [귀인지도 통합 사주 프로필 — 재입력 부담 완화, 2026-11] 로그인
+  /// 재진입 draft([widget.initialDraft])가 없는(= 이 화면에 처음 들어온)
+  /// 경우, 이미 완성된 공용 프로필([BirthInputScreen]/
+  /// [AuthProvider.updateProfile]이 저장한 [UserModel])이 있으면 그
+  /// 값으로 폼 입력칸의 "초기값"만 미리 채운다. 화면 레이아웃/스타일은
+  /// 전혀 바꾸지 않으며, 사용자는 그대로 수정해 제출할 수 있다(강제
+  /// 아님) — 매번 손으로 다시 입력해야 했던 문제와, 그로 인해 메뉴마다
+  /// "나의 사주"가 실수로 달라질 위험을 줄인다. 컨트롤러에 리스너를
+  /// 붙이기 전에 호출해 setState 트리거 없이 조용히 채운다.
+  void _seedFromProfileIfNeeded() {
+    if (widget.initialDraft != null) return; // 로그인 복귀 draft가 우선
+    final user = _currentUserOrNull;
+    if (user == null) return;
+
+    final birthDate = user.birthDate;
+    if (birthDate != null && birthDate.length == 10) {
+      final parts = birthDate.split('-');
+      if (parts.length == 3) {
+        _yearController.text = parts[0];
+        _monthController.text = parts[1];
+        _dayController.text = parts[2];
+      }
+    }
+    if (user.nickname.isNotEmpty) {
+      _nicknameController.text = user.nickname;
+    }
+    _calendarIndex = !user.isLunar ? 0 : (user.isLeapMonth ? 2 : 1);
+    _timeUnknown = user.birthTimeUnknown;
+    final birthTime = user.birthTime;
+    if (!_timeUnknown && birthTime != null && birthTime.contains(':')) {
+      final t = birthTime.split(':');
+      _hourController.text = t[0];
+      _minuteController.text = t.length > 1 ? t[1] : '00';
+    }
+  }
+
+  UserModel? get _currentUserOrNull {
+    try {
+      return context.read<AuthProvider>().currentUser;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _onPreviewInputChanged() => setState(() {});

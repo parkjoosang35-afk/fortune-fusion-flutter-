@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
+import '../../auth/application/auth_provider.dart';
+import '../../auth/domain/user_model.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
 import '../../result_access/presentation/result_access_gate_sheet.dart';
@@ -56,10 +58,37 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
       _nameBController.text = restored['nameB'] as String? ?? '';
       _birthDateA = DateTime.tryParse(restored['birthDateA'] as String? ?? '');
       _birthDateB = DateTime.tryParse(restored['birthDateB'] as String? ?? '');
+    } else {
+      // [귀인지도 통합 사주 프로필 — 재입력 부담 완화, 2026-11] 결과보기
+      // 재개(restoredInput)가 아닌 "처음 들어온" 경우에 한해, 이미 완성된
+      // 공용 프로필([BirthInputScreen]이 저장한 [UserModel])이 있으면 "나"
+      // 칸만 그 값으로 미리 채운다. "상대방" 칸은 이 기능의 본질상 항상
+      // 별도 입력이 필요하므로 손대지 않는다. 화면 레이아웃/스타일은 그대로
+      // 유지하며, 프리필된 값도 사용자가 그대로 수정해 제출할 수 있다(강제
+      // 아님) — 매번 손으로 재입력해야 하는 문제와, 그로 인해 "나의 사주"가
+      // 메뉴마다 실수로 달라질 위험을 줄인다.
+      _seedSelfFromProfileIfNeeded();
     }
     if (widget.resumeResultAccess) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _resume());
     }
+  }
+
+  void _seedSelfFromProfileIfNeeded() {
+    UserModel? user;
+    try {
+      user = context.read<AuthProvider>().currentUser;
+    } catch (_) {
+      return;
+    }
+    final birthDate = user?.birthDate;
+    if (birthDate == null || birthDate.isEmpty) return;
+    final parsed = DateTime.tryParse(birthDate);
+    if (parsed == null) return;
+    _nameAController.text = (user?.nickname.isNotEmpty ?? false)
+        ? user!.nickname
+        : '나';
+    _birthDateA = parsed;
   }
 
   Future<void> _resume() async {
