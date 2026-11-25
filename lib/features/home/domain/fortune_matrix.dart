@@ -12,11 +12,17 @@
 /// 카테고리만 유지하기로 확정했다. 이제 실제 구현·노출되는 카테고리는
 /// 37개이며, 이 파일이 그 단일 소스다.
 ///
-/// 그룹 구성(총 37개):
-/// - T(오늘 운세) 15 · S(사주) 5 · N(이름) 5 · C(궁합) 7 · F(관상·손금) 5
+/// 그룹 구성(총 32개):
+/// - T(오늘 운세) 15 · S(사주) 5 · C(궁합) 7 · F(관상·손금) 5
+///
+/// [이름 운세(N그룹) 완전 삭제] 비활성(숨김) 상태로만 남아있던 N그룹(내
+/// 이름 풀이/개명 추천/아기 이름 추천/이름 궁합/브랜드·상호명 풀이)과
+/// 그 전용 화면(name_fortune 모듈, `/ai-fortune/name/input`)을 사용자
+/// 요청으로 전체 삭제했다(귀인지도에서 이미 삭제된 기능이어야 하는데
+/// 남아있던 잔여물).
 ///
 /// [기존 화면 재사용 원칙] 이미 실제 화면/Provider가 있는 카테고리(오늘의 운세,
-/// 사주, 이름, 관상, 손금)는 새 화면을 만들지 않고 기존 라우트를 그대로
+/// 사주, 관상, 손금)는 새 화면을 만들지 않고 기존 라우트를 그대로
 /// 재사용한다([existingRoute]). 궁합(C)은 전용 화면이 있으므로 마찬가지로
 /// 재사용한다.
 library;
@@ -58,13 +64,12 @@ enum DisclaimerTag {
 
 /// 37개 카테고리 그룹 코드(궁합 C 그룹은 features/compatibility/ 모듈로
 /// 신규 구현되어 편입되었다 - 위 파일 헤더 참고).
-enum FortuneGroupCode { t, s, n, c, f }
+enum FortuneGroupCode { t, s, c, f }
 
 extension FortuneGroupCodeLabel on FortuneGroupCode {
   String get label => switch (this) {
     FortuneGroupCode.t => '오늘 운세',
     FortuneGroupCode.s => '사주',
-    FortuneGroupCode.n => '이름 운세',
     FortuneGroupCode.c => '궁합',
     FortuneGroupCode.f => '관상·손금',
   };
@@ -72,7 +77,6 @@ extension FortuneGroupCodeLabel on FortuneGroupCode {
   String get description => switch (this) {
     FortuneGroupCode.t => '오늘 하루의 흐름을 다양한 항목으로 나눠 확인해보세요',
     FortuneGroupCode.s => '타고난 사주 기운을 재물·애정·건강·월별로 나눠 깊게 해석해보세요',
-    FortuneGroupCode.n => '이름에 담긴 기운과 어울림을 풀이해보세요',
     FortuneGroupCode.c => '나와 상대방의 인연을 유형별로 풀이해보세요',
     FortuneGroupCode.f => '얼굴과 손에 담긴 이야기를 사진으로 확인해보세요',
   };
@@ -131,7 +135,6 @@ class FortuneMatrix {
   FortuneMatrix._();
 
   static const String sajuInputRoute = '/ai-fortune/saju/input';
-  static const String nameInputRoute = '/ai-fortune/name/input';
   static const String compatibilityInputRoute = '/compatibility/input';
   static const String faceCaptureRoute = '/ai-fortune/face/capture';
   static const String palmCaptureRoute = '/ai-fortune/palm/capture';
@@ -147,7 +150,6 @@ class FortuneMatrix {
   // _sGroup 정의/데이터는 삭제하지 않고 보존한다(향후 참고용).
   static final List<FortuneCategoryGroupEntry> groups = [
     _tGroup,
-    _nGroup,
     _cGroup,
     _fGroup,
   ];
@@ -361,56 +363,6 @@ class FortuneMatrix {
         routeArguments: {
           'initialTopics': ['월별'],
         },
-      ),
-    ],
-  );
-
-  // ── N: 이름 운세 (5) ──
-  static final _nGroup = FortuneCategoryGroupEntry(
-    code: FortuneGroupCode.n,
-    items: [
-      FortuneCategoryEntry(
-        id: 'N-001',
-        group: FortuneGroupCode.n,
-        title: '내 이름 풀이',
-        shortDescription: '이름에 담긴 기운 해석',
-        gate: GateResult.lockedFreeFirst,
-        existingRoute: nameInputRoute,
-      ),
-      FortuneCategoryEntry(
-        id: 'N-002',
-        group: FortuneGroupCode.n,
-        title: '개명 추천',
-        shortDescription: '지금 이름과 어울리는 대안',
-        gate: GateResult.paidOnlyPassGate,
-        existingRoute: nameInputRoute,
-      ),
-      FortuneCategoryEntry(
-        id: 'N-003',
-        group: FortuneGroupCode.n,
-        title: '아기 이름 추천',
-        shortDescription: '태명·아기 이름 풀이',
-        gate: GateResult.paidOnlyPassGate,
-        existingRoute: nameInputRoute,
-        disclaimers: [DisclaimerTag.infant],
-      ),
-      FortuneCategoryEntry(
-        id: 'N-004',
-        group: FortuneGroupCode.n,
-        title: '이름 궁합',
-        shortDescription: '두 이름 사이의 어울림',
-        gate: GateResult.freeOncePerDay,
-        existingRoute: nameInputRoute,
-        disclaimers: [DisclaimerTag.relationship],
-      ),
-      FortuneCategoryEntry(
-        id: 'N-005',
-        group: FortuneGroupCode.n,
-        title: '브랜드·상호명 풀이',
-        shortDescription: '사업체 이름의 기운',
-        gate: GateResult.paidOnlyPassGate,
-        existingRoute: nameInputRoute,
-        disclaimers: [DisclaimerTag.finance],
       ),
     ],
   );

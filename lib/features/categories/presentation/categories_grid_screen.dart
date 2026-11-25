@@ -27,7 +27,7 @@ class _Tone {
   // colors: 0 정의. 항상 Theme.of(context).colorScheme 참조.
 }
 
-/// [신규 화면 - 80종 정통사주 전체 보기] `AllCategoriesScreen`의 "37가지 운세
+/// [신규 화면 - 80종 정통사주 전체 보기] `AllCategoriesScreen`의 "32가지 운세
 /// 한눈에 보기"(FortuneMatrixSection, 칩 나열형) 요약 진입점과 별개로, 같은
 /// 데이터 소스([FortuneMatrix.all])를 2열 카드 그리드로 크게 펼쳐 보여주는
 /// 전용 화면이다.
@@ -83,17 +83,16 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
   static const Map<FortuneGroupCode, IconData> _groupIcon = {
     FortuneGroupCode.t: Icons.wb_sunny_outlined,
     FortuneGroupCode.s: Icons.auto_stories_outlined,
-    FortuneGroupCode.n: Icons.badge_outlined,
     FortuneGroupCode.c: Icons.favorite_outline,
     FortuneGroupCode.f: Icons.face_outlined,
   };
 
   // [UI 노출 정책 - 미동작 섹션 숨김] AllCategoriesScreen의
-  // FortuneMatrixSection과 동일하게 "오늘 운세"(T)/"이름 운세"(N) 섹션을
-  // 이 화면에서도 숨긴다. 데이터(FortuneMatrix)는 삭제하지 않는다.
+  // FortuneMatrixSection과 동일하게 "오늘 운세"(T) 섹션을 이 화면에서도
+  // 숨긴다. 데이터(FortuneMatrix)는 삭제하지 않는다. (이름 운세(N그룹)는
+  // 2026-11 사용자 요청으로 완전 삭제되어 enum 자체가 없음)
   static const Set<FortuneGroupCode> _hiddenGroups = {
     FortuneGroupCode.t,
-    FortuneGroupCode.n,
   };
 
   @override

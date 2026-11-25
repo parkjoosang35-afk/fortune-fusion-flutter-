@@ -37,8 +37,6 @@ import 'features/fortune/face/application/face_provider.dart';
 import 'features/fortune/face/data/face_repository.dart';
 import 'features/fortune/palm/application/palm_provider.dart';
 import 'features/fortune/palm/data/palm_repository.dart';
-import 'features/name_fortune/application/name_fortune_provider.dart';
-import 'features/name_fortune/data/name_fortune_repository.dart';
 // [궁합(C그룹) 복원 - 귀인지도 배너 궁합보기 연결] 2026-08-13에 블랙리스트
 // 처리로 삭제되었던 궁합 모듈을 admin_web 실API(`/api/public/compatibility/*`)
 // 연동 상태 그대로 git 히스토리(53ce1ff)에서 복원한다.
@@ -264,10 +262,6 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TarotAudioController()),
         ChangeNotifierProvider(create: (_) => FaceProvider(FaceRepository())),
         ChangeNotifierProvider(create: (_) => PalmProvider(PalmRepository())),
-        // [운세 카테고리 확장] 이름 운세(성명학) - 신규 카테고리 Provider.
-        ChangeNotifierProvider(
-          create: (_) => NameFortuneProvider(NameFortuneRepository()),
-        ),
         // [궁합(C그룹) 복원] 홈 배너 캐러셀 "궁합 보기" CTA 연결을 위해
         // 2026-08-13에 제거되었던 CompatibilityProvider 등록을 복원한다.
         ChangeNotifierProvider(
@@ -542,9 +536,6 @@ class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
     auth.registerLogoutCallback(context.read<TarotProvider>().clearOnLogout);
     auth.registerLogoutCallback(context.read<FaceProvider>().clearOnLogout);
     auth.registerLogoutCallback(context.read<PalmProvider>().clearOnLogout);
-    auth.registerLogoutCallback(
-      context.read<NameFortuneProvider>().clearOnLogout,
-    );
     // [귀인지도 정통사주 리뉴얼] SajuProvider/SajuV3Provider 로그아웃
     // 콜백은 제거되었다 — 아래 SajuRenewalProvider.clearOnLogout이 동일한
     // 역할(개인정보 잔존 방지)을 담당한다.

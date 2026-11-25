@@ -563,14 +563,13 @@ class _TrendingRow extends StatelessWidget {
     // 없이 둘러볼 수 있어야 하므로 false로 변경. 실제 게이트는
     // tarot_category_detail_screen.dart의 "시작하기"(다음 액션)로 옮겼다.
     (Icons.style_outlined, '타로', AppRouter.tarotIntroRoute, false),
-    (Icons.badge_outlined, '이름 운세', '/ai-fortune/name/input', true),
     (Icons.back_hand_outlined, '손금', '/ai-fortune/palm/capture', true),
   ];
 
   // [UI 노출 정책 - 미동작 섹션 숨김] 클릭 시 정상 동작하지 않는 항목만 이
   // 가로 스크롤 칩 스트립에서 숨긴다. 데이터(_items)는 삭제하지 않고 그대로
   // 유지하며, 노출 단계에서만 필터링해 향후 값을 되돌리면 즉시 복원된다.
-  static const Set<String> _hiddenLabels = {'오늘의 운세', '이름 운세'};
+  static const Set<String> _hiddenLabels = {'오늘의 운세'};
 
   @override
   Widget build(BuildContext context) {
@@ -642,13 +641,6 @@ class _FeaturedGrid extends StatelessWidget {
       false,
     ),
     (
-      '이름 운세',
-      '이름에 담긴 기운과 어울림',
-      Icons.badge_outlined,
-      '/ai-fortune/name/input',
-      true,
-    ),
-    (
       '타로',
       '지금 마음과 선택의 해석',
       Icons.style_outlined,
@@ -667,7 +659,7 @@ class _FeaturedGrid extends StatelessWidget {
   // [UI 노출 정책 - 미동작 섹션 숨김] 대표 카테고리 4개 중 클릭 시 정상
   // 동작하지 않는 항목만 숨긴다. 원본 데이터(_items)는 삭제하지 않고 그대로
   // 유지하며, 노출 단계에서만 필터링해 향후 값을 되돌리면 즉시 복원된다.
-  static const Set<String> _hiddenLabels = {'오늘의 운세', '이름 운세'};
+  static const Set<String> _hiddenLabels = {'오늘의 운세'};
 
   @override
   Widget build(BuildContext context) {
@@ -998,7 +990,6 @@ class _QuickEntryRow extends StatelessWidget {
   // 삭제하지 않고 build()에서 조건부로만 제외해 향후 값을 되돌리면 즉시
   // 복원된다.
   static const bool _showLuckyNumberEntry = false;
-  static const bool _showNameFortuneEntry = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1008,12 +999,6 @@ class _QuickEntryRow extends StatelessWidget {
         label: '관상/손금',
         onTap: () => showFacePalmSelectSheet(ctx),
       ),
-      if (_showNameFortuneEntry)
-        (ctx) => _QuickEntryCard(
-          icon: Icons.badge_outlined,
-          label: '이름 운세',
-          onTap: () => Navigator.of(ctx).pushNamed('/ai-fortune/name/input'),
-        ),
       if (_showLuckyNumberEntry)
         (ctx) => _QuickEntryCard(
           icon: Icons.auto_awesome_outlined,

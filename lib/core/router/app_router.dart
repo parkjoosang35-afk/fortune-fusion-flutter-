@@ -37,8 +37,6 @@ import '../../features/fortune/palm/presentation/palm_analyzing_screen.dart';
 import '../../features/fortune/palm/presentation/palm_reading_timeline_screen.dart';
 import '../../features/fortune/palm/presentation/palm_result_screen.dart';
 import '../../features/fortune/palm/presentation/palm_history_screen.dart';
-import '../../features/name_fortune/presentation/name_fortune_input_screen.dart';
-import '../../features/name_fortune/presentation/name_fortune_result_screen.dart';
 // [궁합(C그룹) 복원] admin_web 실API 연동 화면 복원(git 53ce1ff).
 import '../../features/compatibility/domain/compatibility_model.dart';
 import '../../features/compatibility/presentation/compatibility_input_screen.dart';
@@ -873,30 +871,6 @@ class AppRouter {
         return _pageNamed(
           '/ai-fortune/palm/history',
           const PalmHistoryScreen(),
-        );
-
-      // ── 이름 운세(성명학) [운세 카테고리 확장 - 신규] ──
-      case '/ai-fortune/name/input':
-        {
-          // [결과보기 통합 권한 시스템 v1.0, §7] 쿠팡 복귀 복원 흐름 —
-          // saju/input과 동일한 패턴으로 {'restoredInput': {...}}를 받는다.
-          final args = settings.arguments;
-          Map<String, dynamic>? restoredInput;
-          if (args is Map) {
-            final restoredRaw = args['restoredInput'];
-            if (restoredRaw is Map) {
-              restoredInput = restoredRaw.cast<String, dynamic>();
-            }
-          }
-          return _pageNamed(
-            '/ai-fortune/name/input',
-            NameFortuneInputScreen(restoredInput: restoredInput),
-          );
-        }
-      case '/ai-fortune/name/result':
-        return _pageNamed(
-          '/ai-fortune/name/result',
-          const NameFortuneResultScreen(),
         );
 
       // ── 리워드 ──
