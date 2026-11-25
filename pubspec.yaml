@@ -196,6 +196,16 @@ dependencies:
   pdf: 3.11.3
   printing: 5.14.3
 
+  # [Google Play Billing 실연동 — 2026-11-26] 지금까지 PAYMENT_MODE=mock으로
+  # 스토어 결제창을 거치지 않고 바로 Wallet.earn()을 호출하던 복주머니 충전/구독
+  # 결제를 실제 Google Play 인앱결제로 전환한다. 서버(admin_web)가
+  # google-play-billing-verifier.ts로 purchaseToken을 직접 검증하므로, 이 패키지는
+  # "결제창을 띄우고 purchaseToken을 받아오는" 역할만 담당한다(지급 자체는 서버
+  # confirm-purchase 엔드포인트가 전담 — 클라이언트는 절대 낙관적으로 먼저 지급하지
+  # 않는다). Dart 3.9.2/Flutter 3.35.4 고정 환경 호환 버전(pub-cache에 이미 캐시됨).
+  in_app_purchase: 3.2.3
+  in_app_purchase_android: 0.4.0+10
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

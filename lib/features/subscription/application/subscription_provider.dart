@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/iap/iap_purchase_manager.dart';
 import '../data/subscription_repository.dart';
 import '../domain/subscription_model.dart';
 
@@ -64,6 +65,47 @@ class SubscriptionProvider extends ChangeNotifier {
     _isProcessing = false;
     notifyListeners();
     return (success: result.success, errorMessage: result.errorMessage);
+  }
+
+  /// [Google Play Billing 실연동 — 2026-11-26] plan.canRealPurchase(=
+  /// googlePlayProductId 등록됨)일 때만 호출 가능한 실결제 흐름. Google Play
+  /// 결제창 → purchaseToken 서버 검증(confirm-purchase) 순서로 진행하며,
+  /// 서버 확정이 실패하면 Google 결제를 완료 처리하지 않는다(재시도 가능
+  /// 상태 유지 — subscribe()의 서버 시뮬레이션 결제와 달리 절대 낙관적으로
+  /// 먼저 활성화하지 않는다).
+  Future<({bool success, String? errorMessage})> subscribeReal(
+    SubscriptionPlanModel plan,
+  ) async {
+    if (!plan.canRealPurchase) {
+      return (success: false, errorMessage: '아직 실결제가 준비되지 않은 플랜입니다.');
+    }
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final purchase = await IapPurchaseManager.instance.buy(
+        productId: plan.googlePlayProductId!,
+        consumable: false,
+      );
+      if (!purchase.isSuccess || purchase.purchaseToken == null) {
+        return (
+          success: false,
+          errorMessage: purchase.errorMessage ?? '결제가 완료되지 않았습니다.',
+        );
+      }
+      final confirm = await _repository.confirmRealPurchase(
+        googlePlayProductId: plan.googlePlayProductId!,
+        purchaseToken: purchase.purchaseToken!,
+      );
+      if (!confirm.success) {
+        return (success: false, errorMessage: confirm.errorMessage);
+      }
+      await IapPurchaseManager.instance.completePurchaseFor(plan.googlePlayProductId!);
+      _mySubscription = confirm.data;
+      return (success: true, errorMessage: null);
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> cancel() async {

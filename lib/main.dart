@@ -10,6 +10,7 @@ import 'core/web/browser_back_bridge.dart';
 import 'core/web/web_nav_bridge.dart';
 import 'core/web_ads/web_ad_service.dart';
 import 'core/ad_remote_config/ad_remote_config_service.dart';
+import 'core/iap/iap_purchase_manager.dart';
 import 'features/ads_test/domain/admob_ad_ids.dart';
 import 'features/ads_test/domain/admob_consent_service.dart';
 import 'features/home/domain/saju_fortune_rules.dart';
@@ -161,5 +162,12 @@ Future<void> main() async {
   // enabled=false(기본값, AdSense 미승인 상태)이면 이 호출도 즉시
   // 반환되어 아무 스크립트도 주입하지 않는다.
   WebAdService.ensureInitialized();
+  // [Google Play Billing 실연동 — 2026-11-26] purchaseStream은 앱 시작
+  // 즉시(가능하면 runApp보다 먼저) 구독해야 이전 세션에서 완료되지 않은
+  // 구매의 재통지를 놓치지 않는다(in_app_purchase 공식 가이드). Web은
+  // 패키지 자체가 지원하지 않으므로 Android/iOS에서만 초기화한다.
+  if (!kIsWeb) {
+    IapPurchaseManager.instance.init();
+  }
   runApp(const App());
 }

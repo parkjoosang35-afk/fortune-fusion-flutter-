@@ -75,6 +75,8 @@ import 'features/shop/application/shop_provider.dart';
 // 공유하는 구매 서비스. ShopProvider와 동일한 원칙(LuckPouchProvider만 참조,
 // 새 화폐 생성 금지)으로 ChangeNotifierProxyProvider로 등록한다.
 import 'features/pouch_pay/application/pouch_pay_service.dart';
+import 'features/pouch_pay/application/pouch_product_provider.dart';
+import 'features/pouch_pay/data/pouch_product_repository.dart';
 // [소원방 v2.6 전면 재구축 완료] 구 모듈(lib/features/wish_room/, 및 그 소비자인
 // lib/features/_archive/wish_wall_board/)은 신규 모듈(lib/features/wishroom/)
 // 실동작(회원인증/복주머니/광고 연동 포함 전체 라이프사이클: 작성→정성들이기→
@@ -320,6 +322,12 @@ class App extends StatelessWidget {
             }
             return PouchPayService(pouch);
           },
+        ),
+        // [Google Play Billing 실연동 — 2026-11-26] admin_web PouchProduct
+        // 카탈로그(googlePlayProductId 포함) 캐시. 체크아웃 화면이 실결제
+        // 가능 여부를 판단할 때 조회한다.
+        ChangeNotifierProvider<PouchProductProvider>(
+          create: (_) => PouchProductProvider(PouchProductRepository())..load(),
         ),
         // [소원방 v2.6 전면 재구축] 구 감사 도장(GratitudeProvider)은 신규 모듈로
         // 완전히 대체되어 제거했다.

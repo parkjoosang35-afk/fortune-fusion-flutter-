@@ -21,6 +21,7 @@ import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../../../core/theme/legacy_wish_room/wish_room_candle.dart';
 import '../../../core/theme/legacy_wish_room/wish_room_sigil.dart';
 import '../application/pouch_pay_service.dart';
+import '../application/pouch_product_provider.dart';
 import '../domain/pouch_pay_catalog.dart';
 import '../domain/pouch_pay_models.dart';
 import 'pouch_receipt_sheet.dart';
@@ -76,12 +77,31 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
     final service = context.read<PouchPayService>();
     final req = widget.request;
     // PayCheckout.jsx SealingScreen의 3.2초 연출 — "봉인하는 중" 체감 시간.
-    await Future.delayed(const Duration(milliseconds: 3200));
+    // [Google Play Billing 실연동] 실결제 흐름은 Google 결제창 응답을 함께
+    // 기다려야 하므로 두 작업을 병렬로 진행한다(최소 3.2초 연출은 유지).
     PouchPayResult result;
     try {
-      result = req.isSub
-          ? await service.buySubscription(req.sub!, billing: req.subBilling)
-          : await service.buyPack(req.pack!);
+      if (req.isSub) {
+        // 구독 실결제는 SubscriptionPlan 경로(마이페이지 → 구독)로 이미
+        // 별도 구현되어 있다 — 곳간(PouchStore) 구독탭은 여전히 서버
+        // 시뮬레이션(복주머니 정기지급 모의)만 다룬다(범위 분리, 02§21).
+        await Future.delayed(const Duration(milliseconds: 3200));
+        result = await service.buySubscription(req.sub!, billing: req.subBilling);
+      } else {
+        final product = context
+            .read<PouchProductProvider>()
+            .findByClientId(req.pack!.id);
+        if (product != null && product.canRealPurchase) {
+          final results = await Future.wait([
+            service.buyPackReal(product),
+            Future.delayed(const Duration(milliseconds: 3200)),
+          ]);
+          result = results[0] as PouchPayResult;
+        } else {
+          await Future.delayed(const Duration(milliseconds: 3200));
+          result = await service.buyPack(req.pack!);
+        }
+      }
     } catch (_) {
       result = const PouchPayResult(success: false);
     }

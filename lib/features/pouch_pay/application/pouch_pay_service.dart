@@ -18,8 +18,10 @@
 // LuckPouchProvider.balance가 자동으로 서버 최신값으로 갱신되며, 화면은 항상
 // LuckPouchProvider만 구독해서 잔액을 표시해야 한다.
 import 'package:flutter/foundation.dart';
+import '../../../core/iap/iap_purchase_manager.dart';
 import '../../luckpouch/application/luck_pouch_provider.dart';
 import '../data/pouch_pay_local_store.dart';
+import '../data/pouch_product_repository.dart';
 import '../domain/pouch_pay_catalog.dart';
 import '../domain/pouch_pay_models.dart';
 
@@ -43,6 +45,7 @@ class PouchPayResult {
 
 class PouchPayService extends ChangeNotifier {
   LuckPouchProvider _pouch;
+  final PouchProductRepository _pouchProducts = PouchProductRepository();
   PouchPayService(this._pouch) {
     PouchPayLocalStore.I.load();
   }
@@ -156,6 +159,68 @@ class PouchPayService extends ChangeNotifier {
         nextBillingAt: next,
       ),
     );
+    notifyListeners();
+    return PouchPayResult(success: true, grantedAmount: granted, receipt: receipt);
+  }
+
+  /// [Google Play Billing 실연동 — 2026-11-26] 서버(PouchProduct)에
+  /// googlePlayProductId가 등록된 상품의 "진짜" 결제 흐름.
+  ///
+  /// 순서: ①Google Play 결제창 호출 → ②purchaseToken을 서버
+  /// confirm-purchase로 전송(서버가 Google Play Developer API로 직접 검증
+  /// 후에만 복주머니 지급) → ③서버 성공 응답을 받은 뒤에만 Google 결제를
+  /// 완료 처리(completePurchaseFor) → ④LuckPouchProvider를 재조회해 최신
+  /// 잔액을 반영한다. 클라이언트는 어느 단계에서도 낙관적으로 먼저 지급하지
+  /// 않는다 — ②에서 실패하면 결제창은 이미 끝났어도 복주머니는 0개 지급.
+  Future<PouchPayResult> buyPackReal(PouchProductModel product) async {
+    if (!product.canRealPurchase) {
+      return const PouchPayResult(
+        success: false,
+        blockedReason: '아직 실결제가 준비되지 않은 상품입니다.',
+      );
+    }
+    final purchase = await IapPurchaseManager.instance.buy(
+      productId: product.googlePlayProductId!,
+      consumable: true,
+    );
+    if (!purchase.isSuccess || purchase.purchaseToken == null) {
+      return PouchPayResult(
+        success: false,
+        blockedReason: purchase.errorMessage ?? '결제가 완료되지 않았습니다.',
+      );
+    }
+
+    final confirm = await _pouchProducts.confirmRealPurchase(
+      googlePlayProductId: product.googlePlayProductId!,
+      purchaseToken: purchase.purchaseToken!,
+    );
+    if (!confirm.success) {
+      // 서버 확정에 실패하면 Google 결제를 완료 처리하지 않는다 — 다음 앱
+      // 실행 시 purchaseStream이 동일 구매를 재통지해 재시도할 수 있게 한다.
+      return PouchPayResult(success: false, blockedReason: confirm.errorMessage);
+    }
+
+    await IapPurchaseManager.instance.completePurchaseFor(product.googlePlayProductId!);
+
+    final granted = confirm.data ?? 0;
+    await _pouch.load();
+
+    final orderId = _genOrderId();
+    final rows = <List<String>>[
+      ['복주머니', '${product.base}개'],
+      if (product.bonus > 0) ['덤', '+${product.bonus}개'],
+      ['정가', '${product.price}원'],
+    ];
+    final receipt = PouchReceipt(
+      orderId: orderId,
+      title: product.name,
+      rows: rows,
+      payNow: product.price,
+      gain: granted,
+      createdAt: DateTime.now(),
+      isSub: false,
+    );
+    await PouchPayLocalStore.I.addReceipt(receipt);
     notifyListeners();
     return PouchPayResult(success: true, grantedAmount: granted, receipt: receipt);
   }

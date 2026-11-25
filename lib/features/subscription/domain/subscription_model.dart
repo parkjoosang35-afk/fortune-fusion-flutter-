@@ -9,6 +9,11 @@ class SubscriptionPlanModel {
   final List<String> benefits;
   final bool isActive;
 
+  /// [Google Play Billing 실연동 — 2026-11-26] Play Console에 등록된 실제
+  /// 구독 상품 ID. null이면 "정책준비중" 상태 — 실결제 버튼을 비활성화하고
+  /// 기존 서버 시뮬레이션 결제(subscribe)로만 동작해야 한다.
+  final String? googlePlayProductId;
+
   const SubscriptionPlanModel({
     required this.id,
     required this.name,
@@ -16,7 +21,11 @@ class SubscriptionPlanModel {
     required this.period,
     required this.benefits,
     this.isActive = true,
+    this.googlePlayProductId,
   });
+
+  bool get canRealPurchase =>
+      googlePlayProductId != null && googlePlayProductId!.isNotEmpty;
 }
 
 /// 04A K-3 `period` 컬럼(VARCHAR) 대응 - `monthly`/`yearly`

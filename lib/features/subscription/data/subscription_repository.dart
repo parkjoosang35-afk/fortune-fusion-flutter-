@@ -156,7 +156,49 @@ class SubscriptionRepository {
           .map((e) => e as String)
           .toList(),
       isActive: j['isActive'] as bool? ?? true,
+      googlePlayProductId: j['googlePlayProductId'] as String?,
     );
+  }
+
+  /// [Google Play Billing 실연동] Flutter가 Google Play 결제를 완료시킨 뒤
+  /// 받은 purchaseToken을 서버로 보내 실제 검증 + 구독 활성화를 요청한다.
+  /// 서버가 503을 반환하면(서비스 계정 키 미설정) "결제 검증 시스템 준비중"
+  /// 메시지를 그대로 전달한다 — 절대 클라이언트가 대신 성공 처리하지 않는다.
+  Future<ApiResult<UserSubscriptionModel>> confirmRealPurchase({
+    required String googlePlayProductId,
+    required String purchaseToken,
+  }) async {
+    final uri = Uri.parse('$_base/confirm-purchase');
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              'googlePlayProductId': googlePlayProductId,
+              'purchaseToken': purchaseToken,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(decoded['error'] as String? ?? '구독 결제 확인에 실패했습니다.');
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      if (data['alreadyProcessed'] == true && data['plan'] == null) {
+        // 멱등 응답(최초 요청이 이미 처리됨) — 최신 구독 상태를 다시 조회해 반환한다.
+        final latest = await getMySubscription();
+        if (latest.success && latest.data != null) return ApiResult.ok(latest.data!);
+      }
+      return ApiResult.ok(_subscriptionFromJson(data));
+    } catch (e) {
+      debugPrint('[SubscriptionRepository] [confirmRealPurchase] 예외 -> $e');
+      return ApiResult.fail('구독 결제 확인 중 오류가 발생했습니다: $e');
+    }
   }
 
   UserSubscriptionModel _subscriptionFromJson(Map<String, dynamic> j) {

@@ -28,7 +28,12 @@ class _SubscriptionCheckoutScreenState
 
   Future<void> _pay() async {
     final provider = context.read<SubscriptionProvider>();
-    final result = await provider.subscribe(widget.plan);
+    // [Google Play Billing 실연동] googlePlayProductId가 등록된 플랜은 실제
+    // Google Play 결제창을 띄우는 흐름으로, 미등록("정책준비중") 플랜은 기존
+    // 서버 시뮬레이션 결제로 분기한다(두 경로가 공존하는 과도기 설계).
+    final result = widget.plan.canRealPurchase
+        ? await provider.subscribeReal(widget.plan)
+        : await provider.subscribe(widget.plan);
     if (!mounted) return;
     if (result.success) {
       // [2단계 구독 연동] 구독 성공 시 서버(subscribe/route.ts)가 열림패스를
