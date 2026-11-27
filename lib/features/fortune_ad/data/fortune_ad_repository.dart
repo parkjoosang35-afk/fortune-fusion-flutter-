@@ -6,22 +6,35 @@ import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/fortune_ad_model.dart';
 
-/// [신통방통 복주머니 광고 적립 시스템] admin_web 공개 API
+/// [귀인지도 복주머니 광고 적립 시스템] admin_web 공개 API
 /// (`GET /api/ads/fortune`, `POST /api/ads/{adId}/start`,
 /// `POST /api/ads/{adId}/complete`, `GET /api/ads/{adId}/today-status`)를
 /// 호출한다. WalletRepository와 동일하게 userId는 AuthTokenStore(폴백 1)를 사용한다.
 class FortuneAdRepository {
   /// 노출 가능한 광고 목록 조회.
+  ///
+  /// [Stage2 결함수정 — 결함-A04-01] 서버가 `requireUser()`로 JWT 필수인증을
+  /// 강제하도록 변경되었으므로 Authorization 헤더를 반드시 포함한다.
   Future<ApiResult<List<FortuneAdModel>>> getAds() async {
+    // [엔진 통합 STEP 2] getCurrentUserId()가 비로그인 시 null을 반환하도록
+    // 바뀌었다. 과거 폴백(userId=1)처럼 조용히 넘어가지 않고, 비로그인을
+    // 정직한 실패로 반환한다(가짜 성공 금지).
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/ads/fortune',
     ).replace(queryParameters: {'userId': '$userId'});
     debugPrint('[FortuneAdRepository] [list] 요청 -> $uri');
 
     try {
+      final headers = {
+        'Accept': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -42,13 +55,20 @@ class FortuneAdRepository {
   /// 광고 1건의 오늘 시청 현황 재조회(다이얼로그 열기 전 사전 확인용).
   Future<ApiResult<FortuneAdModel>> getTodayStatus(FortuneAdModel ad) async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/ads/${ad.id}/today-status',
     ).replace(queryParameters: {'userId': '$userId'});
 
     try {
+      final headers = {
+        'Accept': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -58,8 +78,10 @@ class FortuneAdRepository {
       final data = decoded['data'] as Map<String, dynamic>;
       return ApiResult.ok(
         ad.copyWith(
-          todayWatchedCount: data['todayWatchedCount'] as int? ?? ad.todayWatchedCount,
-          todayRemainingCount: data['todayRemainingCount'] as int? ?? ad.todayRemainingCount,
+          todayWatchedCount:
+              data['todayWatchedCount'] as int? ?? ad.todayWatchedCount,
+          todayRemainingCount:
+              data['todayRemainingCount'] as int? ?? ad.todayRemainingCount,
           watchable: data['watchable'] as bool? ?? ad.watchable,
         ),
       );
@@ -72,16 +94,21 @@ class FortuneAdRepository {
   /// 시청 시작 — 서버가 자격을 재확인하고 PENDING 세션을 발급한다.
   Future<ApiResult<FortuneAdWatchSession>> start(int adId) async {
     final userId = await AuthTokenStore.getCurrentUserId();
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
     final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/ads/$adId/start');
-    debugPrint('[FortuneAdRepository] [start] 요청 -> adId=$adId, userId=$userId');
+    debugPrint(
+      '[FortuneAdRepository] [start] 요청 -> adId=$adId, userId=$userId',
+    );
 
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
-          )
+          .post(uri, headers: headers, body: jsonEncode({'userId': userId}))
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -107,16 +134,25 @@ class FortuneAdRepository {
     int? watchSeconds,
   }) async {
     final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/ads/$adId/complete');
+    if (userId == null) {
+      return ApiResult.fail('로그인이 필요합니다.', code: 'UNAUTHORIZED');
+    }
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/ads/$adId/complete',
+    );
     debugPrint(
       '[FortuneAdRepository] [complete] 요청 -> adId=$adId, sessionId=$sessionId',
     );
 
     try {
+      final headers = {
+        'Content-Type': 'application/json',
+        ...await AuthTokenStore.authHeader(),
+      };
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode({
               'userId': userId,
               'sessionId': sessionId,

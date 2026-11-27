@@ -15,15 +15,12 @@
                     </layoutGuides>
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <subviews>
-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
-                            </imageView>
-                        </subviews>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                        <constraints>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
-                        </constraints>
+                        <!-- [2026-10 스플래시 디자인 교체 — "귀인지도"] 핸드오프 README
+                             §네이티브 런치스크린: "아이콘 없이 단색 #14214a". 기존 중앙
+                             LaunchImage(아이콘)는 제거하고 배경색만 Flutter 애니메이션
+                             스플래시(splash_screen.dart) 배경 그라데이션의 중간색과
+                             동일하게 맞춰 전환 시 색 끊김이 없도록 한다. -->
+                        <color key="backgroundColor" red="0.0784313725490196" green="0.12941176470588237" blue="0.2901960784313726" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>

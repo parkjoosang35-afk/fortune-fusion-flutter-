@@ -11,7 +11,7 @@ import '../theme/app_spacing.dart';
 /// [주의] 바깥 카드(그라디언트/글로우/onTap 등)는 화면마다 CosmicCard로 감싸는
 /// 방식이 다르므로 그대로 유지하고, 이 위젯은 카드 "내부 콘텐츠 행"만 표준화한다.
 ///
-/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] 화이트 프리미엄 화면(HomeScreen 등)
+/// [귀인지도 디자인 우선 리디자인 프롬프트] 화이트 프리미엄 화면(HomeScreen 등)
 /// 에서도 재사용할 수 있도록 [titleColor]/[subtitleColor]를 선택적으로 노출한다.
 /// 지정하지 않으면 기존 다크 우주 톤(cosmicTextPrimary/Tertiary)을 그대로 사용하므로
 /// 기존 화면(마이/복주머니)은 영향받지 않는다.

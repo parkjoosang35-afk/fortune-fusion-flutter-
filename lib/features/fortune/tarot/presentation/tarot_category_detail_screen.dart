@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../pass/presentation/pass_gate_helper.dart';
 import '../application/tarot_session_controller.dart';
 import '../domain/tarot_category_model.dart';
-import 'theme/tarot_colors.dart';
-import 'theme/tarot_perf_config.dart';
-import 'theme/tarot_text_styles.dart';
-import 'theme/tarot_theme_scope.dart';
-import 'theme/tarot_tokens.dart';
-import 'widgets/tarot_mystic_background.dart';
-import 'widgets/tarot_particle_burst.dart';
+import 'oz/oz_theme.dart';
+import 'oz/widgets/oz_background.dart';
+import 'oz/widgets/oz_category_detail_hero.dart';
+import 'oz/widgets/oz_primary_button.dart';
+import 'oz/widgets/oz_spread_option.dart';
+import 'oz/widgets/oz_topbar.dart';
 
-/// [타로 섹션 전면 개편 §2 정보구조 ③] 카테고리 상세 진입 화면.
+/// [타로 오즈 리스킨 · 화면03 CATEGORY DETAIL] 카테고리 상세 진입 화면.
 ///
-/// 카테고리를 탭한 순간 "이 카테고리만의 진입 리추얼"을 보여준 뒤, 질문
-/// 확정 CTA를 노출한다. 실제 카드 선택/셔플(⑤)은 아직 P2 단계에서
-/// 재구성될 예정이므로, 이 화면은 기존에 검증된 질문 화면
-/// (`/ai-fortune/tarot/question`)으로 카테고리의 [topicKey]를 미리 채워
-/// 넘겨주는 방식으로 기존 플로우와 연결한다(회귀 없이 신규 화면만 추가).
+/// 순수 리스킨: 위젯 트리만 "오즈의 타로" 감성으로 교체하고, 기존 로직
+/// (카테고리 조회, `_spreadOptions` 데이터, 진입 애니메이션 타이밍,
+/// [_StartButton]의 selectCategory+pushNamed 로직)은 100% 그대로 유지한다.
 ///
-/// [categoryId]는 nullable로 두어, 잘못된 딥링크로 진입해도(예: 오래된
-/// 캐시된 링크) 크래시 없이 안내 문구를 보여준다.
+/// [둘러보기 우선 원칙 - 타로 프리패스 타이밍 수정] 다른 기능(정통사주 등)과
+/// 동일하게 "메인 진입 → 게이트 없이 둘러보기 → 다음 액션에서 프리패스"
+/// 흐름을 맞추기 위해, 이 화면(카테고리+스프레드 선택)까지는 게이트 없이
+/// 자유롭게 둘러볼 수 있게 하고, [_StartButton]("시작하기" = 다음 액션)을
+/// 누르는 순간에만 [navigateWithPassGate]로 프리패스 게이트를 수행한다.
 class TarotCategoryDetailScreen extends StatefulWidget {
   final String? categoryId;
   const TarotCategoryDetailScreen({super.key, this.categoryId});
@@ -35,10 +36,21 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
   late final AnimationController _entryController;
   String _spreadType = 'one_card';
 
+  // [65종 타로 리딩엔진 §계획3] 5카드 옵션 추가. 신규 파일럿 주제가 아닌
+  // 카테고리(레거시 20개 topicKey)에서는 서버가 5카드를 지원하지 않지만,
+  // 그 경우에도 UI는 그대로 노출하고 서버가 "지원하지 않는 스프레드"로
+  // 안전하게 차단하는 구조이므로 화면 단에서 별도 분기를 두지 않는다.
   static const _spreadOptions = [
     ('one_card', '1카드', '빠른 답변'),
     ('three_card', '3카드', '과거·현재·미래'),
+    ('five_card', '5카드', '심화 리딩'),
   ];
+
+  /// [65종 타로 리딩엔진 §계획1 - choice_ab] daily_direction_of_choice
+  /// 카테고리는 서버가 choice_ab 스프레드만 지원하므로, 몇 장으로 볼지
+  /// 고르는 UI 자체를 건너뛰고 곧바로 choice_ab로 진입한다.
+  bool get _isChoiceAbCategory =>
+      widget.categoryId == 'daily_direction_of_choice';
 
   @override
   void initState() {
@@ -47,6 +59,9 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..forward();
+    if (_isChoiceAbCategory) {
+      _spreadType = 'choice_ab';
+    }
   }
 
   @override
@@ -61,76 +76,93 @@ class _TarotCategoryDetailScreenState extends State<TarotCategoryDetailScreen>
         ? null
         : TarotCategoryData.byId(widget.categoryId!);
 
-    return TarotThemeScope(
-      child: Scaffold(
-        backgroundColor: TarotColors.bgVoid,
-        appBar: AppBar(title: Text(category?.label ?? '타로')),
-        body: category == null
-            ? const _CategoryNotFound()
-            : Stack(
-                children: [
-                  TarotMysticBackground(
-                    intensity: TarotPerfConfig.backgroundIntensity(0.75),
-                  ),
-                  SafeArea(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(
-                        TarotTokens.spaceLg,
-                        TarotTokens.spaceMd,
-                        TarotTokens.spaceLg,
-                        TarotTokens.spaceXxl,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _EntryRitual(
-                            category: category,
-                            controller: _entryController,
+    return Scaffold(
+      backgroundColor: OzColors.bgDeep,
+      body: Stack(
+        children: [
+          const OzBackground(),
+          SafeArea(
+            child: Column(
+              children: [
+                OzTopbar(
+                  title: category?.label ?? '타로',
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+                Expanded(
+                  child: category == null
+                      ? const _CategoryNotFound()
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(
+                            OzTokens.spaceLg,
+                            0,
+                            OzTokens.spaceLg,
+                            OzTokens.spaceXxl,
                           ),
-                          const SizedBox(height: TarotTokens.spaceXl),
-                          Text(
-                            category.label,
-                            style: TarotTextStyles.heroTitle,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(category.moodCopy, style: TarotTextStyles.body),
-                          const SizedBox(height: TarotTokens.spaceXxl),
-                          Text(
-                            '몇 장으로 볼까요?',
-                            style: TarotTextStyles.sectionHeader,
-                          ),
-                          const SizedBox(height: TarotTokens.spaceMd),
-                          Row(
-                            children: _spreadOptions.map((opt) {
-                              final selected = _spreadType == opt.$1;
-                              return Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    right: TarotTokens.spaceMd,
-                                  ),
-                                  child: _SpreadChoice(
-                                    label: opt.$2,
-                                    desc: opt.$3,
-                                    selected: selected,
-                                    accent: category.accentColor,
-                                    onTap: () =>
-                                        setState(() => _spreadType = opt.$1),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              OzCategoryDetailHero(category: category),
+                              const SizedBox(height: OzTokens.spaceXl),
+                              _EntryRitual(
+                                category: category,
+                                controller: _entryController,
+                              ),
+                              const SizedBox(height: OzTokens.spaceLg),
+                              // [65종 타로 리딩엔진 §계획1 - choice_ab]
+                              // daily_direction_of_choice는 choice_ab
+                              // 스프레드 1개만 지원하므로 "몇 장으로
+                              // 볼까요?" 선택 UI를 노출하지 않는다. 대신
+                              // 다음 화면(질문화면)에서 A/B 선택지를
+                              // 입력받게 됨을 미리 안내한다.
+                              if (_isChoiceAbCategory)
+                                _ChoiceAbNotice(category: category)
+                              else ...[
+                                Text(
+                                  '몇 장으로 볼까요?',
+                                  style: OzTypography.sectionTitle(
+                                    fontSize: 17,
                                   ),
                                 ),
-                              );
-                            }).toList(),
+                                const SizedBox(height: OzTokens.spaceMd),
+                                Row(
+                                  children: _spreadOptions.map((opt) {
+                                    final selected = _spreadType == opt.$1;
+                                    return Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: OzTokens.spaceMd,
+                                        ),
+                                        child: OzSpreadOption(
+                                          label: opt.$2,
+                                          desc: opt.$3,
+                                          cardCount: opt.$1 == 'five_card'
+                                              ? 5
+                                              : opt.$1 == 'three_card'
+                                              ? 3
+                                              : 1,
+                                          active: selected,
+                                          onTap: () => setState(
+                                            () => _spreadType = opt.$1,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                              const SizedBox(height: OzTokens.spaceXxl),
+                              _StartButton(
+                                category: category,
+                                spreadType: _spreadType,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: TarotTokens.spaceXxl),
-                          _StartButton(
-                            category: category,
-                            spreadType: _spreadType,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -142,21 +174,19 @@ class _CategoryNotFound extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text(
-        '이 카테고리를 찾을 수 없어요.\n타로 홈으로 돌아가 다시 시도해 주세요.',
-        textAlign: TextAlign.center,
-        style: TarotTextStyles.body,
+      child: Padding(
+        padding: const EdgeInsets.all(OzTokens.spaceXl),
+        child: Text(
+          '이 카테고리를 찾을 수 없어요.\n타로 홈으로 돌아가 다시 시도해 주세요.',
+          textAlign: TextAlign.center,
+          style: OzTypography.body(),
+        ),
       ),
     );
   }
 }
 
-/// 카테고리별 [TarotEntryMotion]을 단순화해 표현하는 진입 리추얼.
-///
-/// 65개 모션 각각을 전부 다른 렌더링으로 구현하지 않고(과설계 방지),
-/// 모션 종류를 3가지 시각 패턴(확산/수렴/회전)으로 그룹핑해 재사용하며
-/// 색상만 카테고리별 [accentColor]로 차별화한다. 세부 모션 이름은 향후
-/// 애니메이션 세분화 로드맵(§11 P6)에서 CustomPainter 단위로 확장 가능.
+/// 카테고리별 진입 리추얼 - 오즈 톤(골드 링 + 원형 글로우 + 카테고리 이모지).
 class _EntryRitual extends StatelessWidget {
   final TarotCategoryMeta category;
   final AnimationController controller;
@@ -165,47 +195,42 @@ class _EntryRitual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 180,
+      height: 110,
       child: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
           final t = controller.value;
           final scale = Curves.easeOutBack.transform(t);
-          final burst = Curves.easeOut.transform(t);
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              if (TarotPerfConfig.showSymbolLayer)
-                TarotParticleBurst(
-                  progress: burst,
-                  count: TarotPerfConfig.particleCount(24),
-                  maxDistance: 90,
-                ),
-              Transform.scale(
-                scale: 0.6 + scale * 0.4,
+          final fade = Curves.easeOut.transform(t);
+          return Opacity(
+            opacity: fade.clamp(0.0, 1.0),
+            child: Transform.scale(
+              scale: 0.6 + scale * 0.4,
+              child: Center(
                 child: Container(
-                  width: 96,
-                  height: 96,
+                  width: 88,
+                  height: 88,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        category.accentColor.withValues(alpha: 0.35),
+                        OzColors.gold.withValues(alpha: 0.22),
                         Colors.transparent,
                       ],
                     ),
                     border: Border.all(
-                      color: category.accentColor.withValues(alpha: 0.6),
+                      color: OzColors.gold.withValues(alpha: 0.55),
                     ),
+                    boxShadow: OzColors.goldGlow(alpha: 0.2, blur: 20),
                   ),
                   child: Text(
                     category.emoji,
-                    style: const TextStyle(fontSize: 36),
+                    style: const TextStyle(fontSize: 32),
                   ),
                 ),
               ),
-            ],
+            ),
           );
         },
       ),
@@ -213,46 +238,33 @@ class _EntryRitual extends StatelessWidget {
   }
 }
 
-class _SpreadChoice extends StatelessWidget {
-  final String label;
-  final String desc;
-  final bool selected;
-  final Color accent;
-  final VoidCallback onTap;
-  const _SpreadChoice({
-    required this.label,
-    required this.desc,
-    required this.selected,
-    required this.accent,
-    required this.onTap,
-  });
+/// [65종 타로 리딩엔진 §계획1 - choice_ab] daily_direction_of_choice
+/// 카테고리 상세화면에서 "몇 장으로 볼까요?" UI 대신 노출되는 안내 배너.
+class _ChoiceAbNotice extends StatelessWidget {
+  final TarotCategoryMeta category;
+  const _ChoiceAbNotice({required this.category});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: TarotTokens.spaceLg),
-        decoration: BoxDecoration(
-          color: selected
-              ? accent.withValues(alpha: 0.18)
-              : TarotColors.surfaceCard,
-          borderRadius: BorderRadius.circular(TarotTokens.radiusMd),
-          border: Border.all(color: selected ? accent : TarotColors.borderSoft),
-        ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TarotTextStyles.bodyStrong.copyWith(
-                color: selected ? accent : TarotColors.textPrimary,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(OzTokens.spaceLg),
+      decoration: BoxDecoration(
+        color: OzColors.gold.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(OzTokens.radiusMd),
+        border: Border.all(color: OzColors.gold.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.auto_awesome, size: 18, color: OzColors.gold),
+          const SizedBox(width: OzTokens.spaceSm),
+          Expanded(
+            child: Text(
+              '이 리딩은 5장의 카드로 두 선택지를 비교해요.\n다음 화면에서 비교할 두 선택지를 알려주세요.',
+              style: OzTypography.body(fontSize: 13, color: OzColors.fg),
             ),
-            const SizedBox(height: 2),
-            Text(desc, style: TarotTextStyles.caption),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -265,34 +277,39 @@ class _StartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 52,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: category.accentColor,
-          foregroundColor: TarotColors.bgVoid,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(TarotTokens.radiusPill),
-          ),
-        ),
-        onPressed: () {
-          // [타로 리뉴얼] 세션 상태머신에 카테고리를 재확인해 기록한다
-          // (타로 홈에서 이미 selectCategory가 호출됐어도, 직접 딥링크로
-          // 진입했을 경우를 대비해 이 화면에서도 한 번 더 보장한다).
-          context.read<TarotSessionController>().selectCategory(category);
-          Navigator.of(context).pushNamed(
-            '/ai-fortune/tarot/question',
-            arguments: {
-              'initialSpreadType': spreadType,
-              'initialTopic': category.topicKey,
-            },
-          );
-        },
-        child: Text(
-          '${category.label} 시작하기',
-          style: TarotTextStyles.ctaLabel.copyWith(color: TarotColors.bgVoid),
-        ),
-      ),
+    return OzPrimaryButton(
+      label: '${category.label} 시작하기',
+      onPressed: () async {
+        // [타로 리뉴얼] 세션 상태머신에 카테고리를 재확인해 기록한다
+        // (타로 홈에서 이미 selectCategory가 호출됐어도, 직접 딥링크로
+        // 진입했을 경우를 대비해 이 화면에서도 한 번 더 보장한다).
+        context.read<TarotSessionController>().selectCategory(category);
+        // [둘러보기 우선 원칙 - 타로 프리패스 타이밍 수정] 카테고리+스프레드
+        // 선택까지는 게이트 없이 자유롭게 둘러볼 수 있게 하고, 실제로 질문
+        // 입력(다음 액션)으로 넘어가는 이 "시작하기" 시점에만 프리패스
+        // 게이트를 수행한다(정통사주의 "소카테고리 탭" 시점과 동일한 위치).
+        await navigateWithPassGate(
+          context,
+          title: '${category.label} 타로',
+          route: '/ai-fortune/tarot/question',
+          requiresPass: true,
+          arguments: {
+            'initialSpreadType': spreadType,
+            // [65종 타로 리딩엔진 §핵심 버그 수정] 신규 서버 tarot_topics.
+            // topic_key는 65개 카테고리의 고유 `id`값으로 시딩되어 있다
+            // (예: 'love_reunion_chance'). 기존에는 20개로 수렴하는
+            // `category.topicKey`(예: 'reunion')를 그대로 넘겨 신규 엔진
+            // 경로가 전혀 트리거되지 않았다. `category.id`로 넘기면:
+            // - 5개 파일럿 카테고리 → 서버가 신규 topic으로 인식(78장 풀덱
+            //   + DB 포지션 기반 신규 엔진 경로)
+            // - 나머지 60개 카테고리 → 서버가 topic_key 미매칭으로 판단해
+            //   기존 레거시 경로(15장 DECK, topic 파라미터는 무시되고
+            //   질문화면에서 다시 topic 선택)로 자동 폴백 → 하위 호환 유지.
+            'initialTopic': category.id,
+          },
+        );
+      },
+      trailingIcon: Icons.arrow_forward_rounded,
     );
   }
 }

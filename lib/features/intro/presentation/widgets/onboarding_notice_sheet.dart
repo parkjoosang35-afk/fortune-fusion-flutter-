@@ -1,0 +1,141 @@
+import 'package:flutter/material.dart';
+
+import '../intro_palette.dart';
+import '../intro_text_styles.dart';
+
+/// [온보딩 화면 교체 2026-10-11 — 신규] `Onboarding.html` `.sheet`
+/// ("재미·참고용 콘텐츠 안내" 바텀시트). 기존에는 이 카피가 별도
+/// 페이지(`/policy/notice`, [PolicyNoticeScreen])로 이동해 보여줬지만,
+/// 이번 디자인 교체 지시서(README §1-4, 개발지시서 §06)는 이를 온보딩
+/// 화면 안에서 바로 열리는 바텀시트로 바꾼다. [PolicyNoticeScreen]과
+/// `/policy/notice` 라우트 자체는 다른 화면이 참조할 가능성에 대비해
+/// 삭제하지 않고 그대로 보존한다(이 화면만 바텀시트로 전환).
+///
+/// 핸드오프 수치:
+/// - 딤: 전체화면, `rgba(10,8,25,.55)` + blur(4px), opacity 전환 0.6s
+/// - 시트: 하단고정, radius `22px 22px 0 0`,
+///   `linear-gradient(180deg, #3a3264, #241f45)`, 전환 0.7s
+///   `cubic-bezier(.2,.8,.2,1)` (translateY 105%→0)
+/// - 본문: 전통 명리 기반 "재미·참고용" 안내 + 「알겠어요」 버튼
+///
+/// `showModalBottomSheet`의 기본 slide-up 전환이 핸드오프의
+/// cubic-bezier(.2,.8,.2,1) 근사와 충분히 유사하므로, 별도
+/// PageRouteBuilder 없이 `transitionAnimationController` 커브만
+/// 지정해 디자인 의도를 살린다.
+Future<void> showOnboardingNoticeSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    // [온보딩 v3] README §2 "바터시트" 떔: rgba(5,9,20,.6)
+    // (기존 rgba(10,8,25,.55) 대체).
+    barrierColor: const Color(0x990A0914),
+    builder: (context) => const _OnboardingNoticeSheet(),
+  );
+}
+
+class _OnboardingNoticeSheet extends StatelessWidget {
+  const _OnboardingNoticeSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(22),
+            topRight: Radius.circular(22),
+          ),
+          // [온보딩 v3] README §2 "바터시트" 시트 배경 —
+          // `linear-gradient(180deg, #1b2b50, #0f1931)`.
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              IntroPalette.onboardingV3Bg1,
+              IntroPalette.onboardingV3SheetBottom,
+            ],
+          ),
+          border: Border(
+            top: BorderSide(color: IntroPalette.onboardingV3Line),
+          ),
+        ),
+        // [반응형 화면 규격 통일 지시서] 이 바텀시트는 SingleChildScrollView
+        // 보호 없는 고정 Column이라, 작은 화면(320px대) + 큰 textScale(2.0배
+        // 이상) 조합에서 안내문구+버튼 높이가 화면 높이를 넘어 세로
+        // RenderFlex 오버플로가 발생했다(실측 78px/259px). 내용이 화면보다
+        // 작을 때는 기존과 시각적으로 동일하고, 넘칠 때만 스크롤되도록
+        // SingleChildScrollView로 감싼다 — 디자인/문구/버튼 변경 없음.
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 손잡이(grab) — 38×4.
+              Container(
+                width: 38,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  // [온보딩 v3] 손잡이(grab) 색 --line.
+                  color: IntroPalette.onboardingV3Line,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              Text(
+                '재미·참고용 콘텐츠 안내',
+                textAlign: TextAlign.center,
+                style: IntroTextStyles.title(
+                  fontSize: 19,
+                  color: IntroPalette.onboardingV3Fg,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '귀인지도의 사주·운세 풀이는 전통 명리 이론을 바탕으로 한\n'
+                '재미와 참고를 위한 이야기예요.\n'
+                '중요한 결정은 당신의 마음과 함께 내려주세요.',
+                textAlign: TextAlign.center,
+                style: IntroTextStyles.sub(color: IntroPalette.onboardingV3Muted),
+              ),
+              const SizedBox(height: 22),
+              Semantics(
+                identifier: 'onboarding_notice_sheet_confirm_button',
+                button: true,
+                child: SizedBox(
+                  height: 56,
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    style:
+                        ElevatedButton.styleFrom(
+                          backgroundColor: IntroPalette.onboardingV3Glow,
+                          foregroundColor: IntroPalette.onboardingV3Ink,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ).copyWith(
+                          // [온보딩 v3] README §2 "버튼" Primary 배경
+                          // 상단톤(--glow-light #f1da92)을 단색으로 근사.
+                          backgroundColor: const WidgetStatePropertyAll(
+                            IntroPalette.onboardingV3GlowLight,
+                          ),
+                        ),
+                    child: Text(
+                      '알겠어요',
+                      style: IntroTextStyles.btnPrimary(
+                        color: IntroPalette.onboardingV3Ink,
+                      ).copyWith(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

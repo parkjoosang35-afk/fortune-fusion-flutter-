@@ -63,6 +63,17 @@ class TarotSessionState {
   final List<int> selectedSlotIndexes;
   final TarotResultModel? result;
   final String? errorMessage;
+  // [프리패스 카테고리 제한 안내 버그 수정] 서버 reason('CATEGORY_LIMIT_REACHED'
+  // 등)을 보존해, 화면단이 일반 오류(OOPS)와 "이용횟수 초과" 안내를 구분해
+  // 보여줄 수 있게 한다. pass_gate_helper.dart의 PassProvider.lastErrorReason과
+  // 동일한 패턴.
+  final String? errorReason;
+
+  // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드에서만
+  // 질문화면(④)에서 입력받아 confirmQuestion()으로 함께 확정되는 두
+  // 선택지 텍스트. 그 외 스프레드에서는 항상 null.
+  final String? optionA;
+  final String? optionB;
 
   const TarotSessionState({
     required this.status,
@@ -74,12 +85,22 @@ class TarotSessionState {
     this.selectedSlotIndexes = const [],
     this.result,
     this.errorMessage,
+    this.errorReason,
+    this.optionA,
+    this.optionB,
   });
 
   const TarotSessionState.initial() : this(status: TarotSessionStatus.idle);
 
   int get requiredCardCount {
     switch (spreadType) {
+      // [65종 타로 리딩엔진 §계획3] 5카드 스프레드 추가. 기존에는 이
+      // case가 없어 5카드 선택 시 default(1)로 떨어지는 버그가 있었다.
+      case 'five_card':
+        return 5;
+      // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일도 5장 구조.
+      case 'choice_ab':
+        return 5;
       case 'three_card':
         return 3;
       case 'one_card':
@@ -103,7 +124,14 @@ class TarotSessionState {
     List<int>? selectedSlotIndexes,
     TarotResultModel? result,
     String? errorMessage,
+    String? errorReason,
     bool clearError = false,
+    String? optionA,
+    String? optionB,
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] choice_ab가 아닌 스프레드로
+    // 재확정할 때 이전 세션에 남아있던 optionA/optionB를 명시적으로
+    // 비우기 위한 플래그(`??` 패턴만으로는 null로 되돌릴 수 없기 때문).
+    bool clearOptions = false,
   }) {
     return TarotSessionState(
       status: status ?? this.status,
@@ -115,6 +143,9 @@ class TarotSessionState {
       selectedSlotIndexes: selectedSlotIndexes ?? this.selectedSlotIndexes,
       result: result ?? this.result,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      errorReason: clearError ? null : (errorReason ?? this.errorReason),
+      optionA: clearOptions ? null : (optionA ?? this.optionA),
+      optionB: clearOptions ? null : (optionB ?? this.optionB),
     );
   }
 }
@@ -125,7 +156,12 @@ class TarotSessionState {
 /// 이것이 "상태머신처럼 관리"의 실질적 구현이다 - 중복 탭/빠른 연속 탭 등
 /// 임의 순서로 메서드가 호출돼도 상태가 깨지지 않는다.
 class TarotSessionController extends ChangeNotifier {
-  static const int _faceDownDeckSize = 12; // 화면에 부채꼴로 펼칠 카드 뒷면 수
+  // [타로 78장 풀덱 진열] 화면에 부채꼴로 펼칠 카드 뒷면 수. 기존 12장(연출용
+  // 일부만 노출)에서 실제 타로 78장 풀덱(메이저 22 + 마이너 56) 전체를
+  // 그대로 진열하도록 확장한다. 실제 카드 정체는 여전히 서버가 결정하며
+  // (§10 설계 원칙 유지), 이 값은 오직 "뒷면 슬롯이 몇 장 보이는가"만
+  // 바꾼다 - 카드 선택/뽑기 로직에는 영향이 없다.
+  static const int _faceDownDeckSize = 78; // 화면에 부채꼴로 펼칠 카드 뒷면 수
 
   TarotSessionState _state = const TarotSessionState.initial();
   TarotSessionState get state => _state;
@@ -149,6 +185,10 @@ class TarotSessionController extends ChangeNotifier {
     required String spreadType,
     required String question,
     String? topic,
+    // [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드에서만
+    // 질문화면에서 함께 전달되는 두 선택지. 그 외 스프레드는 null 그대로.
+    String? optionA,
+    String? optionB,
   }) {
     // 카테고리 없이도(직접 진입) 질문 확정은 허용하되, 이미 카드 선택이
     // 진행된 이후(shuffling 이후) 되돌아와 재확정하는 것도 막지 않고
@@ -164,6 +204,9 @@ class TarotSessionController extends ChangeNotifier {
       ),
       selectedSlotIndexes: const [],
       clearError: true,
+      clearOptions: true,
+      optionA: optionA,
+      optionB: optionB,
     );
     notifyListeners();
   }
@@ -204,9 +247,68 @@ class TarotSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [타로 카드뽑기 화면 디자인 핸드오프 매핑 · T1 §5.4 되돌리기] 마지막으로
+  /// 선택한 슬롯을 다시 미선택 상태로 되돌린다. `selectingCards`(아직
+  /// 5장 미만) 뿐 아니라 `cardsChosen`(5장 완성) 상태에서도 허용해야
+  /// "다시 고르기" 버튼이 동작한다(스펙 §5.4 "5장 완성 상태에서는
+  /// '다시 고르기'" 참고).
+  void undoLastSelection() {
+    if (_state.status != TarotSessionStatus.selectingCards &&
+        _state.status != TarotSessionStatus.cardsChosen) {
+      return;
+    }
+    if (_state.selectedSlotIndexes.isEmpty) return;
+
+    final lastIndex = _state.selectedSlotIndexes.last;
+    final updatedSelection = _state.selectedSlotIndexes.sublist(
+      0,
+      _state.selectedSlotIndexes.length - 1,
+    );
+    final updatedSlots = _state.deckSlots
+        .map((s) => s.slotIndex == lastIndex ? s.copyWith(isSelected: false) : s)
+        .toList();
+
+    _state = _state.copyWith(
+      deckSlots: updatedSlots,
+      selectedSlotIndexes: updatedSelection,
+      status: TarotSessionStatus.selectingCards,
+    );
+    notifyListeners();
+  }
+
+  /// [타로 카드뽑기 화면 디자인 핸드오프 매핑 · T1 §5.5/§13 다시 뽑기] 지금까지
+  /// 선택한 카드를 전부 초기화하고 `selectingCards` 상태로 되돌린다(호출
+  /// 직후 화면단이 코스메틱 셔플 연출을 이어서 재생한다). 실제 카드 정체
+  /// 결정 로직(reveal)에는 영향이 없다 - 오직 "몇 번 슬롯이 선택됐는가"만
+  /// 초기화한다.
+  void resetSelection() {
+    if (_state.status != TarotSessionStatus.selectingCards &&
+        _state.status != TarotSessionStatus.cardsChosen) {
+      return;
+    }
+    final resetSlots = _state.deckSlots
+        .map((s) => s.isSelected ? s.copyWith(isSelected: false) : s)
+        .toList();
+    _state = _state.copyWith(
+      deckSlots: resetSlots,
+      selectedSlotIndexes: const [],
+      status: TarotSessionStatus.selectingCards,
+    );
+    notifyListeners();
+  }
+
   /// ⑥→⑦ 결과 요청. 실제 API 호출은 [tarotProvider]에 위임하고, 성공하면
   /// 결과를 세션 상태에 반영한다.
-  Future<void> reveal(TarotProvider tarotProvider) async {
+  ///
+  /// [결과보기 통합 권한 시스템 v1.0, §8] [paymentMethod]/[transactionId]는
+  /// 호출부([TarotCardSelectScreen]._onRevealPressed)가 §6 게이트 시트에서
+  /// 받은 결제 확정 결과를 그대로 실어 보낸다. 둘 다 null이면(레거시 호출)
+  /// 서버가 자동으로 기존 무료 경로로 처리한다(하위호환).
+  Future<void> reveal(
+    TarotProvider tarotProvider, {
+    String? paymentMethod,
+    String? transactionId,
+  }) async {
     if (_state.status != TarotSessionStatus.cardsChosen) return;
     if (_state.question == null || _state.spreadType == null) return;
 
@@ -218,6 +320,10 @@ class TarotSessionController extends ChangeNotifier {
         question: _state.question!,
         spreadType: _state.spreadType!,
         topic: _state.topic,
+        optionA: _state.optionA,
+        optionB: _state.optionB,
+        paymentMethod: paymentMethod,
+        transactionId: transactionId,
       );
       final providerState = tarotProvider.state;
       if (providerState.isSuccess && providerState.data != null) {
@@ -229,6 +335,7 @@ class TarotSessionController extends ChangeNotifier {
         _state = _state.copyWith(
           status: TarotSessionStatus.error,
           errorMessage: providerState.errorMessage ?? '타로 리딩에 실패했습니다.',
+          errorReason: tarotProvider.lastErrorReason,
         );
       }
     } catch (e) {
@@ -254,14 +361,30 @@ class TarotSessionController extends ChangeNotifier {
   }
 
   /// 에러 상태에서 재시도.
-  Future<void> retryReveal(TarotProvider tarotProvider) async {
+  ///
+  /// [결과보기 통합 권한 시스템 v1.0, §8.6] 최초 시도에서 이미 결제(프리패스
+  /// 차감/복주머니 차감/광고 시청)가 확정됐다가 AI 생성 실패로 환불된
+  /// 경우이므로, 재시도도 반드시 새로운 결제 확정(§6 게이트 재호출)을 거쳐야
+  /// 한다. [paymentMethod]/[transactionId]를 누락하면 서버가
+  /// `useResultAccessService=false`로 판단해 §8 게이트를 건너뛰고 레거시
+  /// 무료 경로로 처리해버리므로, 호출부(TarotCardSelectScreen._ErrorView)가
+  /// 재시도 직전에 게이트를 다시 띄워 받은 값을 여기로 반드시 전달해야 한다.
+  Future<void> retryReveal(
+    TarotProvider tarotProvider, {
+    String? paymentMethod,
+    String? transactionId,
+  }) async {
     if (_state.status != TarotSessionStatus.error) return;
     _state = _state.copyWith(
       status: TarotSessionStatus.cardsChosen,
       clearError: true,
     );
     notifyListeners();
-    await reveal(tarotProvider);
+    await reveal(
+      tarotProvider,
+      paymentMethod: paymentMethod,
+      transactionId: transactionId,
+    );
   }
 
   /// 타로 서브트리를 벗어날 때 세션 상태를 완전히 초기화한다(§10-3 -

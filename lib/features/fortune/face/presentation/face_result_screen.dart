@@ -1,19 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/utils/load_state.dart';
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../../../../core/widgets/app_error_state.dart';
-import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/result_card_stack.dart';
+import '../../../../core/widgets/result_text_scale_overlay.dart';
+import '../../guinji/theme/guinji_colors.dart';
+import '../../guinji/theme/guinji_typography.dart';
+import '../../guinji/widgets/hanja_stamp.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
+import '../../../share/application/share_service.dart';
+import '../../../share/domain/share_result_model.dart';
 import '../application/face_provider.dart';
 import '../domain/face_model.dart';
+import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
+import '../../shared/domain/reading_artifact_builder.dart';
+import '../../shared/presentation/reading_disclosure_widgets.dart';
+import '../../shared/presentation/seal_reading_flow.dart';
+import '../../../../core/sound/guinji_sound_service.dart';
 
-/// 07단계 결과형 패턴 - FaceResultScreen
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] 관상 결과 화면.
 ///
-/// [서브 디자인 통일 확산 프롬프트] 결과 페이지 표준 스켈레톤([ResultCardStack])을
-/// 재사용해 오늘의 운세/사주/궁합 결과와 동일한 "카드 스택형 리포트" 톤을
-/// 적용한다. 부위별 색상 구분/그림자·호버 효과/이모지는 모두 제거하고,
-/// 부위별 특징 + 주제별 해석을 하나의 세부 리포트 카드 스택으로 통일한다.
+/// [기존 시스템 유지 원칙] 결과 페이지 표준 스켈레톤인 [ResultCardStack]은
+/// 사주/타로 결과 화면과 공유되는 컴포넌트이므로 내부 구조·스타일은 그대로
+/// 유지한다(사용자 승인 #1). 이 화면에서는 바깥쪽 배경/상단바만 Dawn Hanji
+/// 톤(한지 배경 + 觀 인장 + 하자 라벨)으로 감싸고, [ResultCardStack]은 그
+/// 안에 "종이 위에 올려진 리포트 카드"처럼 얹는 방식으로 리스킨한다.
 class FaceResultScreen extends StatefulWidget {
   final String? resultId;
   const FaceResultScreen({super.key, this.resultId});
@@ -31,6 +45,8 @@ const Map<String, IconData> _topicIcons = {
 };
 
 class _FaceResultScreenState extends State<FaceResultScreen> {
+  final _originalResultKey = GlobalKey();
+  final _originalHeaderKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -39,42 +55,90 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
         context.read<FaceProvider>().selectFromHistory(widget.resultId!);
       });
     }
+    // [귀인지도 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
+    // 1500ms) 트리거. 기획서가 "이 앱에서 가장 중요한 사운드 설계"로
+    // 꼽는 1.2~1.5초 무음 효과를 여기서 만든다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<GuinjiSoundService>().duckMomentary('reveal');
+      } catch (_) {}
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<FaceProvider>();
     final state = provider.state;
+    // [홈으로 돌아가기 — 사주/타로와 동일한 패턴] 이 화면은 항상 push 스택
+    // 위에서 열리므로 canPop이 대체로 true이지만, 방어적으로 확인 후에만
+    // 뒤로가기 버튼을 렌더링한다.
+    final canGoBack = Navigator.canPop(context);
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('관상 결과', style: UnifiedText.titleLarge()),
-        actions: [
-          if (state.isSuccess)
-            IconButton(
-              icon: Icon(
-                Icons.share_outlined,
-                color: UnifiedColors.textPrimary,
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            const Positioned.fill(child: GuinjiScreenBg()),
+            SafeArea(
+              child: Column(
+                children: [
+                  OriginalResultScene(
+                    captureKey: _originalHeaderKey,
+                    background: GuinjiColors.bg1,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRect(
+                            child: OverflowBox(
+                              alignment: Alignment.topCenter,
+                              minHeight: MediaQuery.sizeOf(context).height,
+                              maxHeight: MediaQuery.sizeOf(context).height,
+                              child: const GuinjiScreenBg(),
+                            ),
+                          ),
+                        ),
+                        _ResultTopBar(
+                          hanja: '觀',
+                          hanjaColor: GuinjiColors.stampGuan,
+                          title: '觀相 · REPORT',
+                          onBack: canGoBack
+                              ? () => Navigator.of(context).pop()
+                              : null,
+                          onShare: state.isSuccess
+                              ? () => _shareResult(context, state.data!)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: state.isSuccess
+                        ? _buildResult(context, state.data!)
+                        : _PaperSheet(
+                            child: switch (state.status) {
+                              LoadStatus.loading => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                              LoadStatus.error => AppErrorState(
+                                message: state.errorMessage ?? '분석에 실패했습니다.',
+                                onRetry: () => provider.retry(),
+                              ),
+                              LoadStatus.success => _buildResult(
+                                context,
+                                state.data!,
+                              ),
+                              LoadStatus.initial => const AppErrorState(
+                                message: '입력 정보가 없습니다.',
+                              ),
+                            },
+                          ),
+                  ),
+                ],
               ),
-              onPressed: () => AppToast.show(context, '공유 링크가 복사되었습니다.'),
             ),
-        ],
-      ),
-      body: SafeArea(
-        child: switch (state.status) {
-          LoadStatus.loading => const Center(
-            child: CircularProgressIndicator(),
-          ),
-          LoadStatus.error => AppErrorState(
-            message: state.errorMessage ?? '분석에 실패했습니다.',
-            onRetry: () => provider.retry(),
-          ),
-          LoadStatus.success => _buildResult(context, state.data!),
-          LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
-        },
+          ],
+        ),
       ),
     );
   }
@@ -85,8 +149,23 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
         .toList();
 
     return ResultCardStack(
+      captureKey: _originalResultKey,
+      captureFrame: (child) => _PaperSheet(child: child),
       heroCaption: '종합 관상 해석',
       heroSummary: result.summary,
+      // [v7 통합 — TotalScreens.jsx 포팅] KeySeal+ProofStrip+출전+고지문을
+      // 한 번에 보여준다. ResultCardStack의 heroExtra 슬롯을 사용해
+      // 공용 컴포넌트 내부 구조는 건드리지 않는다.
+      heroExtra: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ReadingTotalHeroExtra(
+            artifact: ReadingArtifactBuilder.fromFace(result),
+          ),
+          const SizedBox(height: 12),
+          const ReadingFunDisclaimer(),
+        ],
+      ),
       sectionTitle: '세부 리포트',
       sections: [
         ...result.features.entries.map(
@@ -98,13 +177,50 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
             body: e.value,
             trailing: Icon(
               _topicIcons[e.key] ?? Icons.auto_awesome_outlined,
-              size: UnifiedTokens.iconMd,
-              color: UnifiedColors.textSecondary,
+              size: 20,
+              color: Colors.black45,
             ),
           ),
         ),
       ],
+      // [웹 일반 AdSense 전체 확장 — 관상] 히어로 카드(종합 관상 해석)와
+      // 세부 리포트 섹션 사이에 배치 — CTA("다시 분석하기"/"히스토리
+      // 보기")와는 섹션 전체 길이만큼 떨어져 있어 혼동 우려가 없다.
+      midAd: const WebAdBanner(surface: WebAdSurface.face, adSlot: ''),
       ctas: [
+        // [v7 통합 — 관상·손금 결과화면 + 소원방 봉인] 주 CTA. 사진/좌표
+        // 없이 "풀이 확정"(ReadingArtifact)만 만들어 소원방으로 넘긴다.
+        // ResultCardStack 내부 구조는 건드리지 않고 기존 ctas 데이터
+        // 패턴에 항목만 추가한다(사용자 승인 #1 — 공용 컴포넌트 보호).
+        ResultCta(
+          label: '🕯 이 풀이를 내 소원에 봉인하기',
+          icon: Icons.auto_awesome_rounded,
+          onTap: () => sealReadingToWishRoom(
+            context,
+            ReadingArtifactBuilder.fromFace(result),
+          ),
+        ),
+        ResultCta(
+          label: '풀이만 보관하고 나가기',
+          icon: Icons.inventory_2_outlined,
+          onTap: () => keepReadingForLater(
+            context,
+            ReadingArtifactBuilder.fromFace(result),
+          ),
+        ),
+        // [REQ-08 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기 저장
+        // 버튼 문구를 전 화면 공통 "이미지로 저장"으로 통일.
+        ResultCta(
+          label: '이미지로 저장',
+          icon: Icons.download_rounded,
+          onTap: () => saveOriginalResult(
+            context,
+            _originalResultKey,
+            // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+            name: buildSaveFileName('face', result.id),
+            leadingKeys: [_originalHeaderKey],
+          ),
+        ),
         ResultCta(
           label: '다시 분석하기',
           icon: Icons.refresh_rounded,
@@ -117,7 +233,160 @@ class _FaceResultScreenState extends State<FaceResultScreen> {
           onTap: () =>
               Navigator.of(context).pushNamed('/ai-fortune/face/history'),
         ),
+        // [엔진 통합 지시문 STEP 3 — 2탭 도달성] 이 결과화면 자체가 이미
+        // 홈에서 1~2탭 거리이므로, 여기서 교차검증까지 1탭이면 전체
+        // 2탭 도달성을 만족한다.
+        ResultCta(
+          label: '다른 운세와 비교해보기',
+          icon: Icons.compare_arrows_rounded,
+          onTap: () => Navigator.of(context).pushNamed('/cross-check/result'),
+        ),
       ],
+    );
+  }
+
+  /// [결과 공유 기능] `POST /api/public/share`로 공유 링크를 생성한 뒤 OS 공유
+  /// 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 원본 촬영
+  /// 사진/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+  void _shareResult(BuildContext context, FaceResultModel result) {
+    // [결과 공유 링크 콘텐츠 부실 버그 수정 — 타로와 동일 원칙 적용]
+    // 기존에는 topicResults 상위 3개만 담아 부위별 특징(features, 이마/눈/
+    // 코/입/턱 등)이 전혀 노출되지 않았다. 관상은 부위별 특징 해석이
+    // 핵심이므로 features도 highlights에 포함해 링크만으로 충분한 맥락을
+    // 전달한다(서버 payload 상한 4000자 대비 features+topicResults 합쳐도
+    // 여유 있음).
+    final featureLines = result.features.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
+    final topicLines = result.topicResults.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.face,
+      title: '관상 결과 · 귀인지도',
+      description: result.summary,
+      payload: {
+        // [앱·웹 공유 구조 확정 — 웹 전용 결과페이지용 구조화 필드]
+        // admin_web `/r/[id]`가 서비스별 전용 렌더러로 부위별 특징
+        // (이마/눈/코/입/턱)과 주제별 운세(재물/애정/직업/건강)를
+        // 각각 구획으로 나눠 보여줄 수 있도록 Map 구조 그대로 전달한다.
+        // highlights(문자열 나열)는 구버전 웹/범용 폴백 렌더러 호환을
+        // 위해 함께 유지한다(하위 호환 — 기존 필드 제거하지 않음).
+        'kind': 'face',
+        'features': result.features,
+        'topicResults': result.topicResults,
+        'summary': result.summary,
+        'highlights': [...featureLines, ...topicLines],
+      },
+      sourceRefId: result.id,
+      originalResultKey: _originalResultKey,
+      originalLeadingKeys: [_originalHeaderKey],
+    );
+  }
+}
+
+/// 결과 화면 공용 상단바. 한지 배경 위에 얹혀 뒤로가기/하자 인장/타이틀/공유를
+/// 표시한다. [face_result_screen.dart]/[palm_result_screen.dart]가 각각
+/// 자기 파일 안에 동일한 위젯을 두어 서로 독립적으로 유지보수 가능하게 한다.
+class _ResultTopBar extends StatelessWidget {
+  const _ResultTopBar({
+    required this.hanja,
+    required this.hanjaColor,
+    required this.title,
+    this.onBack,
+    this.onShare,
+  });
+
+  final String hanja;
+  final Color hanjaColor;
+  final String title;
+  final VoidCallback? onBack;
+  final VoidCallback? onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Row(
+        children: [
+          if (onBack != null)
+            _CircleIconButton(icon: Icons.arrow_back_rounded, onTap: onBack!)
+          else
+            const SizedBox(width: 36),
+          const SizedBox(width: 10),
+          HanjaStamp(text: hanja, size: 28, color: hanjaColor, rotation: -6),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: GuinjiType.monoSm.copyWith(color: GuinjiColors.accent),
+            ),
+          ),
+          if (onShare != null)
+            _CircleIconButton(icon: Icons.ios_share_rounded, onTap: onShare!)
+          else
+            const SizedBox(width: 36),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: GuinjiColors.card,
+          border: Border.all(color: GuinjiColors.line),
+        ),
+        child: Icon(icon, size: 18, color: GuinjiColors.fg),
+      ),
+    );
+  }
+}
+
+/// [ResultCardStack]을 감싸는 "종이 시트" 컨테이너. 상단 모서리만 둥글게 잘라
+/// 한지 배경 위에 리포트 용지가 얹힌 듯한 느낌을 준다. 내부 [child]는
+/// [ResultCardStack]이 그대로 렌더링하는 흰 배경 리스트 뷰이므로, 여기서는
+/// 바깥 프레임(둥근 모서리 + 은은한 그림자)만 추가하고 내부 스타일은 전혀
+/// 건드리지 않는다.
+class _PaperSheet extends StatelessWidget {
+  const _PaperSheet({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: GuinjiColors.sigil.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
     );
   }
 }

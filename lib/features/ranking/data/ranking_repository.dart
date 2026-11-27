@@ -19,11 +19,15 @@ class RankingRepository {
   Future<ApiResult<List<RankingEntryModel>>> getWeeklyRanking({
     required int myPoints,
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('$_base/weekly?userId=$userId');
+    final uri = Uri.parse('$_base/weekly');
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            // [Stage2 결함수정] 서버는 선택적 인증(비로그인 열람 허용)이므로
+            // 토큰이 없어도 401을 강제하지 않지만, 있으면 isMe 판정을 위해 전달한다.
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {

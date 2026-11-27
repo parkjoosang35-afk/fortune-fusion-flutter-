@@ -1,0 +1,547 @@
+// app3/pay.jsx › Pay3 1:1 포팅 — 소원방 전체가 공유하는 단일 결제창.
+//
+// [v5 S2 — "2번 진행할 때 지킬 것" ② "구매 로직은 1벌만"] 수호자 탭(자세히 시트)과
+// 상점(ShopScreen)이 반드시 이 화면 하나만 호출해야 한다. 실제 구매 API 호출
+// (buyCharacter/buyOutfit/buyItem/wearNamedOutfit)은 호출부가 [PayOrder.onConfirmPay]로
+// 주입하지만, confirm→paying→done 3단계 흐름과 화면 구성(금액 내역 · 부족 안내 ·
+// 영수증 · after 콜백)은 전부 이 파일 하나가 전담한다 — 구매 버튼과 결제 처리를
+// 두 곳에 따로 만들지 말라는 지시를 코드 구조로 강제한다.
+//
+// [③ 결제 서버 범위 — S5 구현 완료] 「🧧 N개 충전하기」 버튼은 이제 실제로
+// ShortageQuickSheet(곳간 바로가기 + 추천 팩)를 열어, 복주머니를 담고
+// 돌아오면 이 결제창이 그대로 이어서 결제되도록 안내한다(resumeLabel).
+// 실제 곳간/체크아웃/적립 구현은 lib/features/pouch_pay/ 참고.
+import 'dart:async';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../application/wishroom_provider.dart';
+import '../../core/theme/wr_theme.dart';
+import '../../core/fx/wr_fx.dart';
+import '../../core/wr_toast.dart';
+import '../wallet/wallet_sheet.dart';
+import '../guide/guide3_sheet.dart';
+// [S5 복주머니 결제] "충전하기" 버튼이 실제로 곳간(Store)을 열도록 연결한다.
+import '../../../pouch_pay/presentation/shortage_quick_sheet.dart';
+
+/// 결제창에 전달하는 "주문" 정보 — app3/pay.jsx `order` prop 1:1.
+class PayOrder {
+  const PayOrder({
+    required this.kind,
+    required this.name,
+    this.sub,
+    this.img,
+    this.glyph,
+    required this.price,
+    required this.doneTitle,
+    this.afterLabel,
+    this.after,
+    required this.onConfirmPay,
+  });
+
+  /// app3/pay.jsx `KIND` 매핑 — char→수호자 · outfit→옷 · item→꾸미기 · dispatch→대신 기도.
+  final String kind;
+  final String name;
+  final String? sub;
+  final String? img; // asset 경로(없으면 glyph로 대체)
+  final String? glyph;
+  final int price;
+  final String doneTitle;
+
+  /// null이면 done 화면에 "방에 놓으러 가기" 류 버튼을 보여주지 않는다.
+  final String? afterLabel;
+  final VoidCallback? after;
+
+  /// 실제 구매 API 호출 — 성공 시 true, 실패(복주머니 부족 등) 시 false를 반환해야 한다.
+  /// [구매 로직 단일화] 이 콜백 "안쪽"의 provider 메서드만 호출부마다 다르고,
+  /// 콜백을 "언제 · 어떻게" 호출하는지는 이 화면이 유일하게 결정한다.
+  /// [S5 경제 — 동일 결제 중복 처리 방지] 파라미터로 이 화면의 주문번호(_oid)를 그대로
+  /// 전달한다 — 호출부는 받은 키를 provider의 해당 구매 메서드 `idempotencyKey:`로
+  /// 그대로 넘기기만 하면 된다(app3/pay.jsx `F.pay(order, oid)` 1:1).
+  final Future<bool> Function(String idempotencyKey) onConfirmPay;
+
+  static const Map<String, String> _kindLabel = {
+    'char': '수호자',
+    'outfit': '옷',
+    'item': '꾸미기',
+    'dispatch': '대신 기도',
+    // [S5 — 공용 결제창 통일] app3/entrust.jsx go()가 app.checkout({kind:'entrust',...})로
+    // 호출하는 것과 이름을 맞춘다(entrust_sheet.dart가 이 kind로 openPayScreen을 연다).
+    'entrust': '대신 기도',
+  };
+  String get label => _kindLabel[kind] ?? kind;
+}
+
+/// 어디서든(수호자 탭 · 상점) 동일하게 호출하는 결제창 오프너.
+void openPayScreen(BuildContext context, PayOrder order) {
+  Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => PayScreen(order: order)));
+}
+
+enum _PayStage { confirm, paying, done }
+
+class PayScreen extends StatefulWidget {
+  const PayScreen({super.key, required this.order});
+  final PayOrder order;
+
+  @override
+  State<PayScreen> createState() => _PayScreenState();
+}
+
+class _PayScreenState extends State<PayScreen> {
+  _PayStage _st = _PayStage.confirm;
+  late final String _oid;
+  int _paidBefore = 0;
+  int _burstKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // app3/pay.jsx `'WR'+Date.now().toString(36)...` 1:1(주문번호).
+    _oid =
+        'WR${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
+    // [C7 신규] app3/shell.jsx `want` — order(이 화면)를 열 때 항상 최우선으로
+    // "복주머니로 결제해요" 안내(평생 1번) — 원본 `want = order ? 'pay' : ...`.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowGuide3(context, 'pay');
+    });
+  }
+
+  Future<void> _pay(int before) async {
+    setState(() => _st = _PayStage.paying);
+    _paidBefore = before;
+    // app3/pay.jsx `setTimeout(()=>F.pay(order,oid), 1500)` 1:1 — 결제 연출 시간.
+    await Future.delayed(const Duration(milliseconds: 1500));
+    bool ok;
+    try {
+      // [S5 경제] 이 화면의 주문번호(_oid)를 멱등키로 그대로 전달 — 1.5초 연출 중
+      // 사용자가 뒤로 가기 후 재진입하거나 네트워크가 재시도해도 서버가 같은 _oid로
+      // 재전송임을 식별해 한 번만 처리한다.
+      ok = await widget.order.onConfirmPay(_oid);
+    } catch (_) {
+      ok = false;
+    }
+    if (!mounted) return;
+    if (ok) {
+      setState(() {
+        _st = _PayStage.done;
+        _burstKey++;
+      });
+    } else {
+      // app3/pay.jsx catch 분기: confirm으로 롤백 + toast.
+      setState(() => _st = _PayStage.confirm);
+      final err = context.read<WishRoomProvider>().lastError;
+      WrToast.show(context, err?.message ?? '결제에 실패했어요. 다시 시도해 주세요');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: wrThemeData(),
+      child: Scaffold(
+        backgroundColor: WrC.bg2,
+        body: SafeArea(
+          child: Consumer<WishRoomProvider>(
+            builder: (context, p, __) {
+              final before = p.me?.pouch ?? 0;
+              switch (_st) {
+                case _PayStage.paying:
+                  return _payingView();
+                case _PayStage.done:
+                  return _doneView(_paidBefore);
+                case _PayStage.confirm:
+                  return _confirmView(before);
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _closeBtn() => Align(
+    alignment: Alignment.topRight,
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(0, 14, 14, 0),
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).maybePop(),
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0x66000000),
+            shape: BoxShape.circle,
+            border: Border.all(color: WrC.line),
+          ),
+          child: const Icon(Icons.close, size: 16, color: Colors.white),
+        ),
+      ),
+    ),
+  );
+
+  Widget _thumb(double size) {
+    final order = widget.order;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: WrC.card,
+        border: Border.all(color: WrC.cardBorder),
+        gradient: const RadialGradient(
+          colors: [Color(0x40FFDCA0), Colors.transparent],
+        ),
+      ),
+      child: order.img != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                order.img!,
+                fit: BoxFit.contain,
+                width: size * .8,
+                height: size * .8,
+                errorBuilder: (_, __, ___) => Text(
+                  order.glyph ?? '✦',
+                  style: TextStyle(fontSize: size * .4),
+                ),
+              ),
+            )
+          : Text(order.glyph ?? '✦', style: TextStyle(fontSize: size * .4)),
+    );
+  }
+
+  Widget _confirmView(int before) {
+    final order = widget.order;
+    final lack = math.max(0, order.price - before);
+    final after = before - order.price;
+    return Column(
+      children: [
+        _closeBtn(),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Text(
+                    'PAY · ${order.label}',
+                    style: WrF.mono(size: 10.5, color: WrC.blossom2),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Center(child: _thumb(104)),
+                const SizedBox(height: 14),
+                Center(
+                  child: Text(
+                    order.name,
+                    style: WrF.display(20, color: Colors.white),
+                  ),
+                ),
+                if (order.sub != null) ...[
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      order.sub!,
+                      textAlign: TextAlign.center,
+                      style: WrF.body(13, color: WrC.muted),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 22),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: WrDeco.card,
+                  child: Column(
+                    children: [
+                      _amountRow('지금 가진 복주머니', '🧧 $before'),
+                      const SizedBox(height: 8),
+                      _amountRow('이번에 쓸 복주머니', '🧧 ${order.price}'),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Divider(color: WrC.line, height: 1),
+                      ),
+                      _amountRow(
+                        lack > 0 ? '모자란 복주머니' : '결제 뒤 남는 복주머니',
+                        '🧧 ${lack > 0 ? lack : after}',
+                        emphasize: true,
+                        warn: lack > 0,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                if (lack > 0) ...[
+                  // [S5 복주머니 결제] 부족분만큼 추천 팩을 바로 보여주는
+                  // ShortageQuickSheet를 연다 — 담고 나면 "{상품명} 이어서
+                  // 봉인하기" 버튼으로 이 결제창에 자연히 돌아오게 안내한다.
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: Semantics(
+                      identifier: 'pay_charge_lack',
+                      button: true,
+                      child: OutlinedButton(
+                        onPressed: () => openShortageQuickSheet(
+                          context,
+                          itemLabel: order.name,
+                          need: order.price,
+                          have: before,
+                          onCollectFree: () => openWalletSheet(context),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0x66F5CF6A)),
+                        ),
+                        child: Text(
+                          '🧧 $lack개 충전하기',
+                          style: WrF.body(
+                            14,
+                            w: FontWeight.w700,
+                            color: const Color(0xFFFFE7A0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '활동으로 모으기',
+                    style: WrF.body(12, w: FontWeight.w700, color: WrC.muted),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: OutlinedButton(
+                      onPressed: () => openWalletSheet(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: WrC.line),
+                      ),
+                      child: Text(
+                        '다른 방법으로 모으기',
+                        style: WrF.body(14, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ] else
+                  // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신 이름표로
+                  // 결제를 트리거할 수 있도록 identifier 부여. 시각적 변화 없음.
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: Semantics(
+                      identifier: 'pay_confirm',
+                      button: true,
+                      child: ElevatedButton(
+                        onPressed: () => _pay(before),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: WrC.blossom,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          '🧧 ${order.price}개로 결제하기',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _amountRow(
+    String label,
+    String value, {
+    bool emphasize = false,
+    bool warn = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: WrF.body(13, color: WrC.muted)),
+        Text(
+          value,
+          style: WrF.body(
+            emphasize ? 15 : 13,
+            w: emphasize ? FontWeight.w800 : FontWeight.w600,
+            color: warn
+                ? const Color(0xFFFF9CBC)
+                : (emphasize ? WrC.glow : WrC.fg),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _payingView() {
+    final order = widget.order;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ShakingPouch(size: 86),
+          const SizedBox(height: 18),
+          Text(
+            '${order.label} 결제하는 중',
+            style: WrF.display(16, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          Text('주문번호 $_oid', style: WrF.mono(size: 11, color: WrC.muted)),
+        ],
+      ),
+    );
+  }
+
+  Widget _doneView(int before) {
+    final order = widget.order;
+    final after = before - order.price;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+      child: Column(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              _thumb(110),
+              WrBurst(
+                key: ValueKey(_burstKey),
+                x: 55,
+                y: 55,
+                n: 20,
+                glyph: '✨',
+                spread: 120,
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            order.doneTitle,
+            textAlign: TextAlign.center,
+            style: WrF.display(20, color: Colors.white),
+          ),
+          const SizedBox(height: 22),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: WrDeco.card,
+            child: Column(
+              children: [
+                _amountRow('주문번호', _oid),
+                const SizedBox(height: 8),
+                _amountRow('상품', order.name),
+                const SizedBox(height: 8),
+                _amountRow('사용한 복주머니', '🧧 ${order.price}'),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Divider(color: WrC.line, height: 1),
+                ),
+                _amountRow('남은 복주머니', '🧧 $after', emphasize: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          if (order.afterLabel != null)
+            // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신 이름표로
+            // "지금 입혀 보기" 등 after 액션을 트리거할 수 있도록 identifier 부여.
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: Semantics(
+                identifier: 'pay_after',
+                button: true,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    order.after?.call();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: WrC.blossom,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    order.afterLabel!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).maybePop(),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: WrC.line),
+              ),
+              child: Text(
+                order.afterLabel != null ? '나중에 할게요' : '확인',
+                style: WrF.body(14, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShakingPouch extends StatefulWidget {
+  const _ShakingPouch({required this.size});
+  final double size;
+  @override
+  State<_ShakingPouch> createState() => _ShakingPouchState();
+}
+
+class _ShakingPouchState extends State<_ShakingPouch>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  )..repeat(reverse: true);
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, __) {
+        final angle = (_c.value - .5) * .18;
+        return Transform.rotate(
+          angle: angle,
+          child: Image.asset(
+            'assets/wishroom/items/pouch.png',
+            width: widget.size,
+            errorBuilder: (_, __, ___) =>
+                Text('💰', style: TextStyle(fontSize: widget.size * .6)),
+          ),
+        );
+      },
+    );
+  }
+}

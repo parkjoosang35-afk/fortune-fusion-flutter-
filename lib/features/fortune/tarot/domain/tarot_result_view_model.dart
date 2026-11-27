@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'tarot_category_model.dart';
 import 'tarot_model.dart';
 import 'tarot_reading_extras.dart';
 
@@ -61,6 +62,14 @@ class TarotResultView {
   /// 기능이 이 하나의 값만 참조하면 되도록 뷰모델 레벨에서 계산해둔다.
   final int score;
 
+  /// [65종 타로 리딩엔진 §계획3 - 결과화면 7섹션 제목 동적화] 이 리딩이
+  /// 65개 주제 중 하나에 속할 때(`TarotCategoryData.byId`로 찾아짐),
+  /// "AI 리딩"/"오늘의 조언" 섹션 제목에 주제명을 붙여 65개 리딩이 각자
+  /// 다른 화면처럼 느껴지게 한다. 매칭되지 않으면(레거시 general/love 등)
+  /// 기존 고정 문구를 그대로 사용해 회귀를 방지한다.
+  final String aiReadingLabel;
+  final String adviceLabel;
+
   const TarotResultView({
     required this.result,
     required this.heroCard,
@@ -72,6 +81,8 @@ class TarotResultView {
     required this.luckyNumber,
     required this.sections,
     required this.score,
+    required this.aiReadingLabel,
+    required this.adviceLabel,
   });
 
   /// [§11 P4] "내 운세 기록" 저장 시 표시할 제목. 카드 이름 + 스프레드
@@ -81,10 +92,16 @@ class TarotResultView {
 
   static String _spreadLabel(String spreadType) {
     switch (spreadType) {
+      // [65종 타로 리딩엔진 §계획3] 5카드 라벨 추가(기존엔 default로
+      // '원카드'라고 잘못 표시되는 버그가 있었다).
+      case 'five_card':
+        return '파이브카드';
       case 'three_card':
         return '쓰리카드';
       case 'yes_no':
         return 'YES/NO';
+      case 'choice_ab':
+        return 'A/B 비교';
       default:
         return '원카드';
     }
@@ -106,7 +123,7 @@ class TarotResultView {
     TarotResultSection(
       type: TarotResultSectionType.aiReading,
       icon: '🔮',
-      label: 'AI 리딩',
+      label: '카드 풀이',
     ),
     TarotResultSection(
       type: TarotResultSectionType.positions,
@@ -126,13 +143,19 @@ class TarotResultView {
     TarotResultSection(
       type: TarotResultSectionType.aiClosing,
       icon: '🌙',
-      label: 'AI 한마디',
+      label: '카드의 속삭임',
     ),
   ];
 
   factory TarotResultView.fromResult(TarotResultModel result) {
     final heroCard = result.positions.first.card;
     final lucky = TarotReadingExtras.luckyColor(result.id);
+    // [65종 타로 리딩엔진 §계획3] 서버가 응답에 실어준 topic(카테고리
+    // 화면에서 명시 지정했거나, §계획2 자동매칭으로 결정된 값)이 65개
+    // 주제 중 하나와 일치하면 그 한글 주제명을 섹션 제목에 반영한다.
+    // 매칭 실패(general/love 등 레거시)면 topicName은 null -> 기존
+    // 고정 문구('AI 리딩'/'오늘의 조언')를 그대로 사용한다.
+    final topicName = TarotCategoryData.byId(result.topic)?.label;
     return TarotResultView(
       result: result,
       heroCard: heroCard,
@@ -144,6 +167,8 @@ class TarotResultView {
       luckyNumber: TarotReadingExtras.luckyNumber(result.id),
       sections: defaultSections,
       score: TarotReadingExtras.readingScore(result.id),
+      aiReadingLabel: topicName != null ? '$topicName 카드 풀이' : '카드 풀이',
+      adviceLabel: topicName != null ? '$topicName 조언' : '오늘의 조언',
     );
   }
 }
@@ -152,7 +177,21 @@ class TarotResultView {
 /// 심화해석 / 히스토리. 각 액션의 처리 로직은 화면(State)에 두고, 이
 /// enum은 액션 바를 데이터 기반으로 렌더링하기 위한 식별자 + 표시 정보만
 /// 담는다.
-enum TarotResultAction { history, redraw, save, share, deepDive }
+// [REQ-07 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 기존 `save` 액션은
+// "저장하기" 라벨 하나로 기기(갤러리) 저장과 서버 기록 저장을 동시에
+// 수행했다. 토스트가 마지막에 호출된 기록 저장 쪽("마이 > 내 운세 기록에
+// 저장되었어요")으로 덮어써져, 실제로는 기기에도 저장됐다는 사실을 사용자가
+// 알기 어려웠다(P-07). `saveDevice`(기기 저장)를 별도 액션으로 추가하고,
+// 기존 `save`는 서버 기록 저장 전용으로 의미를 좁혀 라벨을 바꾼다.
+enum TarotResultAction {
+  history,
+  redraw,
+  saveDevice,
+  save,
+  share,
+  deepDive,
+  compare,
+}
 
 extension TarotResultActionX on TarotResultAction {
   String get label {
@@ -161,12 +200,20 @@ extension TarotResultActionX on TarotResultAction {
         return '히스토리';
       case TarotResultAction.redraw:
         return '다시 뽑기';
+      // [REQ-08] 기기 저장 버튼 문구를 전 화면 공통 "이미지로 저장"으로 통일.
+      case TarotResultAction.saveDevice:
+        return '이미지로 저장';
+      // [REQ-07] 서버 기록 저장 전용 — 기기 저장과 혼동되지 않도록 라벨 분리.
       case TarotResultAction.save:
-        return '저장하기';
+        return '기록에 저장';
       case TarotResultAction.share:
         return '공유하기';
       case TarotResultAction.deepDive:
         return '심화해석';
+      // [엔진 통합 지시문 STEP 3 — 2탭 도달성] 기존 5액션 바를 그대로
+      // 유지하면서 교차검증 화면 진입점만 6번째 액션으로 추가한다.
+      case TarotResultAction.compare:
+        return '운세비교';
     }
   }
 
@@ -176,12 +223,17 @@ extension TarotResultActionX on TarotResultAction {
         return Icons.history_rounded;
       case TarotResultAction.redraw:
         return Icons.refresh_rounded;
+      // [REQ-08] 기기 저장 아이콘을 전 화면 공통 download_rounded로 통일.
+      case TarotResultAction.saveDevice:
+        return Icons.download_rounded;
       case TarotResultAction.save:
         return Icons.bookmark_border_rounded;
       case TarotResultAction.share:
         return Icons.ios_share_rounded;
       case TarotResultAction.deepDive:
         return Icons.auto_awesome_rounded;
+      case TarotResultAction.compare:
+        return Icons.compare_arrows_rounded;
     }
   }
 }

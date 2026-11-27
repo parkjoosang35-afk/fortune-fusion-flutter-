@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/domain/access/access_checker.dart';
-import '../../../core/domain/gate/category_gate.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_button.dart';
@@ -10,18 +9,19 @@ import '../../../core/widgets/premium_chip.dart';
 import '../../../core/widgets/premium_badge.dart';
 import '../../../core/widgets/premium_graphics.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../auth/application/auth_provider.dart';
+import '../../../core/widgets/face_palm_select_sheet.dart';
 import '../../pass/application/pass_provider.dart';
-import '../../pass/domain/pending_pass_request.dart';
 import '../../pass/presentation/pass_gate_helper.dart';
 import '../../wallet/application/wallet_provider.dart';
-import '../../wish_wall_board/presentation/wish_wall_board_screen.dart';
+import '../../wishroom/features/intro/wish_room_intro_screen.dart';
 import '../application/fortune_category_provider.dart';
 import '../domain/fortune_category_model.dart';
 import '../domain/fortune_matrix.dart';
 import 'widgets/fortune_matrix_section.dart';
+import '../../../core/router/app_router.dart' show AppRouter;
+import '../../saju_renewal/navigation/saju_dimension_transition.dart';
 
-/// [전체보기 카테고리 허브] Fortune Fusion(신통방통) 앱 전체 카테고리를 한 화면에서
+/// [전체보기 카테고리 허브] 귀인지도 앱 전체 카테고리를 한 화면에서
 /// 파악·탐색할 수 있게 만드는 허브 페이지.
 ///
 /// 점신류 앱의 "카테고리 풍부함"을 벤치마킹하되 그대로 베끼지 않고, 우리 서비스
@@ -42,6 +42,10 @@ class AllCategoriesScreen extends StatefulWidget {
 
 class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   bool _checking = false;
+
+  // [UI 노출 정책 - 미동작 섹션 숨김] "N종 전체 보기" 버튼의 노출 여부.
+  // false로 두면 버튼만 숨겨지고 라우트/문구 코드는 그대로 유지된다.
+  static const bool _showCategoriesGridEntry = false;
 
   @override
   void initState() {
@@ -65,6 +69,13 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     required String label,
     String? route,
     bool requiresPass = false,
+    // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은 카드 중심
+    // 좌표를 원점으로". 호출부(카드/칩 자신의 context)에서 미리
+    // `sajuCardCenterOf(cardContext)`로 구한 좌표를 넘기면, route가
+    // `/saju-renewal`일 때만 그 좌표를 arguments로 실어 app_router.dart의
+    // `sajuDimensionEnterRoute`가 그 지점에서 원형 확산하게 한다. 다른
+    // 라우트는 이 값을 무시한다(기존 동작 그대로).
+    Offset? cardCenter,
   }) async {
     if (route == null) {
       AppToast.show(context, '$label · 준비 중이에요! 곧 만나볼 수 있어요 🙏');
@@ -75,11 +86,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     // 등)를 탭한 경우, saju/tarot 공용 입력화면에 미리 선택된 토픽/스프레드를
     // 넘겨준다. 매칭되는 관리자 카테고리가 없으면(기존 정적 항목) null이라
     // 기존 동작과 완전히 동일하다.
-    final arguments = _resolveDeepLinkArguments(
-      context,
-      label: label,
-      route: route,
-    );
+    final arguments = route == '/saju-renewal'
+        ? cardCenter
+        : _resolveDeepLinkArguments(context, label: label, route: route);
     await navigateWithPassGate(
       context,
       title: label,
@@ -92,84 +101,15 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
   /// [운섹션 87 카테고리 통합] [FortuneMatrix] 항목 진입 핸들러.
   ///
-  /// 기존 [_open]은 requiresPass(bool) 하나로만 판단해 서버 소진형
-  /// [PassProvider.consume]을 호출하지만, 87개 카테고리는 그보다 세분화된
-  /// 정책(하루1회/최초1회/항상프리패스)을 가지므로 [CategoryGate.decide]로
-  /// 먼저 판정한다. 통과하면 이미 화면이 있는 카테고리는 그 라우트로,
-  /// 아직 없는 카테고리는 공용 결과 화면(`/fortune/category`)으로 보낸다.
-  ///
-  /// [STEP8 - _openMatrixEntry 서버 검증 우회 문제 해결] [CategoryGate.decide]는
-  /// "열림패스가 활성 상태면 정책과 무관하게 항상 허용"이라는 순수 로컬 판정만
-  /// 한다(서버 호출 없음). 그래서 saju/name/face/palm/compatibility처럼 서버가
-  /// "이 패스로 이 카테고리를 이미 2회 이용했는지"를 검증하는 카테고리라도, 이
-  /// 매트릭스 경로(37개 카테고리)로 들어오면 그 검증이 전혀 걸리지 않는 구조적
-  /// 갭이 있었다. 이제 로컬 판정이 통과했고(=열림패스 활성) 진입 라우트가
-  /// [categoryKeyForRoute]에 매핑된 카테고리라면, [navigateWithPassGate]와 동일한
-  /// 방식으로 서버 게이트체크(checkOnly)를 한 번 더 거친다. 매핑되지 않은 라우트
-  /// (타로/오늘의 운세 등, 무료이거나 각 API 자신이 최종 검증)는 기존 동작 그대로
-  /// 유지한다(회귀 없음).
+  /// [자유 이용 원칙 - 프리패스 어뷰징 제한 삭제, 2026-11] 과거에는 여기서
+  /// [CategoryGate.decide](하루1회/평생1회 무료 게이트)와 [PassProvider.consume]
+  /// (프리패스 활성 시 카테고리당 최대 2회 제한)을 거쳐야만 항목에 진입
+  /// 할 수 있었으나, "프리패스 유무와 무관하게 전체 콘텐츠를 항상 자유
+  /// 탐색"하는 정책으로 바뀌면서 이 게이트가 더 이상 필요 없어졌다. 이제
+  /// 카테고리 탐색/진입은 항상 즉시 허용하고, 결제 판정은 오직 [결과보기]
+  /// 버튼 클릭 시점의 ResultAccessService(각 결과 화면 내부)가 전담한다.
   Future<void> _openMatrixEntry(FortuneCategoryEntry entry) async {
-    // [STEP8-2 로그인 필수 UI] 무료 카테고리(openFree/freeOncePerDay 등)는
-    // 로그인 없이도 그대로 열람 가능해야 하므로, CategoryGate.decide로 먼저
-    // 로컬 정책을 판정한 "이후"에도 여전히 프리패스가 필요한 경우
-    // (=paidOnlyPassGate이거나 무료 소진으로 차단된 경우)에만 로그인을
-    // 강제한다. 즉 "프리패스 클릭시 로그인 필수" 원칙을 이 매트릭스 경로에도
-    // 동일하게 적용하되, 완전 무료 콘텐츠까지 로그인 장벽을 세우지 않는다.
-    setState(() => _checking = true);
-    final access = context.read<AccessChecker>();
-    final decision = await CategoryGate.decide(entry, access);
-    if (!mounted) return;
-
-    if (!decision.allowed) {
-      setState(() => _checking = false);
-      if (!context.read<AuthProvider>().isLoggedIn) {
-        PendingPassRequestStore.save(
-          PendingPassRequest(
-            title: entry.title,
-            route: entry.existingRoute ?? FortuneMatrix.genericCategoryRoute,
-            arguments: entry.existingRoute != null
-                ? entry.routeArguments
-                : entry.id,
-            categoryKey: entry.existingRoute != null
-                ? categoryKeyForRoute(entry.existingRoute!)
-                : null,
-          ),
-        );
-        await showLoginRequiredSheet(context, categoryTitle: entry.title);
-        return;
-      }
-      await showPassRequiredSheet(context, categoryTitle: entry.title);
-      return;
-    }
-
     final route = entry.existingRoute;
-    final categoryKey = route != null ? categoryKeyForRoute(route) : null;
-
-    if (categoryKey != null && access.isOpenPassActive()) {
-      final pass = context.read<PassProvider>();
-      final ok = await pass.consume(
-        contentType: 'fortune_category',
-        contentId: entry.title,
-        categoryKey: categoryKey,
-      );
-      if (!mounted) return;
-      setState(() => _checking = false);
-      if (!ok) {
-        if (pass.lastErrorReason == 'CATEGORY_LIMIT_REACHED') {
-          await showCategoryLimitReachedSheet(
-            context,
-            categoryTitle: entry.title,
-            message: pass.lastError,
-          );
-        } else {
-          await showPassRequiredSheet(context, categoryTitle: entry.title);
-        }
-        return;
-      }
-    } else {
-      setState(() => _checking = false);
-    }
-
     if (route != null) {
       Navigator.of(context).pushNamed(route, arguments: entry.routeArguments);
       return;
@@ -197,6 +137,26 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     'tarot_love': (spreadType: null, topic: 'love'),
   };
 
+  /// [작업5 - 타로 신규 정문 통합] AllCategoriesScreen 타로 그룹 세부 항목
+  /// label → TarotCategoryData(tarot_category_model.dart) categoryId 매핑.
+  ///
+  /// 이 5개 id는 실제 TarotCategoryData.all에 존재함을 코드로 확인했다
+  /// (파일: features/fortune/tarot/domain/tarot_category_model.dart):
+  ///   - daily_today_tarot   (group=daily,   label='오늘의 타로', topic='today')
+  ///   - love_fortune        (group=love,    label='연애운',      topic='love')
+  ///   - wealth_fortune      (group=wealth,  label='재물운',      topic='wealth')
+  ///   - daily_direction_of_choice (group=daily, label='선택의 방향', topic='choice')
+  ///   - emotion_current_heart     (group=emotion, label='지금 내 마음', topic='general')
+  /// 각 topic/group이 AllCategoriesScreen 라벨(오늘의 타로/연애타로/재물타로/
+  /// 선택타로/속마음 타로)의 의도와 부합함을 확인했다.
+  static const Map<String, String> _tarotCategoryIdByLabel = {
+    '오늘의 타로': 'daily_today_tarot',
+    '연애타로': 'love_fortune',
+    '재물타로': 'wealth_fortune',
+    '선택타로': 'daily_direction_of_choice',
+    '속마음 타로': 'emotion_current_heart',
+  };
+
   /// 탭한 항목의 [label]을 관리자(FortuneCategoryProvider) 카테고리 목록에서
   /// 역매칭해 categoryKey를 찾고, saju/tarot 입력화면에 전달할 초기값 Map을
   /// 만든다. 정적 placeholder 항목(관리자 데이터에 없는 label)이거나 대상
@@ -206,6 +166,19 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     required String label,
     required String route,
   }) {
+    // [작업5 - 타로 신규 정문 통합] AllCategoriesScreen의 타로 그룹 세부
+    // 항목(오늘의 타로/연애타로/재물타로/선택타로/속마음 타로)을 신규
+    // 카테고리 상세 화면(TarotCategoryDetailScreen, route='/tarot/category')
+    // 으로 연결할 때는 관리자 카테고리 매칭과 무관하게 TarotCategoryData의
+    // categoryId(String)를 그대로 arguments로 전달해야 한다
+    // (AppRouter의 tarotCategoryDetailRoute case가
+    // `settings.arguments as String?`로 받는다). label별 categoryId는
+    // [_tarotCategoryIdByLabel]에서 조회하며, 매핑에 없는 label(예: 대표
+    // "타로" → '/tarot/home')이면 null을 반환해 인자 없이 이동한다.
+    if (route == '/tarot/category') {
+      return _tarotCategoryIdByLabel[label];
+    }
+
     if (route != '/ai-fortune/saju/input' &&
         route != '/ai-fortune/tarot/question') {
       return null;
@@ -244,12 +217,15 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// [미연동 콘텐츠 삭제] "테마 운세"(별자리/혈액형/꿈해몽 등 전부
   /// 미연동)와 "행운/정화"(행운의번호/살풀이 전부 미연동) 그룹은
   /// _categoryGroups에서 통째로 삭제했으므로 매핑도 함께 제거한다.
+  /// [귀인지도 정통사주 리뉴얼] admin DB "saju" 그룹(재물운/직업운/애정운 등
+  /// 6개 카테고리)이 전부 구 AI 사주 라우트(`/ai-fortune/saju/input`)를
+  /// 가리키고 있어, 이 매핑을 남겨두면 방금 정리한 정적 "사주" 그룹(내 사주
+  /// 분석하기 1개)이 admin 데이터로 다시 덮어써져 중복 진입점이 재노출된다.
+  /// 따라서 '사주' 매핑은 의도적으로 제거해 정적 데이터만 사용하도록 한다.
   static const Map<String, String> _groupCodeByTitle = {
     '오늘/기간 운세': 'today',
-    '사주': 'saju',
     '타로': 'tarot',
     '얼굴/손금': 'face_palm',
-    '상담/해석': 'consultation_ext',
   };
 
   /// 관리자 데이터를 기존 정적 그룹 구조([_categoryGroups]와 동일한 레코드
@@ -260,6 +236,24 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   /// - 매핑되지 않는 그룹은 정적 데이터를 그대로 둔다.
   /// - 관리자 데이터 로딩 실패/로딩 중/데이터 없음이면 전체를 기존 정적
   ///   [_categoryGroups]로 폴백한다(레이아웃/문구 100% 기존 유지).
+  // [UI 노출 정책 - 미동작 섹션 숨김] "오늘/기간 운세" 그룹은 하위 항목이
+  // "오늘의 운세" 하나뿐이며 해당 항목이 아직 전체보기 화면에서 정상 동작하지
+  // 않아 그룹 전체를 노출하지 않는다. 데이터(_categoryGroups)는 삭제하지 않고
+  // 그대로 유지해 향후 재노출 시 이 필터만 되돌리면 된다.
+  static const Set<String> _hiddenGroupTitles = {'오늘/기간 운세'};
+
+  List<
+    ({
+      IconData icon,
+      String title,
+      String desc,
+      List<({String label, String? route, bool pass})> items,
+    })
+  >
+  get _visibleStaticGroups => _categoryGroups
+      .where((g) => !_hiddenGroupTitles.contains(g.title))
+      .toList();
+
   List<
     ({
       IconData icon,
@@ -270,13 +264,13 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   >
   _resolveCategoryGroups(FortuneCategoryProvider provider) {
     if (!provider.state.isSuccess || provider.groups.isEmpty) {
-      return _categoryGroups;
+      return _visibleStaticGroups;
     }
     final byCode = <String, FortuneCategoryGroupData>{
       for (final g in provider.groups) g.code: g,
     };
 
-    return _categoryGroups.map((staticGroup) {
+    return _visibleStaticGroups.map((staticGroup) {
       final code = _groupCodeByTitle[staticGroup.title];
       final adminGroup = code == null ? null : byCode[code];
       if (adminGroup == null || adminGroup.categories.isEmpty) {
@@ -349,11 +343,12 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               child: _FeaturedGrid(
                 pass: pass,
                 busy: _checking,
-                onTap: (label, route, requiresPass) => _open(
+                onTap: (label, route, requiresPass, cardCenter) => _open(
                   context,
                   label: label,
                   route: route,
                   requiresPass: requiresPass,
+                  cardCenter: cardCenter,
                 ),
               ),
             ),
@@ -375,12 +370,14 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                   delay: Duration(milliseconds: 40 * index),
                   child: _CategoryGroupCard(
                     group: group,
-                    onTapItem: (label, route, requiresPass) => _open(
-                      context,
-                      label: label,
-                      route: route,
-                      requiresPass: requiresPass,
-                    ),
+                    onTapItem: (label, route, requiresPass, cardCenter) =>
+                        _open(
+                          context,
+                          label: label,
+                          route: route,
+                          requiresPass: requiresPass,
+                          cardCenter: cardCenter,
+                        ),
                   ),
                 ),
               );
@@ -390,8 +387,8 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             // [운섹션 87 카테고리 통합 - 궁합 신규 구현 완료] 위 "전체
             // 카테고리"(관리자 8그룹)와는 별개로, 실제 구현된 87개 카테고리
             // (T/S/N/C/K/V/O/F/X/G/B/D/R)를 한 화면에서 그룹별로 훑어볼 수
-            // 있게 노출한다. 각 항목을 탭하면 [_openMatrixEntry]가
-            // [CategoryGate]로 판정 후 이동한다.
+            // 있게 노출한다. 각 항목을 탭하면 [_openMatrixEntry]가 즉시
+            // 해당 라우트로 이동한다(자유 이용 원칙 - 게이트 없음).
             FadeSlideIn(
               child: const PremiumSectionTitleLite(
                 title: '37가지 운세 한눈에 보기',
@@ -404,17 +401,23 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               child: FortuneMatrixSection(onTapEntry: _openMatrixEntry),
             ),
             const SizedBox(height: UnifiedTokens.spaceMd),
-            // [신규 화면 진입점] 80종 전체 보기(카드 그리드 전용 화면)로 이동
-            // 하는 텍스트 버튼 한 줄만 추가한다(다른 위젯/State/메서드는
-            // 그대로 유지).
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed('/categories-grid'),
-                child: Text('80종 전체 보기 →', style: UnifiedText.bodyStrong()),
+            // [UI 노출 정책 - 미동작 섹션 숨김] "N종 전체 보기" 이동 버튼은 연결된
+            // 화면이 아직 전체보기에서 정상 동작하지 않아 숨긴다. 버튼 코드/라우트
+            // 는 삭제하지 않고 _showCategoriesGridEntry(false)로만 숨겨두어
+            // 향후 값을 true로 되돌리면 그대로 복원된다.
+            if (_showCategoriesGridEntry) ...[
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed('/categories-grid'),
+                  child: Text(
+                    '${FortuneMatrix.all.length}종 전체 보기 →',
+                    style: UnifiedText.bodyStrong(),
+                  ),
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: UnifiedTokens.spaceXxl),
 
             FadeSlideIn(
@@ -551,28 +554,37 @@ class _TrendingRow extends StatelessWidget {
   static const _items = [
     // [프리패스 전체잠금 통일] 오늘의 운세 전체잠금(과거 무료 노출).
     (Icons.wb_sunny_outlined, '오늘의 운세', '/home/daily-fortune-detail', true),
-    (Icons.style_outlined, '타로', '/ai-fortune/tarot/question', true),
-    (
-      Icons.chat_bubble_outline_rounded,
-      'AI 상담',
-      '/ai-fortune/consultation/type',
-      true,
-    ),
-    (Icons.badge_outlined, '이름 운세', '/ai-fortune/name/input', true),
+    // [작업5 - 타로 신규 정문 통합] 구 진입점(/ai-fortune/tarot/question)
+    // 직행을 신규 정문(TarotHomeScreen, '/tarot/home')으로 교체한다.
+    // 이제 Home/FortuneHub/AllCategories 모두 동일한 타로 정문을 사용한다.
+    // [타로 인트로 핸드오프 이식] 타로 메인 직행 대신 인트로 스플래시를
+    // 먼저 거친다.
+    // [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 메인 진입 시 게이트
+    // 없이 둘러볼 수 있어야 하므로 false로 변경. 실제 게이트는
+    // tarot_category_detail_screen.dart의 "시작하기"(다음 액션)로 옮겼다.
+    (Icons.style_outlined, '타로', AppRouter.tarotIntroRoute, false),
     (Icons.back_hand_outlined, '손금', '/ai-fortune/palm/capture', true),
   ];
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] 클릭 시 정상 동작하지 않는 항목만 이
+  // 가로 스크롤 칩 스트립에서 숨긴다. 데이터(_items)는 삭제하지 않고 그대로
+  // 유지하며, 노출 단계에서만 필터링해 향후 값을 되돌리면 즉시 복원된다.
+  static const Set<String> _hiddenLabels = {'오늘의 운세'};
+
   @override
   Widget build(BuildContext context) {
+    final visibleItems = _items
+        .where((e) => !_hiddenLabels.contains(e.$2))
+        .toList();
     return SizedBox(
       height: 34,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: _items.length,
+        itemCount: visibleItems.length,
         separatorBuilder: (_, __) =>
             const SizedBox(width: UnifiedTokens.spaceSm),
         itemBuilder: (context, i) {
-          final (icon, label, route, requiresPass) = _items[i];
+          final (icon, label, route, requiresPass) = visibleItems[i];
           return PremiumChip(
             label: label,
             icon: icon,
@@ -599,8 +611,19 @@ class _FeaturedGrid extends StatelessWidget {
 
   final PassProvider pass;
   final bool busy;
-  final void Function(String label, String route, bool requiresPass) onTap;
+  // [디자인 핸드오프 00 셸 — 진입 전환] cardCenter는 탭된 _FeaturedCard
+  // 자신의 context로 구한 중심 좌표(route가 '/saju-renewal'일 때만 유효).
+  final void Function(
+    String label,
+    String route,
+    bool requiresPass,
+    Offset? cardCenter,
+  )
+  onTap;
 
+  // [귀인지도 정통사주 리뉴얼] "정통사주" 대표카테고리 카드를 유일한 신규
+  // 정통사주(saju_renewal, `/saju-renewal`)로 연결한다. 기존 jeontong_eighty
+  // 69종 UI/saju_v3 데모/기존 AI 사주는 모두 제거되었다.
   static const _items = [
     (
       '오늘의 운세',
@@ -611,27 +634,32 @@ class _FeaturedGrid extends StatelessWidget {
       true,
     ),
     (
-      '정통사주',
+      '내 사주 분석하기',
       '타고난 기운과 인생의 방향',
       Icons.auto_stories_outlined,
-      '/ai-fortune/saju/input',
-      true,
-    ),
-    (
-      '이름 운세',
-      '이름에 담긴 기운과 어울림',
-      Icons.badge_outlined,
-      '/ai-fortune/name/input',
-      true,
+      '/saju-renewal',
+      false,
     ),
     (
       '타로',
       '지금 마음과 선택의 해석',
       Icons.style_outlined,
-      '/ai-fortune/tarot/question',
-      true,
+      // [작업5 - 타로 신규 정문 통합] 대표 카테고리 "타로" 카드도 신규
+      // 정문(TarotHomeScreen)으로 연결한다.
+      // [타로 인트로 핸드오프 이식] 대표 카테고리 "타로" 카드도 인트로
+      // 스플래시를 먼저 거치도록 변경한다.
+      // [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 메인 진입 시
+      // 게이트 없이 둘러볼 수 있어야 하므로 false로 변경. 실제 게이트는
+      // tarot_category_detail_screen.dart의 "시작하기"(다음 액션)로 옮겼다.
+      AppRouter.tarotIntroRoute,
+      false,
     ),
   ];
+
+  // [UI 노출 정책 - 미동작 섹션 숨김] 대표 카테고리 4개 중 클릭 시 정상
+  // 동작하지 않는 항목만 숨긴다. 원본 데이터(_items)는 삭제하지 않고 그대로
+  // 유지하며, 노출 단계에서만 필터링해 향후 값을 되돌리면 즉시 복원된다.
+  static const Set<String> _hiddenLabels = {'오늘의 운세'};
 
   @override
   Widget build(BuildContext context) {
@@ -644,22 +672,29 @@ class _FeaturedGrid extends StatelessWidget {
     // 카드 4개가 통째로 사라지는 버그의 정확한 원인).
     // _FeaturedCard는 이미 SizedBox(height: 138)로 고정 높이를 갖고 있어
     // stretch가 애초에 불필요했으므로 제거한다.
+    final visibleItems = _items
+        .where((e) => !_hiddenLabels.contains(e.$1))
+        .toList();
+    final rowCount = (visibleItems.length / 2).ceil();
     return Column(
       children: [
-        for (var row = 0; row < 2; row++) ...[
+        for (var row = 0; row < rowCount; row++) ...[
           if (row > 0) const SizedBox(height: UnifiedTokens.spaceSm),
           Row(
             children: [
               for (var col = 0; col < 2; col++) ...[
                 if (col > 0) const SizedBox(width: UnifiedTokens.spaceSm),
-                Expanded(
-                  child: _FeaturedCard(
-                    item: _items[row * 2 + col],
-                    pass: pass,
-                    busy: busy,
-                    onTap: onTap,
-                  ),
-                ),
+                if (row * 2 + col < visibleItems.length)
+                  Expanded(
+                    child: _FeaturedCard(
+                      item: visibleItems[row * 2 + col],
+                      pass: pass,
+                      busy: busy,
+                      onTap: onTap,
+                    ),
+                  )
+                else
+                  const Expanded(child: SizedBox.shrink()),
               ],
             ],
           ),
@@ -680,7 +715,13 @@ class _FeaturedCard extends StatelessWidget {
   final (String, String, IconData, String, bool) item;
   final PassProvider pass;
   final bool busy;
-  final void Function(String label, String route, bool requiresPass) onTap;
+  final void Function(
+    String label,
+    String route,
+    bool requiresPass,
+    Offset? cardCenter,
+  )
+  onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -702,7 +743,18 @@ class _FeaturedCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
         showShadow: false,
         padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-        onTap: busy ? null : () => onTap(title, route, requiresPass),
+        // [디자인 핸드오프 00 셸 — 진입 전환] docs/03 §00 "구현은 카드
+        // 중심 좌표를 원점으로". 이 카드 자신의 build(context)가 바로 이
+        // 카드의 context이므로 Builder 없이 sajuCardCenterOf(context)를
+        // 그대로 쓸 수 있다. 정통사주 카드가 아니면 null(무시됨).
+        onTap: busy
+            ? null
+            : () => onTap(
+                title,
+                route,
+                requiresPass,
+                route == '/saju-renewal' ? sajuCardCenterOf(context) : null,
+              ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -767,25 +819,41 @@ _categoryGroups = [
       (label: '오늘의 운세', route: '/home/daily-fortune-detail', pass: true),
     ],
   ),
+  // [3단계 2차 실제 구조 정리 - 작업3] 기존에는 "정통사주"/"오늘의 사주" 두
+  // 라벨이 모두 동일한 AI(LLM) 사주 라우트를 가리키는 사실상 중복 항목이었고,
+  // 그마저 "정통사주"라는 이름이 실제 정통사주(PHASE1~4) 엔진과 무관해
+  // 명칭 혼선을 일으켰다. "정통사주"는 실제 PHASE1~4 화면으로, 나머지 하나는
+  // "AI 사주"로 이름을 정정해 두 항목이 서로 다른 실제 화면을 가리키도록
+  // 정리한다(라우트/화면 자체는 기존 것을 그대로 재사용, 신규 개발 없음).
+  // [귀인지도 정통사주 리뉴얼] "정통사주"/"사주 해석"/"정통사주 v3(베타)"
+  // 3개로 나뉘어져 있던 "사주" 그룹을 유일한 신규 정통사주(saju_renewal)
+  // 하나로 통합한다.
   (
     icon: Icons.auto_stories_outlined,
     title: '사주',
-    desc: '타고난 기운과 흐름을 깊게 해석해보세요',
-    items: [
-      (label: '정통사주', route: '/ai-fortune/saju/input', pass: true),
-      (label: '오늘의 사주', route: '/ai-fortune/saju/input', pass: true),
-    ],
+    desc: '내 사주를 계산하고 내 사주 속 이야기를 발견해보세요',
+    items: [(label: '내 사주 분석하기', route: '/saju-renewal', pass: false)],
   ),
   (
     icon: Icons.style_outlined,
     title: '타로',
     desc: '지금 마음이 궁금할 때, 카드에게 물어보세요',
+    // [작업5 - 타로 신규 정문 통합] 세부 항목 5개를 구 질문화면
+    // (/ai-fortune/tarot/question) 직행에서 신규 카테고리 상세 화면
+    // (TarotCategoryDetailScreen, route='/tarot/category')으로 교체한다.
+    // 실제 arguments(categoryId)는 _resolveDeepLinkArguments()가
+    // _tarotCategoryIdByLabel 매핑을 통해 label별로 채워준다. 이렇게 하면
+    // 사용자가 "오늘의 타로" 등을 눌러도 카테고리 상세 → 질문 → 카드선택 →
+    // 결과의 동일한 신규 플로우로 들어가게 된다(구 화면 직행 금지).
+    // [둘러보기 우선 원칙 - 타로도 정통사주와 동일하게] 카테고리 상세
+    // (스프레드 선택) 화면은 게이트 없이 둘러볼 수 있어야 하므로 pass:false로
+    // 변경. 실제 게이트는 그 화면의 "시작하기"(다음 액션)로 옮겼다.
     items: [
-      (label: '오늘의 타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '연애타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '재물타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '선택타로', route: '/ai-fortune/tarot/question', pass: true),
-      (label: '속마음 타로', route: '/ai-fortune/tarot/question', pass: true),
+      (label: '오늘의 타로', route: '/tarot/category', pass: false),
+      (label: '연애타로', route: '/tarot/category', pass: false),
+      (label: '재물타로', route: '/tarot/category', pass: false),
+      (label: '선택타로', route: '/tarot/category', pass: false),
+      (label: '속마음 타로', route: '/tarot/category', pass: false),
     ],
   ),
   (
@@ -795,15 +863,6 @@ _categoryGroups = [
     items: [
       (label: '오늘의 관상', route: '/ai-fortune/face/capture', pass: true),
       (label: '손금', route: '/ai-fortune/palm/capture', pass: true),
-    ],
-  ),
-  (
-    icon: Icons.chat_bubble_outline_rounded,
-    title: '상담/해석',
-    desc: '혼자 고민하지 말고 함께 이야기해요',
-    items: [
-      (label: 'AI 상담', route: '/ai-fortune/consultation/type', pass: true),
-      (label: '고민상담', route: '/ai-fortune/consultation/type', pass: true),
     ],
   ),
 ];
@@ -819,7 +878,15 @@ class _CategoryGroupCard extends StatelessWidget {
     List<({String label, String? route, bool pass})> items,
   })
   group;
-  final void Function(String label, String? route, bool requiresPass) onTapItem;
+  // [디자인 핸드오프 00 셸 — 진입 전환] cardCenter는 탭된 _SubCategoryChip
+  // 자신의 context로 구한 중심 좌표(route가 '/saju-renewal'일 때만 유효).
+  final void Function(
+    String label,
+    String? route,
+    bool requiresPass,
+    Offset? cardCenter,
+  )
+  onTapItem;
 
   @override
   Widget build(BuildContext context) {
@@ -853,7 +920,13 @@ class _CategoryGroupCard extends StatelessWidget {
                   (item) => _SubCategoryChip(
                     label: item.label,
                     isReady: item.route != null,
-                    onTap: () => onTapItem(item.label, item.route, item.pass),
+                    onTap: (cardCenter) => onTapItem(
+                      item.label,
+                      item.route,
+                      item.pass,
+                      cardCenter,
+                    ),
+                    isSajuRenewal: item.route == '/saju-renewal',
                   ),
                 )
                 .toList(),
@@ -871,16 +944,21 @@ class _SubCategoryChip extends StatelessWidget {
     required this.label,
     required this.isReady,
     required this.onTap,
+    this.isSajuRenewal = false,
   });
 
   final String label;
   final bool isReady;
-  final VoidCallback onTap;
+  // [디자인 핸드오프 00 셸 — 진입 전환] onTap이 Offset?을 받는 이유: 이
+  // 칩 자신의 context에서 sajuCardCenterOf로 구한 중심 좌표를 그대로
+  // 넘겨준다(isSajuRenewal이 아니면 null).
+  final void Function(Offset? cardCenter) onTap;
+  final bool isSajuRenewal;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => onTap(isSajuRenewal ? sajuCardCenterOf(context) : null),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
@@ -901,68 +979,48 @@ class _SubCategoryChip extends StatelessWidget {
   }
 }
 
-/// ⑤ 빠른 진입 기능 섹션 - AI상담/이름운세/행운의번호/소원게시판/소원방.
+/// ⑤ 빠른 진입 기능 섹션 - 관상/손금/이름운세/행운의번호/소원방.
 /// 우리 서비스 고유 감성 기능·커뮤니티로 이어주는 짧은 CTA 카드 5개.
 class _QuickEntryRow extends StatelessWidget {
   const _QuickEntryRow();
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] "행운의 번호"는 탭해도 실제 화면 없이
+  // 안내 토스트만 뜨는 미완성 항목이라 이 빠른 진입 줄에서 숨긴다.
+  // "이름 운세"도 동일 정책으로 전체 화면에서 숨긴다. 위젯/로직은
+  // 삭제하지 않고 build()에서 조건부로만 제외해 향후 값을 되돌리면 즉시
+  // 복원된다.
+  static const bool _showLuckyNumberEntry = false;
+
   @override
   Widget build(BuildContext context) {
+    final entries = <Widget Function(BuildContext)>[
+      (ctx) => _QuickEntryCard(
+        icon: Icons.face_outlined,
+        label: '관상/손금',
+        onTap: () => showFacePalmSelectSheet(ctx),
+      ),
+      if (_showLuckyNumberEntry)
+        (ctx) => _QuickEntryCard(
+          icon: Icons.auto_awesome_outlined,
+          label: '행운의 번호',
+          onTap: () => AppToast.show(ctx, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
+        ),
+      (ctx) => _QuickEntryCard(
+        icon: Icons.star_border_rounded,
+        label: '소원방',
+        onTap: () => Navigator.of(
+          ctx,
+        ).push(MaterialPageRoute(builder: (_) => const WishRoomIntroScreen())),
+      ),
+    ];
     return SizedBox(
       height: 96,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: 4,
+        itemCount: entries.length,
         separatorBuilder: (_, __) =>
             const SizedBox(width: UnifiedTokens.spaceSm),
-        itemBuilder: (context, i) {
-          switch (i) {
-            case 0:
-              return _QuickEntryCard(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: 'AI 상담',
-                onTap: () async {
-                  final isPassActive = context
-                      .read<AccessChecker>()
-                      .canAccessFortuneScope();
-                  if (isPassActive) {
-                    Navigator.of(
-                      context,
-                    ).pushNamed('/ai-fortune/consultation/type');
-                  } else {
-                    await navigateWithPassGate(
-                      context,
-                      title: 'AI 상담',
-                      route: '/ai-fortune/consultation/type',
-                      requiresPass: true,
-                    );
-                  }
-                },
-              );
-            case 1:
-              return _QuickEntryCard(
-                icon: Icons.badge_outlined,
-                label: '이름 운세',
-                onTap: () =>
-                    Navigator.of(context).pushNamed('/ai-fortune/name/input'),
-              );
-            case 2:
-              return _QuickEntryCard(
-                icon: Icons.auto_awesome_outlined,
-                label: '행운의 번호',
-                onTap: () =>
-                    AppToast.show(context, '오늘의 행운숫자는 홈 화면에서 곧 만나볼 수 있어요 ✨'),
-              );
-            default:
-              return _QuickEntryCard(
-                icon: Icons.star_border_rounded,
-                label: '소원방',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
-                ),
-              );
-          }
-        },
+        itemBuilder: (context, i) => entries[i](context),
       ),
     );
   }
@@ -1118,7 +1176,7 @@ class _PassStatusStripState extends State<_PassStatusStrip> {
   }
 }
 
-/// ⑦ 하단 연결 CTA - 커뮤니티 가기 / 후기 보기 / 고민상담 보기.
+/// ⑦ 하단 연결 CTA - 소원방 가기 / 관상/손금 보기.
 /// 전체보기가 "운세 메뉴판"에서 끝나지 않고 커뮤니티·감성 기능까지 이어지도록
 /// 마지막에 가볍게 3개의 연결 지점을 배치한다.
 class _BottomConnectRow extends StatelessWidget {
@@ -1133,18 +1191,16 @@ class _BottomConnectRow extends StatelessWidget {
             icon: Icons.local_fire_department_rounded,
             label: '소원방 가기',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const WishWallBoardScreen()),
+              MaterialPageRoute(builder: (_) => const WishRoomIntroScreen()),
             ),
           ),
         ),
         const SizedBox(width: UnifiedTokens.spaceSm),
         Expanded(
           child: _ConnectTile(
-            icon: Icons.chat_bubble_rounded,
-            label: '고민상담 보기',
-            onTap: () => Navigator.of(
-              context,
-            ).pushNamed('/ai-fortune/consultation/type'),
+            icon: Icons.face_rounded,
+            label: '관상/손금 보기',
+            onTap: () => showFacePalmSelectSheet(context),
           ),
         ),
       ],

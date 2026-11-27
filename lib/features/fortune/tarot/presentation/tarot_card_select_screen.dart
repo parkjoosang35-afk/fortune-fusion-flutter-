@@ -1,30 +1,43 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/widgets/app_dialog.dart';
+import '../../../pass/presentation/pass_gate_helper.dart';
+import '../../../result_access/domain/result_access_model.dart';
+import '../../../result_access/presentation/result_access_gate_sheet.dart';
 import '../application/tarot_audio_controller.dart';
 import '../application/tarot_provider.dart';
 import '../application/tarot_session_controller.dart';
-import 'theme/tarot_colors.dart';
-import 'theme/tarot_perf_config.dart';
-import 'theme/tarot_text_styles.dart';
-import 'theme/tarot_theme_scope.dart';
-import 'theme/tarot_tokens.dart';
-import 'widgets/tarot_mystic_background.dart';
+import 'oz/oz_theme.dart';
+import 'oz/tarot_spread_deck.dart';
+import 'oz/widgets/oz_background.dart';
+import 'oz/widgets/oz_card_peek_modal.dart';
+import 'oz/widgets/oz_card_spread.dart';
+import 'oz/widgets/oz_frame_divider.dart';
+import 'oz/widgets/oz_mystic_orb_inline.dart';
+import 'oz/widgets/oz_picked_slots.dart';
+import 'oz/widgets/oz_primary_button.dart';
+import 'oz/widgets/oz_reset_confirm_dialog.dart';
+import 'oz/widgets/oz_reveal_ritual_overlay.dart';
+import 'oz/widgets/oz_tool_button.dart';
+import 'oz/widgets/oz_topbar.dart';
 
-/// [타로 섹션 전면 개편 §2 정보구조 ⑤ / §7 P2] 카드 선택 화면(신규).
+/// [타로 카드뽑기 화면 디자인 핸드오프 매핑 · T1] 카드 선택 화면.
 ///
-/// [TarotSessionController]의 상태머신을 그대로 UI로 옮긴 화면이다:
-/// `questionReady`(진입 즉시 `beginShuffle()`) → `shuffling`(부채꼴 셔플
-/// 연출, 약 1200ms) → `shuffleFinished()` → `selectingCards`(카드 뒷면
-/// 탭 대기, `requiredCardCount`만큼) → 선택 완료 시 컨트롤러가 자동으로
-/// `cardsChosen`으로 전이 → "펼쳐보기" CTA 노출 → 탭하면 `reveal()` 호출.
+/// `design_handoffs/tarot_picker/`(README + tarot-spec.md + TarotApp.jsx +
+/// TarotCards.jsx)의 "Card Pick Screen" 공식 스펙을 이 화면에 매핑한다.
+/// 레이아웃(7행×12열 그리드, 마지막 줄 6장 중앙정렬) · 컴포넌트 구성
+/// (PickedSlots · Toolbar 3버튼 · FrameDivider ×2 · MysticOrbInline ·
+/// CardPeekModal · ResetConfirmDialog) · 인터랙션 타이밍(뽑기 550ms 지연 +
+/// 반짝임, 4단계 셔플 ~1.35s, 5장 완성 시 나머지 카드 20ms/장 시차 flip)을
+/// 스펙 그대로 재현한다.
 ///
-/// 실제 카드 정체(무슨 카드/정역방향)는 이 화면 어디에서도 다루지 않는다
-/// (§10 설계 원칙) - [TarotFaceDownSlot]은 오직 "몇 번 슬롯이 선택됐는지"만
-/// 안다. `reveal()`이 끝나 `resultReady`가 되면 기존 로딩 화면
-/// (`/ai-fortune/tarot/loading`)으로 이동해, 로딩 화면의 "카드가 떠오르는"
-/// 연출 + 결과화면의 리빌 연출로 자연스럽게 이어진다.
+/// [핵심 원칙 - 절대 변경 금지] 실제로 "뽑힌" 5장의 정체는 이 화면이 결정
+/// 하지 않는다. [TarotSessionController]가 관리하는 [TarotFaceDownSlot]은
+/// 여전히 "선택 여부"만 담은 빈 슬롯이고, 서버가 [reveal] 단계에서 정/역
+/// 방향과 실제 카드를 확정한다. 화면에 뒤집혀 보이는 나머지 73장의 이름/
+/// 키워드([tarotSpreadDeck])는 순수 진열 장식이며, 사용자가 뽑은 5장은
+/// 리딩을 시작하기 전까지 끝까지 뒷면으로 유지된다(스펙 §5.3 원칙).
 class TarotCardSelectScreen extends StatefulWidget {
   const TarotCardSelectScreen({super.key});
 
@@ -32,395 +45,479 @@ class TarotCardSelectScreen extends StatefulWidget {
   State<TarotCardSelectScreen> createState() => _TarotCardSelectScreenState();
 }
 
-class _TarotCardSelectScreenState extends State<TarotCardSelectScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _shuffleController;
+class _TarotCardSelectScreenState extends State<TarotCardSelectScreen> {
   bool _navigatedToLoading = false;
+  int _shuffleSignal = 0;
+  bool _isShuffling = false;
+  TarotSpreadCardMeta? _peekMeta;
+  bool _showResetConfirm = false;
 
   @override
   void initState() {
     super.initState();
-    _shuffleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startShuffle());
   }
 
   void _startShuffle() {
     final controller = context.read<TarotSessionController>();
-    // §10 상태 가드: questionReady일 때만 셔플을 시작한다. 뒤로가기 후
-    // 재진입 등으로 이미 selectingCards/cardsChosen이면 셔플 연출을
-    // 다시 재생하지 않고 바로 현재 상태를 그대로 보여준다.
     if (controller.state.status == TarotSessionStatus.questionReady) {
       controller.beginShuffle();
       context.read<TarotAudioController>().playShuffle();
-      _shuffleController.forward(from: 0).whenComplete(() {
-        if (!mounted) return;
-        controller.shuffleFinished();
+      setState(() {
+        _isShuffling = true;
+        _shuffleSignal++;
       });
     }
   }
 
-  @override
-  void dispose() {
-    _shuffleController.dispose();
-    super.dispose();
+  /// [디자인 스펙 §5.5 4단계 셔플] 진열대 자체의 셔플 연출이 끝났을 때
+  /// 호출된다. 최초 진입 시(`shuffling` 상태)에는 이 콜백이 곧
+  /// [TarotSessionController.shuffleFinished]를 호출해 `selectingCards`
+  /// 상태로 전이시킨다. 사용자가 "카드 섞기" 버튼을 눌러 재생하는 경우는
+  /// 이미 `selectingCards`/`cardsChosen` 상태이므로 이 조건에 걸리지 않고
+  /// 그냥 시각 효과로만 끝난다.
+  void _onShuffleVisualComplete() {
+    if (!mounted) return;
+    setState(() => _isShuffling = false);
+    final controller = context.read<TarotSessionController>();
+    if (controller.state.status == TarotSessionStatus.shuffling) {
+      controller.shuffleFinished();
+    }
+  }
+
+  void _replaySuffleVisual() {
+    context.read<TarotAudioController>().playShuffle();
+    setState(() {
+      _isShuffling = true;
+      _shuffleSignal++;
+    });
+  }
+
+  void _handlePick(int slotIndex) {
+    context.read<TarotAudioController>().playCardTap();
+    context.read<TarotSessionController>().selectSlot(slotIndex);
+  }
+
+  void _handlePeek(TarotSpreadCardMeta meta) {
+    context.read<TarotAudioController>().playUiTap();
+    setState(() => _peekMeta = meta);
+  }
+
+  void _handleUndo() {
+    context.read<TarotAudioController>().playUiTap();
+    context.read<TarotSessionController>().undoLastSelection();
+  }
+
+  void _handleResetConfirmed() {
+    setState(() => _showResetConfirm = false);
+    context.read<TarotSessionController>().resetSelection();
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (!mounted) return;
+      _replaySuffleVisual();
+    });
   }
 
   Future<void> _onRevealPressed() async {
     final session = context.read<TarotSessionController>();
     final tarotProvider = context.read<TarotProvider>();
-    await session.reveal(tarotProvider);
+
+    // [결과보기 통합 권한 시스템 v1.0, §6/§8.5] 카테고리 탐색·질문 입력·
+    // 카드 선택까지는 자유 이용(P1/P2)이므로 게이트 없이 진행하고, "리딩
+    // 시작하기" 버튼(=곧 결과보기로 이어지는 지점)을 누른 이 시점에만
+    // 3택 게이트를 띄운다. [§7 예외] 타로는 뽑힌 카드 슬롯이 세션
+    // 메모리에만 있고 디스크에 영속화되지 않으므로(카드 뒷면 상태),
+    // 쿠팡 이동으로 프로세스가 kill되면 세션이 소실된다 — face/palm과
+    // 동일하게 쿠팡 복원 대상에서 제외한다(사용자가 카드를 다시 뽑아야
+    // 함, 의도된 제약).
+    final categoryLabel = session.state.category?.label ?? '타로';
+    final beginResult = await showResultAccessGateSheet(
+      context,
+      contentType: 'tarot',
+      categoryKey: 'tarot',
+      contentTitle: categoryLabel,
+      returnRoute: '/ai-fortune/tarot/question',
+    );
+    if (!mounted || beginResult == null) return;
+
+    context.read<TarotAudioController>().playRevealImpact();
+    await session.reveal(
+      tarotProvider,
+      paymentMethod: beginResult.paymentMethod.code,
+      transactionId: beginResult.transactionId,
+    );
     if (!mounted) return;
     if (session.state.status == TarotSessionStatus.resultReady &&
         !_navigatedToLoading) {
       _navigatedToLoading = true;
       Navigator.of(context).pushReplacementNamed('/ai-fortune/tarot/loading');
+      return;
+    }
+    // [프리패스 카테고리 제한 안내 버그 수정] 카드를 다 고르고 실제 서버에
+    // 요청을 보낸 이 시점에야 "오늘 이 프리패스로 이용할 수 있는 횟수를
+    // 모두 사용했습니다" 같은 카테고리별 제한 초과가 확인되는 경우, 일반
+    // 오류(OOPS) 전체화면 대신 다른 운세 카테고리와 동일한 안내
+    // 다이얼로그([showCategoryLimitReachedSheet])를 보여주고 이전 화면으로
+    // 돌아간다.
+    final state = session.state;
+    if (state.status == TarotSessionStatus.error &&
+        state.errorReason == 'CATEGORY_LIMIT_REACHED') {
+      final title = state.category?.label ?? '타로';
+      await showCategoryLimitReachedSheet(
+        context,
+        categoryTitle: title,
+        message: state.errorMessage,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      return;
+    }
+    // [자유질문 무관 텍스트 리딩 생성 버그 수정] 서버가 질문 자체를 부적절하다고
+    // 판단해 거부한 경우(INVALID_QUESTION)는 "다시 시도하기"로 같은 질문을
+    // 재전송해도 계속 동일하게 거부된다(질문 내용 자체가 원인이므로). 따라서
+    // 일반 오류(OOPS) 화면 대신 안내 다이얼로그를 보여준 뒤 질문 입력 화면으로
+    // 돌아가 사용자가 질문을 고쳐 쓰도록 한다.
+    if (state.status == TarotSessionStatus.error &&
+        state.errorReason == 'INVALID_QUESTION') {
+      await showAppInfoDialog(
+        context,
+        title: '질문을 다시 입력해주세요',
+        message: state.errorMessage ?? '타로로 궁금한 내용을 질문해주세요.',
+        confirmLabel: '질문 다시 쓰기',
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final session = context.watch<TarotSessionController>();
+    final audio = context.watch<TarotAudioController>();
     final state = session.state;
+    final selected = state.selectedSlotIndexes.length;
+    final required = state.requiredCardCount;
+    final complete = state.status == TarotSessionStatus.cardsChosen;
+    final canShowSpread = state.status != TarotSessionStatus.error;
 
-    // [Revealing 전이] reveal() 호출 중(§6)에도 이 화면에 머물며 CTA를
-    // 로딩 인디케이터로 바꾼다 - 로딩 화면 진입은 성공 시점에만 일어난다.
-    return TarotThemeScope(
-      child: Scaffold(
-        backgroundColor: TarotColors.bgVoid,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: Text(
-            state.category?.label ?? '카드를 골라주세요',
-            style: TarotTextStyles.screenTitle,
-          ),
-        ),
-        body: Stack(
-          children: [
-            TarotMysticBackground(
-              intensity: TarotPerfConfig.backgroundIntensity(0.7),
-            ),
-            SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: TarotTokens.spaceMd),
+    return Scaffold(
+      backgroundColor: OzColors.bgDeep,
+      body: Stack(
+        children: [
+          const OzBackground(),
+          SafeArea(
+            child: Column(
+              children: [
+                OzTopbar(
+                  title: state.category?.label ?? '카드를 골라주세요',
+                  onBack: () => Navigator.of(context).pop(),
+                  actions: [
+                    OzTopbarIconButton(
+                      icon: audio.muted
+                          ? Icons.volume_off_rounded
+                          : Icons.volume_up_rounded,
+                      tooltip: audio.muted ? '소리 켜기' : '소리 끄기',
+                      onTap: () => audio.toggleMute(),
+                    ),
+                  ],
+                ),
+                if (state.status == TarotSessionStatus.error)
+                  Expanded(child: _ErrorView(state: state))
+                else ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: TarotTokens.spaceLg,
+                      horizontal: OzTokens.spaceXl,
                     ),
-                    child: Text(
-                      _statusCopy(state),
-                      textAlign: TextAlign.center,
-                      style: TarotTextStyles.body,
+                    child: _TitleBlock(state: state),
+                  ),
+                  const SizedBox(height: OzTokens.spaceMd),
+                  OzPickedSlots(count: selected, target: required),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(36, 10, 36, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OzToolButton(
+                            icon: Icons.shuffle_rounded,
+                            label: '카드 섞기',
+                            disabled:
+                                _isShuffling ||
+                                state.status ==
+                                    TarotSessionStatus.revealing,
+                            onTap: _replaySuffleVisual,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: OzToolButton(
+                            icon: Icons.restart_alt_rounded,
+                            label: '다시 뽑기',
+                            disabled: selected == 0 || _isShuffling,
+                            onTap: () =>
+                                setState(() => _showResetConfirm = true),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: OzToolButton(
+                            icon: Icons.undo_rounded,
+                            label: complete ? '다시 고르기' : '되돌리기',
+                            disabled: selected == 0 || _isShuffling,
+                            onTap: _handleUndo,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: TarotTokens.spaceLg),
-                  // [버그 수정] reveal() API 호출이 실패하면 상태가 error로
-                  // 바뀌는데, 기존에는 이 상태를 화면 어디에서도 처리하지
-                  // 않아 상단 문구는 default로 떨어지고("카드를 준비하고
-                  // 있어요...") 버튼은 disabled인 채 "n/n장 선택 중..."
-                  // 텍스트에 멈춰버려 사용자가 재시도할 방법이 전혀 없는
-                  // "먹통" 상태처럼 보였다. 명확한 에러 메시지 + 재시도
-                  // 버튼을 노출해 흐름을 이어갈 수 있게 한다.
-                  if (state.status == TarotSessionStatus.error)
+                  if (canShowSpread)
                     Expanded(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: TarotTokens.spaceLg,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.error_outline_rounded,
-                                size: 40,
-                                color: TarotColors.textFaint,
-                              ),
-                              const SizedBox(height: TarotTokens.spaceMd),
-                              Text(
-                                state.errorMessage ?? '타로 리딩에 실패했습니다.',
-                                textAlign: TextAlign.center,
-                                style: TarotTextStyles.body,
-                              ),
-                              const SizedBox(height: TarotTokens.spaceLg),
-                              OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: TarotColors.pinkGlow,
-                                  side: BorderSide(color: TarotColors.pinkGlow),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      TarotTokens.radiusPill,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Column(
+                          children: [
+                            OzFrameDivider(
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: '78',
+                                      style: TextStyle(
+                                        color: OzColors.gold,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: TarotTokens.spaceXl,
-                                    vertical: TarotTokens.spaceSm,
-                                  ),
+                                    const TextSpan(text: ' CARDS '),
+                                    TextSpan(
+                                      text: '·',
+                                      style: TextStyle(
+                                        color: OzColors.goldDeep,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' FULL DECK'),
+                                  ],
                                 ),
-                                onPressed: () {
-                                  context
-                                      .read<TarotSessionController>()
-                                      .retryReveal(
-                                        context.read<TarotProvider>(),
-                                      );
-                                },
-                                child: const Text('다시 시도하기'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: Center(
-                        child: state.status == TarotSessionStatus.shuffling
-                            ? AnimatedBuilder(
-                                animation: _shuffleController,
-                                builder: (context, _) => _ShuffleFan(
-                                  progress: _shuffleController.value,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  letterSpacing: 1.2,
+                                  fontStyle: FontStyle.italic,
+                                  color: OzColors.muted,
                                 ),
-                              )
-                            : _SelectableFan(
-                                slots: state.deckSlots,
-                                requiredCount: state.requiredCardCount,
-                                interactive:
-                                    state.status ==
-                                    TarotSessionStatus.selectingCards,
-                                onSlotTap: (index) {
-                                  context
-                                      .read<TarotAudioController>()
-                                      .playCardTap();
-                                  context
-                                      .read<TarotSessionController>()
-                                      .selectSlot(index);
-                                },
-                              ),
-                      ),
-                    ),
-                  // error 상태에서는 위쪽에 이미 "다시 시도하기" 버튼이
-                  // 노출되므로, 하단 CTA는 숨겨 버튼이 중복되지 않게 한다.
-                  if (state.status != TarotSessionStatus.error)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        TarotTokens.spaceLg,
-                        0,
-                        TarotTokens.spaceLg,
-                        TarotTokens.spaceXl,
-                      ),
-                      child: SizedBox(
-                        height: 52,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                state.status == TarotSessionStatus.cardsChosen
-                                ? TarotColors.pinkGlow
-                                : TarotColors.surfaceCardStrong,
-                            foregroundColor: TarotColors.bgVoid,
-                            disabledBackgroundColor:
-                                TarotColors.surfaceCardStrong,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                TarotTokens.radiusPill,
                               ),
                             ),
-                          ),
-                          onPressed:
-                              state.status == TarotSessionStatus.cardsChosen
-                              ? _onRevealPressed
-                              : null,
-                          child: state.status == TarotSessionStatus.revealing
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                    color: TarotColors.textPrimary,
-                                  ),
-                                )
-                              : Text(
-                                  state.status == TarotSessionStatus.cardsChosen
-                                      ? '카드 펼쳐보기'
-                                      : '${state.selectedSlotIndexes.length}/${state.requiredCardCount}장 선택 중...',
-                                  style: TarotTextStyles.ctaLabel.copyWith(
-                                    color:
-                                        state.status ==
-                                            TarotSessionStatus.cardsChosen
-                                        ? TarotColors.bgVoid
-                                        : TarotColors.textFaint,
-                                  ),
-                                ),
+                            Expanded(
+                              child: OzCardSpread(
+                                slots: state.deckSlots,
+                                canPick:
+                                    state.status ==
+                                        TarotSessionStatus.selectingCards &&
+                                    !_isShuffling,
+                                canPeek: complete,
+                                onPick: _handlePick,
+                                onPeek: _handlePeek,
+                                shuffleSignal: _shuffleSignal,
+                                onShuffleVisualComplete:
+                                    _onShuffleVisualComplete,
+                              ),
+                            ),
+                            OzFrameDivider(
+                              child: OzMysticOrbInline(
+                                pickedCount: selected,
+                                target: required,
+                                isShuffling: _isShuffling,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      OzTokens.spaceLg,
+                      OzTokens.spaceSm,
+                      OzTokens.spaceLg,
+                      OzTokens.spaceXl,
+                    ),
+                    child: OzPrimaryButton(
+                      label: complete
+                          ? '리딩 시작하기'
+                          : '${required - selected}장 더 골라주세요',
+                      loading: state.status == TarotSessionStatus.revealing,
+                      onPressed: complete ? _onRevealPressed : null,
+                      trailingIcon: complete
+                          ? Icons.auto_awesome_rounded
+                          : null,
+                    ),
+                  ),
                 ],
+              ],
+            ),
+          ),
+          if (_peekMeta != null)
+            OzCardPeekModal(
+              meta: _peekMeta!,
+              onClose: () => setState(() => _peekMeta = null),
+            ),
+          if (_showResetConfirm)
+            OzResetConfirmDialog(
+              pickedCount: selected,
+              onCancel: () => setState(() => _showResetConfirm = false),
+              onConfirm: _handleResetConfirmed,
+            ),
+          // ["리딩 시작하기" 대기 연출 개선 - 2026-11] API 호출을 기다리는
+          // [TarotSessionStatus.revealing] 동안 버튼 안의 작은 스피너만
+          // 보이던 것을, 전체화면 리추얼 오버레이로 덮어 더 멋지게
+          // 보이도록 한다. 순수 시각 레이어이며 _onRevealPressed의 호출
+          // 순서/네비게이션 타이밍은 전혀 바꾸지 않는다.
+          if (state.status == TarotSessionStatus.revealing)
+            const OzRevealRitualOverlay(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final TarotSessionState state;
+  const _ErrorView({required this.state});
+
+  /// [결과보기 통합 권한 시스템 v1.0, §8.6] "다시 시도하기"는 최초 시도에서
+  /// 이미 결제→환불이 끝난 상태이므로, 재시도 역시 §6 게이트를 다시 띄워
+  /// 새 결제를 확정한 뒤에만 서버에 요청을 보낸다. 게이트 없이 곧바로
+  /// retryReveal()을 호출하면 서버가 paymentMethod/transactionId 누락을
+  /// 보고 레거시(무료) 경로로 빠지는 결제 우회 버그가 생긴다.
+  Future<void> _handleRetry(BuildContext context) async {
+    final session = context.read<TarotSessionController>();
+    final categoryLabel = session.state.category?.label ?? '타로';
+    final beginResult = await showResultAccessGateSheet(
+      context,
+      contentType: 'tarot',
+      categoryKey: 'tarot',
+      contentTitle: categoryLabel,
+      returnRoute: '/ai-fortune/tarot/question',
+    );
+    if (!context.mounted || beginResult == null) return;
+    await session.retryReveal(
+      context.read<TarotProvider>(),
+      paymentMethod: beginResult.paymentMethod.code,
+      transactionId: beginResult.transactionId,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: OzTokens.spaceLg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: OzColors.faint,
+            ),
+            const SizedBox(height: OzTokens.spaceMd),
+            Text(
+              state.errorMessage ?? '타로 리딩에 실패했습니다.',
+              textAlign: TextAlign.center,
+              style: OzTypography.body(),
+            ),
+            const SizedBox(height: OzTokens.spaceLg),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: OzColors.gold,
+                side: BorderSide(color: OzColors.gold.withValues(alpha: 0.6)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(OzTokens.radiusPill),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OzTokens.spaceXl,
+                  vertical: OzTokens.spaceSm,
+                ),
               ),
+              onPressed: () => _handleRetry(context),
+              child: const Text('다시 시도하기'),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  String _statusCopy(TarotSessionState state) {
-    switch (state.status) {
-      case TarotSessionStatus.shuffling:
-        return '카드를 섞고 있어요...';
-      case TarotSessionStatus.selectingCards:
-        return '마음이 이끄는 카드 ${state.requiredCardCount}장을 골라주세요';
-      case TarotSessionStatus.cardsChosen:
-        return '카드를 모두 골랐어요. 준비되면 펼쳐보세요';
-      case TarotSessionStatus.revealing:
-        return '카드의 기운을 읽는 중...';
-      case TarotSessionStatus.error:
-        return '앗, 잠시 문제가 생겼어요';
+/// 상단 안내 문구. `selectingCards`/`cardsChosen` 상태에서는 디자인
+/// 핸드오프 §타이틀 블록의 "마음이 이끄는 카드 N장을 골라주세요" 2행
+/// 타이틀(숫자만 골드 강조)을 그대로 재현하고, 그 외 상태(셔플 중/리빙 중
+/// 등)에서는 기존 상태별 안내 문구를 유지한다.
+class _TitleBlock extends StatelessWidget {
+  final TarotSessionState state;
+  const _TitleBlock({required this.state});
+
+  static String _countWord(int n) {
+    switch (n) {
+      case 1:
+        return '한 장';
+      case 3:
+        return '세 장';
+      case 5:
+        return '다섯 장';
       default:
-        return '카드를 준비하고 있어요...';
+        return '$n장';
     }
   }
-}
 
-/// 셔플 중(§5) - 부채꼴로 놓인 카드 뒷면들이 짧게 흔들리며 뒤섞이는 느낌을
-/// 준다. 실제로 슬롯을 재배열하지는 않고(신뢰감 있는 단순함), 회전/위치를
-/// 미세하게 흔들어 "섞이는 느낌"만 연출한다.
-class _ShuffleFan extends StatelessWidget {
-  final double progress;
-  const _ShuffleFan({required this.progress});
-
-  @override
-  Widget build(BuildContext context) {
-    const count = 7;
-    final wobble = sin(progress * pi * 6) * (1 - progress);
-    return SizedBox(
-      width: 260,
-      height: 200,
-      child: Stack(
-        alignment: Alignment.center,
-        children: List.generate(count, (i) {
-          final angle = (i - count / 2) * 0.12 + wobble * 0.15;
-          final dx = (i - count / 2) * 14.0 * (1 + wobble.abs() * 0.4);
-          return Transform.translate(
-            offset: Offset(dx, 0),
-            child: Transform.rotate(
-              angle: angle,
-              child: const _FaceDownCard(width: 78, height: 118),
-            ),
-          );
-        }),
-      ),
-    );
+  String _eyebrow() {
+    switch (state.status) {
+      case TarotSessionStatus.shuffling:
+        return 'SHUFFLING';
+      case TarotSessionStatus.selectingCards:
+        return 'CHOOSE YOUR CARDS';
+      case TarotSessionStatus.cardsChosen:
+        return 'READY';
+      case TarotSessionStatus.revealing:
+        return 'REVEALING';
+      default:
+        return 'PREPARING';
+    }
   }
-}
-
-/// 카드 탭 대기/선택 완료 상태(§5) - 선택된 슬롯은 살짝 위로 떠오르고
-/// 글로우가 켜진다. [requiredCount]만큼 선택되면 컨트롤러가 자동으로
-/// 더 이상의 탭을 막는다(상태 가드는 컨트롤러 쪽에 있으므로 이 위젯은
-/// 순수하게 시각 표현만 담당).
-class _SelectableFan extends StatelessWidget {
-  final List<TarotFaceDownSlot> slots;
-  final int requiredCount;
-  final bool interactive;
-  final ValueChanged<int> onSlotTap;
-  const _SelectableFan({
-    required this.slots,
-    required this.requiredCount,
-    required this.interactive,
-    required this.onSlotTap,
-  });
 
   @override
   Widget build(BuildContext context) {
-    if (slots.isEmpty) return const SizedBox.shrink();
-    final count = slots.length;
-    return SizedBox(
-      width: double.infinity,
-      height: 210,
-      child: Stack(
-        alignment: Alignment.center,
-        children: List.generate(count, (i) {
-          final slot = slots[i];
-          final angle = (i - count / 2) * 0.11;
-          final dx = (i - count / 2) * 20.0;
-          final lift = slot.isSelected ? -18.0 : 0.0;
-          return Transform.translate(
-            offset: Offset(dx, lift),
-            child: Transform.rotate(
-              angle: angle,
-              child: GestureDetector(
-                onTap: interactive ? () => onSlotTap(slot.slotIndex) : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  decoration: slot.isSelected
-                      ? BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: TarotColors.pinkGlow.withValues(
-                                alpha: 0.55,
-                              ),
-                              blurRadius: 20,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        )
-                      : const BoxDecoration(),
-                  child: _FaceDownCard(
-                    width: 72,
-                    height: 108,
-                    highlighted: slot.isSelected,
-                  ),
+    final eyebrow = _eyebrow();
+    final isPickingStage =
+        state.status == TarotSessionStatus.selectingCards ||
+        state.status == TarotSessionStatus.cardsChosen;
+
+    return Column(
+      children: [
+        Text(
+          eyebrow,
+          style: OzTypography.monoLabel(fontSize: 10, letterSpacing: 3),
+        ),
+        const SizedBox(height: 10),
+        if (isPickingStage)
+          Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(text: '마음이 이끄는 카드\n'),
+                TextSpan(
+                  text: _countWord(state.requiredCardCount),
+                  style: TextStyle(color: OzColors.gold),
                 ),
-              ),
+                const TextSpan(text: '을 골라주세요'),
+              ],
             ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _FaceDownCard extends StatelessWidget {
-  final double width;
-  final double height;
-  final bool highlighted;
-  const _FaceDownCard({
-    required this.width,
-    required this.height,
-    this.highlighted = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        gradient: TarotColors.cardBackGradient,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: highlighted
-              ? TarotColors.pinkGlow
-              : TarotColors.moonSilver.withValues(alpha: 0.5),
-          width: highlighted ? 1.6 : 1.0,
-        ),
-      ),
-      alignment: Alignment.center,
-      child: Container(
-        width: width * 0.62,
-        height: height * 0.62,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: TarotColors.moonSilver.withValues(alpha: 0.4),
+            textAlign: TextAlign.center,
+            style: OzTypography.sectionTitle(fontSize: 18),
+          )
+        else
+          Text(
+            state.status == TarotSessionStatus.shuffling
+                ? '카드를 섞고 있어요...'
+                : '카드의 기운을 읽는 중...',
+            textAlign: TextAlign.center,
+            style: OzTypography.sectionTitle(fontSize: 18),
           ),
-        ),
-        alignment: Alignment.center,
-        child: Text('✨', style: TextStyle(fontSize: width * 0.26)),
-      ),
+      ],
     );
   }
 }

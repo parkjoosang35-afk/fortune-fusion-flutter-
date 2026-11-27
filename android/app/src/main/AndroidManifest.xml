@@ -1,12 +1,72 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- [6-7-1 Critical 수정] Release 빌드에서 http 패키지를 통한 백엔드 API
+         통신(로그인/사주/타로/소원방/지갑/프리패스 등 핵심 기능 전체)이 가능하도록
+         INTERNET 권한을 명시적으로 선언한다. 기존에는 Flutter가 자동 생성하는
+         debug/profile AndroidManifest.xml에만 이 권한이 있어(개발용), Release
+         APK/AAB에는 누락되어 네트워크가 전면 차단되는 문제가 있었다. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- 07단계(추가) §3.3 - AI 손금 카메라 촬영 기능용 런타임 권한 선언 -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <!-- [소원방 v2.6 배경화면] 라이브 배경화면 서비스 선언 — 기기가 라이브
+         배경화면을 지원하지 않아도 앱 설치는 가능해야 하므로 required=false. -->
+    <uses-feature android:name="android.software.live_wallpaper" android:required="false"/>
+
+    <!-- [Phase C-1] 저녁 7시 종소리 알림용 flutter_local_notifications 20.1.0 설정.
+         정확한 시각(초 단위) 정밀도가 필요 없는 "은은한 종소리" 컨셉이므로
+         SCHEDULE_EXACT_ALARM/USE_EXACT_ALARM(별도 권한 승인/스토어 심사 이슈)은
+         사용하지 않고 zonedSchedule의 inexact 방식(androidScheduleMode: inexact)만
+         사용한다. POST_NOTIFICATIONS는 Android 13+에서 알림 표시 자체에 필요하며,
+         RECEIVE_BOOT_COMPLETED는 기기 재부팅 후에도 예약이 유지되도록 한다. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- [애드몹 실서비스 전환 준비 - 1번] Android 13(API 33)+ 기기에서 AdMob이
+         광고 식별자(Advertising ID)를 정상적으로 사용하려면 이 권한이 명시적으로
+         선언되어 있어야 한다. 이 권한이 없으면 targetSdk 33+ 기기에서 광고
+         식별자가 전부 0으로 채워져 광고 타겟팅/보상형 광고 성과가 정상 동작하지
+         않을 수 있다(Google Play 정책 요구사항이기도 하다). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
+
+    <!-- [귀인지도 결과카드 "이미지 저장" 버그수정 — 2026-11] gal 패키지가
+         결과카드 PNG를 실제 갤러리(사진 앱)에 저장하는 데 필요한 권한.
+         API 29 이하 기기에서만 필요(API 30+는 MediaStore Scoped Storage로
+         이 권한 없이도 자체 앱 전용 저장이 가능하나, gal 공식 문서는
+         API 29에서 앨범 저장을 위해 requestLegacyExternalStorage도 함께
+         요구한다). -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
+
+    <!-- [S5 복주머니 결제 — Google Play 인앱결제 준비] Play Console에서
+         "일회성 제품/정기 결제" 상품을 등록하려면, 업로드된 APK/AAB에 이
+         결제 권한이 선언되어 있어야 한다("결제 권한을 APK에 추가해야
+         합니다" 안내). 실제 `in_app_purchase` 패키지 연동(진짜 결제창
+         호출)은 추후 단계에서 진행하되, 지금은 Play Console 상품 등록
+         화면을 먼저 열기 위해 권한만 선행 선언한다. -->
+    <uses-permission android:name="com.android.vending.BILLING"/>
+
     <application
-        android:label="Fortune Fusion"
+        android:label="귀인지도"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
+        <!-- [애드몹 실제 계정 연동 — 2026년 사업 운영 법인(서치앤메이크) 명의
+             신규 AdMob 계정으로 교체] Google Mobile Ads SDK가 앱 시작 시
+             요구하는 APPLICATION_ID meta-data. 이전 계정("사장님" 개인 명의)
+             에서 서치앤메이크(대표: 이권호) 명의 신규 AdMob 계정으로 소유권
+             이전 대신 완전히 새로 발급받은 App ID로 교체했다. Google 공식
+             정책상 App ID 자체는 실제 값을 상시 등록해도 안전하다(실제 광고
+             노출 여부는 App ID가 아니라 "Ad Unit ID"가 결정한다 — 배너/전면/
+             보상형 Ad Unit ID는 AdmobAdIds에서 dart-define
+             (ADMOB_USE_REAL_IDS) 플래그로만 조건부 전환되며, 이 플래그
+             없이는 항상 구글 공식 테스트 Ad Unit ID만 사용되어 개발/QA 중
+             무효 트래픽 위험이 없다). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-4640621040048656~2796265243"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -28,12 +88,180 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- [귀인지도 딥링크 버그수정 — Phase A] 카톡 등으로 공유한 초대
+                 링크를 열었을 때 실제로 앱이 열리도록 하는 딥링크 수신 설정.
+
+                 [배경] 지금까지 공유 메시지에 박아 넣던 `sintong.app/g/{token}`은
+                 실존하지 않는(미등록) 도메인이라, App Links(https)를 등록해도
+                 무의미하다(assetlinks.json을 배포할 실제 서버가 없음). 그래서
+                 실제 도메인 구매 없이도 지금 당장 동작 가능한 커스텀 URI
+                 스킴(`guinjido://g/{token}`)을 사용한다. autoVerify(디지털
+                 자산 링크 검증)는 커스텀 스킴에는 적용되지 않아 이 샌드박스
+                 환경에서도 완전히 테스트 가능하다.
+
+                 [2단계 구조] 카톡 인앱 브라우저는 커스텀 스킴 링크를 직접
+                 열면 "지원하지 않는 프로토콜"로 막을 수 있으므로, 실제
+                 공유되는 초대 메시지에는 admin_web의 실제 웹 랜딩페이지
+                 (https, EnvConfig.adminApiBaseUrl 호스트)를 먼저 넣고, 그
+                 페이지 내부의 "앱에서 열기" 버튼이 이 커스텀 스킴으로
+                 재호출한다(guinji_share_screen.dart, admin_web
+                 src/app/g/[token]/page.tsx 참고).
+
+                 [Phase B, 완료] 운영 도메인 sintong.kr(가비아 g클라우드 서버,
+                 1.201.118.72)을 확보하고 아래 3가지를 완료했다:
+                   1) DNS A레코드(sintong.kr → 1.201.118.72, 가비아 콘솔)
+                   2) Let's Encrypt HTTPS 인증서(certbot, 자동갱신 등록됨)
+                   3) https://sintong.kr/.well-known/assetlinks.json 배포
+                      (Next.js public/ 폴더는 dotfile을 정적으로 서빙하지
+                      않는 제약이 있어 API Route로 구현,
+                      src/app/.well-known/assetlinks.json/route.ts)
+                 Google Digital Asset Links API로 sintong.kr ↔
+                 com.guinjido.app(release-key.jks SHA256) 소유권
+                 매핑이 정상 검증됨을 확인했다(2026-10-02, 패키지명 통일 후
+                 재확인: assetlinks.json이 이미 이 패키지명 기준으로
+                 배포되어 있어 변경 불필요).
+
+                 [패키지명 원복, 2026-11-25] Google Play Console·카카오
+                 디벨로퍼스 콘솔에 이미 com.fortunefusion.fortune(내부테스트
+                 트랙, versionCode 18/19)로 앱이 등록·업로드돼 있음이
+                 확인되어, applicationId를 다시 com.fortunefusion.fortune으로
+                 되돌렸다(앱 표시 이름(label)은 "귀인지도" 그대로 유지 —
+                 패키지명은 사용자에게 보이지 않는 내부 식별자라 label과는
+                 무관). 단, admin_web의 sintong.kr/.well-known/assetlinks.json은
+                 (admin_web이 이번 작업 범위에서 읽기전용이라) 여전히
+                 com.guinjido.app 기준으로 배포돼 있어 패키지명이
+                 불일치하므로, 아래 두 번째 intent-filter(https App Links)의
+                 autoVerify="true" 자동 검증은 당분간 실패한다. 이 경우
+                 Android는 자동으로 기존처럼 웹페이지 → "앱에서 열기" 버튼
+                 경로로 폴백하므로 기능 자체가 끊기지는 않지만, 카톡
+                 인앱브라우저에서 링크를 눌렀을 때 한 번 더 탭이 필요한
+                 UX 저하가 있다(추후 admin_web 수정 권한을 받으면
+                 assetlinks.json의 package_name을 com.fortunefusion.fortune으로
+                 다시 교체해 해결 가능). -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="guinjido" android:host="g"/>
+                <!-- [귀인지도 바이럴 랜딩 - ServiceGrid 신설] 바이럴 랜딩페이지
+                     (admin_web `/g/[token]`)의 "소원방/타로/정통사주/오늘의
+                     운세" 카드가 누르는 즉시 귀인지도 앱의 해당 화면으로
+                     바로 이동하도록, 위 `g` host와 별개로 `svc` host를 신규
+                     등록한다. `guinjido://svc/{key}` 형태이며 key는
+                     wish-room|tarot|jeontong|today 중 하나(자세한 매핑은
+                     guinji_deep_link_handler.dart 참고). -->
+                <data android:scheme="guinjido" android:host="svc"/>
+                <!-- [결과 공유 기능 — sintong-share-proposal.pdf] 운세/타로/관상/
+                     손금/소원성 5개 결과 화면의 공유 링크. `guinjido://r/{shareId}`
+                     형태(guinji_deep_link_handler.dart가 수신, SharedResultScreen으로
+                     라우팅). -->
+                <data android:scheme="guinjido" android:host="r"/>
+                <!-- [소원방 v2.6] app2/capsule2.jsx › ShareSheet 공유 링크.
+                     `guinjido://w/{token}` 형태(guinji_deep_link_handler.dart가
+                     수신, LinkInviteScreen으로 라우팅). -->
+                <data android:scheme="guinjido" android:host="w"/>
+                <!-- [복주머니 마케팅 쿠폰 — 카카오톡 링크 공유 지시서 §5] QR코드나
+                     카카오톡 공유 버튼에서 커스텀 스킴으로 쿠폰 등록 화면을 바로
+                     열 때 쓰는 폴백 경로. `guinjido://coupon/{redeemToken}`
+                     형태(guinji_deep_link_handler.dart가 이미 이 host를 파싱해
+                     BokjuCouponResolveScreen으로 라우팅하도록 구현되어 있었으나,
+                     이 매니페스트에 host 등록이 누락되어 있어 실제로는 한 번도
+                     발동한 적이 없었다 — 이번에 함께 추가). -->
+                <data android:scheme="guinjido" android:host="coupon"/>
+            </intent-filter>
+            <!-- [Phase B] sintong.kr 운영 도메인 App Links (https).
+                 assetlinks.json 검증에 성공하면 https://sintong.kr/g/{token}
+                 링크를 클릭한 즉시 앱이 직접 열린다(카톡 인앱브라우저 포함).
+                 pathPrefix="/g"로 범위를 제한해, admin_web의 다른 공개
+                 페이지(/login, /terms, /privacy-policy, /account-deletion 등)를
+                 브라우저에서 열 때는 이 앱이 가로채지 않고 정상적으로
+                 웹페이지로 열리도록 한다. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/g"/>
+                <!-- [귀인지도 바이럴 랜딩 - ServiceGrid 신설] https 경로 버전.
+                     https://sintong.kr/svc/{key} 형태(예: /svc/wish-room). -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/svc"/>
+                <!-- [결과 공유 기능 — sintong-share-proposal.pdf] https://sintong.kr/r/{shareId}
+                     형태. admin_web `/r/[id]` SSR 페이지와 동일한 경로를 앱이
+                     App Links로 가로챈다(검증 성공 시 즉시 앱 오픈). -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/r"/>
+                <!-- [소원방 v2.6] https://sintong.kr/w/{token} 형태. -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/w"/>
+                <!-- [복주머니 마케팅 쿠폰 — 카카오톡 링크 공유 지시서 §1/§5, 핵심 버그 수정]
+                     https://sintong.kr/coupon/{redeemToken} 형태. 카카오톡 메시지로
+                     공유된 쿠폰 등록 링크를 클릭했을 때, 앱이 설치되어 있고 이
+                     App Links 검증이 성공한 상태라면 중간 웹페이지 없이 즉시
+                     앱의 쿠폰 등록 화면(BokjuCouponResolveScreen)이 열린다.
+                     이 pathPrefix 등록이 누락되어 있던 것이 "QR/링크를 눌러도
+                     앱으로 연결되지 않는다" 문제의 핵심 원인 중 하나였다 —
+                     guinji_deep_link_handler.dart의 파싱 로직 자체는 이미 완성돼
+                     있었지만 OS가 애초에 이 경로를 앱으로 가로채지 않았다. -->
+                <data
+                    android:scheme="https"
+                    android:host="sintong.kr"
+                    android:pathPrefix="/coupon"/>
+            </intent-filter>
+            <!-- [카카오 간편로그인] 카카오톡 앱으로 로그인 시, 카카오톡 앱에서
+                 인증을 마치고 우리 앱으로 돌아오기 위해 필요한 커스텀 스킴
+                 리다이렉트. 스킴은 반드시 "kakao" + 네이티브 앱 키(REST API
+                 키가 아님) 형태여야 하며, 카카오 디벨로퍼스 콘솔의 네이티브
+                 앱 키(6372a58baa9ce5d09bcc7edf0d38fc75)와 일치해야 한다. -->
+            <intent-filter android:label="귀인지도">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="kakao6372a58baa9ce5d09bcc7edf0d38fc75" android:host="oauth"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- [소원방 v2.6 배경화면 — Android 실제 라이브 배경화면]
+             docs/WALLPAPER.md §4 "Android — 진짜 라이브 배경화면" / §4 "6. 매니페스트
+             등록". BIND_WALLPAPER 권한은 시스템만 이 서비스를 바인딩할 수 있게
+             강제하는 표준 보안 요구사항이다(다른 앱이 임의로 호출 불가). -->
+        <service
+            android:name=".WishRoomWallpaperService"
+            android:exported="true"
+            android:label="귀인지도"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/wallpaper"/>
+        </service>
+
+        <!-- [Phase C-1] flutter_local_notifications 20.1.0이 예약 알림을 실제로
+             발화(및 재부팅 후 재예약)하는 데 필요한 리시버. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -58,8 +286,98 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="http"/>
         </intent>
+        <!-- [귀인지도 SNS 공유 버그수정 — 2026-09] 카톡/SMS/인스타그램 공유
+             버튼이 실제로 해당 앱을 열도록 하려면(url_launcher launchUrl),
+             Android 11+ 패키지 가시성 정책상 각 스킴을 명시적으로 질의
+             선언해야 한다. 선언이 없으면 launchUrl()이 canLaunchUrl() 단계
+             에서 false를 반환하거나 조용히 실패해 "버튼을 눌러도 반응
+             없음" 증상이 발생한다. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="sms"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="instagram"/>
+        </intent>
     </queries>
 </manifest>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

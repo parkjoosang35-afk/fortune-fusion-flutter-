@@ -1,0 +1,419 @@
+// 귀인지도 소원방 · 도메인 모델 v2.6
+// 기준: 프로토타입 prototype/app/api.js 의 roomView() / meView() 응답 필드 (= 서버 응답 계약)
+// 실제 프로젝트에서는 freezed + json_serializable 로 전환 권장. 필드명은 그대로 유지하세요.
+
+enum RoomStatus { DRAFT, ACTIVE, GROWING, COMPLETED, SEALED, ARCHIVED }
+enum Visibility { PUBLIC, LINK, PRIVATE }
+/// 꾸미기 슬롯 7종 — 최대 개수는 data/wishroom_data.json › SLOTS[].max
+enum Slot { CANDLE, FLOWER, DECORATION, BACKGROUND, SPECIAL, SEAL, THEME }
+enum NotiType { SUPPORT, POUCH, COMMENT, STATUS, GROWTH, COMPLETE, UNSEAL, REVIEW }
+enum Behavior { idle, gaze, pray, flower, pouch, celebrate }
+/// 소원방 테마 — 방 그림 · 의상 · 정성 의식이 바뀜 (docs/THEME.md)
+enum WrTheme { free, god, buddha, shaman }
+/// 정성 동작 — 테마별 RITUAL[theme].pose
+enum Pose { pray, bow, rub }
+/// 타임캡슐(봉인일) 상태
+enum Capsule { LOCKED, OPENED }
+// [4-B 신규 — CHECKLIST.md 대표님 판정] RELEASED(放·내려놓기) — app3/extras.js
+// Fulfill3 "마음을 내려놓을게요" 1:1. FULFILLED(成)와 달리 완료 알림이 없고
+// 도장 표시가 放으로 갈린다(vault_screen.dart/complete_screen.dart 참고).
+enum Outcome { FULFILLED, ONGOING, REWISH, RELEASED }
+enum WishStatus { IN_PROGRESS, ACHIEVED }
+
+T _enum<T extends Enum>(List<T> v, String? s, T fallback) => v.firstWhere((e) => e.name == s, orElse: () => fallback);
+DateTime? _ts(dynamic v) => v == null || v == 0 ? null : DateTime.fromMillisecondsSinceEpoch((v as num).toInt());
+
+class Equip {
+  final String candle, flower, background, special;
+  final List<String> decoration; // ≤5
+  final List<String> seal;       // ≤3
+  final List<String> theme;      // ≤5  테마 소품
+  const Equip({required this.candle, required this.flower, required this.background, required this.special,
+      this.decoration = const [], this.seal = const [], this.theme = const []});
+  factory Equip.fromJson(Map<String, dynamic> j) => Equip(
+        candle: j['CANDLE'] ?? 'c_basic', flower: j['FLOWER'] ?? 'f_none', background: j['BACKGROUND'] ?? 'b_night', special: j['SPECIAL'] ?? 's_none',
+        decoration: List<String>.from(j['DECORATION'] ?? const []), seal: List<String>.from(j['SEAL'] ?? const []), theme: List<String>.from(j['THEME'] ?? const []));
+  List<String> get all => [candle, flower, background, special, ...decoration, ...seal, ...theme];
+}
+
+/// 사용자가 직접 옮긴 아이템 좌표 (PATCH /wish-rooms/{id}/layout) — 390×844 캔버스 기준
+class LayoutPos { final double x, y, s; const LayoutPos(this.x, this.y, this.s);
+  factory LayoutPos.fromJson(Map<String, dynamic> j) => LayoutPos((j['x'] as num).toDouble(), (j['y'] as num).toDouble(), (j['s'] as num).toDouble()); }
+
+/// 장착 아이템 1개의 기운 상세 — wishroom-engine.ts effectsOf()의 `src[]` 1:1
+/// (id, name, type, v = 궁합 적용된 최종값, match = 소원 빛깔과 아이템 aura 일치 여부)
+class EffectSrc {
+  final String id, name, type;
+  final int v;
+  final bool match;
+  const EffectSrc({required this.id, required this.name, required this.type, required this.v, required this.match});
+  factory EffectSrc.fromJson(Map<String, dynamic> j) => EffectSrc(
+      id: j['id'] ?? '', name: j['name'] ?? '', type: j['type'] ?? '', v: (j['v'] as num?)?.toInt() ?? 0, match: j['match'] ?? false);
+}
+
+/// 장착 아이템 기운 합계 (서버 계산 · 상한 EFFECT_CAP)
+class Effects {
+  final int devo, support, cool, daily, pouch, decay;
+  final List<EffectSrc> src;
+  const Effects({this.devo = 0, this.support = 0, this.cool = 0, this.daily = 0, this.pouch = 0, this.decay = 0, this.src = const []});
+  factory Effects.fromJson(Map<String, dynamic>? j) => j == null ? const Effects() : Effects(
+      devo: j['devo'] ?? 0, support: j['support'] ?? 0, cool: j['cool'] ?? 0, daily: j['daily'] ?? 0, pouch: j['pouch'] ?? 0, decay: j['decay'] ?? 0,
+      src: j['src'] == null ? const [] : (j['src'] as List).map((e) => EffectSrc.fromJson(Map<String, dynamic>.from(e))).toList());
+}
+
+class SupportRewardState {
+  final int at; final String reward, icon; final bool reached, claimed; final String? got;
+  SupportRewardState.fromJson(Map<String, dynamic> j) : at = j['at'], reward = j['reward'], icon = j['icon'], reached = j['reached'] ?? false, claimed = j['claimed'] ?? false, got = j['got'];
+}
+
+/// [S3 신규] 수호자에게 맡기기(代願) 1건 — wishroom-engine.ts EntrustRow 1:1.
+/// id는 DB 정수 id 그대로(서버가 wre_ 포맷으로 감싸지 않음) — Flutter는 이 id를
+/// API 호출에 쓰지 않는다(맡기기/그만두기/확인 모두 roomId 기준으로만 동작).
+class Entrust {
+  final int id;
+  final String guardian;
+  final int days, price, startDay, endDay;
+  final String status; // active | cancelled | done | acked
+  final int? cancelDay, refund;
+  Entrust.fromJson(Map<String, dynamic> j)
+      : id = (j['id'] as num).toInt(), guardian = j['guardian'] as String? ?? '',
+        days = (j['days'] as num?)?.toInt() ?? 0, price = (j['price'] as num?)?.toInt() ?? 0,
+        startDay = (j['startDay'] as num?)?.toInt() ?? 0, endDay = (j['endDay'] as num?)?.toInt() ?? 0,
+        status = j['status'] as String? ?? 'active',
+        cancelDay = (j['cancelDay'] as num?)?.toInt(), refund = (j['refund'] as num?)?.toInt();
+}
+
+/// [S3 신규] 내 대표 수호자가 지금 다른 방에 파견 나가 있는지 — wishroom-engine.ts
+/// DispatchAwayRow 1:1. roomId도 서버 내부 DB id 그대로(안내 문구 용도일 뿐, 그
+/// 방으로 이동하는 기능은 없음).
+class DispatchAway {
+  final int id, roomId;
+  final String guardian, status; // asked | praying | done | recalled
+  final int days;
+  final int createdAtMs;
+  DispatchAway.fromJson(Map<String, dynamic> j)
+      : id = (j['id'] as num).toInt(), roomId = (j['roomId'] as num).toInt(),
+        guardian = j['guardian'] as String? ?? '', status = j['status'] as String? ?? 'praying',
+        days = (j['days'] as num?)?.toInt() ?? 1, createdAtMs = (j['createdAtMs'] as num).toInt();
+}
+
+/// [S3 신규] 찾아온 수호자(받은 마음) 1건 — GET /me/visitors 응답 1:1.
+/// id('wrd_...')·room('wr_...')은 서버가 이미 공개 포맷으로 감싸 보낸다.
+class VisitorIn {
+  final String id, room, guardian;
+  final String? who, word;
+  final bool anon, thanked;
+  final String status; // praying | asked
+  final DateTime createdAt;
+  VisitorIn.fromJson(Map<String, dynamic> j)
+      : id = j['id'] as String, room = j['room'] as String,
+        guardian = j['guardian'] as String? ?? '', who = j['who'] as String?, word = j['word'] as String?,
+        anon = j['anon'] ?? false, thanked = j['thanked'] ?? false, status = j['status'] as String? ?? 'praying',
+        createdAt = DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num).toInt());
+  VisitorIn._(this.id, this.room, this.guardian, this.who, this.word, this.anon, this.thanked, this.status, this.createdAt);
+  VisitorIn copyWith({bool? thanked}) => VisitorIn._(id, room, guardian, who, word, anon, thanked ?? this.thanked, status, createdAt);
+}
+
+class WishRoom {
+  final String id, ownerId, owner, region, text, char;
+  final RoomStatus status;
+  final Visibility visibility;
+  final WrTheme theme;           // 방 테마
+  final WrTheme? outfit;         // 사용자가 고른 의상 (null = 테마 따라감)
+  final WrTheme outfitNow;       // [SERVER] 실제 표시할 의상 (그림 있고 보유했을 때만, 아니면 free)
+  final String? outfitId; // 서버에서 검증한 신규 의상 번호
+  final String wishColor, paper; // 소원 빛깔(康財緣…) · 한지 색
+  final int devotionCount, supportCount, pouchReceived, level, commentCount;
+  final double points;
+  final String levelName;
+  final int curLevelPts;
+  final int? nextLevelPts;
+  final double brightness;       // §6.2  1.0 / .8 / .5 / .3 / .2 (아이템 decay 효과로 하한 상승)
+  final String decayLabel;
+  final bool decayBadge, isMine, supportedToday;
+  // [v5 S1] ⚠️ 필드명 유지 + 의미 변경(CHECKLIST.md v5 지시, 서버 수정과 짝을 맞춤 —
+  // wishroom-engine.ts roomView() 참고):
+  //   dailyLimit        : 과거 "하루 최대 10회" → 이제 사실상 1(하루 1회 기도).
+  //   devotionsToday/Remaining : 과거 "오늘 올린 횟수/남은 횟수" → 이제 0 또는 1
+  //                              (오늘 기도했는지 여부를 0/1로만 표현).
+  //   cooldownSec       : 과거 "다음 기도까지 남은 초 단위 쿨타임(30초)" → v5에서는
+  //                        쿨타임 개념 자체가 폐기되어 서버가 항상 0을 내려준다.
+  //   cooldownUntil     : 과거 "쿨타임 끝나는 시각(몇 초 뒤)" → 이제 "다음 날 KST 자정"
+  //                        (오늘 이미 기도했을 때만 값이 채워짐, 안 했으면 null/0).
+  final int absentDays, devotionsToday, devotionsRemaining, dailyLimit, cooldownSec, daysLit;
+  final DateTime? cooldownUntil, completedAt, cancelUntil, createdAt;
+  // [v5 S2 신규 — 매핑표 00-C UNLOCK SPEC] 날짜별 열림. dayN=방 생성일부터 경과일,
+  // prayedN=기도한 날 수(=devotionCount), stage=app3/flow.js stageIdx(n)(-1=기도 전).
+  // unlocked=현재 열려 있는 기능 키 목록(ack 여부 무관), pendingUnlock=아직 ack 안 한
+  // 것 중 순서상 첫 번째(하루 1장만, null이면 보여줄 카드 없음), lastUnlockAckDay=
+  // 마지막으로 열림 카드를 확인(ack)한 날짜(KST 'YYYY-MM-DD').
+  final int dayN, prayedN, stage;
+  final List<String> unlocked;
+  final String? pendingUnlock;
+  final String? lastUnlockAckDay;
+  // [S3 신규] 매핑표 00-C 확장 — wishroom-engine.ts roomView() 1:1.
+  // visitPolicy: 이 방이 "찾아온 수호자(dispatch)"를 어떻게 받을지(off/ask/open).
+  // entrustNow/Next/Done: 내 방일 때만 값이 채워짐(남의 방 조회 시 전부 null).
+  // guardianAway: 내 대표 수호자가 지금 다른 방에 파견 나가 있으면 그 정보(내 방 조회 시만).
+  final String visitPolicy;
+  final Entrust? entrustNow, entrustNext, entrustDone;
+  final DispatchAway? guardianAway;
+  final Equip equip;
+  final Map<String, LayoutPos> layout;
+  final Effects effects;
+  final List<SupportRewardState>? rewards;
+  // 타임캡슐 봉인 (소원 작성 시 봉인일 → 그날 열림)
+  final String? sealUntil, sealedOn;       // 'YYYY-MM-DD' (KST)
+  final Capsule? capsule;
+  final int? sealDaysLeft, sealTotalDays;
+  final bool capsuleDue;
+  final Outcome? outcome;
+  // [4-B 신규] 소원 마무리(成/放) 한 줄 메모, 최대 40자 — CHECKLIST.md 대표님 판정.
+  final String? note;
+  final WishStatus? wishStatus;
+  final String? shareToken;
+  final Map<String, dynamic>? snapshot;    // SEALED/ARCHIVED 시 보존 (§14.2)
+  // [S6 신규 — "소원 수정 제한", wish-edit/route.ts 참고] goal=기도 목표(21/49/100,
+  // null=없음, app3 view().goal 1:1). wishEditsRemaining=오늘 남은 "문구 다듬기"
+  // 횟수(0~3). canRewish=지금 "다른 소원으로" 가능 여부(dayN<=3 && 아직 안 씀) —
+  // 서버가 미리 판정해 내려주므로 클라이언트에서 dayN을 다시 계산할 필요 없다.
+  final int? goal;
+  final int wishEditsRemaining;
+  final bool canRewish;
+
+  WishRoom.fromJson(Map<String, dynamic> j)
+      : id = j['id'], ownerId = j['ownerId'], owner = j['owner'] ?? '', region = j['region'] ?? '',
+        text = j['text'], char = j['char'],
+        status = _enum(RoomStatus.values, j['status'], RoomStatus.ACTIVE), visibility = _enum(Visibility.values, j['visibility'], Visibility.PUBLIC),
+        theme = _enum(WrTheme.values, j['theme'], WrTheme.free),
+        outfit = j['outfit'] == null ? null : _enum(WrTheme.values, j['outfit'], WrTheme.free),
+        outfitNow = _enum(WrTheme.values, j['outfitNow'], WrTheme.free),
+        outfitId = j['outfitId'] as String?,
+        wishColor = j['wishColor'] ?? 'hope', paper = j['paper'] ?? 'hanji',
+        devotionCount = (j['devotionCount'] as num).toInt(), supportCount = (j['supportCount'] as num).toInt(),
+        pouchReceived = (j['pouchReceived'] as num).toInt(), level = j['level'], commentCount = j['commentCount'] ?? 0,
+        points = (j['points'] as num).toDouble(), levelName = j['levelName'], curLevelPts = j['curLevelPts'],
+        nextLevelPts = j['nextLevelPts'], brightness = (j['brightness'] as num).toDouble(), decayLabel = j['decayLabel'] ?? '',
+        decayBadge = j['decayBadge'] ?? false, isMine = j['isMine'] ?? false, supportedToday = j['supportedToday'] ?? false,
+        absentDays = j['absentDays'] ?? 0, devotionsToday = j['devotionsToday'] ?? 0, devotionsRemaining = j['devotionsRemaining'] ?? 1,
+        dailyLimit = j['dailyLimit'] ?? 1, cooldownSec = j['cooldownSec'] ?? 0, daysLit = j['daysLit'] ?? 1,
+        cooldownUntil = _ts(j['cooldownUntil']), completedAt = _ts(j['completedAt']), cancelUntil = _ts(j['cancelUntil']), createdAt = _ts(j['createdAt']),
+        dayN = j['dayN'] ?? 1, prayedN = j['prayedN'] ?? 0, stage = j['stage'] ?? -1,
+        unlocked = List<String>.from(j['unlocked'] ?? const []),
+        pendingUnlock = j['pendingUnlock'] as String?,
+        lastUnlockAckDay = j['lastUnlockAckDay'] as String?,
+        visitPolicy = j['visitPolicy'] as String? ?? 'ask',
+        entrustNow = j['entrustNow'] == null ? null : Entrust.fromJson(Map<String, dynamic>.from(j['entrustNow'])),
+        entrustNext = j['entrustNext'] == null ? null : Entrust.fromJson(Map<String, dynamic>.from(j['entrustNext'])),
+        entrustDone = j['entrustDone'] == null ? null : Entrust.fromJson(Map<String, dynamic>.from(j['entrustDone'])),
+        guardianAway = j['guardianAway'] == null ? null : DispatchAway.fromJson(Map<String, dynamic>.from(j['guardianAway'])),
+        equip = Equip.fromJson(Map<String, dynamic>.from(j['equip'] ?? const {})),
+        layout = (Map<String, dynamic>.from(j['layout'] ?? const {})).map((k, v) => MapEntry(k, LayoutPos.fromJson(Map<String, dynamic>.from(v)))),
+        effects = Effects.fromJson(j['effects'] == null ? null : Map<String, dynamic>.from(j['effects'])),
+        rewards = j['rewards'] == null ? null : (j['rewards'] as List).map((x) => SupportRewardState.fromJson(Map<String, dynamic>.from(x))).toList(),
+        sealUntil = j['sealUntil'], sealedOn = j['sealedOn'],
+        capsule = j['capsule'] == null ? null : _enum(Capsule.values, j['capsule'], Capsule.LOCKED),
+        sealDaysLeft = j['sealDaysLeft'], sealTotalDays = j['sealTotalDays'], capsuleDue = j['capsuleDue'] ?? false,
+        outcome = j['outcome'] == null ? null : _enum(Outcome.values, j['outcome'], Outcome.ONGOING),
+        note = j['note'] as String?,
+        wishStatus = j['wishStatus'] == null ? null : _enum(WishStatus.values, j['wishStatus'], WishStatus.IN_PROGRESS),
+        shareToken = j['shareToken'], snapshot = j['snapshot'],
+        goal = (j['goal'] as num?)?.toInt(),
+        wishEditsRemaining = (j['wishEditsRemaining'] as num?)?.toInt() ?? 3,
+        canRewish = j['canRewish'] ?? false;
+
+  double get levelProgress => nextLevelPts == null ? 1 : ((points - curLevelPts) / (nextLevelPts! - curLevelPts)).clamp(0, 1).toDouble();
+  bool get readOnly => status == RoomStatus.SEALED || status == RoomStatus.ARCHIVED;
+  bool get sacred => theme != WrTheme.free; // 교회·법당·신당 — 창밖 배경·Lv 해금 오브젝트·촛불 교체 숨김
+  /// [v5 S2] 매핑표 00-C — 하단바/메뉴 잠금 표시(🔒)에 사용. 서버 unlocked[]에 키가
+  /// 있으면 열린 것(ack 여부 무관) — 서버 open(k) 로직과 1:1(wishroom-engine.ts computeUnlockView).
+  bool isFeatureUnlocked(String key) => unlocked.contains(key);
+}
+
+class Me {
+  final String id, nick, repChar;
+  final int pouch, accountAgeDays, giftToday, unread;
+  final List<String> ownedChars, ownedItems, ownedOutfits; // ownedOutfits = ['F03:god', ...]
+  final bool skipIntro;
+  final Map<String, int> earnToday;
+  final Map<String, dynamic>? wallpaper;
+  // [G5 신규 — 46개 안내 팝업 전수 대조 공백 발견] 내가 보낸 수호자 중 기간이 끝났지만
+  // 아직 확인(ack) 안 한 것 — wishroom-engine.ts getDispatchDone()/meView() 1:1.
+  // room이 아니라 me 레벨 개념(어느 방으로 보냈든 내 홈 화면에 뜸)이라 WishRoom이 아닌
+  // 여기에 싣는다. null이면 보여줄 DispatchBack 카드 없음.
+  final DispatchAway? dispatchDone;
+  Me.fromJson(Map<String, dynamic> j)
+      : id = j['id'], nick = j['nick'], repChar = j['repChar'], pouch = j['pouch'], accountAgeDays = j['accountAgeDays'] ?? 0,
+        giftToday = j['giftToday'] ?? 0, unread = j['unread'] ?? 0,
+        ownedChars = List<String>.from(j['ownedChars'] ?? const []), ownedItems = List<String>.from(j['ownedItems'] ?? const []),
+        ownedOutfits = List<String>.from(j['ownedOutfits'] ?? const []),
+        skipIntro = (j['settings'] ?? {})['skipIntro'] ?? false,
+        earnToday = Map<String, int>.from(j['earnToday'] ?? {}), wallpaper = j['wallpaper'],
+        dispatchDone = j['dispatchDone'] == null ? null : DispatchAway.fromJson(Map<String, dynamic>.from(j['dispatchDone']));
+  bool ownsOutfit(String char, WrTheme t) => t == WrTheme.free || ownedOutfits.contains('$char:${t.name}');
+}
+
+enum IntroMode { full, short, none }
+
+class MyRoomResponse {
+  final WishRoom? room; final Me me; final IntroMode introMode;
+  MyRoomResponse.fromJson(Map<String, dynamic> j)
+      : room = j['room'] == null ? null : WishRoom.fromJson(j['room']), me = Me.fromJson(j['me']),
+        introMode = _enum(IntroMode.values, j['introMode'], IntroMode.none);
+}
+
+class DevotionResult {
+  final WishRoom room; final int prevLevel, bonus; final bool leveledUp; final Me me;
+  final DevotionGain? gain;
+  /// [v5 S2 — 대표 판정 "보상 숫자 확인"] 이번 기도로 실제 적립된 복주머니 합계
+  /// (평소 +5(pray) · 7일째 +25(pray 5+streak7 20)). 통합 카드(🧧 표시)는 이
+  /// 값을 써야 한다 — `bonus`는 스트릭 보너스분(streak7)만 담아 평소엔 0이라
+  /// 기본 지급(+5)이 누락되어 보이는 문제가 있었다.
+  final int pouchEarned;
+  DevotionResult.fromJson(Map<String, dynamic> j)
+      : room = WishRoom.fromJson(j['room']), prevLevel = j['prevLevel'], leveledUp = j['leveledUp'], bonus = j['bonus'] ?? 0,
+        pouchEarned = j['pouchEarned'] ?? (j['bonus'] ?? 0), me = Me.fromJson(j['me']),
+        gain = j['gain'] == null ? null : DevotionGain.fromJson(Map<String, dynamic>.from(j['gain']));
+}
+
+/// A-4 devote() 0.7s 단계 — "아이템 기운 보너스가 있으면 top 236 금→핑크 pill
+/// `✦ 아이템 기운 +n%` + 아래 아이템별 작은 칩" 연출용. 서버 응답 `gain.bonus`(비율,
+/// 예: 0.05 = 5%) · `gain.fx`(장착 아이템별 기운 목록).
+class DevotionGain {
+  final double bonus; // 소수(0.05 = +5%) — bonusPct = (bonus*100).round()
+  final List<DevotionGainItem> fx;
+  DevotionGain.fromJson(Map<String, dynamic> j)
+      : bonus = (j['bonus'] as num?)?.toDouble() ?? 0,
+        fx = (j['fx'] as List? ?? const []).map((e) => DevotionGainItem.fromJson(Map<String, dynamic>.from(e))).toList();
+}
+
+class DevotionGainItem {
+  final String id, name, type; final int v; final bool match;
+  DevotionGainItem.fromJson(Map<String, dynamic> j)
+      : id = j['id'] as String, name = j['name'] as String, type = j['type'] as String, v = (j['v'] as num).toInt(), match = j['match'] == true;
+}
+
+class ItemEffect { final String type; final int v; ItemEffect.fromJson(Map<String, dynamic> j) : type = j['type'], v = j['v']; }
+
+class WrItem {
+  final String id, name; final Slot slot; final int? price; final bool owned;
+  final String? img, glyph, kind, tier, aura, desc, hanja, color, fx; // kind: stand|hang|float · tier: free|normal|special
+  final WrTheme? theme;  // THEME 슬롯 전용
+  final double? s;       // 기본 크기(px, 390 캔버스)
+  final ItemEffect? effect;
+  final int? reward;     // 응원 보상 전용 아이템 (구매 불가)
+  WrItem.fromJson(Map<String, dynamic> j)
+      : id = j['id'], name = j['name'], slot = _enum(Slot.values, j['slot'], Slot.DECORATION), price = j['price'], owned = j['owned'] ?? false,
+        img = j['img'], glyph = j['glyph'], kind = j['kind'], tier = j['tier'], aura = j['aura'], desc = j['desc'], hanja = j['hanja'], color = j['color'], fx = j['fx'],
+        theme = j['theme'] == null ? null : _enum(WrTheme.values, j['theme'], WrTheme.free),
+        s = (j['s'] as num?)?.toDouble(), effect = j['effect'] == null ? null : ItemEffect.fromJson(Map<String, dynamic>.from(j['effect'])), reward = j['reward'];
+  String? get asset => img == null ? null : 'assets/wishroom/items/$img.png';
+}
+
+class WrCharacter {
+  final String id, name, title, grade, gender, emblem; final int? price; final bool owned; final List<Behavior> behaviors;
+  final String? job, type, personality, likes, aura, line;
+  WrCharacter.fromJson(Map<String, dynamic> j)
+      : id = j['id'], name = j['name'], title = j['title'], grade = j['grade'], gender = j['gender'], emblem = j['emblem'] ?? '',
+        price = j['price'], owned = j['owned'] ?? false,
+        behaviors = (j['behaviors'] as List? ?? const []).map((b) => _enum(Behavior.values, b, Behavior.idle)).toList(),
+        job = j['job'], type = j['type'], personality = j['personality'], likes = j['likes'], aura = j['aura'], line = j['line'];
+}
+
+class OutfitOffer {
+  final WrTheme theme;
+  final int price;
+  final bool hasArt, owned, compatible;
+  final String? id, name, gender;
+  OutfitOffer.fromJson(Map<String, dynamic> j)
+      : theme = _enum(WrTheme.values, j['theme'], WrTheme.free),
+        price = j['price'] ?? 0, hasArt = j['hasArt'] ?? false,
+        owned = j['owned'] ?? false, compatible = j['compatible'] ?? true,
+        id = j['id'], name = j['name'], gender = j['gender'];
+  bool get isNew => id != null;
+  String get asset => 'assets/wishroom/outfits/$id.png';
+}
+
+class WrNotification {
+  final String id, text; final NotiType type; final String? roomId; final DateTime at; final bool read;
+  WrNotification.fromJson(Map<String, dynamic> j)
+      : id = j['id'], text = j['text'], type = _enum(NotiType.values, j['type'], NotiType.STATUS), roomId = j['roomId'], at = _ts(j['at'])!, read = j['read'] ?? false;
+}
+
+class WrComment {
+  final String id, author, text; final DateTime at;
+  WrComment.fromJson(Map<String, dynamic> j) : id = j['id'], author = j['author'], text = j['text'], at = _ts(j['at'])!;
+}
+
+class WrReview {
+  final String id, roomId, author, wishText, text, wishColor; final String? photo; final int congrats; final bool congratsByMe, mine; final String status;
+  // app2/review2.jsx › StoryCard() `v.visibility === 'PUBLIC' ? '공개' : '나만 보기'` 1:1 —
+  // [버그수정 — 전수감사] 기존엔 이 필드가 아예 없어 내 글 칩(공개/나만 보기)을
+  // 표시할 방법이 없었다.
+  final String visibility;
+  // app2/review2.jsx › StoryCard() `d(v.achievedAt)` (1행 날짜 mono 표기) 1:1.
+  final DateTime? achievedAt;
+  WrReview.fromJson(Map<String, dynamic> j) : id = j['id'], roomId = j['roomId'], author = j['author'] ?? '', wishText = j['wishText'] ?? '', text = j['text'] ?? '',
+      wishColor = j['wishColor'] ?? 'hope', photo = j['photo'], congrats = j['congrats'] ?? 0, congratsByMe = j['congratsByMe'] ?? false, mine = j['mine'] ?? false, status = j['status'] ?? 'OK',
+      visibility = j['visibility'] ?? 'PUBLIC', achievedAt = _ts(j['achievedAt']);
+}
+
+// ── 배경화면(W1~W5) — docs/WALLPAPER.md ──
+// 웹 원본의 "매니페스트"는 레이어 배열(sky/room/particle/deco/candle/char/fx...)을
+// 들고 있지만, 그 레이어들은 이미 RoomScene이 room+equip+level로부터 그대로
+// 그려내는 것과 같은 내용이다("같은 좌표" — WALLPAPER.md §3). 그래서 이 앱에서는
+// 별도 레이어 렌더러를 새로 만들지 않고, 매니페스트 응답에 담긴 WishRoom(또는
+// 보존된 소원방의 snapshot으로 재구성한 WishRoom)을 그대로 RoomScene에 넘겨
+// "같은 수식으로 그린다"는 원칙을 지킨다.
+class WPManifest {
+  final String wishRoomId;
+  final int version;
+  final String title;
+  final WishRoom room; // RoomScene(room: .., items: ..)에 그대로 전달
+  final List<String> equippedItemIds;
+  final bool fulfilled; // state === 'FULFILLED' (보존된 소원방 — 금빛 리본 · confetti 1회)
+  factory WPManifest.fromJson(Map<String, dynamic> j) {
+    final room = WishRoom.fromJson(Map<String, dynamic>.from(j['room']));
+    final state = j['state'] as String? ?? (room.status == RoomStatus.ARCHIVED ? 'FULFILLED' : 'ACTIVE');
+    return WPManifest._(
+      wishRoomId: j['wishRoomId'] as String? ?? room.id,
+      version: (j['version'] as num?)?.toInt() ?? 1,
+      title: j['title'] as String? ?? '내 소원방',
+      room: room,
+      equippedItemIds: j['equippedItemIds'] == null ? room.equip.all : List<String>.from(j['equippedItemIds']),
+      fulfilled: state == 'FULFILLED',
+    );
+  }
+  WPManifest._({required this.wishRoomId, required this.version, required this.title, required this.room, required this.equippedItemIds, required this.fulfilled});
+  String get band {
+    final lv = room.level;
+    if (lv >= 7) return 'B4';
+    if (lv >= 5) return 'B3';
+    if (lv >= 3) return 'B2';
+    return 'B1';
+  }
+}
+
+/// `GET /me/wallpaper` 응답 — 현재 설정 상태.
+class WallpaperStatus {
+  final String? roomId, platform, target; // platform: android|ios · target: BOTH|HOME|LOCK
+  final int version, latestVersion;
+  final bool needsUpdate, autoSynced;
+  final int seenLevelNotice;
+  WallpaperStatus.fromJson(Map<String, dynamic> j)
+      : roomId = j['roomId'], platform = j['platform'], target = j['target'],
+        version = (j['version'] as num?)?.toInt() ?? 0, latestVersion = (j['latestVersion'] as num?)?.toInt() ?? 0,
+        needsUpdate = j['needsUpdate'] ?? false, autoSynced = j['autoSynced'] ?? false,
+        seenLevelNotice = (j['seenLevelNotice'] as num?)?.toInt() ?? 0;
+  const WallpaperStatus.empty() : roomId = null, platform = null, target = null, version = 0, latestVersion = 0, needsUpdate = false, autoSynced = false, seenLevelNotice = 0;
+  bool get isSet => roomId != null;
+}
+
+class ApiError implements Exception {
+  final int status; final String code, message; final Map<String, dynamic> extra;
+  ApiError(this.status, this.code, this.message, [this.extra = const {}]);
+  int? get retryAfter => extra['retryAfter'];
+  int? get need => extra['need'];
+  int? get have => extra['have'];
+  @override String toString() => '$status $code $message';
+}

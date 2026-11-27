@@ -1,16 +1,173 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'app.dart';
+import 'core/config/social_auth_config.dart';
+import 'core/router/guinji_deep_link_handler.dart';
+import 'core/web/browser_back_bridge.dart';
+import 'core/web/web_nav_bridge.dart';
+import 'core/web_ads/web_ad_service.dart';
+import 'core/ad_remote_config/ad_remote_config_service.dart';
+import 'core/iap/iap_purchase_manager.dart';
+import 'features/ads_test/domain/admob_ad_ids.dart';
+import 'features/ads_test/domain/admob_consent_service.dart';
+import 'features/home/domain/saju_fortune_rules.dart';
+import 'features/home/domain/saju_interpreter.dart';
+import 'features/evening_bell/domain/evening_bell_notification_service.dart';
+import 'features/wishroom/data/wr_catalog.dart';
 
-/// [로컬 영속성] 앱 실행 시 실제 기기 documents 디렉터리를 기준으로
-/// Hive를 초기화한다. Hive를 사용하는 로컬 스토어 모듈이 `Hive.openBox()`를
-/// 호출하기 전에 반드시 이 초기화가 먼저 끝나 있어야 한다.
-///
-/// 순수 Dart 테스트 환경에서는 이 위젯 플러그인 기반 초기화를 쓸 수
-/// 없으므로, 대신 `test/flutter_test_config.dart`에서 `Hive.init(경로)`로
-/// 별도 초기화한다(Flutter 플러그인 경로 조회가 필요 없는 순수 Dart API).
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/fonts/wish_room/NotoSansKR-OFL.txt');
+    yield LicenseEntryWithLineBreaks(['Noto Sans KR'], text);
+  });
+  // [버그수정 — "복주머니 탭 완전 빈 화면" 근본원인 진단용] 릴리즈 모드에서는
+  // 위젯 build() 중 예외가 나면 Flutter가 기본적으로 내용 없는 회색 박스를
+  // 보여주고 에러를 콘솔에만 찍는다(보안상 설계). 그래서 지금까지 "복주머니가
+  // 빈 화면"이라는 증상만 보일 뿐 진짜 원인(어떤 예외인지)이 전혀 드러나지
+  // 않았다. ErrorWidget.builder를 오버라이드해 릴리즈에서도 실제 에러 메시지를
+  // 화면에 표시하도록 해, 다음 테스트에서 진짜 원인을 즉시 특정할 수 있게 한다.
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Container(
+      color: const Color(0xFF12060E),
+      padding: const EdgeInsets.all(16),
+      alignment: Alignment.topLeft,
+      child: SingleChildScrollView(
+        child: Text(
+          '⚠️ 화면 오류\n\n${details.exceptionAsString()}\n\n${details.stack}',
+          style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontFamily: 'monospace'),
+        ),
+      ),
+    );
+  };
+  // [버그수정 — LateInitializationError] WrCatalog.I는 `static late` 필드라
+  // WrCatalog.load()가 먼저 완료되지 않은 상태에서 어디서든(_PouchTab의
+  // WrCatalog.I.earn 등) 접근하면 "Field '' has not been initialized" 크래시가
+  // 난다. 기존 코드는 이 load()를 호출하는 곳이 전혀 없었다 — MainRoomScreen/
+  // DecorScreen은 room==null일 때 조기 return 하는 화면 구조 덕분에 우연히
+  // WrCatalog.I에 도달하지 않아 크래시가 가려져 있었을 뿐, 보관함>복주머니
+  // 탭처럼 room 유무와 무관하게 바로 WrCatalog.I를 읽는 화면에서는 100%
+  // 재현된다. 앱 부팅 시 1회 await로 로드해 모든 화면에서 안전하게 만든다
+  // (JSON 에셋 1개 파싱이라 지연은 무시할 수준).
+  await WrCatalog.load();
+  // [Stage2 결함수정 — 결함-H01-01] 과거 "구조화 로컬 캐시(히스토리/오프라인)"
+  // 용도로 Hive를 도입할 계획이었으나 실제로는 어떤 기능도 Hive.openBox()를
+  // 호출하지 않았다(모든 로컬 저장은 SharedPreferences로 구현됨, 55곳).
+  // 초기화만 되고 실사용 0건인 죽은 의존성이었으므로 `Hive.initFlutter()`
+  // 호출과 `hive`/`hive_flutter` 패키지 의존성을 제거했다(pubspec.yaml 동시
+  // 수정). 향후 구조화 로컬 캐시가 실제로 필요해지면 그때 다시 도입한다.
+  // [정통사주 실계산 활성화 - 미션 2] 만세력 해석 룰 DB(일간/십신/오행 +
+  // 세운/월운/일운/개운아이템/궁합)를 앱 부팅 시점에 fire-and-forget으로
+  // 미리 로드해 둔다. await 하지 않는 이유: 이 로드가 끝나기 전에
+  // JeontongReportBuilder.build()가 호출돼도 기존 폴백(결정론적 시드
+  // 기반) 경로로 안전하게 동작하므로 앱 시작을 블로킹할 필요가 없다 —
+  // 로드가 끝나는 즉시(보통 앱 시작 후 수백ms 이내) 이후 호출부터 자동으로
+  // 실계산 경로로 전환된다(jeontong_eighty_report_builder.dart 참고).
+  SajuRules.preload();
+  SajuFortuneRules.preload();
+  // [귀인지도 관리자 통합 간소화 실행 지시서 - task 4 "광고관리 통합메뉴"]
+  // admin_web의 AdMob isEnabled / AdSense(퍼블리셔ID+서비스별+포맷별) 원격
+  // 설정을 앱 시작 시 조회한다. await 하지 않는 이유: 네트워크 응답을
+  // 기다리며 앱 시작을 블로킹하면 안 되고, 조회가 끝나기 전까지는 기존
+  // 컴파일타임 기본값이 안전하게 사용되기 때문이다(AdRemoteConfigService
+  // 주석 참고). 조회가 끝나는 즉시(보통 수백ms~수초 이내) 이후의 광고 노출
+  // 판단부터 자동으로 원격값이 반영된다.
+  AdRemoteConfigService.load();
+  // [귀인지도 딥링크 버그수정 — Phase A] `guinjido://g/{token}` 커스텀
+  // 스킴 딥링크 수신을 앱 부팅 시점에 등록한다. await 하지 않는 이유: 이
+  // 초기화가 runApp보다 늦게 끝나도(콜드 스타트 초기 링크 처리) 문제없이
+  // 동작하도록 설계되어 있고(GuinjiDeepLinkHandler.init 내부에서 프레임 콜백
+  // 사용), 앱 시작 자체를 블로킹할 필요는 없다.
+  GuinjiDeepLinkHandler.init();
+  // [PC 랜딩 연동] sintong.kr/ 랜딩이 이 앱을 iframe(sintong.kr/app/)으로
+  // 띄운 상태에서 왼쪽 메뉴 클릭 시 postMessage로 라우트 이동을 지시하고,
+  // 반대로 앱 내부 네비게이션 변화를 랜딩에 알려 배경 테마를 동기화한다.
+  // 비-웹 플랫폼에서는 no-op(web_nav_bridge_io.dart)이라 APK 빌드에는
+  // 영향이 없다.
+  initWebNavBridge();
+  // [버그수정 — 브라우저 뒤로가기 무반응] 이 앱의 Navigator 1.0 라우팅은
+  // 모든 Route의 settings.name이 null이라(AppRouter._page() 헬퍼가
+  // RouteSettings를 전달하지 않음) 화면 전환 시 브라우저 히스토리에 전혀
+  // 엔트리가 쌓이지 않는다. 그 결과 브라우저 자체의 뒤로가기 버튼(모바일
+  // 스와이프 제스처 포함)을 눌러도 되돌아갈 히스토리 엔트리가 없어 완전히
+  // 무반응이었다(정통사주 화면 등에서 실측 재현). 이 브릿지는 URL을 바꾸지
+  // 않으면서 히스토리에 가드 엔트리를 유지해, 뒤로가기를 Android
+  // 하드웨어 백버튼과 동일한 경로(앱 루트 Navigator.maybePop())로
+  // 연결한다. 비-웹 플랫폼에서는 no-op.
+  initBrowserBackBridge();
+  // [Phase C-1] 저녁 7시 종소리 알림 — 플러그인 초기화 후, 사용자가 과거에
+  // 옵트인했다면 예약을 다시 걸어준다(기기 재설치/데이터 초기화로 예약이
+  // 사라졌을 가능성 보정). await 하지 않는 이유: 이 부가 기능이 앱 시작을
+  // 블로킹할 필요가 없다(GuinjiDeepLinkHandler.init와 동일한 설계).
+  EveningBellNotificationService.initialize().then((_) {
+    EveningBellNotificationService.syncFromSavedPreference();
+  });
+  // [광고 미연동 버그수정 2026-09] Google Mobile Ads SDK 초기화 전에 UMP
+  // (사용자 동의) 절차를 먼저 거치는 것 자체는 맞다 — EEA/영국 사용자에게는
+  // 동의를 받기 전에 개인화 광고를 요청하면 안 되기 때문이다(Google 정책
+  // 요구사항). 하지만 기존 코드는 `if (canRequestAds) { ... initialize(); }`
+  // 형태로 SDK 초기화 자체를 동의 결과에 결박해 두었다 — 이게 실질적인
+  // 버그였다. `canRequestAds()`가 일시적으로 false를 반환하거나(동의 정보
+  // 조회 네트워크 지연/실패, 최초 설치 시 SDK 캐시 미준비 등) 한국처럼
+  // 원래 동의 UI 자체가 필요 없는 지역에서도 내부적으로 false가 나오는
+  // 경우가 있어, 이 조건에 걸리면 `MobileAds.instance.initialize()`가
+  // "그 실행 동안 영원히" 호출되지 않았다. Google Mobile Ads SDK는
+  // 초기화되지 않은 상태에서 `RewardedAd.load()`를 호출하면 조용히
+  // `onAdFailedToLoad`만 반복되므로, 사용자 입장에서는 "광고가 아예
+  // 뜨지 않는다"로만 보였다(행운상자·귀인지도·기존 복주머니 리워드 광고
+  // 전부 동일하게 영향받는 구조적 원인).
+  //
+  // [올바른 패턴] Google 공식 UMP 가이드대로 "동의 절차가 끝나면(성공/실패
+  // 무관) 항상 SDK를 초기화"하도록 고친다. 실제로 광고 요청이 허용되는지
+  // 여부(`canRequestAds`)는 SDK가 내부적으로 개인화/비개인화 광고 여부를
+  // 판단하는 데 사용될 뿐, "초기화 자체를 막을 이유"는 아니다.
+  if (!kIsWeb) {
+    // [안전장치] 동의 플로우가 네트워크 이슈 등으로 콜백을 아예 호출하지
+    // 못하고 멈추는 극단적인 경우까지 대비해, 8초 타임아웃 시 폴백으로도
+    // SDK를 초기화한다 — "광고가 영원히 안 뜨는" 상태를 원천적으로 방지.
+    AdmobConsentService.requestAndLoadIfRequired()
+        .timeout(const Duration(seconds: 8), onTimeout: () => false)
+        .then((_) {
+          // [테스트 기기 등록] 실제 계정 전환 시 무효 클릭 방지를 위해
+          // AdmobAdIds.testDeviceIds에 등록된 기기만 테스트 광고를 받도록
+          // 설정한다(현재는 빈 리스트라 운영에는 영향 없음).
+          AdmobAdIds.applyRequestConfiguration();
+          MobileAds.instance.initialize();
+        })
+        .catchError((_) {
+          // 동의 플로우 자체가 예외를 던진 경우에도 SDK 초기화는 계속
+          // 진행한다(부가 기능인 UMP가 핵심 광고 기능을 막아서는 안 됨).
+          MobileAds.instance.initialize();
+        });
+  }
+  // [카카오 간편로그인 - 웹 활성화] 카카오 SDK 초기화. kakao_flutter_sdk_common의
+  // `KakaoSdk.appKey`는 플랫폼별로 다른 키를 사용한다(kIsWeb ?
+  // javaScriptAppKey : nativeAppKey) — 그래서 두 값을 모두 전달해야
+  // Android/Web 양쪽에서 각자 올바른 키로 동작한다. 웹에서 실제로 로그인이
+  // 성공하려면 SocialAuthConfig.kakaoJavaScriptAppKey에 카카오 디벨로퍼스
+  // 콘솔에서 발급받은 JavaScript 키를 채워 넣어야 한다(비어 있으면 카카오
+  // 서버가 client_id 오류를 반환하며, 이는 이 SDK 초기화만으로 해결되지
+  // 않는 별도 조치가 필요한 부분이다).
+  KakaoSdk.init(
+    nativeAppKey: SocialAuthConfig.kakaoNativeAppKey,
+    javaScriptAppKey: SocialAuthConfig.kakaoJavaScriptAppKey,
+  );
+  // [웹 AdSense 광고 시스템 — STEP C] Web 전용 중앙 광고 서비스 초기화.
+  // kIsWeb이 false인 Android/iOS 빌드에서는 내부적으로 완전히 no-op이며,
+  // 기존 AdMob 초기화(위 MobileAds.instance.initialize() 등)와는 전혀
+  // 무관하게 독립적으로 동작한다(지시서 §2 — 앱 AdMob 코드 수정 금지).
+  // enabled=false(기본값, AdSense 미승인 상태)이면 이 호출도 즉시
+  // 반환되어 아무 스크립트도 주입하지 않는다.
+  WebAdService.ensureInitialized();
+  // [Google Play Billing 실연동 — 2026-11-26] purchaseStream은 앱 시작
+  // 즉시(가능하면 runApp보다 먼저) 구독해야 이전 세션에서 완료되지 않은
+  // 구매의 재통지를 놓치지 않는다(in_app_purchase 공식 가이드). Web은
+  // 패키지 자체가 지원하지 않으므로 Android/iOS에서만 초기화한다.
+  if (!kIsWeb) {
+    IapPurchaseManager.instance.init();
+  }
   runApp(const App());
 }

@@ -1,4 +1,4 @@
-/// [운섹션 37 카테고리 정리 - 미연동 콘텐츠 삭제] Fortune Fusion(신통방통)
+/// [운섹션 37 카테고리 정리 - 미연동 콘텐츠 삭제] 귀인지도
 /// 운세 섹션 카테고리 매트릭스.
 ///
 /// 타로(Ta-001~Ta-015, `/ai-fortune/tarot/*`, `/tarot/*`)는 별도로 이미
@@ -12,15 +12,23 @@
 /// 카테고리만 유지하기로 확정했다. 이제 실제 구현·노출되는 카테고리는
 /// 37개이며, 이 파일이 그 단일 소스다.
 ///
-/// 그룹 구성(총 37개):
-/// - T(오늘 운세) 15 · S(사주) 5 · N(이름) 5 · C(궁합) 7 · F(관상·손금) 5
+/// 그룹 구성(총 32개):
+/// - T(오늘 운세) 15 · S(사주) 5 · C(궁합) 7 · F(관상·손금) 5
+///
+/// [이름 운세(N그룹) 완전 삭제] 비활성(숨김) 상태로만 남아있던 N그룹(내
+/// 이름 풀이/개명 추천/아기 이름 추천/이름 궁합/브랜드·상호명 풀이)과
+/// 그 전용 화면(name_fortune 모듈, `/ai-fortune/name/input`)을 사용자
+/// 요청으로 전체 삭제했다(귀인지도에서 이미 삭제된 기능이어야 하는데
+/// 남아있던 잔여물).
 ///
 /// [기존 화면 재사용 원칙] 이미 실제 화면/Provider가 있는 카테고리(오늘의 운세,
-/// 사주, 이름, 관상, 손금)는 새 화면을 만들지 않고 기존 라우트를 그대로
+/// 사주, 관상, 손금)는 새 화면을 만들지 않고 기존 라우트를 그대로
 /// 재사용한다([existingRoute]). 궁합(C)은 전용 화면이 있으므로 마찬가지로
 /// 재사용한다.
 library;
 
+// [궁합(C그룹) 복원] admin_web 실API 연동 화면이 복원되어(git 53ce1ff 기준)
+// 이 import를 다시 활성화한다.
 import '../../compatibility/domain/compatibility_model.dart';
 
 /// 게이트 판정 결과 6종.
@@ -56,13 +64,12 @@ enum DisclaimerTag {
 
 /// 37개 카테고리 그룹 코드(궁합 C 그룹은 features/compatibility/ 모듈로
 /// 신규 구현되어 편입되었다 - 위 파일 헤더 참고).
-enum FortuneGroupCode { t, s, n, c, f }
+enum FortuneGroupCode { t, s, c, f }
 
 extension FortuneGroupCodeLabel on FortuneGroupCode {
   String get label => switch (this) {
     FortuneGroupCode.t => '오늘 운세',
     FortuneGroupCode.s => '사주',
-    FortuneGroupCode.n => '이름 운세',
     FortuneGroupCode.c => '궁합',
     FortuneGroupCode.f => '관상·손금',
   };
@@ -70,7 +77,6 @@ extension FortuneGroupCodeLabel on FortuneGroupCode {
   String get description => switch (this) {
     FortuneGroupCode.t => '오늘 하루의 흐름을 다양한 항목으로 나눠 확인해보세요',
     FortuneGroupCode.s => '타고난 사주 기운을 재물·애정·건강·월별로 나눠 깊게 해석해보세요',
-    FortuneGroupCode.n => '이름에 담긴 기운과 어울림을 풀이해보세요',
     FortuneGroupCode.c => '나와 상대방의 인연을 유형별로 풀이해보세요',
     FortuneGroupCode.f => '얼굴과 손에 담긴 이야기를 사진으로 확인해보세요',
   };
@@ -96,8 +102,10 @@ class FortuneCategoryEntry {
   final String title;
   final String shortDescription;
 
-  /// 이 카테고리의 기본 게이트 정책(사용 이력에 따라 [CategoryGate]가 실제
-  /// [GateResult]를 재계산할 때의 "정책 원본"이다).
+  /// [참고: 2026-11 자유 이용 원칙] 과거 게이트 판정 로직([CategoryGate],
+  /// 삭제됨)의 "정책 원본" 값이었으나, 현재는 UI 배지 용도로는 쓰이지
+  /// 않고 데이터 분류 메타데이터로만 남아 있다. 실제 콘텐츠 열람 제한은
+  /// 없으며, 결제 판정은 각 결과 화면의 ResultAccessService가 전담한다.
   final GateResult gate;
 
   /// 이미 존재하는 화면으로 바로 연결하는 경우의 라우트(없으면 공용
@@ -127,7 +135,6 @@ class FortuneMatrix {
   FortuneMatrix._();
 
   static const String sajuInputRoute = '/ai-fortune/saju/input';
-  static const String nameInputRoute = '/ai-fortune/name/input';
   static const String compatibilityInputRoute = '/compatibility/input';
   static const String faceCaptureRoute = '/ai-fortune/face/capture';
   static const String palmCaptureRoute = '/ai-fortune/palm/capture';
@@ -136,10 +143,13 @@ class FortuneMatrix {
   /// 공용 결과 화면(신규 카테고리) 라우트.
   static const String genericCategoryRoute = '/fortune/category';
 
+  // [귀인지도 정통사주 리뉴얼] S그룹(사주 5개, 전부 구 AI 사주 라우트
+  // `/ai-fortune/saju/input`로 연결)은 groups에서 제외한다. 사주는 이제
+  // saju_renewal 단일 진입점(`/saju-renewal`)으로 통일되었으므로, 37가지
+  // 운세 한눈에 보기(FortuneMatrixSection)에는 더 이상 노출하지 않는다.
+  // _sGroup 정의/데이터는 삭제하지 않고 보존한다(향후 참고용).
   static final List<FortuneCategoryGroupEntry> groups = [
     _tGroup,
-    _sGroup,
-    _nGroup,
     _cGroup,
     _fGroup,
   ];
@@ -293,8 +303,9 @@ class FortuneMatrix {
     ],
   );
 
-  // ── S: 사주 (5) — 기존 SajuInputScreen 딥링크 매핑(_sajuTopicByCategoryKey)과
-  // 동일한 토픽을 그대로 재사용한다.
+  // ── S: 사주 (5) — [귀인지도 정통사주 리뉴얼] groups에서 제외되어 더 이상
+  // 사용되지 않지만, 과거 구조 참고용으로 데이터 자체는 보존한다.
+  // ignore: unused_field
   static final _sGroup = FortuneCategoryGroupEntry(
     code: FortuneGroupCode.s,
     items: [
@@ -356,61 +367,10 @@ class FortuneMatrix {
     ],
   );
 
-  // ── N: 이름 운세 (5) ──
-  static final _nGroup = FortuneCategoryGroupEntry(
-    code: FortuneGroupCode.n,
-    items: [
-      FortuneCategoryEntry(
-        id: 'N-001',
-        group: FortuneGroupCode.n,
-        title: '내 이름 풀이',
-        shortDescription: '이름에 담긴 기운 해석',
-        gate: GateResult.lockedFreeFirst,
-        existingRoute: nameInputRoute,
-      ),
-      FortuneCategoryEntry(
-        id: 'N-002',
-        group: FortuneGroupCode.n,
-        title: '개명 추천',
-        shortDescription: '지금 이름과 어울리는 대안',
-        gate: GateResult.paidOnlyPassGate,
-        existingRoute: nameInputRoute,
-      ),
-      FortuneCategoryEntry(
-        id: 'N-003',
-        group: FortuneGroupCode.n,
-        title: '아기 이름 추천',
-        shortDescription: '태명·아기 이름 풀이',
-        gate: GateResult.paidOnlyPassGate,
-        existingRoute: nameInputRoute,
-        disclaimers: [DisclaimerTag.infant],
-      ),
-      FortuneCategoryEntry(
-        id: 'N-004',
-        group: FortuneGroupCode.n,
-        title: '이름 궁합',
-        shortDescription: '두 이름 사이의 어울림',
-        gate: GateResult.freeOncePerDay,
-        existingRoute: nameInputRoute,
-        disclaimers: [DisclaimerTag.relationship],
-      ),
-      FortuneCategoryEntry(
-        id: 'N-005',
-        group: FortuneGroupCode.n,
-        title: '브랜드·상호명 풀이',
-        shortDescription: '사업체 이름의 기운',
-        gate: GateResult.paidOnlyPassGate,
-        existingRoute: nameInputRoute,
-        disclaimers: [DisclaimerTag.finance],
-      ),
-    ],
-  );
-
-  // ── C: 궁합 (7) [궁합(C그룹) 신규 구현] ──
+  // ── C: 궁합 (7) [궁합(C그룹) 복원] ──
   // admin_web 백엔드(`/api/public/compatibility/*`, CompatibilityRequest/
-  // CompatibilityResult 모델)는 이미 완전히 구현되어 있었고(무료 정책까지
-  // 반영) Flutter 클라이언트만 없던 상태였다. features/compatibility/
-  // 모듈(입력 화면 `/compatibility/input`)을 신규 구현해 연결한다. 유형별로
+  // CompatibilityResult 모델)는 이미 완전히 구현되어 있고(무료 정책까지
+  // 반영) Flutter 클라이언트도 복원되었다(git 53ce1ff). 유형별로
   // routeArguments에 [CompatibilityType]을 전달해 입력 화면 진입 시 해당
   // 유형이 미리 선택되게 한다.
   static final _cGroup = FortuneCategoryGroupEntry(

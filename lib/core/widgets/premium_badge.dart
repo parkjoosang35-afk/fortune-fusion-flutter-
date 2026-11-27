@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
-/// [Fortune Fusion 디자인 우선 리디자인 프롬프트] §6-D 배지 스타일
+/// [귀인지도 디자인 우선 리디자인 프롬프트] §6-D 배지 스타일
 ///
 /// 복주머니=골드, 열림패스=보라/네이비, 완료=민트.
 /// 작지만 명확하게, pill 형태로 통일한다.

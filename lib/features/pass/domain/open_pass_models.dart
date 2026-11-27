@@ -274,6 +274,7 @@ class OpenPassRewardGrantModel {
   final String? policyName;
   final DateTime expiresAt;
   final int remainingSec;
+  final int? remainingCount;
   final bool idempotent;
 
   const OpenPassRewardGrantModel({
@@ -282,6 +283,7 @@ class OpenPassRewardGrantModel {
     this.policyName,
     required this.expiresAt,
     required this.remainingSec,
+    this.remainingCount,
     this.idempotent = false,
   });
 
@@ -295,6 +297,7 @@ class OpenPassRewardGrantModel {
       policyName: json['policyName'] as String?,
       expiresAt: DateTime.parse(json['expiresAt'] as String),
       remainingSec: json['remainingSec'] as int? ?? 0,
+      remainingCount: json['remainingCount'] as int?,
       idempotent: idempotent,
     );
   }

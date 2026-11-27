@@ -61,12 +61,18 @@ class TarotReadingExtras {
   /// 저장/공유할 때마다 같은 결과가 항상 같은 점수를 보이게 한다.
   static int readingScore(String id) => 62 + _rngFor(id, 0x50).nextInt(36);
 
-  /// [타로 섹션 전면 개편 §11 P4 심화해석] 히어로 카드 1장을 "감정/현실/
-  /// 미래"라는 3가지 다른 관점으로 다시 풀어본 해석 3개를 생성한다.
-  /// 신규 문장 풀을 만들지 않고, 이미 검증된
-  /// [TarotTextEngine.generateCardInterpretation]을 결과 id 기반의 서로
-  /// 다른 시드 3개로 호출해 "같은 카드, 다른 결"이라는 심화해석 컨셉을
-  /// 구현한다(과설계 방지 - 서버 API 추가 없이 클라이언트에서 파생).
+  /// [타로 섹션 전면 개편 §11 P4 심화해석] 히어로 카드 1장을 "마음/현실/
+  /// 흐름"이라는 3가지 다른 관점으로 다시 풀어본 해석 3개를 생성한다.
+  ///
+  /// [8가지 버그 리포트 §2 수정 → 2026-11 재수정] 예전에는 카드의 핵심
+  /// 의미(meta.up/down 문장)를 3개 관점 각각의 앞머리에 매번 그대로
+  /// 반복해서 붙였다("~카드가 나왔어요. [고정 의미문장]" + 관점 한 줄).
+  /// 그 결과 세 문단이 절반 이상 똑같은 문장으로 시작해 "말이 비슷하게
+  /// 나온다"는 반복 체감 불만으로 이어졌다. 이제
+  /// [TarotTextEngine.generateAngleOnly]로 카드 고정 의미 문장 없이
+  /// 관점 전용 문장만 받아오고, 카드 핵심 의미는 화면 상단 카드칩에서
+  /// 1회만 보여주도록 역할을 분리했다(여전히 신규 서버 API 없이 클라이언트
+  /// 파생 - 과설계 방지 원칙 유지).
   static List<({String label, String text})> deepDivePerspectives(
     TarotCard card,
     String topic,
@@ -74,10 +80,17 @@ class TarotReadingExtras {
   ) {
     const labels = ['마음의 관점', '현실의 관점', '흐름의 관점'];
     return List.generate(3, (i) {
-      final seed = id.hashCode ^ (0x60 + i * 7) ^ card.name.hashCode;
-      final text = TarotTextEngine.generateCardInterpretation(
+      // [반복 체감 추가 완화] 같은 id(같은 리딩)라도 카드/관점/토픽 조합이
+      // 서로 다른 문장 풀 인덱스를 뽑도록 salt를 더 넓게 섞는다.
+      final seed =
+          id.hashCode ^
+          (0x60 + i * 131) ^
+          card.name.hashCode ^
+          topic.hashCode * 17;
+      final text = TarotTextEngine.generateAngleOnly(
         card,
         topic,
+        i,
         seed: seed,
       );
       return (label: labels[i], text: text);

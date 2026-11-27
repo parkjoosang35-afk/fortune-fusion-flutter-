@@ -1,0 +1,885 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import '../../../core/api/api_result.dart';
+import '../../../core/utils/load_state.dart';
+import '../../auth/domain/user_model.dart';
+import '../data/saju_renewal_api.dart';
+import '../data/models/topic_card.dart';
+import '../data/models/interpret_result.dart';
+import '../data/saju_visual_adapter.dart';
+import '../domain/saju_exhaustion_notification_service.dart';
+
+/// [귀인지도 정통사주 리뉴얼 — STEP 6.5] 화면 전환만으로 데이터를 임시
+/// 전달하지 않도록(지시서 §상태관리 요구사항), 사용자 흐름 전체를 명확한
+/// 상태 enum + 모델로 관리하는 전역 Provider.
+///
+/// 흐름: birthInput → calculating → factsReady(topics 조회 완료) →
+/// firstTopic 노출 → storyPreview(summary interpret) → accessRequired
+/// (Access Gate) → interpreting(detail interpret) → storyDetail →
+/// moreTopics(다른 사주 이야기 후보) → (다시 storyPreview로 순환) → error.
+///
+/// [계정 격리 원칙] 이 Provider는 어떤 사용자 식별자도 직접 들고 있지
+/// 않는다 — 모든 API 호출은 SajuRenewalApi가 AuthTokenStore의 현재
+/// 로그인 사용자 기준으로만 수행하므로, 로그아웃 시 [clearOnLogout]으로
+/// 메모리 상태만 지우면 사용자간 데이터가 섞일 수 없다.
+enum SajuRenewalFlowStatus {
+  /// 아직 아무 동작도 시작하지 않은 초기 상태(화면① 메인 "내 사주
+  /// 분석하기" 버튼을 누르기 전).
+  idle,
+
+  /// 화면② 출생정보 입력 단계(서버에 아직 요청 없음, 로컬 입력폼 상태).
+  birthInput,
+
+  /// 화면③ 계산중 — AuthProvider.updateProfile() 저장 완료 후
+  /// topics/select 서버 응답을 기다리는 중(실제 FACT 계산/캐시/Topic
+  /// 선택이 끝날 때까지 — 단순 타이머가 아님).
+  calculating,
+
+  /// topics/select 성공 — first_topic/candidates/key_facts 확보됨
+  /// (화면④ 분석 완료 단계로 바로 이어짐).
+  factsReady,
+
+  /// 화면⑤ 이야기 미리보기 — interpret(mode=summary) 응답 대기/완료.
+  storyPreview,
+
+  /// 화면⑥ Access Gate 표시/대기 중(ResultAccessGateSheet).
+  accessRequired,
+
+  /// Access Gate 통과 후 interpret(mode=detail) 호출 중.
+  interpreting,
+
+  /// 화면⑦ 상세 사주 이야기 노출 완료.
+  storyDetail,
+
+  /// 화면⑧ 다른 사주 이야기 후보 목록 노출(candidates에서 선택 대기).
+  moreTopics,
+
+  /// 서버오류/네트워크오류 등 — errorMessage 참고.
+  error,
+}
+
+class SajuRenewalProvider extends ChangeNotifier {
+  SajuRenewalProvider(this._api);
+
+  final SajuRenewalApi _api;
+
+  SajuRenewalFlowStatus _status = SajuRenewalFlowStatus.idle;
+  SajuRenewalFlowStatus get status => _status;
+
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
+  /// 네트워크 오류("재시도 버튼")와 서버 논리 오류(reason 있음)를
+  /// 화면단에서 구분해 안내하기 위한 서버 reason 코드(예:
+  /// BIRTH_INFO_REQUIRED, TOPIC_CONDITION_NOT_SATISFIED 등).
+  String? _errorReason;
+  String? get errorReason => _errorReason;
+
+  /// topics/select 결과(화면④~⑧ 전체에서 공유).
+  LoadState<TopicsSelectResult> _topicsState = const LoadState.initial();
+  LoadState<TopicsSelectResult> get topicsState => _topicsState;
+
+  /// 현재 사용자가 보고 있는 topic(처음엔 first_topic, "다른 사주
+  /// 이야기"에서 교체될 수 있음).
+  TopicCard? _currentTopic;
+  TopicCard? get currentTopic => _currentTopic;
+
+  /// mode=summary 결과(화면⑤).
+  LoadState<InterpretSummaryResult> _previewState = const LoadState.initial();
+  LoadState<InterpretSummaryResult> get previewState => _previewState;
+
+  /// mode=detail 결과(화면⑦).
+  LoadState<InterpretDetailResult> _detailState = const LoadState.initial();
+  LoadState<InterpretDetailResult> get detailState => _detailState;
+
+  /// 이번 세션에서 이미 상세보기까지 완료한 topic_id 집합 — "다른 사주
+  /// 이야기" 후보 재조회 시 exclude_topic_ids로 서버에 전달해 Exposure
+  /// History 정책(이미 본 이야기 재노출 방지)과 정합을 맞춘다. 서버가
+  /// 최종 판단을 내리므로 이 목록은 "다음 조회에 참고로 보내는 값"일
+  /// 뿐이며, Flutter가 임의로 후보를 걸러내지 않는다.
+  final Set<String> _viewedTopicIds = {};
+
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] 화면⑧ "[↻ 새로운 이야기]"로
+  /// 교체되어 현재 화면에서 사라진(=소비된) 후보 topic_id. "이미 상세까지
+  /// 본"(`_viewedTopicIds`)과는 다른 개념 — 아직 상세를 보지 않았어도
+  /// 카드 교체로 한 번 노출된 적이 있으면 같은 배치에서 다시 보여주지
+  /// 않기 위한 집합이다(docs/03_화면명세.md §08 "남은 후보로 교체" —
+  /// 같은 카드가 바로 다시 보이면 안 됨).
+  final Set<String> _shownCandidateIds = {};
+
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] [refreshCandidates] 재호출
+  /// 가드용(기존 `_isTopicsLoading`과 분리 — 그 플래그는 화면⑧ 전체를
+  /// 전면 스피너로 바꾸는 조건(`more_stories_screen.dart`
+  /// `topicsState.isLoading || provider.isTopicsLoading`)에도 쓰이므로,
+  /// 재호출 중에도 기존 카드 목록을 그대로 유지해야 하는 이번 버그
+  /// 수정에서는 재사용할 수 없다).
+  bool _isRefreshingCandidates = false;
+  bool get isRefreshingCandidates => _isRefreshingCandidates;
+
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-02/03/04] 화면⑧
+  /// "새로운 이야기" 재호출이 실패했거나(네트워크/서버 오류), 후보를 모두
+  /// 소진해 더 보여줄 이야기가 없는 상태를 화면에 알리기 위한 전용 플래그.
+  /// 기존 결함: 이 두 경우 모두 `candidates.isEmpty`로만 떨어져 "새로운
+  /// 사주 이야기를 찾고 있어요." 로딩류 문구가 재시도 수단 없이 영구히
+  /// 남아있었다(사용자 체감상 "먹통"). [_status]를 error로 바꾸지 않는
+  /// 이유는 §08 "재호출 실패가 화면 전체 전환이 아니라 그 화면 안에서
+  /// 안내+재시도로 끝나야 한다"는 요구 때문 — ErrorScreen 전체화면 전환은
+  /// 최초 진입 실패(`_loadTopics`)에만 쓴다.
+  bool _candidatesRefreshFailed = false;
+  bool get candidatesRefreshFailed => _candidatesRefreshFailed;
+
+  /// REQ-04 "후보가 소진되는 경우 모든 이야기를 다 보셨어요 안내" — 서버
+  /// 재호출까지 했는데도 후보가 0건으로 돌아온 경우에만 true가 된다(단순
+  /// 로컬 소진은 바로 서버를 재호출하므로 이 플래그와 무관).
+  bool _candidatesExhausted = false;
+  bool get candidatesExhausted => _candidatesExhausted;
+
+  /// [버그 수정 — C-08b] docs/04_모션.md §4-5 "08: 카드 rise 600,
+  /// i×80ms. [새로운 이야기] 시 **리스트 키 변경** → 재생." — jsx 원본
+  /// `ScreenOthers`의 `<div key={page} ...>`와 동일한 역할. 화면이 이
+  /// 값을 `AnimatedSwitcher`/`ValueKey`로 사용해 "새로운 이야기"를
+  /// 누를 때마다 카드 rise 애니메이션을 다시 재생하게 한다.
+  int _candidateBatch = 0;
+  int get candidateBatch => _candidateBatch;
+
+  /// [버그 수정 — C-08a(docs/08) 결함 발견] docs/03_화면명세.md §08
+  /// "후보 = 받은 후보 − 이미 본 주제(세션 + 노출 이력). 표시 3장" 및
+  /// docs/13_기획결정_서명지.md Q-06 최종 확정값("기본 3장, 후보 4개
+  /// 이상이면 4장 허용 안 함" — "회신 없으면 권고안으로 확정"되는
+  /// 최종 요약 문서이므로 이 값이 03의 "4장 허용" 초안보다 우선한다).
+  /// 기존 코드는 `topicsState.data.candidates`를 필터링·개수 제한
+  /// 없이 그대로 노출해, 이미 상세까지 본 주제가 08에 다시 나타나고
+  /// 4개 이상이 표시될 수 있던 결함. 시기형 최대 1개 보장은 서버
+  /// 책임(API 계약서 §2 "candidates: is_timing=true 최대 1개")이므로
+  /// 재필터링하지 않는다(Flutter 임의 판단 금지 원칙).
+  ///
+  /// [C-08b 연계] "새로운 이야기"로 교체되어 [_shownCandidateIds]에
+  /// 들어간 후보도 제외한다 — 그래야 [refreshCandidates]가 서버를 다시
+  /// 부르지 않고도 이미 받아둔 나머지 후보를 "다음 3장"으로 보여줄 수
+  /// 있다(로컬 교체, 0비용).
+  List<TopicCard> get displayableCandidates {
+    final raw = _topicsState.data?.candidates ?? const <TopicCard>[];
+    final remaining = raw
+        .where(
+          (c) =>
+              !_viewedTopicIds.contains(c.topicId) &&
+              !_shownCandidateIds.contains(c.topicId),
+        )
+        .toList();
+    return remaining.take(3).toList();
+  }
+
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] docs/03_화면명세.md §08
+  /// "[새로운 이야기]: 남은 후보로 교체 ... 남은 후보 < 3 → topics/select
+  /// 재호출" 조건을 판단하기 위한 getter. "남은 후보"란
+  /// `raw candidates` 중 이미 본(detail 완료) 것도, 이미 교체로 소비된
+  /// 것도 아닌 나머지를 뜻한다(=다음 번 [displayableCandidates] 호출이
+  /// 돌려줄 수 있는 후보 수와 동일).
+  int get remainingLocalCandidateCount {
+    final raw = _topicsState.data?.candidates ?? const <TopicCard>[];
+    return raw
+        .where(
+          (c) =>
+              !_viewedTopicIds.contains(c.topicId) &&
+              !_shownCandidateIds.contains(c.topicId),
+        )
+        .length;
+  }
+
+  /// [중복 클릭 방어] summary/detail 요청이 진행 중인 동안 동일 요청이
+  /// 중첩 실행되지 않도록 가드한다(§ "중복클릭" 요구사항 — 중복 LLM
+  /// 호출/중복 Topic 기록 방지. 서버도 멱등 캐시로 이중 방어하지만,
+  /// Flutter 쪽에서도 버튼 disable의 근거 상태를 제공한다).
+  bool _isPreviewLoading = false;
+  bool get isPreviewLoading => _isPreviewLoading;
+  bool _isDetailLoading = false;
+  bool get isDetailLoading => _isDetailLoading;
+  bool _isTopicsLoading = false;
+  bool get isTopicsLoading => _isTopicsLoading;
+
+  /// [버그 수정 — 결과보기 결제 게이트 우회 방어] 가장 최근 Access
+  /// Gate.begin()이 발급한 transactionId를 기억해, detail 로드가
+  /// 실패했을 때 [retry]가 동일 거래로 서버 재검증을 다시 통과하도록
+  /// 한다(거래를 매번 새로 만들지 않음 — §8.4 멱등성 원칙과 동일 맥락).
+  String? _lastAccessTransactionId;
+
+  /// [화면⑤/⑨ 다크 핸드오프 표시용] 지금까지 상세까지 완료한 이야기
+  /// 수를 그대로 노출한다(0부터 시작). 서버 판단을 Flutter가 대체하지
+  /// 않는다 — 단순 카운터 getter일 뿐, [_viewedTopicIds] 자체의
+  /// 용도(Exposure History exclude 참고 목록)는 그대로 유지된다.
+  ///
+  /// [주의 — C-09a] 이 값은 "STORY · N°0X" 순번 계산에는 더 이상 쓰지
+  /// 않는다(아래 [ordinalOf] 참고) — 05/07 화면이 같은 이야기에 대해
+  /// 서로 다른 순번을 보여주는 결함이 있었다.
+  int get viewedStoryCount => _viewedTopicIds.length;
+
+  /// [버그 수정 — C-09a(docs/08) 결함 발견] docs/03_화면명세.md §09
+  /// "SceneBg·tint·주제 태그·**순번만 교체**"(=05·07이 같은 주제를 보는
+  /// 동안은 순번이 바뀌면 안 됨) 및 원본
+  /// `design_files/saju/screens-b.jsx`를 정밀 대조한 결과(`pick()`,
+  /// 316행): `ordinal`은 **08에서 새 주제를 선택하는 순간에만** +1되고,
+  /// 05(미리보기)→07(상세)로 넘어가는 것 자체(=상세보기 **완료**)로는
+  /// 전혀 바뀌지 않는다.
+  ///
+  /// [기존 결함] 기존 코드는 `provider.viewedStoryCount + 1`
+  /// (=`_viewedTopicIds.length`, 상세보기 **완료** 횟수)을 그대로
+  /// ordinal로 썼다. `onAccessGranted()`가 07 렌더링 *직전에*
+  /// `_viewedTopicIds.add(topic.topicId)`를 실행하므로, 같은 이야기인데도
+  /// 05에서는 "N°01", 07에서는 "N°02"로 **1 증가해 보이는** 불일치가
+  /// 실제로 재현되었다(재현 테스트로 확인: 05 ordinal=1, 07 ordinal=2).
+  ///
+  /// [수정] "상세보기 완료 횟수"가 아니라 "이번 세션에서 미리보기를
+  /// 시작한(= [loadPreview] 호출된) 고유 topic_id의 등장 순서"로
+  /// 다시 계산한다 — topic_id는 05→07 전환 중에 바뀌지 않으므로 항상
+  /// 동일한 순번을 돌려준다.
+  int ordinalOf(String topicId) {
+    final idx = _topicOrder.indexOf(topicId);
+    if (idx >= 0) return idx + 1;
+    // 이론상 도달하지 않음(항상 loadPreview가 먼저 기록) — 방어적으로
+    // 다음 순번을 돌려준다.
+    return _topicOrder.length + 1;
+  }
+
+  /// [C-09a 연계] [ordinalOf]가 참조하는 등장 순서 기록(중복 없이, 처음
+  /// 본 순서 그대로). jsx 원본의 `app.ordinal`과 동일한 역할을 하되,
+  /// "상세보기 완료"가 아니라 "미리보기 시작"을 기준으로 삼는다(아래
+  /// [loadPreview]에서만 추가됨).
+  final List<String> _topicOrder = [];
+
+  /// [버그 수정 — C-05c(docs/08) 미구현 발견] docs/03_화면명세.md §05
+  /// "해제됨(05-C) | Primary [자세히 보기] → 07 직행(게이트 없음)" 및
+  /// 원본 `design_files/saju/screens-b.jsx` `ScreenPreview`의
+  /// `unlocked = app.unlocked.includes(app.topicId)` 분기를 그대로
+  /// 재현한다. 이 세션에서 이미 상세까지 완료한 topic(=
+  /// [_viewedTopicIds])이면 "해제됨" 상태로 간주해 05 화면이 게이트
+  /// 없이 바로 07로 보낼 수 있게 한다(C-06e "같은 주제 재열람 시
+  /// 게이트가 다시 뜨지 않는다"와 동일한 근거 데이터를 공유).
+  /// [전수검수 2026-10-12 D-1] 이번 세션에서 detail까지 성공적으로 연 주제의
+  /// 개봉 이력 — 후보 소진 리셋(_viewedTopicIds.clear())으로 지우지 않는
+  /// 별도 집합. 리셋 후 재노출된 기시청 주제가 다시 유료 게이트에 걸려
+  /// 복주머니/프리패스가 재차감되는 사고를 막는다.
+  final Set<String> _unlockedTopicIds = {};
+
+  /// "해제됨" 판정은 세션 개봉 이력을 우선 확인한다(C-06e "같은 주제
+  /// 재열람 시 게이트가 다시 뜨지 않는다").
+  bool isTopicUnlocked(String topicId) =>
+      _unlockedTopicIds.contains(topicId) || _viewedTopicIds.contains(topicId);
+
+  void _setStatus(SajuRenewalFlowStatus next) {
+    _status = next;
+    notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // [Task 10 항목3 — 동일 사주 반복 계산 제거]
+  //
+  // [배경] 화면③(계산중)→④(분석완료)→⑤(미리보기)→⑦(상세) 각각이 자기
+  // 자신의 `initState()`에서 독립적으로 `SajuVisualAdapter.build()`
+  // (→ ManseryeokCoreEngine → Phase2/3/4 엔진 전체)를 호출해, 같은
+  // 세션·같은 생년월일시인데도 PHASE1~4 계산이 화면 이동마다 최대 4회
+  // 반복 실행되고 있었다(교차검증 조사에서 확인).
+  //
+  // [절대 원칙 — 계산 로직 변경 금지] 아래 [_computeVisualProfile]은
+  // 기존 4개 화면의 `_buildProfile(UserModel?)` 메서드와 완전히 동일한
+  // 파싱/호출 순서를 그대로 옮겨온 것이며, `SajuVisualAdapter.build()`도
+  // `ManseryeokCoreEngine`/`Phase2~4AnalysisEngine`도 단 한 줄도 수정하지
+  // 않는다. 바뀌는 것은 오직 "몇 번 호출하는가"뿐이다 — 이 Provider가
+  // 입력값(생년월일/시간/음양력/윤달/시간모름/성별)이 바뀌지 않는 한
+  // 최초 1회 계산 결과를 메모리에 캐싱해 재사용한다.
+  //
+  // [계정 격리] 캐시는 [clearOnLogout]/[startNewAnalysis]에서 반드시
+  // 무효화된다 — 사용자A의 계산 결과가 사용자B에게 노출되는 일은 없다
+  // (기존 Provider 전체의 "계정 격리 원칙"과 동일한 안전장치).
+  SajuVisualProfile? _cachedVisualProfile;
+  String? _cachedVisualProfileKey;
+
+  /// 02~07 화면이 공통으로 쓰는 진입점. 동일한 [user] 출생정보로 이미
+  /// 계산된 적이 있으면 그 결과를 그대로 반환하고(캐시 히트, 재계산
+  /// 없음), 처음이거나 입력값이 달라졌으면 그때만 실제 계산을 수행한다.
+  SajuVisualProfile? visualProfileFor(UserModel? user) {
+    if (user == null || user.birthDate == null) return null;
+    final key = _visualProfileCacheKey(user);
+    if (key == null) return null;
+    if (key == _cachedVisualProfileKey && _cachedVisualProfile != null) {
+      return _cachedVisualProfile;
+    }
+    final computed = _computeVisualProfile(user);
+    _cachedVisualProfile = computed;
+    _cachedVisualProfileKey = key;
+    return computed;
+  }
+
+  /// 계산 결과에 실제로 영향을 주는 입력 필드만으로 캐시 키를 구성한다
+  /// (참고: [referenceDate]는 캐시 키에 포함하지 않는다 — 세션 내내
+  /// "최초 계산 시점"의 대운 윈도를 그대로 유지하는 편이 화면마다 다른
+  /// "지금 대운" 위치가 흔들리지 않아 일관적이다. 이는 03→04→05→07
+  /// 동일 세션 내 수초~수분 범위에서는 결과에 실질적 차이가 없다).
+  String? _visualProfileCacheKey(UserModel user) {
+    final birthDate = user.birthDate;
+    if (birthDate == null) return null;
+    final parts = birthDate.split('-');
+    if (parts.length != 3) return null;
+    return <Object>[
+      birthDate,
+      user.birthTime ?? '',
+      user.isLunar,
+      user.isLeapMonth,
+      user.birthTimeUnknown,
+      user.gender ?? '',
+    ].join('|');
+  }
+
+  /// [절대 원칙 — 계산 로직 재구현 금지] 아래 파싱 순서는 기존
+  /// `calculating_screen.dart`/`analysis_complete_screen.dart`/
+  /// `story_preview_screen.dart`/`story_detail_screen.dart`의
+  /// `_buildProfile(UserModel?)`를 글자 그대로 옮긴 것이다. 실제 사주
+  /// 계산은 전적으로 [SajuVisualAdapter.build]에 위임하며(그 안에서
+  /// `ManseryeokCoreEngine`→Phase2~4 엔진을 그대로 호출), 여기서는
+  /// 호출 전 입력값 변환만 수행한다.
+  SajuVisualProfile? _computeVisualProfile(UserModel user) {
+    final birthDate = user.birthDate;
+    if (birthDate == null) return null;
+    final parts = birthDate.split('-');
+    if (parts.length != 3) return null;
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) return null;
+    final timeUnknown = user.birthTimeUnknown || user.birthTime == null;
+    int hour = 0;
+    if (!timeUnknown && user.birthTime != null) {
+      final t = user.birthTime!.split(':');
+      hour = int.tryParse(t.isNotEmpty ? t[0] : '') ?? 0;
+    }
+    return SajuVisualAdapter.build(
+      kst: DateTime(y, m, d, hour, 0),
+      gender: user.gender ?? 'female',
+      isLunar: user.isLunar,
+      timeUnknown: timeUnknown,
+      referenceDate: DateTime.now(),
+      isLeapMonth: user.isLeapMonth,
+    );
+  }
+
+  /// [계정 격리] 로그아웃/새 분석 시작 시 캐시를 무효화한다.
+  void _clearVisualProfileCache() {
+    _cachedVisualProfile = null;
+    _cachedVisualProfileKey = null;
+  }
+
+  /// 화면② "입력완료" 버튼을 누른 뒤(=AuthProvider.updateProfile()로
+  /// 서버 프로필 저장까지 완료한 뒤) 호출한다. 이 메서드 자체는 프로필
+  /// 저장을 하지 않는다 — 그 책임은 AuthProvider에 있고, 호출부(화면②)가
+  /// 반드시 updateProfile() 성공을 먼저 확인한 뒤 이 메서드를 호출해야
+  /// 한다(§ "출생정보 입력" 요구사항 — 생년월일을 요청바디로 보내지 않고
+  /// 서버 프로필에서 조회하는 API 설계와 정합).
+  Future<void> startCalculating() async {
+    _status = SajuRenewalFlowStatus.calculating;
+    _errorMessage = null;
+    _errorReason = null;
+    notifyListeners();
+    await _loadTopics();
+  }
+
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] 화면⑧ "[↻ 새로운 이야기]"
+  /// 버튼의 실제 동작. docs/03_화면명세.md §08 "[새로운 이야기]: 남은
+  /// 후보로 교체(애니 rise 재생). 남은 후보 < 3 → `topics/select`
+  /// 재호출(exclude=본 주제들). 재호출 중 버튼 disabled + 라벨 앞 글리프
+  /// 회전."을 그대로 재현한다.
+  ///
+  /// [기존 결함] 과거 `loadMoreTopics()`는 버튼을 누를 때마다 **항상**
+  /// `_loadTopics()`(= `topics/select` 서버 재호출)만 수행했다. 이는
+  /// 두 가지 문제가 있었다:
+  /// 1) docs/03 §08 "남은 후보로 교체" 로컬 스왑이 전혀 없어 후보가
+  ///    아직 여럿 남아있어도 매번 서버를 다시 불렀다.
+  /// 2) 더 심각하게, `_loadTopics()` 끝에서 항상
+  ///    `await loadPreview(data.firstTopic)`(=summary interpret, LLM
+  ///    호출)을 이어서 실행하므로, 화면⑧에서 후보를 "구경"만 해도
+  ///    버튼을 누를 때마다 LLM 비용이 발생했다 — docs/03 §08 "목적:
+  ///    **선택에만 LLM 비용(후보 노출은 0비용)**"을 정면 위반하는
+  ///    결함이었다.
+  ///
+  /// 이 메서드는 그 대신: 먼저 지금 화면에 보이는 후보를
+  /// [_shownCandidateIds]로 "소비 처리"하고, 그 뒤에도 로컬에 3장
+  /// 이상 남아있으면 서버를 전혀 부르지 않고 끝낸다(0비용). 3장
+  /// 미만일 때만 [_refreshCandidatesFromServer]로 서버를 재호출하되,
+  /// `_status`/`_currentTopic`을 건드리지 않고 `loadPreview`도 호출하지
+  /// 않는다 — 화면⑧은 그대로 머무르고 후보 목록만 갱신된다.
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-01] "탭 횟수 제한 없이
+  /// 반복 탭 가능해야 하며, 반복 탭은 정상 사용으로 취급한다" — 재호출
+  /// 진행 중이 아니면 몇 번을 눌러도 매번 정상적으로 요청을 실행한다
+  /// (버튼 자체는 `_isRefreshingCandidates`로 재호출 중에만 비활성화).
+  Future<void> refreshCandidates() async {
+    if (_isRefreshingCandidates) return;
+    // [REQ-02/03] 새 시도를 시작하면 직전 실패/소진 안내는 지운다 —
+    // 재탭이 "정상 사용"으로 취급되므로 이전 실패 상태가 화면에 남아
+    // 혼동을 주면 안 된다.
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
+    // 지금 보여주고 있던 카드들을 "소비됨"으로 표시 — 다음 번
+    // displayableCandidates 계산에서 자동으로 걸러진다.
+    _shownCandidateIds.addAll(displayableCandidates.map((c) => c.topicId));
+    _candidateBatch++;
+    if (remainingLocalCandidateCount >= 3) {
+      // [로컬 교체 — 0비용] 서버를 다시 부르지 않고 남은 후보로 바로
+      // 바꾼다(docs/03 §08 "남은 후보로 교체").
+      notifyListeners();
+      return;
+    }
+    await _refreshCandidatesFromServer();
+  }
+
+  /// [버그 수정 — C-08b] docs/03_화면명세.md §08 "남은 후보 < 3 →
+  /// `topics/select` 재호출(exclude=본 주제들)". 전면 로딩 상태
+  /// (`_topicsState`를 loading으로 바꾸는 것)는 쓰지 않는다 — 그러면
+  /// `more_stories_screen.dart`가 "전체 화면 스피너"로 바뀌어 지금
+  /// 보이는 카드까지 사라지는데, 명세는 "재호출 중 **버튼만**
+  /// disabled"라고 못박고 있다. 대신 [_isRefreshingCandidates] 전용
+  /// 플래그만 켜서 버튼만 비활성화한다.
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 — 핵심 버그 수정]
+  /// 기존 결함(C2에 해당): 이 서버 재호출이 실패하거나(네트워크 단절 등)
+  /// 성공했는데도 후보가 0건으로 돌아오면, 화면은 여전히
+  /// `candidates.isEmpty` 분기를 그대로 타서 "새로운 사주 이야기를 찾고
+  /// 있어요." 로딩류 문구만 계속 보여주고 실패/소진을 알리는 분기 자체가
+  /// 없었다 — 재시도 수단도 없이 영구히 먹통처럼 보이는 버그(지시서
+  /// §2 "로딩 문구에 머무름").
+  ///
+  /// 수정 내용:
+  /// - REQ-02: 서버 응답을 최대 10초만 기다린다(SajuRenewalApi 자체
+  ///   타임아웃은 20초로 더 길어 UI 요구사항을 못 맞추므로, 여기서 더
+  ///   짧은 타임아웃을 별도로 덧씌운다). 10초 초과 시 반드시 로딩을
+  ///   해제하고 실패로 전환한다.
+  /// - REQ-03: 실패 시 `_status`를 error로 바꿔 전체화면 ErrorScreen으로
+  ///   내보내지 않는다 — [_candidatesRefreshFailed]만 세워 이 화면
+  ///   (MORE·08) 안에서 안내+[다시 시도]를 보여준다. 화면 전환이 없으므로
+  ///   좌상단 뒤로가기(←)는 항상 그대로 동작한다(기존 사주 결과 화면
+  ///   복귀 경로 보존).
+  /// - REQ-04: 제외 목록(`_viewedTopicIds`)까지 반영한 재호출인데도 후보가
+  ///   0건이면 "모든 이야기를 다 보셨어요" 상태로 간주해 제외 목록을
+  ///   리셋한 뒤 한 번 더 조회한다(초기화 정책). 리셋 후에도 0건이면
+  ///   (전체 후보 풀 자체가 고갈) 그 결과를 그대로 받아들여 무한 재귀를
+  ///   방지한다.
+  Future<void> _refreshCandidatesFromServer({
+    bool isExhaustionRetry = false,
+  }) async {
+    if (_isRefreshingCandidates) return;
+    _isRefreshingCandidates = true;
+    // [전수검수 보강 2026-10-12] 재조회가 0건으로 돌아올 경우 "처음부터 다시
+    // 보여주기"에 쓰기 위해 직전 후보 풀을 보관한다(아래 소진 재조회 분기).
+    final previousState = _topicsState;
+    notifyListeners();
+
+    ApiResult<TopicsSelectResult> result;
+    try {
+      result = await _api
+          .selectTopics(
+            excludeTopicIds: _viewedTopicIds.isEmpty
+                ? null
+                : _viewedTopicIds.toList(),
+          )
+          .timeout(const Duration(seconds: 10));
+    } on TimeoutException {
+      debugPrint(
+        '[SajuRenewalProvider] [refreshCandidates] 10초 초과 -> 실패 안내 전환',
+      );
+      _isRefreshingCandidates = false;
+      _candidatesRefreshFailed = true;
+      notifyListeners();
+      return;
+    } catch (e) {
+      // [전수검수 보강 2026-10-14 — 잔여 무한 로딩 경로 차단] TimeoutException
+      // 이외의 전송 계층 예외(SocketException 등 — 모바일 데이터망에서 흔함)는
+      // 여기서 받지 않으면 await 아래 코드가 실행되지 않아 _isRefreshingCandidates가
+      // true로 고정됐다. 그러면 08의 빈 목록 분기가 "새로운 사주 이야기를 찾고
+      // 있어요." 문구에 영원히 머무른다(실기기 리포트 2026-10-12). 어떤 예외가
+      // 나도 반드시 실패 안내+[다시 시도]로 전환된다.
+      debugPrint('[SajuRenewalProvider] [refreshCandidates] 예외 -> $e');
+      _isRefreshingCandidates = false;
+      _candidatesRefreshFailed = true;
+      notifyListeners();
+      return;
+    }
+
+    if (!result.success) {
+      debugPrint(
+        '[SajuRenewalProvider] [refreshCandidates] 실패 -> ${result.errorMessage}',
+      );
+      _isRefreshingCandidates = false;
+      _candidatesRefreshFailed = true;
+      notifyListeners();
+      return;
+    }
+
+    final newCandidates = result.data!.candidates;
+    if (newCandidates.isEmpty && !isExhaustionRetry) {
+      // [REQ-04] 제외 목록까지 적용했는데도 후보 0건 — "모든 이야기를
+      // 다 보셨어요" 상태. 제외 목록을 리셋해 처음부터 다시 보여줄 수
+      // 있도록 한 번 더 조회한다.
+      _candidatesExhausted = true;
+      // [다음 클라 배치 2026-10-12 — 소진 복귀 유도] 소진이 "처음"
+      // 감지되는 시점에 +7일 로컬 알림을 예약한다. 서비스 내부가
+      // SharedPreferences 플래그로 멱등 가드하므로, 사용자가 "새로운
+      // 이야기" 버튼을 반복해 눌러 이 분기를 다시 타도 중복 예약되지
+      // 않는다("소진 화면을 열 때마다"가 아니라 실제 첫 전환 시점에만
+      // 1회) — await 하지 않는 이유: 알림 예약 실패/지연이 소진 안내
+      // UI 흐름 자체를 블로킹하면 안 된다(evening_bell과 동일 설계).
+      unawaited(SajuExhaustionNotificationService.scheduleOnFirstExhaustion());
+      // [D-1] exclude용 노출 이력만 리셋한다 — _unlockedTopicIds(개봉 이력)는
+      // 의도적으로 보존해 이미 결제한 이야기의 재결제를 막는다.
+      _viewedTopicIds.clear();
+      _isRefreshingCandidates = false;
+      await _refreshCandidatesFromServer(isExhaustionRetry: true);
+      return;
+    }
+
+    if (newCandidates.isEmpty && isExhaustionRetry) {
+      // [전수검수 보강 2026-10-12 — "새로운 이야기" 버튼이 다시 0건일 때]
+      // 클라 제외 목록은 리셋됐지만 서버는 DB 노출 이력(topic_exposure_history)으로
+      // 이미 본 주제를 계속 제외하기 때문에, 전량 시청한 사용자의 재조회는 항상
+      // 0건으로 돌아온다(실기기 재현: 버튼을 눌러도 빈 상태 지속). REQ-04
+      // 초기화 정책("처음부터 다시 보여드려요")에 따라 직전 후보 풀을 복원해
+      // 카드를 처음부터 다시 보여준다 — 카드는 제목 목록일 뿐이고, 본문은
+      // interpret 멱등 캐시로 무료 재열람된다(재결제 없음, D-1과 정합).
+      final hadPreviousPool =
+          previousState.data?.candidates.isNotEmpty ?? false;
+      _isRefreshingCandidates = false;
+      if (hadPreviousPool) {
+        _topicsState = previousState;
+        _shownCandidateIds.clear();
+        _candidatesExhausted =
+            true; // "모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요." 안내를 카드와 함께 표시
+        notifyListeners();
+        return;
+      }
+      // 직전 풀도 비어 있으면(진짜 최초 0건) 그 결과를 그대로 받아들인다 —
+      // 무한 재귀 방지(기존 동작 유지).
+      _topicsState = LoadState.success(result.data!);
+      notifyListeners();
+      return;
+    }
+
+    // 새로 받은 후보 풀로 교체 — 이번 풀은 아직 한 번도 소비된 적이
+    // 없으므로 [_shownCandidateIds]를 비워 처음부터 다시 센다.
+    _isRefreshingCandidates = false;
+    _topicsState = LoadState.success(result.data!);
+    _shownCandidateIds.clear();
+    // [다음 클라 배치 2026-10-12 — 소진 복귀 유도] 서버가 실제로 새
+    // 후보(newCandidates.isNotEmpty)를 내려준 시점 = "재후보화 확인"이다.
+    // 이전에 소진 알림이 예약돼 있었다면 취소한다(서비스 내부가 예약이
+    // 없었어도 안전하게 no-op 처리하므로, 애초에 소진이 아니었던 일반
+    // 재호출 성공 경로에서도 그냥 호출해도 무해하다).
+    unawaited(SajuExhaustionNotificationService.cancelOnRecovery());
+    notifyListeners();
+  }
+
+  /// [E-04 구현 — docs/07_예외_엣지케이스.md "topics/select 실패 | 03 |
+  /// 9단계 대기 상태로 재시도 1회 → 실패 시 `LIFE_000`을 첫 이야기로 04
+  /// 진행 | 없음"] 서버 `topic-catalog-data.ts`의 LIFE_000 레코드
+  /// (topicName: "평생 총론", categoryGroup: LIFE → scene.life — 서버가
+  /// 이미 확정해 둔 폴백 주제의 정적 메타데이터만 그대로 옮긴 것이며,
+  /// Flutter가 사주 해석 내용을 새로 만들지 않는다. 실제 이야기
+  /// summary/detail은 여전히 서버 interpret API가 생성한다)와 scene
+  /// 매핑(`topic-contract-adapter.ts`: LIFE_* 접두어 → life)을 그대로
+  /// 반영한 정적 상수.
+  static const TopicCard _life000Fallback = TopicCard(
+    topicId: 'LIFE_000',
+    scene: SajuRenewalScene.life,
+    title: '평생 총론',
+    isTiming: false,
+    evidenceFactKeys: [],
+  );
+
+  Future<void> _loadTopics({List<String> excludeExtra = const []}) async {
+    if (_isTopicsLoading) return;
+    _isTopicsLoading = true;
+    _topicsState = const LoadState.loading();
+    notifyListeners();
+
+    var result = await _api.selectTopics(
+      excludeTopicIds: excludeExtra.isEmpty ? null : excludeExtra,
+    );
+
+    // [E-04] facts 자체가 명확히 불가(FACT_ENGINE_UNAVAILABLE — E-03
+    // 영역)이거나 인증 만료(UNAUTHORIZED — 재로그인 필요)인 경우는
+    // 재시도해도 동일한 이유로 또 실패할 것이 확실하므로 재시도/폴백
+    // 대상이 아니다. 그 외 모든 실패(일시적 네트워크 오류, 서버 처리
+    // 중 예외 등 — route.ts가 구체적 reason 코드를 내려주지 못하는
+    // 모든 경우)만 "select 실패"로 보고 1회 재시도한다.
+    final isRetryableFailure =
+        !result.success &&
+        result.errorCode != 'FACT_ENGINE_UNAVAILABLE' &&
+        result.errorCode != 'UNAUTHORIZED';
+
+    if (isRetryableFailure) {
+      debugPrint('[SajuRenewalProvider] [E-04] topics/select 1차 실패 -> 1회 재시도');
+      // [docs "9단계 대기 상태로"] 재시도하는 동안 _status는 건드리지
+      // 않는다(이미 calculating 상태 유지 중) — CalculatingScreen(03)은
+      // 이 재시도가 끝날 때까지 9단계 연출을 그대로 유지한다.
+      result = await _api.selectTopics(
+        excludeTopicIds: excludeExtra.isEmpty ? null : excludeExtra,
+      );
+    }
+
+    _isTopicsLoading = false;
+
+    if (!result.success) {
+      if (isRetryableFailure) {
+        // [E-04] 재시도까지 실패 — "빈 화면 금지" 원칙에 따라 오류
+        // 화면 대신 LIFE_000을 첫 이야기로 04까지 진행한다. candidates는
+        // 0건이지만, "후보 0건 구조적 불가" 서버 보장(docs/05 §2-2)은
+        // selectTopics() 성공 경로에만 해당하므로 여기서는 서버를 다시
+        // 부르지 않고 LIFE_000 단독으로 진행한다 — 08(다른 사주 이야기)
+        // 진입 시 [refreshCandidates]가 서버를 재호출해 정상 후보를
+        // 받아올 수 있다.
+        debugPrint(
+          '[SajuRenewalProvider] [E-04] 재시도도 실패 -> LIFE_000 폴백으로 04 진행',
+        );
+        _topicsState = const LoadState.success(
+          TopicsSelectResult(
+            firstTopic: _life000Fallback,
+            candidates: [],
+            keyFacts: [],
+            factSchemaVersion: '',
+          ),
+        );
+        _currentTopic = _life000Fallback;
+        _shownCandidateIds.clear();
+        _status = SajuRenewalFlowStatus.factsReady;
+        notifyListeners();
+        await loadPreview(_life000Fallback);
+        return;
+      }
+
+      // E-03(FACT_ENGINE_UNAVAILABLE) 또는 UNAUTHORIZED — 기존 동작 유지.
+      _topicsState = LoadState.error(
+        result.errorMessage ?? '사주 이야기를 불러오지 못했습니다.',
+      );
+      _errorMessage = _friendlyErrorMessage(
+        result.errorCode,
+        result.errorMessage,
+      );
+      _errorReason = result.errorCode;
+      _status = SajuRenewalFlowStatus.error;
+      notifyListeners();
+      return;
+    }
+
+    final data = result.data!;
+    _topicsState = LoadState.success(data);
+    _currentTopic = data.firstTopic;
+    // [버그 수정 — C-08b] 완전히 새 후보 풀이므로 이전 풀의 소비 이력은
+    // 무의미하다 — 비워서 처음부터 다시 3장을 셀 수 있게 한다.
+    _shownCandidateIds.clear();
+    _status = SajuRenewalFlowStatus.factsReady;
+    notifyListeners();
+
+    // 화면④(분석 완료)는 제목만 보여주고, 곧바로 화면⑤ 미리보기를 위해
+    // summary interpret을 이어서 호출한다(지시서 §흐름 — "분석완료→첫
+    // 이야기미리보기"가 자연스럽게 이어져야 함).
+    await loadPreview(data.firstTopic);
+  }
+
+  /// 화면⑤ 이야기 미리보기 — 지정된 topic으로 summary interpret을
+  /// 호출한다. "다른 사주 이야기" 선택 시에도 동일하게 재사용한다.
+  Future<void> loadPreview(TopicCard topic) async {
+    if (_isPreviewLoading) return;
+    _isPreviewLoading = true;
+    _currentTopic = topic;
+    _previewState = const LoadState.loading();
+    // [버그 수정 — C-09a] 이 주제를 "이번 세션에서 처음 미리보기하는"
+    // 시점에 등장 순서를 1회만 기록한다(jsx `pick()`의 `ordinal+1`과
+    // 동일 시점 — 상세보기 완료가 아니라 "주제 선택/미리보기 시작").
+    // 이미 기록된 topic_id(재방문)는 다시 추가하지 않아 순번이 밀리지
+    // 않는다.
+    if (!_topicOrder.contains(topic.topicId)) {
+      _topicOrder.add(topic.topicId);
+    }
+    notifyListeners();
+
+    final result = await _api.interpretSummary(
+      topicId: topic.topicId,
+      evidenceFactKeys: topic.evidenceFactKeys,
+    );
+    _isPreviewLoading = false;
+
+    if (!result.success) {
+      _previewState = LoadState.error(
+        result.errorMessage ?? '이야기를 불러오지 못했습니다.',
+      );
+      _errorMessage = _friendlyErrorMessage(
+        result.errorCode,
+        result.errorMessage,
+      );
+      _errorReason = result.errorCode;
+      _status = SajuRenewalFlowStatus.error;
+      notifyListeners();
+      return;
+    }
+
+    _previewState = LoadState.success(result.data!);
+    _status = SajuRenewalFlowStatus.storyPreview;
+    notifyListeners();
+  }
+
+  /// 화면⑤ "자세히보기" 버튼 — Access Gate를 띄우기 전 상태 전환만
+  /// 담당한다(실제 Gate UI는 화면 위젯이 ResultAccessGateSheet를 직접
+  /// 호출 — 이 Provider는 Gate 결과를 받은 뒤 [onAccessGranted]로
+  /// 이어받는다).
+  void requestAccess() {
+    _setStatus(SajuRenewalFlowStatus.accessRequired);
+  }
+
+  /// Access Gate 통과(beginResult 수신) 직후 화면이 호출한다. 실제
+  /// detail interpret 호출까지 수행한다.
+  ///
+  /// [버그 수정 — 결과보기 결제 게이트 우회 방어] [transactionId]는
+  /// ResultAccessProvider.begin()이 반환한 ResultAccessBeginResult.
+  /// transactionId를 그대로 넘겨야 한다. 서버가 이 거래를 재검증한 뒤에만
+  /// LLM을 호출하므로, 이 값을 넘기지 않으면(= Access Gate를 아예 거치지
+  /// 않은 상태) 서버가 TRANSACTION_ID_REQUIRED로 거부한다. 이미 해제된
+  /// topic을 캐시로 재열람하는 [_openUnlockedDetail] 경로에서는 null로
+  /// 호출해도 서버가 캐시를 먼저 확인해 통과시킨다(게이트 재통과 금지).
+  /// 에러 후 [retry]로 재호출할 때는 직전에 사용한 transactionId를
+  /// [_lastAccessTransactionId]에서 그대로 재사용한다(동일 거래로 재시도).
+  Future<void> onAccessGranted({String? transactionId}) async {
+    final topic = _currentTopic;
+    if (topic == null) {
+      _errorMessage = '선택된 이야기를 찾을 수 없습니다. 처음부터 다시 시도해주세요.';
+      _status = SajuRenewalFlowStatus.error;
+      notifyListeners();
+      return;
+    }
+    if (_isDetailLoading) return;
+    _isDetailLoading = true;
+    _status = SajuRenewalFlowStatus.interpreting;
+    _detailState = const LoadState.loading();
+    notifyListeners();
+
+    final effectiveTransactionId = transactionId ?? _lastAccessTransactionId;
+    _lastAccessTransactionId = effectiveTransactionId;
+
+    final result = await _api.interpretDetail(
+      topicId: topic.topicId,
+      evidenceFactKeys: topic.evidenceFactKeys,
+      transactionId: effectiveTransactionId,
+    );
+    _isDetailLoading = false;
+
+    if (!result.success) {
+      _detailState = LoadState.error(result.errorMessage ?? '이야기를 불러오지 못했습니다.');
+      _errorMessage = _friendlyErrorMessage(
+        result.errorCode,
+        result.errorMessage,
+      );
+      _errorReason = result.errorCode;
+      _status = SajuRenewalFlowStatus.error;
+      notifyListeners();
+      return;
+    }
+
+    _detailState = LoadState.success(result.data!);
+    _viewedTopicIds.add(topic.topicId);
+    _unlockedTopicIds.add(topic.topicId); // [D-1] 리셋에도 유지되는 개봉 이력
+    _lastAccessTransactionId = null;
+    _status = SajuRenewalFlowStatus.storyDetail;
+    notifyListeners();
+  }
+
+  /// 화면⑦ "다른 사주 이야기" 버튼 — 화면⑧(후보 목록) 상태로 전환한다.
+  /// 이미 조회된 candidates를 그대로 보여주며(단, [displayableCandidates]
+  /// getter가 [_viewedTopicIds]/[_shownCandidateIds]를 걸러주므로 방금
+  /// 상세까지 본 topic은 자동으로 빠진다 — C-08a), 후보가 부족하면
+  /// 화면 쪽에서 [remainingLocalCandidateCount] < 3을 보고 안내 문구와
+  /// 함께 "새로운 이야기" 버튼으로 [refreshCandidates]를 호출하게 한다
+  /// (서버 자동 선조회는 하지 않는다 — 사용자가 명시적으로 요청했을
+  /// 때만 네트워크를 쓴다는 기존 원칙 유지).
+  void showMoreTopics() {
+    // [MORE·08 버그 수정 개발지시서 2026-10-11] 이전에 08을 방문했을 때
+    // 남겨진 실패/소진 안내가 이번 재진입에도 그대로 보이면 혼동을 주므로
+    // 화면③⑦에서 새로 08로 들어올 때마다 지운다.
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
+    _setStatus(SajuRenewalFlowStatus.moreTopics);
+  }
+
+  /// 오류 화면의 "재시도" 버튼 — 직전 단계로 되돌아가 재시도한다.
+  Future<void> retry() async {
+    _errorMessage = null;
+    _errorReason = null;
+    if (_currentTopic != null && _detailState.isError) {
+      await onAccessGranted();
+      return;
+    }
+    if (_currentTopic != null && _previewState.isError) {
+      await loadPreview(_currentTopic!);
+      return;
+    }
+    await _loadTopics();
+  }
+
+  /// 서버가 내려준 사용자 안내 문구를 그대로 쓰되(§11 "내부 정보 비노출"
+  /// 원칙 — 서버 메시지 자체가 이미 사용자 친화적으로 가공되어 있음),
+  /// 메시지 자체를 못 받은 네트워크 예외 상황만 공통 문구로 보완한다.
+  String _friendlyErrorMessage(String? code, String? serverMessage) {
+    if (serverMessage != null && serverMessage.isNotEmpty) {
+      return serverMessage;
+    }
+    return '일시적으로 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+  }
+
+  /// 로그아웃 시 개인 사주 데이터 잔존 방지(§ "로그인/프로필" 요구사항 —
+  /// 사용자A의 데이터가 사용자B에게 섞이면 즉시 FAIL). app.dart의
+  /// `_LogoutCallbackRegistrar`에 이 메서드를 등록해야 한다.
+  void clearOnLogout() {
+    _status = SajuRenewalFlowStatus.idle;
+    _errorMessage = null;
+    _errorReason = null;
+    _topicsState = const LoadState.initial();
+    _currentTopic = null;
+    _previewState = const LoadState.initial();
+    _detailState = const LoadState.initial();
+    _viewedTopicIds.clear();
+    _shownCandidateIds.clear();
+    _candidateBatch = 0;
+    _topicOrder.clear();
+    _clearVisualProfileCache();
+    _isPreviewLoading = false;
+    _isDetailLoading = false;
+    _isTopicsLoading = false;
+    _isRefreshingCandidates = false;
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
+    // [다음 클라 배치 2026-10-12 — 계정 격리] 소진 알림은 "이 계정의
+    // 소진 상태"에 종속된 예약이므로, 로그아웃 시 취소해 사용자A의 예약이
+    // 사용자B 기기 세션에 잘못 울리는 일을 막는다(이 Provider의 기존
+    // 계정 격리 원칙과 동일).
+    unawaited(SajuExhaustionNotificationService.cancelOnLogout());
+    notifyListeners();
+  }
+
+  /// 화면① 메인 "내 사주 분석하기" 버튼 — 출생정보 입력 화면으로 넘어가기
+  /// 전 상태만 초기화한다(이전 분석 결과가 남아있지 않도록).
+  void startNewAnalysis() {
+    _status = SajuRenewalFlowStatus.birthInput;
+    _errorMessage = null;
+    _errorReason = null;
+    _topicsState = const LoadState.initial();
+    _currentTopic = null;
+    _previewState = const LoadState.initial();
+    _detailState = const LoadState.initial();
+    _viewedTopicIds.clear();
+    _shownCandidateIds.clear();
+    _candidateBatch = 0;
+    _topicOrder.clear();
+    // [Task 10 항목3] 새 분석을 시작하면(= 출생정보를 다시 입력할 수
+    // 있으므로) 이전 출생정보의 캐시를 반드시 비운다 — 그렇지 않으면
+    // 사용자가 출생정보를 바꿔 새로 분석해도 옛 계산 결과가 재사용될
+    // 위험이 있다.
+    _clearVisualProfileCache();
+    _candidatesRefreshFailed = false;
+    _candidatesExhausted = false;
+    notifyListeners();
+  }
+}

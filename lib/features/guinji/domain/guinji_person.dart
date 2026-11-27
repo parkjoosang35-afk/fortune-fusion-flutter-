@@ -1,0 +1,310 @@
+import 'dart:convert';
+
+/// 귀인지도(Guinji Map) 참여자(지인) 데이터 모델.
+///
+/// [Phase G-3] 아직 백엔드 신규 테이블(guinji_map/map_member/relationship
+/// 등, §5)이 구현되지 않았으므로, 이 Phase에서는 화면 뼈대 확정을 위한
+/// 목데이터 소스로만 사용한다. 실제 RelationJudger 판정 결과 연동은
+/// 후속 Phase에서 이 모델의 필드 구조를 그대로 API 응답 매핑에 재사용할
+/// 수 있도록 설계했다.
+class GuinjiPerson {
+  const GuinjiPerson({
+    required this.id,
+    required this.name,
+    required this.birth,
+    required this.ohaeng,
+    required this.relation,
+    required this.score,
+    required this.note,
+    this.unlocked = false,
+    this.gender,
+  });
+
+  /// [성별 캐릭터 버그 수정 — 2026-10-14] 서버가 내려주는 성별
+  /// ('male' | 'female', 없으면 null — null이면 기존 해시 폴백 유지).
+  /// 나의정보에서 고른 성별이 지도 캐릭터에도 그대로 반영되게 한다.
+  final String? gender;
+
+  final String id;
+  final String name;
+
+  /// 생년월일 표시용 문자열(예: "2003·05·14").
+  final String birth;
+
+  /// 오행 키: mok/hwa/to/geum/su.
+  final String ohaeng;
+
+  /// 관계 유형 키: guin/oreunpal/inyeon/salrim/horang.
+  final String relation;
+
+  /// 케미 점수(0~100).
+  final int score;
+
+  /// 명리학적 근거 짧은 메모(예: "천을귀인 · 인성").
+  final String note;
+
+  /// [해금 상태 영속화 — 2026-09 버그수정] 서버(`GET /guinji/maps/me`
+  /// `members[].unlocked`)가 내려주는 "스페셜 해설을 이미 해금했는지"
+  /// 여부. 화면단 로컬 state(`_specialUnlocked`)의 초기값으로 사용해,
+  /// 앱 재시작·화면 재진입 시에도 한번 해금한 관계는 계속 열린 상태로
+  /// 보이게 한다("한번 열어본거 계속 열려야됨" 리포트 대응).
+  final bool unlocked;
+
+  /// [귀인지도 실구현] 서버 응답(GET /guinji/maps/me의 members+relationships)을
+  /// [GuinjiPerson]으로 매핑한다.
+  ///
+  /// - [member]: `{memberId, name, solarLunar, birthDate, birthTime,
+  ///   birthTimeMissing, joined}` — `birthDate`('YYYY-MM-DD')를 표시용
+  ///   "YYYY·MM·DD" 형식으로 변환한다.
+  /// - [relation]: `{relationType, chemistryScore, ohaengEvidence:{mine,
+  ///   other, reason}}` (없으면 아직 판정 전 — 이론상 발생하지 않지만
+  ///   방어적으로 V2 6종 중 하나인 'BI_HWA'(동류동반, V2 엔진
+  ///   `decideType()`의 최종 폴백값과 동일)/0/''로 폴백한다).
+  /// - [ohaeng]은 서버 응답에 직접 없으므로, `ohaengEvidence.other`(상대
+  ///   본인의 오행 카운트, 한글 목/화/토/금/수 키)에서 최댓값 오행을 찾아
+  ///   화면 표시용 영문 키(mok/hwa/to/geum/su)로 변환한다.
+  factory GuinjiPerson.fromServerJson({
+    required Map<String, dynamic> member,
+    Map<String, dynamic>? relation,
+  }) {
+    final memberId = member['memberId'] as String? ?? '';
+    final name = member['name'] as String? ?? '이름 없음';
+    final birthDate = member['birthDate'] as String? ?? '';
+    final birthParts = birthDate.split('-');
+    final birthLabel = birthParts.length == 3
+        ? '${birthParts[0]}·${birthParts[1]}·${birthParts[2]}'
+        : birthDate;
+
+    // [P4-hotfix 2026-10-13] 레거시 관계 키(구 5종 guin/oreunpal/horang·
+    // 12종)가 남아 있는 운영 DB row를 V2 6종으로 정규화 — 알 수 없는 키는
+    // BI_HWA 폴백. 지도/노드/시트 어디서도 크래시하지 않는다.
+    final relationType = _normalizeRelationType(
+      relation?['relationType']?.toString(),
+    );
+    final chemistryScore = (relation?['chemistryScore'] as num?)?.toInt() ?? 0;
+    // [P4-hotfix 2026-10-13] V2 엔진의 ohaengEvidence는 직렬화 경로에 따라
+    // Map/List/String 어느 형태로든 올 수 있다 — 어떤 형태가 와도 안전하게
+    // Map으로 강등(실패 시 빈 Map). 기존 `as Map` 캐스트가 크래시 원인이었다.
+    final ohaengEvidence = _asSafeMap(relation?['ohaengEvidence']);
+    final reason = ohaengEvidence['reason'] as String? ?? '';
+    final otherElements =
+        ohaengEvidence['other'] as Map<String, dynamic>? ?? const {};
+
+    return GuinjiPerson(
+      id: memberId,
+      name: name,
+      birth: birthLabel,
+      gender: member['gender']?.toString(),
+      ohaeng: _dominantOhaengKey(otherElements),
+      relation: relationType,
+      score: chemistryScore,
+      note: reason,
+      unlocked: member['unlocked'] as bool? ?? false,
+    );
+  }
+
+  /// 한글 오행 카운트 맵(예: {'목': 2, '화': 1, ...})에서 최댓값 오행을 찾아
+  /// 화면 표시용 영문 키(mok/hwa/to/geum/su)로 변환한다. 값이 모두 0이거나
+  /// 비어 있으면 기본값 'to'(토)로 폴백한다.
+  /// [P4-hotfix] 어떤 JSON 값이 와도 안전하게 Map<String,dynamic>으로 강등.
+  static Map<String, dynamic> _asSafeMap(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) {
+      return v.map((k, val) => MapEntry(k.toString(), val));
+    }
+    if (v is String && v.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(v);
+        if (decoded is Map) {
+          return decoded.map((k, val) => MapEntry(k.toString(), val));
+        }
+      } catch (_) {}
+    }
+    return const {};
+  }
+
+  /// [P4-hotfix] 레거시 관계 키(구 5종/12종) → V2 6종 정규화.
+  static String _normalizeRelationType(String? raw) {
+    const v2 = {
+      'CHEON_GWII',
+      'HAP',
+      'SANG_SAENG',
+      'SANG_GEUK',
+      'BI_HWA',
+      'CHUNG',
+    };
+    if (raw != null && v2.contains(raw)) return raw;
+    const alias = {
+      'guin': 'CHEON_GWII',
+      '귀인': 'CHEON_GWII',
+      'GACHI_BICH': 'CHEON_GWII',
+      'oreunpal': 'HAP',
+      '오른팔': 'HAP',
+      'inyeon': 'HAP',
+      '인연': 'HAP',
+      'JORYEOK': 'HAP',
+      'GACHI_GA': 'HAP',
+      'KKEURIDA': 'HAP',
+      'salrim': 'SANG_SAENG',
+      '살림': 'SANG_SAENG',
+      'NA_SALRIDA': 'SANG_SAENG',
+      'NA_SALJINDA': 'SANG_SAENG',
+      'DEUNGDEUNG': 'SANG_SAENG',
+      'CHANG_GYIM': 'SANG_SAENG',
+      'horang': 'SANG_GEUK',
+      '호랑이': 'SANG_GEUK',
+      'JAGEUKJE': 'SANG_GEUK',
+      'GAMJEONG': 'BI_HWA',
+      'GINGJANG': 'CHUNG',
+    };
+    if (raw != null && alias.containsKey(raw)) return alias[raw]!;
+    return 'BI_HWA';
+  }
+
+  static String _dominantOhaengKey(Map<String, dynamic> koreanCounts) {
+    const koreanToKey = {
+      '목': 'mok',
+      '화': 'hwa',
+      '토': 'to',
+      '금': 'geum',
+      '수': 'su',
+    };
+    String bestKr = '토';
+    int bestCount = -1;
+    for (final entry in koreanToKey.keys) {
+      final count = (koreanCounts[entry] as num?)?.toInt() ?? 0;
+      if (count > bestCount) {
+        bestCount = count;
+        bestKr = entry;
+      }
+    }
+    return koreanToKey[bestKr]!;
+  }
+}
+
+/// [V2 전환 — 4단계] 관계 유형 순서(V2 6종) — admin_web
+/// `GUINJI_V2_RELATION_TYPE_ORDER`(`guinji-v2/relation.ts`)와 동일한
+/// 순서. 기존 12종(CHEON_GWII/NA_SALRIDA/JORYEOK/GACHI_GA/NA_SALJINDA/
+/// CHANG_GYIM/GAMJEONG/DEUNGDEUNG/KKEURIDA/GACHI_BICH/JAGEUKJE/GINGJANG)
+/// 순서를 완전히 대체한다(병행노출 금지).
+const List<String> guinjiRelationOrder = [
+  'CHEON_GWII',
+  'HAP',
+  'SANG_SAENG',
+  'SANG_GEUK',
+  'BI_HWA',
+  'CHUNG',
+];
+
+/// [Phase G-3 → V2 전환] 목데이터 — V2 6종 기준으로 재작성. 실제 API
+/// 응답이 있으면 이 데이터는 사용되지 않는다(빈 지도/프리뷰 등 폴백 전용).
+const List<GuinjiPerson> guinjiSamplePeople = [
+  GuinjiPerson(
+    id: 'p1',
+    name: '수아',
+    birth: '2003·05·14',
+    ohaeng: 'hwa',
+    relation: 'CHEON_GWII',
+    score: 92,
+    note: '일간 상생 · 일지 육합',
+  ),
+  GuinjiPerson(
+    id: 'p2',
+    name: '민서',
+    birth: '2002·11·03',
+    ohaeng: 'mok',
+    relation: 'CHEON_GWII',
+    score: 88,
+    note: '일간 상생 · 삼합',
+  ),
+  GuinjiPerson(
+    id: 'p3',
+    name: '유진',
+    birth: '2003·02·27',
+    ohaeng: 'su',
+    relation: 'SANG_SAENG',
+    score: 81,
+    note: '상대가 나를 생(生)함',
+  ),
+  GuinjiPerson(
+    id: 'p4',
+    name: '서연',
+    birth: '2001·08·19',
+    ohaeng: 'to',
+    relation: 'SANG_SAENG',
+    score: 76,
+    note: '내가 상대를 생(生)함',
+  ),
+  GuinjiPerson(
+    id: 'p5',
+    name: '도윤',
+    birth: '2002·07·06',
+    ohaeng: 'geum',
+    relation: 'HAP',
+    score: 84,
+    note: '일지 육합 · 서로 끌림',
+  ),
+  GuinjiPerson(
+    id: 'p6',
+    name: '하늘',
+    birth: '2004·01·22',
+    ohaeng: 'mok',
+    relation: 'HAP',
+    score: 72,
+    note: '일지 삼합',
+  ),
+  GuinjiPerson(
+    id: 'p7',
+    name: '예린',
+    birth: '2003·10·11',
+    ohaeng: 'hwa',
+    relation: 'BI_HWA',
+    score: 67,
+    note: '같은 오행 · 비화',
+  ),
+  GuinjiPerson(
+    id: 'p8',
+    name: '지호',
+    birth: '2002·04·30',
+    ohaeng: 'geum',
+    relation: 'SANG_GEUK',
+    score: 74,
+    note: '일간 상극 · 성장 자극',
+  ),
+  GuinjiPerson(
+    id: 'p9',
+    name: '은채',
+    birth: '2001·12·05',
+    ohaeng: 'su',
+    relation: 'SANG_GEUK',
+    score: 63,
+    note: '일간 상극 · 도전',
+  ),
+  GuinjiPerson(
+    id: 'p10',
+    name: '태오',
+    birth: '2003·06·17',
+    ohaeng: 'to',
+    relation: 'CHUNG',
+    score: 71,
+    note: '일지 충 · 부딪히며 성장',
+  ),
+  GuinjiPerson(
+    id: 'p11',
+    name: '나연',
+    birth: '2002·09·08',
+    ohaeng: 'hwa',
+    relation: 'CHEON_GWII',
+    score: 79,
+    note: '일간 상생 · 육합',
+  ),
+  GuinjiPerson(
+    id: 'p12',
+    name: '연우',
+    birth: '2004·03·25',
+    ohaeng: 'mok',
+    relation: 'BI_HWA',
+    score: 69,
+    note: '같은 오행 · 비화',
+  ),
+];

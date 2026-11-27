@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/iap/iap_purchase_manager.dart';
 import '../data/subscription_repository.dart';
 import '../domain/subscription_model.dart';
 
@@ -23,6 +24,18 @@ class SubscriptionProvider extends ChangeNotifier {
 
   /// 마이페이지/AI결과 화면 등에서 잠금해제 여부를 확인할 때 사용하는 편의 getter
   bool get isPremium => _mySubscription?.isActive ?? false;
+
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 구독 상태(플랜/
+  /// 결제내역)가 잔존해 다음 계정에 노출되지 않도록 초기화한다. `_plans`(공개
+  /// 상품 목록, 개인정보 아님)는 유지해도 무방하나 일관성을 위해 함께 비운다.
+  void clearOnLogout() {
+    _mySubscription = null;
+    _paymentHistory = [];
+    _isLoadingPlans = false;
+    _isLoadingSubscription = false;
+    _isProcessing = false;
+    notifyListeners();
+  }
 
   Future<void> loadPlans() async {
     _isLoadingPlans = true;
@@ -52,6 +65,61 @@ class SubscriptionProvider extends ChangeNotifier {
     _isProcessing = false;
     notifyListeners();
     return (success: result.success, errorMessage: result.errorMessage);
+  }
+
+  /// [Google Play Billing 실연동 — 2026-11-26] plan.canRealPurchase(=
+  /// googlePlayProductId 등록됨)일 때만 호출 가능한 실결제 흐름. Google Play
+  /// 결제창 → purchaseToken 서버 검증(confirm-purchase) 순서로 진행하며,
+  /// 서버 확정이 실패하면 Google 결제를 완료 처리하지 않는다(재시도 가능
+  /// 상태 유지 — subscribe()의 서버 시뮬레이션 결제와 달리 절대 낙관적으로
+  /// 먼저 활성화하지 않는다).
+  ///
+  /// [구독 2계층 구조 — 2026-11-27] plan.googlePlayProductId는 서버에
+  /// "기본요금제ID"(예: chosim-monthly)로 저장되어 있으나, Google Play
+  /// Billing에 상품을 조회(queryProductDetails)할 때는 반드시 "부모 구독
+  /// 상품ID"(예: chosim)를 사용해야 한다. 부모ID는
+  /// plan.googlePlayParentProductId로 역산한다.
+  Future<({bool success, String? errorMessage})> subscribeReal(
+    SubscriptionPlanModel plan,
+  ) async {
+    if (!plan.canRealPurchase) {
+      return (success: false, errorMessage: '아직 실결제가 준비되지 않은 플랜입니다.');
+    }
+    final parentId = plan.googlePlayParentProductId;
+    if (parentId == null) {
+      return (success: false, errorMessage: '구독 상품ID 구성이 올바르지 않습니다.');
+    }
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final purchase = await IapPurchaseManager.instance.buy(
+        productId: parentId,
+        basePlanId: plan.googlePlayProductId!,
+        consumable: false,
+      );
+      if (!purchase.isSuccess || purchase.purchaseToken == null) {
+        return (
+          success: false,
+          errorMessage: purchase.errorMessage ?? '결제가 완료되지 않았습니다.',
+        );
+      }
+      final confirm = await _repository.confirmRealPurchase(
+        googlePlayProductId: plan.googlePlayProductId!,
+        purchaseToken: purchase.purchaseToken!,
+      );
+      if (!confirm.success) {
+        return (success: false, errorMessage: confirm.errorMessage);
+      }
+      // [중요] completePurchaseFor의 키는 buy()에 넘긴 productId(=parentId)와
+      // 반드시 일치해야 한다 — IapPurchaseManager가 _pending/_awaitingCompletion을
+      // 그 값으로 관리하기 때문이다(기본요금제ID가 아님).
+      await IapPurchaseManager.instance.completePurchaseFor(parentId);
+      _mySubscription = confirm.data!.subscription;
+      return (success: true, errorMessage: null);
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> cancel() async {

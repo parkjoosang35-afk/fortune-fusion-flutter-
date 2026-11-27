@@ -32,8 +32,7 @@ class FeatureFlagDebugScreen extends StatefulWidget {
   );
 
   @override
-  State<FeatureFlagDebugScreen> createState() =>
-      _FeatureFlagDebugScreenState();
+  State<FeatureFlagDebugScreen> createState() => _FeatureFlagDebugScreenState();
 }
 
 class _FeatureFlagDebugScreenState extends State<FeatureFlagDebugScreen> {
@@ -152,7 +151,7 @@ class _FeatureFlagDebugScreenState extends State<FeatureFlagDebugScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '메인 AI 사주 호출 카운터 (${AiCallCounter.flagKey})',
+                    '메인 사주 호출 카운터 (${AiCallCounter.flagKey})',
                     style: UnifiedText.title(),
                   ),
                   const SizedBox(height: UnifiedTokens.spaceSm),
@@ -188,7 +187,9 @@ class _FeatureFlagDebugScreenState extends State<FeatureFlagDebugScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: value ? UnifiedColors.chipInactiveBg : UnifiedColors.cardBanner,
+              color: value
+                  ? UnifiedColors.chipInactiveBg
+                  : UnifiedColors.cardBanner,
               borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
             ),
             child: Text(

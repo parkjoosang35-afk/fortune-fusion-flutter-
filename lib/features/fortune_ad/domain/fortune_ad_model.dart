@@ -1,11 +1,11 @@
-/// [신통방통 복주머니 광고 적립 시스템] 복주머니 화면에 노출되는 광고 1건.
+/// [귀인지도 복주머니 광고 적립 시스템] 복주머니 화면에 노출되는 광고 1건.
 /// admin_web `GET /api/ads/fortune` 응답(`serializeFortuneAdSummary` +
 /// todayWatchedCount/todayRemainingCount/watchable)을 그대로 매핑한다.
 class FortuneAdModel {
   final int id;
   final String title;
   final String? description;
-  final String adType; // image | video | external | network
+  final String adType; // image | video | external | network | admob
   final String? imageUrl;
   final String? videoUrl;
   final String? externalUrl;

@@ -1,24 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/util/qa_text_scale.dart';
+import 'core/responsive/app_text_scale_guard.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'core/theme/text_scale_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_navigator_key.dart';
+import 'core/web/web_nav_bridge.dart';
+import 'core/widgets/web_mobile_frame.dart';
+import 'core/widgets/debug_backend_badge.dart';
+import 'core/zoom/global_pinch_zoom_manager.dart';
+import 'core/sound/guinji_sound_service.dart';
+import 'core/sound/sound_navigator_observer.dart';
 
 import 'features/auth/application/auth_provider.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/wallet/application/wallet_provider.dart';
 import 'features/wallet/data/wallet_repository.dart';
+import 'features/bokju_coupon/application/bokju_coupon_provider.dart';
+import 'features/bokju_coupon/data/bokju_coupon_repository.dart';
 import 'features/fortune_ad/application/fortune_ad_provider.dart';
 import 'features/fortune_ad/data/fortune_ad_repository.dart';
 import 'features/notification/notification_provider.dart';
 import 'features/notification/data/notification_repository.dart';
 import 'features/attendance/application/attendance_provider.dart';
 import 'features/attendance/data/attendance_repository.dart';
-import 'features/fortune/daily/application/daily_fortune_provider.dart';
-import 'features/fortune/daily/data/daily_fortune_repository.dart';
-import 'features/fortune/saju/application/saju_provider.dart';
-import 'features/fortune/saju/data/saju_repository.dart';
+// [귀인지도 정통사주 리뉴얼] 기존 saju(AI LLM)/saju_v3(죽은 베타) Provider는
+// 완전히 제거되었다. 사주는 이제 SajuRenewalProvider(아래 참조) 하나로
+// 통일된다.
 import 'features/fortune/tarot/application/tarot_provider.dart';
 import 'features/fortune/tarot/application/tarot_session_controller.dart';
 import 'features/fortune/tarot/application/tarot_audio_controller.dart';
@@ -27,24 +37,21 @@ import 'features/fortune/face/application/face_provider.dart';
 import 'features/fortune/face/data/face_repository.dart';
 import 'features/fortune/palm/application/palm_provider.dart';
 import 'features/fortune/palm/data/palm_repository.dart';
-import 'features/name_fortune/application/name_fortune_provider.dart';
-import 'features/name_fortune/data/name_fortune_repository.dart';
+// [궁합(C그룹) 복원 - 귀인지도 배너 궁합보기 연결] 2026-08-13에 블랙리스트
+// 처리로 삭제되었던 궁합 모듈을 admin_web 실API(`/api/public/compatibility/*`)
+// 연동 상태 그대로 git 히스토리(53ce1ff)에서 복원한다.
 import 'features/compatibility/application/compatibility_provider.dart';
 import 'features/compatibility/data/compatibility_repository.dart';
 import 'features/home/application/fortune_category_provider.dart';
 import 'features/home/data/fortune_category_repository.dart';
 import 'features/home/application/home_page_config_provider.dart';
 import 'features/home/data/page_config_repository.dart';
-import 'features/consultation/application/consultation_provider.dart';
-import 'features/consultation/data/consultation_repository.dart';
 import 'features/mission/application/mission_provider.dart';
 import 'features/mission/data/mission_repository.dart';
 import 'features/ranking/application/ranking_provider.dart';
 import 'features/ranking/data/ranking_repository.dart';
 import 'features/luckybag/application/luckybag_provider.dart';
 import 'features/luckybag/data/luckybag_repository.dart';
-import 'features/giftcard/application/giftcard_provider.dart';
-import 'features/giftcard/data/giftcard_repository.dart';
 import 'features/subscription/application/subscription_provider.dart';
 import 'features/subscription/data/subscription_repository.dart';
 import 'features/ad_banner/application/ad_banner_provider.dart';
@@ -54,20 +61,58 @@ import 'features/lucky_number/data/lucky_number_repository.dart';
 import 'features/healing_quote/application/healing_quote_provider.dart';
 import 'features/healing_quote/data/healing_quote_repository.dart';
 import 'features/pass/application/pass_provider.dart';
-import 'features/pass/application/open_pass_reward_controller.dart';
 import 'features/pass/data/pass_repository.dart';
-import 'features/pass/data/open_pass_repository.dart';
 import 'features/intro/application/intro_state_provider.dart';
 import 'features/intro/application/intro_config_provider.dart';
 import 'features/intro/data/intro_config_repository.dart';
 import 'features/luckpouch/application/luck_pouch_provider.dart';
 import 'core/domain/access/access_checker.dart';
 import 'core/widgets/luck_pouch_toast.dart';
-import 'features/wish_wall_board/data/wish_wall_repository.dart';
-import 'features/wish_wall_board/application/blessing_bag_policy_adapter.dart';
-import 'features/wish_wall_board/application/wish_wall_provider.dart';
-import 'features/wish_counsel/data/wish_counsel_repository.dart';
-import 'features/wish_counsel/application/wish_counsel_provider.dart';
+import 'features/shop/data/shop_repository.dart';
+import 'features/shop/data/shop_api_repository.dart';
+import 'features/shop/application/shop_provider.dart';
+// [S5 복주머니 결제 — PAYMENT_MODE=mock] 곳간(Store)/체크아웃/ShortageQuickSheet가
+// 공유하는 구매 서비스. ShopProvider와 동일한 원칙(LuckPouchProvider만 참조,
+// 새 화폐 생성 금지)으로 ChangeNotifierProxyProvider로 등록한다.
+import 'features/pouch_pay/application/pouch_pay_service.dart';
+import 'features/pouch_pay/application/pouch_product_provider.dart';
+import 'features/pouch_pay/data/pouch_product_repository.dart';
+// [소원방 v2.6 전면 재구축 완료] 구 모듈(lib/features/wish_room/, 및 그 소비자인
+// lib/features/_archive/wish_wall_board/)은 신규 모듈(lib/features/wishroom/)
+// 실동작(회원인증/복주머니/광고 연동 포함 전체 라이프사이클: 작성→정성들이기→
+// 완성→봉인)을 Playwright E2E로 끝까지 검증 완료한 뒤 삭제했다. 구 모듈이 쓰던
+// WishWallProvider/GratitudeProvider/BlessingBagPolicyAdapter와 그 Repository들
+// 도 함께 제거 — 라우터가 더 이상 그 어떤 구 화면으로도 연결하지 않아 완전한
+// 죽은 코드였다(단, EveningBellNotificationService는 실제로 쓰이는 독립 기능이라
+// lib/features/evening_bell/로 이동해 보존했다).
+import 'features/wishroom/application/wishroom_provider.dart';
+import 'features/wishroom/data/wr_api.dart';
+import 'features/guinji/data/guinji_repository.dart';
+import 'features/guinji/application/guinji_provider.dart';
+// [궁합지도 Flutter 화면 개발] 신규 궁합지도 API 연동 전역 상태.
+import 'features/gunghap/data/gunghap_repository.dart';
+import 'features/gunghap/application/gunghap_provider.dart';
+// [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 구버전(U1-U13)은 비용
+// 문제로 전면 삭제되었다. design_handoff_shrine_v3 핸드오프 기준 신규
+// ShrineV3Provider로 교체한다(서버 지갑차감/일련번호/향 올리기는 전부
+// admin_web /api/public/shrine/* 가 처리 — shrine_v3_repository.dart 참고).
+import 'features/shrine_v3/data/shrine_v3_repository.dart';
+import 'features/shrine_v3/application/shrine_v3_provider.dart';
+import 'features/pouch_box/application/pouch_box_provider.dart';
+import 'features/pouch_box/data/pouch_box_repository.dart';
+import 'features/result_access/application/result_access_provider.dart';
+import 'features/result_access/data/result_access_repository.dart';
+// [귀인지도 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규 "사주 이야기"
+// 흐름 전용 Provider. 기존 saju_v3/saju_repository(69종 그리드)와 완전히
+// 분리된 신규 feature이며, STEP1~6 백엔드(topics/select, interpret)는
+// 무수정 — 이 Provider는 그 결과를 소비하는 클라이언트 상태관리만 담당한다.
+import 'features/saju_renewal/state/saju_renewal_provider.dart';
+import 'features/saju_renewal/data/saju_renewal_api.dart';
+import 'features/saju_renewal/data/saju_recent_story_store.dart';
+// [엔진 통합 지시문 STEP 3] 사주/타로/관상/손금/궁합 교차검증 오케스트레이터.
+import 'core/orchestrator/orchestrator_provider.dart';
+import 'core/orchestrator/fortune_orchestrator.dart';
+import 'core/orchestrator/door_engine_gateway.dart';
 
 /// 07단계 §2.1 앱 루트 - MultiProvider 전역 등록 + MaterialApp 라우팅 연결
 /// 10단계(A안): 모든 Repository는 Mock 구현이며, 향후 실제 API 연동 시
@@ -81,6 +126,22 @@ class App extends StatelessWidget {
       providers: [
         // ── 전역 Provider(앱 전체에서 상시 참조) ──
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        // [결과페이지 글씨 확대 기능] 시력이 안 좋은 사용자를 위한 전역
+        // 텍스트 크기 배율. MaterialApp.builder에서 TextScaler로 적용되어
+        // 앱 전체(모든 결과페이지 포함)에 한 번에 반영된다.
+        ChangeNotifierProvider(create: (_) => TextScaleProvider()),
+        // [귀인지도 사운드 배치 개발 기획서 v1.2 — 2026-11] 8개 메뉴
+        // BGM·앰비언스·18종 UI SFX(전환 표식음 포함)를 담당하는 전역 단일
+        // 서비스. [2026-11 중앙 라우팅 전환] BGM 전환은 더 이상 화면별
+        // SoundRouteTrigger에만 의존하지 않고, 아래 navigatorObservers의
+        // SoundNavigatorObserver가 route.settings.name을 보고 8개 메뉴 중
+        // 하나로 매핑해 playRoute()를 호출한다(didPush/didPop/didReplace
+        // 전부 처리) — 화면 위젯이 바뀌거나 새 하위 화면이 추가돼도
+        // 라우트 이름만 등록돼 있으면 사운드가 자동으로 따라온다. init()이
+        // 비동기이므로 즉시 생성 후 뒤에서 초기화한다 — 초기화 완료 전
+        // 호출되는 재생 요청은 큐잉되어 init() 완료 직후 재시도된다(콜드
+        // 스타트 경쟁 조건 수정, guinji_sound_service.dart 참고).
+        ChangeNotifierProvider(create: (_) => GuinjiSoundService()..init()),
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepository())),
         // [인트로 전면 개편] 첫 진입(스플래시→인트로→홈) 흐름의 로컬 완료 상태
         // (introSeen/skipped/continueAsGuest)와, admin_web에서 발행한 인트로
@@ -90,17 +151,35 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => IntroConfigProvider(IntroConfigRepository()),
         ),
-        // [자율 정리 - 정책 위반 무력화] 신통방통은 "적립률(등급 배율)" 개념이
+        // [자율 정리 - 정책 위반 무력화] 귀인지도는 "적립률(등급 배율)" 개념이
         // 없는 무료 광고형 구조다(복주머니는 항상 1:1 지급). 과거 등급 배율을
         // WalletProvider에 주입하던 ProxyProvider 연결을 제거하고 단순
         // ChangeNotifierProvider로 되돌린다(WalletProvider.earn()은 배율 없이
         // 항상 요청한 금액 그대로 지급).
-        ChangeNotifierProvider(create: (_) => WalletProvider(WalletRepository())),
-        // [신통방통 복주머니 광고 적립 시스템] 지갑 화면의 "광고 보고 충전" 카드가
+        ChangeNotifierProvider(
+          create: (_) => WalletProvider(WalletRepository()),
+        ),
+        // [귀인지도 복주머니 광고 적립 시스템] 지갑 화면의 "광고 보고 충전" 카드가
         // 참조하는 광고 목록 전역 상태. WalletProvider와 별도 원장이지만 지급
         // 자체는 WalletProvider.load()로 재조회하는 동일한 서버-확정 패턴을 쓴다.
         ChangeNotifierProvider(
           create: (_) => FortuneAdProvider(FortuneAdRepository()),
+        ),
+        // [행운상자 - 복주머니 탭 신규 기능] 하단바 "복주머니" 탭의 그리드
+        // 화면이 참조하는 전역 상태(오늘 현황 + 시청시작/완료 API 위임).
+        // FortuneAdProvider와 동일한 분리 원칙(상태/통신만 담당, 화면
+        // 전이는 PouchBoxTabScreen이 담당)으로 바로 옆에 등록한다.
+        ChangeNotifierProvider(
+          create: (_) => PouchBoxProvider(PouchBoxRepository()),
+        ),
+        // [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 지갑차감/일련번호
+        // 발급/향 올리기는 전부 admin_web /api/public/shrine/* 서버
+        // 트랜잭션이 담당한다(ShrineV3Repository). 결제 자체는 신규 게이트를
+        // 만들지 않고 기존 ResultAccessGateSheet(아래 ResultAccessProvider)를
+        // 그대로 재사용한다 — 이 Provider는 부적 목록/부적함/추천 조회
+        // 상태만 담당.
+        ChangeNotifierProvider(
+          create: (_) => ShrineV3Provider(ShrineV3Repository()),
         ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(NotificationRepository()),
@@ -108,9 +187,8 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AttendanceProvider(AttendanceRepository()),
         ),
-        ChangeNotifierProvider(
-          create: (_) => DailyFortuneProvider(DailyFortuneRepository()),
-        ),
+        // 2026-08-13 결정: 일간 운세(DailyFortuneProvider)는 정통사주 80항목에
+        // 통합되어 features/fortune/daily 모듈이 삭제되었다. 등록 제거.
         ChangeNotifierProvider(
           create: (_) => LuckyBagProvider(LuckyBagRepository()),
         ),
@@ -131,6 +209,14 @@ class App extends StatelessWidget {
         // [신규] 열림패스(AlarmPass) — admin_web `/api/public/pass/*` 실 API 연동.
         // 홈 화면 상단 상태바 + 열림패스 섹션에서 공유하는 전역 상태.
         ChangeNotifierProvider(create: (_) => PassProvider(PassRepository())),
+        // [결과보기 통합 권한 시스템 v1.0, Phase4, §8.1 공통화 원칙] 정통사주
+        // 69종·타로 65종·운세 전체가 공유하는 단일 결과보기 3택 게이트
+        // Provider. PassProvider(프리패스 발급/레거시 카테고리 게이트)와는
+        // 책임이 분리되어 있어 서로 대체하지 않는다 — ResultAccessGateSheet가
+        // 이 Provider 하나만 참조한다.
+        ChangeNotifierProvider(
+          create: (_) => ResultAccessProvider(ResultAccessRepository()),
+        ),
         // [재화 구조 정리 및 재연결] 복주머니 — WalletProvider(실 Wallet/PointHistory
         // 원장) 위에 얹힌 얇은 위임 래퍼로 재구성했다(§8 금지 원칙은 "자산을 뒤섞지
         // 않는다"는 원래 의미로, 복주머니가 곧 유일한 실사용자 재화가 된 지금은
@@ -145,6 +231,17 @@ class App extends StatelessWidget {
             return previous;
           },
         ),
+        // [복주머니 마케팅 쿠폰 — Flutter 연동] QR 스캔/딥링크로 받은 쿠폰
+        // 등록(redeem) 흐름 전용 상태. 등록 성공 시 WalletProvider.load()를
+        // 호출해 지갑 잔액 표시를 재조회하므로 WalletProvider에 의존한다
+        // (LuckPouchProvider와 동일한 ProxyProvider 패턴 — identity 유지).
+        ChangeNotifierProxyProvider<WalletProvider, BokjuCouponProvider>(
+          create: (context) => BokjuCouponProvider(
+            BokjuCouponRepository(),
+            context.read<WalletProvider>(),
+          ),
+          update: (_, __, previous) => previous!,
+        ),
         // [재화 구조 정리 및 재연결] 열림패스 접근 체크 로직.
         // 과거 "3대 자산(열림패스/행복머니/복주머니)" 설계 잔재로 WalletProvider·
         // LuckPouchProvider까지 의존성으로 들고 있었으나, 상점/커뮤니티 진입은
@@ -155,18 +252,10 @@ class App extends StatelessWidget {
         ProxyProvider<PassProvider, AccessChecker>(
           update: (_, pass, __) => AccessChecker(pass: pass),
         ),
-        // [열림패스 첨부/광고소스 연동] admin_web에 등록된 첨부파일/광고소스가
-        // 실제 광고 시청→지급/실패 플로우를 그대로 이끌어가도록 하는 오케스트레이터.
-        // 상태 없는 서비스(ChangeNotifier 아님)이므로 Provider로 등록하며,
-        // PassProvider가 교체될 때마다 최신 인스턴스로 갈아끼운다.
-        ProxyProvider<PassProvider, OpenPassRewardController>(
-          update: (_, pass, __) => OpenPassRewardController(
-            repository: OpenPassRepository(),
-            passProvider: pass,
-          ),
-        ),
         // ── 기능별 Provider ──
-        ChangeNotifierProvider(create: (_) => SajuProvider(SajuRepository())),
+        // [귀인지도 정통사주 리뉴얼] 여기 있던 SajuProvider(기존 AI LLM 사주)와
+        // SajuV3Provider(죽은 베타 69종 엔진 연동)는 완전히 제거되었다. 사주는
+        // SajuRenewalProvider(아래 참조, '/saju-renewal') 하나로 통일된다.
         ChangeNotifierProvider(create: (_) => TarotProvider(TarotRepository())),
         // [타로 리뉴얼] 타로 세션 흐름(카테고리 선택→질문→셔플→카드선택→결과)
         // 전용 상태머신. 기존 TarotProvider(결과 조회/히스토리)와 책임 분리.
@@ -175,12 +264,8 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TarotAudioController()),
         ChangeNotifierProvider(create: (_) => FaceProvider(FaceRepository())),
         ChangeNotifierProvider(create: (_) => PalmProvider(PalmRepository())),
-        // [운세 카테고리 확장] 이름 운세(성명학) - 신규 카테고리 Provider.
-        ChangeNotifierProvider(
-          create: (_) => NameFortuneProvider(NameFortuneRepository()),
-        ),
-        // [궁합(C그룹) 신규 구현] admin_web API는 이미 완성되어 있었으나
-        // Flutter 클라이언트가 없던 궁합 기능의 전역 Provider.
+        // [궁합(C그룹) 복원] 홈 배너 캐러셀 "궁합 보기" CTA 연결을 위해
+        // 2026-08-13에 제거되었던 CompatibilityProvider 등록을 복원한다.
         ChangeNotifierProvider(
           create: (_) => CompatibilityProvider(CompatibilityRepository()),
         ),
@@ -196,19 +281,6 @@ class App extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => HomePageConfigProvider(HomePageConfigRepository()),
         ),
-        // 07단계(추가) §3.5 - ConsultationProvider가 사주 계산/타로 카드뽑기를
-        // 채팅 흐름 안에서 수행하려면 SajuProvider/TarotProvider 인스턴스가 필요하다.
-        // 새 Provider를 만들지 않고 위에서 이미 등록한 인스턴스를 attachFortuneProviders로
-        // 주입해, 사주/타로 히스토리 화면과 동일한 상태(LoadState)를 공유한다.
-        ChangeNotifierProxyProvider2<
-          SajuProvider,
-          TarotProvider,
-          ConsultationProvider
-        >(
-          create: (_) => ConsultationProvider(ConsultationRepository()),
-          update: (_, saju, tarot, consultation) =>
-              consultation!..attachFortuneProviders(saju, tarot),
-        ),
         ChangeNotifierProvider(
           create: (_) => MissionProvider(MissionRepository()),
         ),
@@ -216,54 +288,307 @@ class App extends StatelessWidget {
           create: (_) => RankingProvider(RankingRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => GiftcardProvider(GiftcardRepository()),
-        ),
-        ChangeNotifierProvider(
           create: (_) => SubscriptionProvider(SubscriptionRepository()),
         ),
-        // [코인/포인트 잔재 제거] 과거 "신통방통 소원방"(wish_room) 모듈이 쓰던
+        // [코인/포인트 잔재 제거] 과거 "귀인지도 소원방"(wish_room) 모듈이 쓰던
         // 복주머니와 별개인 자체 화폐("조각"/달빛 크리스탈) 경제는 완전히
         // 삭제했다. 이 앱의 유일한 재화는 복주머니(LuckPouchProvider)뿐이다.
-        // [소원벽게시판 신규 구축] "소원 하나 = 유리병 하나" 컨셉의 소원벽게시판
-        // 전역 상태. 복주머니 적립/차감은 새 화폐를 만들지 않고 반드시
-        // BlessingBagPolicyAdapter → LuckPouchProvider(실제 신통방통 재화)를
-        // 거치도록 ProxyProvider로 연결한다.
-        Provider<WishWallRepository>(
-          create: (_) => MockWishWallRepository.instance,
-        ),
-        ProxyProvider<LuckPouchProvider, BlessingBagPolicyAdapter>(
-          update: (_, pouch, __) => BlessingBagPolicyAdapter(pouch),
-        ),
-        ChangeNotifierProxyProvider<BlessingBagPolicyAdapter, WishWallProvider>(
-          create: (context) => WishWallProvider(
-            context.read<WishWallRepository>(),
-            context.read<BlessingBagPolicyAdapter>(),
+        // [소원방 v2.6 전면 재구축] 구 소원벽게시판(WishWallProvider/
+        // BlessingBagPolicyAdapter)은 신규 모듈(lib/features/wishroom/)로 완전히
+        // 대체되어 제거했다.
+        // [복주머니 확장 Phase02-B] 상점(인장/촛불/부적) + 보물함 —
+        // admin_web `/api/public/shop/*`, `/api/public/inventory` 실 API 연동.
+        // ShopProvider도 위 BlessingBagPolicyAdapter/WishWallProvider와 동일한
+        // 원칙으로 새 화폐를 만들지 않고 LuckPouchProvider를 참조만 하며,
+        // 구매 성공 시 LuckPouchProvider.load()로 서버 원장을 재조회한다.
+        Provider<ShopRepository>(create: (_) => ApiShopRepository()),
+        ChangeNotifierProxyProvider<LuckPouchProvider, ShopProvider>(
+          create: (context) => ShopProvider(
+            context.read<ShopRepository>(),
+            context.read<LuckPouchProvider>(),
           ),
-          update: (context, policy, previous) =>
-              previous ??
-              WishWallProvider(context.read<WishWallRepository>(), policy),
+          update: (context, pouch, previous) =>
+              previous ?? ShopProvider(context.read<ShopRepository>(), pouch),
         ),
-        // [상담(Midnight Comfort)] 신통방통소원방 옆 신규 섹션 — 완전 Mock,
-        // 무료 광고형 구조(코인 차감 없음) 정책을 따른다.
+        // [S5 복주머니 결제] 곳간(Store)/체크아웃/ShortageQuickSheet 전용 구매
+        // 서비스 — ShopProvider와 동일하게 LuckPouchProvider 위에 얇게 얹는다.
+        // [초심/정성/신통 구독 실결제 연동 — 2026-11-27] PouchProductProvider와
+        // 동일하게 생성 시점에 ..loadSubPlans()로 서버 subscription_plans를
+        // 1회 캐시해 곳간 구독탭이 열릴 때 바로 canRealPurchase 판단이
+        // 가능하도록 한다.
+        ChangeNotifierProxyProvider<LuckPouchProvider, PouchPayService>(
+          create: (context) =>
+              PouchPayService(context.read<LuckPouchProvider>())
+                ..loadSubPlans(),
+          update: (context, pouch, previous) {
+            if (previous != null) {
+              previous.updatePouch(pouch);
+              return previous;
+            }
+            return PouchPayService(pouch);
+          },
+        ),
+        // [Google Play Billing 실연동 — 2026-11-26] admin_web PouchProduct
+        // 카탈로그(googlePlayProductId 포함) 캐시. 체크아웃 화면이 실결제
+        // 가능 여부를 판단할 때 조회한다.
+        ChangeNotifierProvider<PouchProductProvider>(
+          create: (_) => PouchProductProvider(PouchProductRepository())..load(),
+        ),
+        // [소원방 v2.6 전면 재구축] 구 감사 도장(GratitudeProvider)은 신규 모듈로
+        // 완전히 대체되어 제거했다.
+        // [귀인지도 실구현] admin_web `/api/public/guinji/*` 실 API 연동.
+        // 결제 없음 — 지급(guinji_join/guinji_daily_visit)은 전부 서버
+        // 트랜잭션 내부에서만 발생하며, 이 Provider는 조회/요청만 수행한다.
         ChangeNotifierProvider(
-          create: (_) => WishCounselProvider(WishCounselRepository()),
+          create: (_) => GuinjiProvider(GuinjiRepository()),
+        ),
+        // [궁합지도 Flutter 화면 개발 — §1①] admin_web
+        // `/api/public/gunghap/*` 실 API 연동. 100 복주머니 차감은 전부
+        // 서버 `/unlock` 트랜잭션 내부에서만 발생하며, 이 Provider는
+        // 조회/요청만 수행한다(귀인지도 GuinjiProvider와 동일한 원칙).
+        ChangeNotifierProvider(
+          create: (_) => GunghapProvider(GunghapRepository()),
+        ),
+        // [소원방 v2.6 재구축] 신규 모듈 전역 상태. 서버가 레벨/포인트/쿨타임/
+        // 감쇠를 전부 계산하므로(docs/SCREENS.md [SERVER] 원칙) 이 Provider는
+        // 순수 ChangeNotifier + Repository 주입만으로 충분하다(복주머니 잔액은
+        // 서버의 Me.pouch를 그대로 표시하며, 소원방 쪽에서 별도 화폐/Proxy
+        // 연결을 만들지 않는다 — 재화 단일화 원칙).
+        ChangeNotifierProvider(
+          create: (_) => WishRoomProvider(ApiRepository()),
+        ),
+        // [귀인지도 정통사주 리뉴얼 — STEP 6.5] Topic Engine 기반 신규
+        // "사주 이야기" 흐름 전역 상태. baseUrl은 다른 신규 API Provider와
+        // 동일하게 EnvConfig.adminApiBaseUrl 기반으로 조립한다(하드코딩
+        // 금지). 기존 saju_v3/SajuProvider와 독립적으로 동작한다.
+        ChangeNotifierProvider(
+          create: (_) => SajuRenewalProvider(SajuRenewalApi()),
+        ),
+        // [엔진 통합 지시문 STEP 3] 사주/타로/관상/손금/궁합 교차검증
+        // 오케스트레이터. 기존 TarotProvider/FaceProvider/PalmProvider/
+        // CompatibilityProvider와는 별개의 Repository 인스턴스를 사용한다
+        // (각 Repository는 상태가 없거나, 있어도 "서버 실패 시 세션
+        // 로컬 폴백"용 _history뿐이라 별도 인스턴스로 둬도 안전하다 —
+        // 오케스트레이터는 조회(getHistory)만 호출하고 신규 분석을
+        // 트리거하지 않으므로 화면 쪽 상태와 충돌하지 않는다).
+        ChangeNotifierProvider(
+          create: (_) => OrchestratorProvider(
+            FortuneOrchestrator(
+              gateway: DefaultDoorEngineGateway(
+                tarotRepository: TarotRepository(),
+                faceRepository: FaceRepository(),
+                palmRepository: PalmRepository(),
+                compatibilityRepository: CompatibilityRepository(),
+              ),
+            ),
+          ),
         ),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          return MaterialApp(
-            navigatorKey: appNavigatorKey,
-            title: 'Fortune Fusion',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.light,
-            themeMode: themeProvider.mode,
-            initialRoute: '/splash',
-            onGenerateRoute: AppRouter.onGenerateRoute,
-            builder: (context, child) =>
-                LuckPouchToastOverlay(child: child ?? const SizedBox.shrink()),
-          );
-        },
+      // [Stage2 결함수정 — 결함-A10-01] MultiProvider의 모든 Provider가
+      // 트리에 생성된 직후(child 슬롯) 단 한 번, 개인정보/이력을 담은 각
+      // feature Provider의 clearOnLogout()을 AuthProvider의 콜백
+      // 레지스트리에 등록한다. AuthProvider.logout() 호출 시 이 콜백들이
+      // 자동 실행되어 다른 계정으로 재로그인할 때 이전 계정 데이터가
+      // 화면에 잠깐이라도 노출되는 것을 방지한다.
+      child: _LogoutCallbackRegistrar(
+        child: Consumer<ThemeProvider>(
+          builder: (context, themeProvider, _) {
+            return MaterialApp(
+              navigatorKey: appNavigatorKey,
+              // [PC 랜딩 연동] 라우트 변화를 부모 윈도우(랜딩)에 알리기
+              // 위한 Observer. 비-웹 플랫폼에서는 빈 구현(no-op)이다.
+              navigatorObservers: [
+                WebNavBridgeObserver(),
+                SoundNavigatorObserver(context.read<GuinjiSoundService>()),
+              ],
+              title: '귀인지도',
+              debugShowCheckedModeBanner: false,
+              // [다크 베이스 — 사용자 피드백] 화면 전환 순간 흰/아이보리로
+              // 번쩍이던 것은 MaterialPageRoute의 새 페이지 베이스색이
+              // AppTheme.light(흰색)였기 때문. 베이스 스캐폴드 배경을
+              // 메인페이지(#0B0B0D)로 내려 전환 플래시와 미지정 배경을 모두
+              // 다크로 통일한다. 화면별 명시 색상은 그대로 유지된다.
+              theme: AppTheme.light.copyWith(
+                scaffoldBackgroundColor: const Color(0xFF0B0B0D),
+                colorScheme: AppTheme.light.colorScheme.copyWith(
+                  surface: const Color(0xFF0B0B0D),
+                  brightness: Brightness.dark,
+                ),
+              ),
+              themeMode: themeProvider.mode,
+              initialRoute: '/splash',
+              onGenerateRoute: AppRouter.onGenerateRoute,
+              builder: (context, child) {
+                // [STEP9 §7 QA 전용] 웹 프리뷰 URL에 ?ts=1.3 같은 파라미터가
+                // 있을 때만 textScale을 오버라이드한다(없으면 null → 시스템
+                // 기본값 그대로, 즉 기존 프로덕션 동작과 완전히 동일).
+                final qaScale = readQaTextScaleOverride();
+                final content = LuckPouchToastOverlay(
+                  child: child ?? const SizedBox.shrink(),
+                );
+                // [PC 웹 미리보기 개선] PC 브라우저처럼 화면이 넓을 때만
+                // 모바일 폭으로 중앙 고정한다(모바일/APK는 영향 없음).
+                final framed = WebMobileFrame(child: content);
+                // [반응형 완전 정비 — 2026-11, 전역 글자배율 안전망]
+                // 사용자 리포트("어떤 휴대폰에선 사이즈가 말도 안되게 안
+                // 잡힌다")의 핵심 원인 중 하나는 기기 접근성 설정("글자 크기
+                // 크게")이 앱 전체에 아무 제한 없이 그대로 반영되어, 고정
+                // 크기로 짜인 레이아웃에서 텍스트가 잘리거나 카드가 깨지는
+                // 것이었다. 기존에는 소원방 모듈의 화면 2곳
+                // (character_shop_screen.dart, wishroom_shell.dart)에서만
+                // 로컬로 1.3배 상한을 뒀는데, 이를 여기(MaterialApp.builder
+                // = 모든 라우트/팝업/모달의 공통 조상)로 승격해 앱 전체에
+                // 동일하게 적용한다. AppTextScaleGuard 참고. 기존 두 화면의
+                // 로컬 clamp는 중복 적용돼도 무해하므로(이미 1.3배 이하인
+                // 값을 다시 1.3배로 clamp = 변화 없음) 그대로 둔다.
+                final guarded = MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: AppTextScaleGuard.clamp(context)),
+                  child: framed,
+                );
+                // [결과페이지 글씨 확대 기능 — 범위 수정, 2026-11] 처음에는
+                // 사용자가 결과화면의 "가-/가+" 컨트롤로 저장한 배율을 여기
+                // (MaterialApp.builder, 즉 Navigator 바깥 = 앱 전체)에서
+                // TextScaler로 적용했으나, 이 지점은 모든 라우트(홈 포함)의
+                // 공통 조상이라 한 결과페이지에서 배율을 올리면 그 상태가
+                // 전역에 남아 다른 화면(홈 등)으로 이동해도 계속 커진 채로
+                // 유지되는 문제가 있었다(사용자 리포트: "결과페이지에서
+                // 한번 하면 다시 원복이 돼야 하는데... 전체 확대된 글로
+                // 나오는것 같아"). 배율은 "그 결과페이지 화면 하나"에만
+                // 적용되어야 하므로, 사용자 배율(TextScaleProvider)은 여기서
+                // 적용하지 않고 ResultTextScaleOverlay가 각 결과 화면의
+                // child 트리에만 개별적으로 적용하도록 책임을 옮긴다. 여기
+                // 전역 지점에는 QA 전용 ?ts= 오버라이드만 남겨둔다(자동화
+                // 캡처 목적 한정 — 쿼리 파라미터가 없으면 기존과 동일하게
+                // 위의 시스템 배율 안전망만 적용된다). QA 오버라이드는 자동화
+                // 캡처 테스트에서 임의 배율을 강제로 재현해야 할 수 있으므로
+                // 안전망보다 우선 적용한다(guarded 바깥에 한 번 더 씌움).
+                final scaled = (qaScale == null || qaScale == 1.0)
+                    ? guarded
+                    : MediaQuery(
+                        data: MediaQuery.of(
+                          context,
+                        ).copyWith(textScaler: TextScaler.linear(qaScale)),
+                        child: guarded,
+                      );
+                // [귀인지도 전역 핀치 확대 시스템] MaterialApp.builder는
+                // Navigator(모든 화면/팝업/모달)의 공통 조상이므로, 여기
+                // 한 곳에만 끼워 넣으면 앱 전체 화면에서 동일한 두 손가락
+                // 핀치 확대 경험이 자동으로 적용된다. 개별 화면이 이
+                // 위젯의 존재를 알 필요가 전혀 없다(지시서 §7 "모든
+                // 화면에 무조건 InteractiveViewer를 중복 적용하는 방식은
+                // 금지" 요구사항에 따라, 화면별 중복 적용 대신 이 단일
+                // 전역 지점에서만 적용한다).
+                // [운영 서버 오접속 재발 방지] 디버그 빌드에서만 현재
+                // 접속 중인 백엔드 주소를 화면 우상단에 작게 표시한다.
+                // 릴리즈 빌드에서는 DebugBackendBadge가 내부적으로
+                // SizedBox.shrink()를 반환해 완전히 비노출.
+                return Stack(
+                  children: [
+                    GlobalPinchZoomOverlay(child: scaled),
+                    const DebugBackendBadge(),
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
+}
+
+/// [Stage2 결함수정 — 결함-A10-01] `App` 위젯의 `child` 슬롯에 위치하여
+/// MultiProvider의 모든 Provider가 이미 생성된 시점에 단 한 번
+/// `initState`에서 각 feature Provider의 `clearOnLogout()`을
+/// `AuthProvider.registerLogoutCallback()`에 등록한다. 계층 분리 원칙(각
+/// feature Provider는 서로를 직접 참조하지 않음)을 지키면서, 로그아웃 시
+/// 개인정보/이력을 담은 모든 Provider의 메모리 상태를 일괄 초기화하기
+/// 위한 배선 지점이다.
+///
+/// 주의: `PassProvider.resetOnLogout()`은 서버측 UserPass revoke 처리가
+/// 필요해 `my_screen.dart`에서 `AuthProvider.logout()` 호출 *이전*에 이미
+/// 명시적으로 호출되고 있으므로 여기서는 등록하지 않는다(중복 실행 방지).
+class _LogoutCallbackRegistrar extends StatefulWidget {
+  const _LogoutCallbackRegistrar({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_LogoutCallbackRegistrar> createState() =>
+      _LogoutCallbackRegistrarState();
+}
+
+class _LogoutCallbackRegistrarState extends State<_LogoutCallbackRegistrar> {
+  bool _registered = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_registered) return;
+    _registered = true;
+
+    final auth = context.read<AuthProvider>();
+    auth.registerLogoutCallback(context.read<WalletProvider>().clearOnLogout);
+    auth.registerLogoutCallback(context.read<MissionProvider>().clearOnLogout);
+    auth.registerLogoutCallback(
+      context.read<SubscriptionProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<AttendanceProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(
+      context.read<NotificationProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(context.read<LuckyBagProvider>().clearOnLogout);
+    auth.registerLogoutCallback(context.read<RankingProvider>().clearOnLogout);
+    auth.registerLogoutCallback(
+      context.read<CompatibilityProvider>().clearOnLogout,
+    );
+    auth.registerLogoutCallback(context.read<TarotProvider>().clearOnLogout);
+    auth.registerLogoutCallback(context.read<FaceProvider>().clearOnLogout);
+    auth.registerLogoutCallback(context.read<PalmProvider>().clearOnLogout);
+    // [귀인지도 정통사주 리뉴얼] SajuProvider/SajuV3Provider 로그아웃
+    // 콜백은 제거되었다 — 아래 SajuRenewalProvider.clearOnLogout이 동일한
+    // 역할(개인정보 잔존 방지)을 담당한다.
+    // [소원방 v2.6 재구축]
+    auth.registerLogoutCallback(context.read<WishRoomProvider>().clearOnLogout);
+    // [귀인지도 정통사주 리뉴얼 — STEP 6.5, 계정 격리 원칙] 사용자A의
+    // FACT/Topic Exposure 상태가 사용자B 화면에 섞이지 않도록 로그아웃
+    // 시 메모리 상태를 초기화한다.
+    auth.registerLogoutCallback(
+      context.read<SajuRenewalProvider>().clearOnLogout,
+    );
+    // [귀인지도 정통사주 리뉴얼 — 화면① 재방문 카드] 사용자A가 마지막으로
+    // 본 이야기가 사용자B의 재방문 카드로 노출되면 안 된다(계정 격리
+    // 원칙과 동일 취지).
+    auth.registerLogoutCallback(() {
+      SajuRecentStoryStore.clear();
+    });
+    // [전수검수 2026-10-12 F1] 귀인지도 Provider도 계정 격리 원칙에 포함한다
+    // — 기존에는 등록이 누락돼 로그아웃 후에도 이전 계정의 지도 메타와
+    // 멤버(이름·생년월일) 정보가 메모리에 잔존했다.
+    auth.registerLogoutCallback(context.read<GuinjiProvider>().clearOnLogout);
+    // [궁합지도 Flutter 화면 개발] 궁합지도 Provider도 동일한 계정 격리
+    // 원칙을 적용한다 — 이전 계정의 초대 토큰/결과 데이터가 로그아웃 후
+    // 메모리에 잔존하면 안 된다.
+    auth.registerLogoutCallback(context.read<GunghapProvider>().clearOnLogout);
+    // [엔진 통합 지시문 STEP 3] 교차검증 오케스트레이터도 동일한 계정
+    // 격리 원칙을 적용한다 — 이전 계정의 사주/타로/관상/손금/궁합 원본
+    // 데이터가 응축된 UnifiedFortuneProfile이 로그아웃 후 잔존하면 안 된다.
+    auth.registerLogoutCallback(
+      context.read<OrchestratorProvider>().clearOnLogout,
+    );
+    // [신당(THE SHRINE) v3 계정 격리] 부적함/추천 조회 상태는 서버
+    // (admin_web ShrineOrder 등)가 userId 기준으로 관리하므로, 로그아웃 시
+    // 클라이언트 캐시(ShrineV3Provider 내부 state)만 비워주면 된다.
+    auth.registerLogoutCallback(context.read<ShrineV3Provider>().clearOnLogout);
+    // [S5 복주머니 결제 — 계정 격리 원칙] 이전 계정의 영수증/구독상태
+    // 표시용 캐시가 로그아웃 후 다른 계정 화면에 잔존하면 안 된다.
+    auth.registerLogoutCallback(context.read<PouchPayService>().clearOnLogout);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

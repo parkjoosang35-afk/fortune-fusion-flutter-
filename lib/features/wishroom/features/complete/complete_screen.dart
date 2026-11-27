@@ -1,0 +1,1072 @@
+// SCR-10 소원 완료·봉인 `/room/complete` — docs/SCREENS.md §SCR-10, §14.1
+// app2/screens-c2.jsx › Complete()/Sealed() 1:1 이식.
+// 완료 연출(6단계, CompleteTimeline.steps) → 기념 카드([되돌리기]/[💌 후기]/[봉인하기])
+// → 봉인 중(인장 stamp + Burst28) → Sealed 화면([+새 소원방]/[기록관 보기]).
+import 'dart:async';
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../application/wishroom_provider.dart';
+import '../../data/models.dart';
+import '../../core/theme/wr_theme.dart';
+import '../../core/motion/wr_motion.dart';
+import '../../core/fx/wr_fx.dart';
+import '../../core/wr_canvas.dart';
+import '../room/room_scene.dart';
+import '../review/review_write_screen.dart';
+import '../explore/explore_screen.dart';
+import '../../wishroom_shell.dart';
+import '../../core/wr_nav_pill.dart';
+import '../../core/wr_toast.dart';
+import '../../../share/application/share_service.dart';
+import '../../../share/domain/share_result_model.dart';
+import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
+
+class CompleteScreen extends StatefulWidget {
+  const CompleteScreen({
+    super.key,
+    required this.roomId,
+    this.already = false,
+    this.outcome,
+    this.note,
+  });
+  final String roomId;
+
+  /// capsule2.jsx `app.go('complete', {already:true})` — 이미 ACHIEVED/COMPLETED 상태에서
+  /// 진입(연출 재생 없이 바로 최종 상태로 보여줌). 원본 `Complete({already})` 의 st 초기값 로직.
+  final bool already;
+
+  /// [4-B 신규 — CHECKLIST.md 대표님 판정] "⋯ → 소원 마무리 시트"(_CareSheet)에서
+  /// 고른 成(FULFILLED)/放(RELEASED) + 한 줄 메모. null이면 기존 호환으로 서버가
+  /// FULFILLED로 간주(complete/route.ts 참고) — vault_screen.dart의 "✿ 소원이
+  /// 이루어졌어요" 버튼처럼 成 단일 경로만 있는 호출부는 그대로 null로 둔다.
+  final Outcome? outcome;
+  final String? note;
+  @override
+  State<CompleteScreen> createState() => _CompleteScreenState();
+}
+
+class _CompleteScreenState extends State<CompleteScreen> {
+  // st: 0(시작) ~ 6(완료) — 원본 Complete() 의 React state 'st' 1:1
+  int _st = 0;
+  int _seal = 0; // 0 없음 · 1 수축 중 · 2 stamp+봉인중 · 3 완료(Sealed 전환)
+  bool _reviewed = false; // 원본 reviewed state — 후기 제출 완료 시 되돌리기/💌후기 버튼 숨김
+  final List<Timer> _timers = [];
+  final _originalResultKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.already) {
+      _st = 6;
+      if (context.read<WishRoomProvider>().room?.status == RoomStatus.SEALED) {
+        _seal = 3;
+      }
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final t in _timers) {
+      t.cancel();
+    }
+    super.dispose();
+  }
+
+  Future<void> _boot() async {
+    final p = context.read<WishRoomProvider>();
+    final room = p.room;
+    if (room == null) return;
+    if (room.status == RoomStatus.SEALED) {
+      setState(() => _seal = 3);
+      return;
+    }
+    if (room.status == RoomStatus.COMPLETED) {
+      // [버그수정 유지] 완료 직후 재진입(새로고침 등) 시 연출을 다시 재생하지 않고
+      // 바로 최종 상태(캡션+버튼 노출)로 진입 — already=true 와 동일한 경로.
+      setState(() => _st = 6);
+      return;
+    }
+    final ok = await p.complete(
+      widget.roomId,
+      outcome: widget.outcome,
+      note: widget.note,
+    );
+    if (!mounted) return;
+    if (!ok) {
+      if (p.lastError != null) WrToast.show(context, p.lastError!.message);
+      return;
+    }
+    _playReveal();
+  }
+
+  /// 원본: [500,1500,2500,3500,4400,5300]ms → setSt(1..6). 이 프로젝트 공용 상수
+  /// CompleteTimeline.steps=[600,1600,2600,3600,4600,5600] 를 그대로 재사용(§14.1 표와 근사 일치).
+  void _playReveal() {
+    final steps = CompleteTimeline.steps;
+    for (var i = 0; i < steps.length; i++) {
+      _timers.add(
+        Timer(Duration(milliseconds: steps[i]), () {
+          if (mounted) setState(() => _st = i + 1);
+        }),
+      );
+    }
+  }
+
+  Future<void> _cancel(WishRoomProvider p) async {
+    final ok = await p.complete(widget.roomId, cancel: true);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WishRoomShell()),
+        (r) => false,
+      );
+    } else if (p.lastError != null) {
+      WrToast.show(context, p.lastError!.message);
+    }
+  }
+
+  void _doSeal(WishRoomProvider p) {
+    setState(() => _seal = 1);
+    _timers.add(
+      Timer(const Duration(milliseconds: 1400), () {
+        if (mounted) setState(() => _seal = 2);
+      }),
+    );
+    _timers.add(
+      Timer(const Duration(milliseconds: 2700), () async {
+        final ok = await p.seal(widget.roomId);
+        if (!mounted) return;
+        if (ok) {
+          setState(() => _seal = 3);
+        } else {
+          if (p.lastError != null) WrToast.show(context, p.lastError!.message);
+          setState(() => _seal = 0);
+        }
+      }),
+    );
+  }
+
+  Future<void> _openReview(WishRoom room) async {
+    final go = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ReviewWriteScreen(room: room),
+        fullscreenDialog: true,
+      ),
+    );
+    if (!mounted) return;
+    if (go == null) return; // 스킵("나중에 남길게요") — reviewed 상태 변경 없음
+    setState(() => _reviewed = true);
+    if (go == 'stories') {
+      // "이야기 보기" → capsule2.jsx `app.go('explore', {tab:'stories'})` 1:1 — 탐색 stories 탭으로 이동.
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const ExploreScreen(initialTab: 'stories'),
+        ),
+      );
+    }
+  }
+
+  /// [앱·웹 공유 구조 확정 — 소원방 "결과 공유" 신설] 기존에는 이 버튼이
+  /// `_shareImage()`(토스트만 띄우는 스텁)에 연결되어 있어 실제로 아무것도
+  /// 공유하지 않았다 — 운영 DB에 쌓인 `ShareResultType.wish` 레코드가 전부
+  /// QA 수동 테스트 데이터였던 이유(실사용 진입점이 전혀 없었음).
+  ///
+  /// [초대(`/w/{token}`)와의 구분 — 지시서 원칙] 이 공유는 방 진행 중
+  /// 참여를 유도하는 "초대"(main_room_screen.dart `_ShareSheet`,
+  /// `/w/{token}`)와 다른 "완성된 소원 성취 결과"를 공유하는 것이다.
+  /// 같은 공통 `ShareService`/`POST /api/public/share` 경로를 타지만
+  /// `ShareResultType.wish`로 생성되어 `/r/{shareId}`로 열리므로 서로
+  /// 겹치지 않는다(admin_web `/w/[token]`은 그대로 초대 전용 유지).
+  ///
+  /// [PII 미포함 원칙] 소원 원문(text)은 사용자가 직접 쓴 자유 입력이라
+  /// 민감정보가 섞일 수 있어 payload에 원문 그대로 담지 않고, 레벨/점등
+  /// 일수/색상 등 공개 가능한 집계값만 전달한다.
+  void _shareResult(WishRoom room) {
+    if ((_st < 6 && _seal != 3) || (_seal > 0 && _seal < 3)) {
+      WrToast.show(context, '완료 연출이 끝난 뒤 공유해주세요.');
+      return;
+    }
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.wish,
+      title: '${room.owner}님의 소원이 이루어졌어요 · 귀인지도',
+      description: '${room.daysLit}일 동안 밝혔던 소원이 하늘에 닿았어요.',
+      payload: {
+        'kind': 'wish',
+        'ownerName': room.owner,
+        'levelName': room.levelName,
+        'level': room.level,
+        'daysLit': room.daysLit,
+        'wishColor': room.wishColor,
+        'summary': '${room.daysLit}일 동안 밝혔던 소원이 하늘에 닿았어요.',
+        'highlights': [
+          '레벨: ${room.levelName}',
+          '점등일수: ${room.daysLit}일',
+          '소원 빛깔: ${room.wishColor}',
+        ],
+      },
+      sourceRefId: room.id,
+      originalResultKey: _originalResultKey,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_seal == 3) {
+      return Theme(
+        data: wrThemeData(),
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Consumer<WishRoomProvider>(
+            builder: (context, p, __) {
+              final room = p.room;
+              if (room == null) {
+                return const Center(
+                  child: CircularProgressIndicator(color: WrC.glow),
+                );
+              }
+              return OriginalResultScene(
+                captureKey: _originalResultKey,
+                background: Colors.black,
+                child: _SealedBody(
+                  room: room,
+                  items: p.items,
+                  // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+                  onSave: () => saveOriginalResult(
+                    context,
+                    _originalResultKey,
+                    name: buildSaveFileName('wish', room.id),
+                  ),
+                  onShare: () => _shareResult(room),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+    return Theme(
+      data: wrThemeData(),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Consumer<WishRoomProvider>(
+          builder: (context, p, __) {
+            final room = p.room;
+            if (room == null) {
+              return const Center(
+                child: CircularProgressIndicator(color: WrC.glow),
+              );
+            }
+            final st = _st;
+            return OriginalResultScene(
+              captureKey: _originalResultKey,
+              background: Colors.black,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: AnimatedScale(
+                      scale: _seal > 0 ? .02 : 1,
+                      duration: const Duration(milliseconds: 1400),
+                      curve: WrCurves.door,
+                      child: WrCanvasScaler(
+                        child: SizedBox(
+                          width: 390,
+                          height: 844,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // [버그수정 — 전수감사] app2/screens-c2.jsx › Complete(): `<Room room={{...r,
+                              // level:..., brightness:1}} ...>` — 완료 연출 중에는 미접속 감쇠를 무시하고
+                              // 항상 최대 밝기로 보여준다. brightnessOverride 누락.
+                              RoomScene(
+                                room: room,
+                                items: p.items,
+                                boost: st >= 1 ? 2 : 0,
+                                gold: st >= 2 ? .5 : 0,
+                                charGlow: st >= 5,
+                                levelOverride: st >= 3 ? 10 : null,
+                                brightnessOverride: 1,
+                              ),
+                              if (st >= 1)
+                                const WrBurst(
+                                  x: 204,
+                                  y: 330,
+                                  n: 24,
+                                  spread: 180,
+                                  color: Color(0xFFFFF2B8),
+                                  dur: 1600,
+                                ),
+                              if (st >= 4)
+                                for (var i = 0; i < 7; i++)
+                                  _LightPillar(index: i),
+                              if (st >= 3)
+                                const WrPetalRain(
+                                  n: 40,
+                                  dur: (4, 7),
+                                  spread: 3,
+                                ),
+                              if (st >= 3)
+                                for (var i = 0; i < _lotusSpots.length; i++)
+                                  _LotusPop(index: i, pos: _lotusSpots[i]),
+                              if (st >= 5) const WrButterflies(x: 204, y: 420),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_seal > 0 && _seal < 3)
+                    _SealingOverlay(
+                      sealing: _seal,
+                      isRelease: room.outcome == Outcome.RELEASED,
+                    ),
+                  // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 Column(닫기
+                  // 버튼 Row + 제목/부제 블록 + 기존 Spacer())은 Stack이
+                  // 부여하는 568px 높이 제약 안에 있었는데, 좁은 화면
+                  // (320x568)+글자 확대(2.0~2.5배) 조합에서 실제 콘텐츠 높이가
+                  // 닫기 버튼(56px)+제목/부제 블록(2.5배에서 529px)=585px로
+                  // 568px를 넘어 아래쪽 17px가 잘리는 오버플로가 실측됐다
+                  // (mainAxisSize는 이 문제와 무관 — Spacer가 있든 없든
+                  // 자식 합계가 제약을 넘으면 그대로 오버플로된다).
+                  // _SealedBody에서 이미 쓰는 동일 버그 클래스의 표준 수정
+                  // 패턴(SingleChildScrollView)을 재사용 — 내용이 화면에 다
+                  // 들어가면 지금처럼 그대로 위쪽에 붙어 보이고, 넘칠 때만
+                  // 스크롤되게 한다. 기존에 있던 끝의 Spacer()는 스크롤
+                  // 영역 안에서는 더 이상 의미가 없으므로(아래로 밀어낼
+                  // 형제가 없다) 제거했다 — 시각적 변화 없음.
+                  //
+                  // [회귀 수정 — original_result_capture_test.dart 발견]
+                  // 위 수정 직후 '소원 완료 실제 장면' 캡처 테스트가
+                  // RenderRepaintBoundary 크기를 Size(390, 844) 대신
+                  // Size(390, 167)로 깨뜨렸다. 원인: 이 Column은 이
+                  // Stack의 "non-positioned child" 중 하나라, 원래
+                  // mainAxisSize가 기본값(max)이었을 때는 부모가 준 844px
+                  // 제약을 그대로 채워 Stack 전체 크기(390x844, 캡처
+                  // 경계 크기의 기준)를 유지하는 데 기여하고 있었다.
+                  // mainAxisSize: min으로 바꾸면서 이 child가 내용물
+                  // 높이(~167px)만 차지하게 됐고, Stack은 non-positioned
+                  // children 중 가장 큰 쪽에 맞춰 크기를 정하므로(다른
+                  // non-positioned child인 AnimatedScale/WrCanvasScaler는
+                  // SizedBox(390,844) 내부에 있어 Stack 크기 결정에 기여하지
+                  // 않음 — Positioned.fill 안에 있지 않은 일반 Align 류가
+                  // 아니라 실제로는 전자가 Positioned.fill로 래핑돼있어야
+                  // 했는데 그렇지 않았다) Stack 전체가 167px로 줄어 캡처가
+                  // 깨졌다. Positioned.fill로 감싸 Stack 크기 결정에는
+                  // 관여하지 않게 하고, 내부에서 Align(top)+필요시 스크롤로
+                  // 오버플로 수정 효과는 그대로 유지한다.
+                  if (st >= 6 && _seal == 0)
+                    Positioned.fill(
+                      child: SafeArea(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    8,
+                                    16,
+                                    0,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).maybePop(),
+                                        icon: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Column(
+                                    children: [
+                                      ShaderMask(
+                                        shaderCallback: (b) =>
+                                            const LinearGradient(
+                                              colors: [
+                                                Color(0xFFFFF6D8),
+                                                Color(0xFFF5CF6A),
+                                                Color(0xFFFF8FB1),
+                                              ],
+                                            ).createShader(b),
+                                        child: const Text(
+                                          '축하합니다',
+                                          style: TextStyle(
+                                            fontFamily: 'NotoSerifKR',
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 34,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                        ),
+                                        child: Text(
+                                          '${room.daysLit}일 동안 밝혔던 당신의 소원이\n하늘에 닿았어요',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (st >= 6 && _seal == 0)
+                    Positioned(
+                      left: 14,
+                      right: 14,
+                      bottom: 34,
+                      child: _BottomCard(
+                        room: room,
+                        reviewed: _reviewed,
+                        onUndo: () => _cancel(p),
+                        onReview: () => _openReview(room),
+                        onSeal: () => _doSeal(p),
+                        onShare: () => _shareResult(room),
+                        // [REQ-09] 파일명 규칙 통일.
+                        onSave: () => saveOriginalResult(
+                          context,
+                          _originalResultKey,
+                          name: buildSaveFileName('wish', room.id),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+const _lotusSpots = [
+  Offset(40, 560),
+  Offset(300, 600),
+  Offset(170, 650),
+  Offset(90, 470),
+  Offset(280, 470),
+];
+
+class _LightPillar extends StatefulWidget {
+  const _LightPillar({required this.index});
+  final int index;
+  @override
+  State<_LightPillar> createState() => _LightPillarState();
+}
+
+class _LightPillarState extends State<_LightPillar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: Duration(
+      milliseconds: ((2.2 + (widget.index % 3) * .5) * 1000).round(),
+    ),
+  )..repeat();
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final i = widget.index;
+    final w = 6.0 + (i % 3) * 4;
+    return Positioned(
+      left: 50 + i * 48,
+      bottom: 100,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, __) {
+          final dl = (i * .15 / (2.2 + (i % 3) * .5)).clamp(0.0, 1.0);
+          final raw = ((_c.value - dl) % 1 + 1) % 1;
+          final op = (1 - raw).clamp(0.0, 1.0) * .9;
+          return IgnorePointer(
+            child: Opacity(
+              opacity: op,
+              child: Container(
+                width: w,
+                height: 340,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: const LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.transparent,
+                      Color(0xE6FFE6A0),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LotusPop extends StatefulWidget {
+  const _LotusPop({required this.index, required this.pos});
+  final int index;
+  final Offset pos;
+  @override
+  State<_LotusPop> createState() => _LotusPopState();
+}
+
+class _LotusPopState extends State<_LotusPop>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  );
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: (widget.index * 140).round()), () {
+      if (mounted) _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: widget.pos.dx,
+      top: widget.pos.dy,
+      child: IgnorePointer(
+        child: ScaleTransition(
+          scale: CurvedAnimation(parent: _c, curve: WrCurves.overshoot),
+          child: FadeTransition(
+            opacity: _c,
+            child: Image.asset(
+              'assets/wishroom/items/lotus.png',
+              width: 70,
+              errorBuilder: (_, __, ___) =>
+                  const Text('🪷', style: TextStyle(fontSize: 44)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SealingOverlay extends StatelessWidget {
+  const _SealingOverlay({required this.sealing, this.isRelease = false});
+  final int sealing; // 1 수축 중 · 2 stamp
+  // [4-B 신규] outcome==RELEASED(放)일 때 成 대신 放 도장·색을 보여준다.
+  final bool isRelease;
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black38,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 130,
+                height: 130,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isRelease
+                      ? const Color(0xFF7A6A9A)
+                      : const Color(0xFFC94A3B),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isRelease
+                              ? const Color(0xFF7A6A9A)
+                              : const Color(0xFFC94A3B))
+                          .withValues(alpha: .7),
+                      blurRadius: 40,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  isRelease ? '放' : '成',
+                  style: const TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 70,
+                    color: Color(0xFFFFF9E8),
+                  ),
+                ),
+              ),
+              if (sealing == 2) ...[
+                const SizedBox(height: 36),
+                const SizedBox(
+                  width: 1,
+                  height: 1,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [WrBurst(x: 0, y: 0, n: 28, spread: 200)],
+                  ),
+                ),
+                const SizedBox(height: 36),
+                const Text(
+                  '봉인하는 중',
+                  style: TextStyle(
+                    fontFamily: 'NotoSerifKR',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomCard extends StatelessWidget {
+  const _BottomCard({
+    required this.room,
+    required this.reviewed,
+    required this.onUndo,
+    required this.onReview,
+    required this.onSeal,
+    required this.onShare,
+    required this.onSave,
+  });
+  final WishRoom room;
+  final bool reviewed;
+  final VoidCallback onUndo, onReview, onSeal, onShare, onSave;
+  @override
+  Widget build(BuildContext context) {
+    // app2/screens-c2.jsx › Complete() !reviewed && !room.sealUntil 1:1.
+    // [버그수정 — 전수감사] 기존엔 room.cancelUntil(다른 의미의 필드)을 체크해서
+    // 되돌리기 버튼이 거의 항상 숨겨지는 버그가 있었다. 원본은 "이 방에 타임캡슐
+    // 봉인일(sealUntil)이 설정돼 있지 않은 경우"만 되돌리기를 허용한다.
+    final canUndo = !reviewed && room.sealUntil == null;
+    // [4-B 신규] 成/放 도장 — room.outcome==RELEASED(放)이면 내려놓기 도장·색으로.
+    final isRelease = room.outcome == Outcome.RELEASED;
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: WrDeco.hanji,
+          child: Row(
+            children: [
+              Text(
+                isRelease ? '放' : '成',
+                style: TextStyle(
+                  fontFamily: 'NotoSerifKR',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 42,
+                  color: isRelease
+                      ? const Color(0xFF7A6A9A)
+                      : const Color(0xFFC94A3B),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      room.text,
+                      style: const TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14,
+                        color: Color(0xFF4A2A1C),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '❤ ${room.supportCount} · 福 ${room.pouchReceived} · ${room.daysLit}일',
+                      style: const TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11.5,
+                        color: Color(0xFF8A4A3A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // 원본 flex 비율: 되돌리기 1 · 💌 후기 1.4 · 봉인하기 2 (되돌리기·💌후기는 !reviewed 일 때만 노출)
+        Row(
+          children: [
+            if (canUndo) ...[
+              Expanded(
+                flex: 10,
+                child: _actionBtn('되돌리기', WrDeco.btnDark, Colors.white, onUndo),
+              ),
+              const SizedBox(width: 8),
+            ],
+            if (!reviewed) ...[
+              Expanded(
+                flex: 14,
+                child: _actionBtn(
+                  '💌 후기',
+                  WrDeco.btnGold,
+                  const Color(0xFF4A2A10),
+                  onReview,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              flex: 20,
+              child: _actionBtn(
+                isRelease ? '放 소원방 봉인하기' : '成 소원방 봉인하기',
+                WrDeco.btnPink,
+                Colors.white,
+                onSeal,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] 저장/공유 두 텍스트버튼을 고정
+        // Row(mainAxisAlignment.center)로 배치하면 좁은 화면(360px)+글자 확대
+        // (1.3배) 조합에서 두 버튼 폭의 합이 화면 폭을 넘어 오른쪽으로 29~107px
+        // 오버플로가 발생했다(실측 확인, _SealedBody의 동일 버그와 같은 원인).
+        // other_room_screen.dart에서 이미 쓰는 공통 패턴대로 Wrap으로 바꿔
+        // 공간이 부족하면 다음 줄로 자연스럽게 넘어가게 한다(문구·아이콘·동작은
+        // 그대로 유지).
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            // [REQ-08 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기
+            // 저장 버튼 문구/아이콘을 전 화면 공통 "이미지로 저장" +
+            // download_rounded로 통일.
+            TextButton.icon(
+              onPressed: onSave,
+              icon: Icon(Icons.download_rounded, size: 16, color: WrC.muted),
+              label: Text('이미지로 저장', style: WrF.body(12.5, color: WrC.muted)),
+            ),
+            TextButton(
+              onPressed: onShare,
+              child: Text(
+                '기념 이미지 공유하기',
+                style: WrF.body(12.5, color: WrC.muted),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _actionBtn(
+    String label,
+    BoxDecoration deco,
+    Color color,
+    VoidCallback onTap,
+  ) => SizedBox(
+    height: WrSize.btnSmH,
+    child: DecoratedBox(
+      decoration: deco,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w700,
+                fontSize: WrSize.btnSmFont,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _SealedBody extends StatelessWidget {
+  const _SealedBody({
+    required this.room,
+    required this.items,
+    required this.onSave,
+    required this.onShare,
+  });
+  final WishRoom room;
+  final List<WrItem> items;
+  final VoidCallback onSave, onShare;
+  @override
+  Widget build(BuildContext context) {
+    // [4-B 신규] 放(RELEASED)일 때 모서리 도장을 成과 다른 색/글자로 표시 —
+    // _SealingOverlay/_BottomCard와 동일한 패턴.
+    final isRelease = room.outcome == Outcome.RELEASED;
+    // 원본 `.blur-room { backgroundImage: room-lv10.jpg }` — 배경은 정적 Lv10 일러스트를 흐리게.
+    // (RoomThumb 라이브 렌더는 카드 쪽에서만, 배경까지 RoomScene 2중 렌더하면 애니메이션 비용이 커진다.)
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Image.asset(
+              'assets/wishroom/room-lv10.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: Container(color: Colors.black.withValues(alpha: .55)),
+        ),
+        const WrPetalRain(n: 14, dur: (7, 10), spread: 6),
+        // app2/screens-c2.jsx › Sealed() <NavPill style={{left:14, top:52}}/> 1:1.
+        // [버그수정 — 전수감사] 기존엔 전혀 없었다.
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 0, 0),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: WrNavPill(
+                onBack: () => wrBackOrAskExit(context),
+                onExitHome: () => wrExitHome(context),
+              ),
+            ),
+          ),
+        ),
+        // [반응형 화면 규격 통일 — 잘림 현상 수정] 이 Column은 Stack의
+        // StackFit.loose 자식이라 "화면 높이만큼 제약은 되지만(최대 516 등)
+        // 내용 그대로 중앙정렬"만 하고 있었는데, 좁은 화면(360x640)+글자
+        // 확대(1.3배) 조합에서 콘텐츠 실제 높이가 그 제약을 넘어 아래쪽으로
+        // 52~256px 잘리는 오버플로가 실측됐다. welcome_reward_modal.dart에서
+        // 이미 쓰는 동일 버그 클래스의 표준 수정 패턴(LayoutBuilder +
+        // SingleChildScrollView + ConstrainedBox(minHeight))을 그대로
+        // 재사용 — 내용이 화면에 다 들어가면 지금처럼 그대로 중앙정렬되고
+        // (ConstrainedBox의 minHeight는 바닥값일 뿐이라 짧은 내용엔 영향 없음),
+        // 넘칠 때만 스크롤로 모든 버튼에 닿을 수 있게 한다.
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(26),
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 170,
+                        height: 210,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 170,
+                              height: 210,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: WrC.glow, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(color: Color(0x80F5CF6A), blurRadius: 40),
+                                ],
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              // [버그수정 — 전수감사] app2/screens-c2.jsx › Sealed(): `<RoomThumb room={{...r,
+                              // brightness:1}} w={170} h={210} focus={.44}/>` — G-4 공용 썸네일(RoomThumb,
+                              // focus=.44)이어야 하는데 raw RoomScene(focus 없음, items 빈 배열 — 장식이
+                              // 전혀 안 보임, brightness 미보정)을 그대로 쓰고 있었다.
+                              child: RoomThumb(
+                                room: room,
+                                items: items,
+                                w: 170,
+                                h: 210,
+                                focus: .44,
+                                brightnessOverride: 1,
+                              ),
+                            ),
+                            Positioned(
+                              right: -10,
+                              bottom: -10,
+                              child: Container(
+                                width: 46,
+                                height: 46,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isRelease
+                                      ? const Color(0xFF7A6A9A)
+                                      : WrC.accent,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: isRelease
+                                          ? const Color(
+                                              0xFF7A6A9A,
+                                            ).withValues(alpha: .5)
+                                          : const Color(0x80C94A3B),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  isRelease ? '放' : '成',
+                                  style: const TextStyle(
+                                    fontFamily: 'NotoSerifKR',
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 24,
+                                    color: Color(0xFFFFF9E8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 34),
+                      Text(
+                        '소원 기록관에\n영원히 머뭅니다',
+                        textAlign: TextAlign.center,
+                        style: WrF.display(26, color: Colors.white, height: 1.35),
+                      ),
+                      const SizedBox(height: 10),
+                      // [대표님 판정 — "완성" 라벨 불일치] "완성"은 50일째 방 단계
+                      // 이름(소원방 완성)에만 쓰고, 소원이 이뤄진/내려놓은 것은
+                      // "완성"이라 쓰지 않는다. isRelease(846행)로 이미 成/放을
+                      // 구분하고 있으므로 이 안내 문구도 같은 분기를 적용한다.
+                      Text(
+                        isRelease
+                            ? '내려놓은 소원도 이곳에 고이 담기고,\n이제 새로운 소원을 시작할 수 있어요'
+                            : '이루어진 소원은 보관하고,\n이제 새로운 소원을 시작할 수 있어요',
+                        textAlign: TextAlign.center,
+                        style: WrF.body(13.5, color: WrC.muted, height: 1.7),
+                      ),
+                      const SizedBox(height: 28),
+                      _sealedBtn(
+                        '+ 새로운 소원방 만들기',
+                        WrDeco.btnPink,
+                        Colors.white,
+                        () => Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const WishRoomShell()),
+                          (r) => false,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _sealedBtn(
+                        '소원 기록관 보기',
+                        WrDeco.btnDark,
+                        Colors.white,
+                        () => Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (_) => const WishRoomShell(initialIndex: 4),
+                          ),
+                          (r) => false,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // [반응형 화면 규격 통일 — 잘림 현상 수정] 저장/공유 두 텍스트버튼을
+                      // 고정 Row(mainAxisAlignment.center)로 배치하면 좁은 화면(360px)+
+                      // 글자 확대(1.3배) 조합에서 두 버튼 폭의 합이 화면 폭을 넘어 오른쪽
+                      // 으로 88~172px 오버플로가 발생했다(실측 확인). other_room_screen.dart
+                      // 에서 이미 쓰는 공통 패턴대로 Wrap으로 바꿔 공간이 부족하면 다음
+                      // 줄로 자연스럽게 넘어가게 한다(문구·아이콘·동작은 그대로 유지).
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          // [REQ-08] 기기 저장 버튼 문구/아이콘을 전 화면 공통
+                          // "이미지로 저장" + download_rounded로 통일.
+                          TextButton.icon(
+                            onPressed: onSave,
+                            icon: const Icon(Icons.download_rounded, size: 16),
+                            label: const Text('이미지로 저장'),
+                          ),
+                          TextButton(
+                            onPressed: onShare,
+                            child: const Text('기념 이미지 공유하기'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sealedBtn(
+    String label,
+    BoxDecoration deco,
+    Color color,
+    VoidCallback onTap,
+  ) => SizedBox(
+    width: double.infinity,
+    height: WrSize.btnH,
+    child: DecoratedBox(
+      decoration: deco,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w700,
+                fontSize: WrSize.btnFont,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}

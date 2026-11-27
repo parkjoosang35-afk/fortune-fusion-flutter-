@@ -25,6 +25,13 @@ import 'pass_gate_helper.dart';
 /// - "지금 프리패스 열어보기" 버튼은 기존 [showPassRequiredSheet]를 그대로
 ///   호출해, 실제 발급 플로우(쿠팡파트너스 단일 흐름)는 그 기존 함수가
 ///   전담한다(이 화면에서 새로 만들지 않음).
+///
+/// [프리패스 진입 화면 개편 · DEV-2026-1011-01, 2026-10-11] REQ-02 §5.1
+/// 전수조사 결과, 이 화면으로 들어오는 유일한 진입점이었던 홈 하단
+/// 프리패스 버튼(`GuinjiFreePassBar`)이 쿠팡파트너스 팝업 직접 호출로
+/// 변경되면서, 현재 코드베이스에는 이 화면에 도달하는 경로가 없다
+/// (도달 불가 코드, dead code). '/free-pass-gate' 라우트와 이 파일은
+/// 지시서에 따라 삭제하지 않고 그대로 유지한다(리소스 정리는 별도 이슈).
 class FreePassGateScreen extends StatefulWidget {
   const FreePassGateScreen({super.key});
 
@@ -155,8 +162,7 @@ class _FreePassGateScreenState extends State<FreePassGateScreen> {
                     else
                       PremiumButton.secondary(
                         label: '홈으로 돌아가기',
-                        onPressed: () =>
-                            Navigator.of(context).maybePop(),
+                        onPressed: () => Navigator.of(context).maybePop(),
                       ),
                     const SizedBox(height: UnifiedTokens.spaceSm),
                     TextButton(
@@ -199,33 +205,60 @@ class _StatusCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                passState.isActive
-                    ? Icons.lock_open_rounded
-                    : Icons.lock_outline_rounded,
-                size: UnifiedTokens.iconMd,
-                color: passState.isActive
-                    ? Colors.white
-                    : UnifiedColors.textPrimary,
-              ),
-              const SizedBox(width: UnifiedTokens.spaceSm),
-              Text(
-                passState.isActive ? '프리패스 이용 중' : '프리패스 미사용',
-                style: UnifiedText.bodyStrong(
-                  color: passState.isActive
-                      ? Colors.white
-                      : UnifiedColors.textPrimary,
+          // [반응형 화면 규격 통일 지시서] 아이콘+상태 라벨 Row가
+          // Spacer()로 remainingLabel을 오른쪽 끝에 붙이는 구조였는데,
+          // 두 Text 모두 Flexible/Expanded 보호가 전혀 없어 레거시
+          // 시간제+횟수 겸용 문구(예: "기존 시간제 이용권 보유 ·
+          // 999999회 남음")처럼 긴 remainingLabel이 내려오면 좁은
+          // 화면에서 RenderFlex 오버플로가 발생했다(실측: 최대
+          // 854px). SizedBox(width: double.infinity) + Wrap
+          // (spaceBetween)으로 바꿔, 공간이 충분하면 기존과 완전히
+          // 동일하게 한 줄로 보이고 부족할 때만 두 번째 줄로 자연스럽게
+          // 줄바꿈되도록 한다(explore_screen.dart/login_screen.dart에서
+          // 검증된 동일 패턴 재사용).
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: 4,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      passState.isActive
+                          ? Icons.lock_open_rounded
+                          : Icons.lock_outline_rounded,
+                      size: UnifiedTokens.iconMd,
+                      color: passState.isActive
+                          ? Colors.white
+                          : UnifiedColors.textPrimary,
+                    ),
+                    const SizedBox(width: UnifiedTokens.spaceSm),
+                    Flexible(
+                      child: Text(
+                        passState.isActive ? '프리패스 이용 중' : '프리패스 미사용',
+                        style: UnifiedText.bodyStrong(
+                          color: passState.isActive
+                              ? Colors.white
+                              : UnifiedColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const Spacer(),
-              if (passState.isActive && passState.remainingLabel != null)
-                Text(
-                  passState.remainingLabel!,
-                  style: UnifiedText.chipLabel(color: UnifiedColors.neon),
-                ),
-            ],
+                if (passState.isActive && passState.remainingLabel != null)
+                  Text(
+                    passState.remainingLabel!,
+                    style: UnifiedText.chipLabel(color: UnifiedColors.neon),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
           Divider(
@@ -235,43 +268,69 @@ class _StatusCard extends StatelessWidget {
             height: 1,
           ),
           const SizedBox(height: UnifiedTokens.spaceMd),
-          Row(
+          // [반응형 화면 규격 통일 지시서] 복주머니 개수 + 구독 배지 Row도
+          // 보호 장치 없이 나열돼 있어, 복주머니 잔액이 매우 큰 숫자이고
+          // 동시에 구독 중일 때 좁은 화면에서 오버플로가 발생했다(실측:
+          // 최대 479px). Wrap으로 교체해 공간이 부족할 때만 구독 배지가
+          // 다음 줄로 자연스럽게 내려가도록 한다 — 두 클러스터 사이 간격은
+          // 기존 SizedBox(width: spaceMd)와 동일하게 Wrap의 spacing으로,
+          // 아이콘·텍스트 사이 간격은 기존처럼 내부 Row의 SizedBox(6)로 유지한다.
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: UnifiedTokens.spaceMd,
+            runSpacing: 4,
             children: [
-              Icon(
-                Icons.savings_outlined,
-                size: UnifiedTokens.iconSm,
-                color: passState.isActive
-                    ? Colors.white70
-                    : UnifiedColors.textSecondary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '복주머니 $walletBalance개',
-                style: UnifiedText.caption(
-                  color: passState.isActive
-                      ? Colors.white70
-                      : UnifiedColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: UnifiedTokens.spaceMd),
-              if (isPremium) ...[
-                Icon(
-                  Icons.workspace_premium_outlined,
-                  size: UnifiedTokens.iconSm,
-                  color: passState.isActive
-                      ? Colors.white70
-                      : UnifiedColors.textSecondary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '구독 이용 중',
-                  style: UnifiedText.caption(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.savings_outlined,
+                    size: UnifiedTokens.iconSm,
                     color: passState.isActive
                         ? Colors.white70
                         : UnifiedColors.textSecondary,
                   ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      '복주머니 $walletBalance개',
+                      style: UnifiedText.caption(
+                        color: passState.isActive
+                            ? Colors.white70
+                            : UnifiedColors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+              if (isPremium)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.workspace_premium_outlined,
+                      size: UnifiedTokens.iconSm,
+                      color: passState.isActive
+                          ? Colors.white70
+                          : UnifiedColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        '구독 이용 중',
+                        style: UnifiedText.caption(
+                          color: passState.isActive
+                              ? Colors.white70
+                              : UnifiedColors.textSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
             ],
           ),
         ],

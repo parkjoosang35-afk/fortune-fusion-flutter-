@@ -1,35 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../../../../core/data/my_fortune_record_store.dart';
-import '../../../../core/domain/access/access_checker.dart';
-import '../../../../core/domain/gate/category_gate.dart';
 import '../../../../core/theme/app_unified_style.dart';
+import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/fortune/ai_consult_banner.dart';
 import '../../../../core/widgets/fortune/disclaimer_banner.dart';
 import '../../../../core/widgets/fortune/hero_summary_card.dart';
 import '../../../../core/widgets/fortune/list_card.dart';
 import '../../../../core/widgets/fortune/lucky_elements_grid.dart';
-import '../../../../core/widgets/fortune/primary_cta.dart';
 import '../../../../core/widgets/fortune/result_bottom_actions.dart';
 import '../../../../core/widgets/fortune/section_card.dart';
+import '../../../../core/widgets/result_text_scale_overlay.dart';
 import '../../../home/domain/fortune_matrix.dart';
-import '../../../pass/presentation/pass_gate_helper.dart';
-import '../../daily/domain/fortune_report_model.dart';
+import '../../shared/domain/fortune_report_model.dart';
 import '../domain/generic_fortune_report_builder.dart';
 
 /// [운섹션 87 카테고리 통합] 공용 결과 화면 — 라우트 `/fortune/category`.
 ///
 /// 아직 전용 입력/결과 화면이 없는 카테고리(K/V/O 일부/X/G/B/D/R, 약 45개)를
 /// 위한 단일 화면이다. arguments로 [FortuneCategoryEntry.id](String, 예:
-/// 'K-001')를 받아 [FortuneMatrix.byId]로 메타데이터를 조회하고,
-/// [CategoryGate.decide]로 게이트 판정을 한 번 더 확인한 뒤(전체보기에서 이미
-/// 판정했더라도 딥링크로 직접 들어온 경우를 대비한 안전망) 결과를 그려준다.
+/// 'K-001')를 받아 [FortuneMatrix.byId]로 메타데이터를 조회해 결과를 그려준다.
+///
+/// [자유 이용 원칙 - 프리패스 어뷰징 제한 삭제, 2026-11] 과거에는 여기서
+/// [CategoryGate.decide]로 "하루1회/평생1회 무료" 게이트를 한 번 더 확인했으나,
+/// 콘텐츠 탐색/결과 열람 자체는 항상 자유롭게 허용하는 정책으로 바뀌면서
+/// 이 안전망이 더 이상 필요 없어 제거했다(결제 판정은 오직 [결과보기] 버튼
+/// 클릭 시점의 ResultAccessService가 전담).
 ///
 /// 새 화면/네비게이션 스택을 추가하지 않고, 기존 [DailyFortuneResultScreen]과
 /// 동일한 공용 위젯(HeroSummaryCard/SectionCard/ListCard/LuckElementsGrid/
-/// ResultBottomActions/AIConsultBanner)을 그대로 재사용한다.
+/// ResultBottomActions)을 그대로 재사용한다.
 class GenericFortuneResultScreen extends StatefulWidget {
   const GenericFortuneResultScreen({super.key, required this.categoryId});
 
@@ -44,9 +45,10 @@ class _GenericFortuneResultScreenState
     extends State<GenericFortuneResultScreen> {
   bool _saved = false;
   bool _loading = true;
-  bool _allowed = false;
-  String? _reasonLabel;
   FortuneCategoryEntry? _entry;
+  // [REQ-06/REQ-07 - 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기(갤러리)
+  // 저장용 캡처 키. 기존 "저장"(서버 기록 저장)과 별도 버튼/동작으로 분리한다.
+  final _originalResultKey = GlobalKey();
 
   @override
   void initState() {
@@ -56,45 +58,40 @@ class _GenericFortuneResultScreenState
 
   Future<void> _resolve() async {
     final entry = FortuneMatrix.byId(widget.categoryId ?? '');
-    if (entry == null) {
-      setState(() => _loading = false);
-      return;
-    }
-    final access = context.read<AccessChecker>();
-    final decision = await CategoryGate.decide(entry, access);
     if (!mounted) return;
     setState(() {
       _entry = entry;
-      _allowed = decision.allowed;
-      _reasonLabel = decision.reasonLabel;
       _loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _entry == null
-            ? const _NotFoundView()
-            : _allowed
-            ? _ResultBody(
-                entry: _entry!,
-                saved: _saved,
-                onSave: () => _onSave(_entry!),
-                onOpenAiConsult: () => Navigator.of(
-                  context,
-                ).pushNamed('/ai-fortune/consultation/type'),
-              )
-            : _LockedView(entry: _entry!, reasonLabel: _reasonLabel),
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        backgroundColor: UnifiedColors.bg,
+        body: SafeArea(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _entry == null
+              ? const _NotFoundView()
+              : _ResultBody(
+                  entry: _entry!,
+                  saved: _saved,
+                  captureKey: _originalResultKey,
+                  onSaveDevice: () => _onSaveDevice(_entry!),
+                  onSaveRecord: () => _onSaveRecord(_entry!),
+                ),
+        ),
       ),
     );
   }
 
-  Future<void> _onSave(FortuneCategoryEntry entry) async {
+  // [REQ-07] 서버(마이페이지) 기록 저장 전용. 과거에는 이 메서드 하나가
+  // "저장" 버튼의 유일한 동작이면서 기기 저장으로 오인되기 쉬웠다(P-05) -
+  // 토스트 문구("내 운세 기록에 저장되었어요")는 실제로 이 동작에만
+  // 해당하므로 그대로 유지하되, 버튼 라벨을 "기록에 저장"으로 분리했다.
+  Future<void> _onSaveRecord(FortuneCategoryEntry entry) async {
     final report = GenericFortuneReportBuilder.build(entry);
     await MyFortuneRecordStore.save(
       SavedFortuneRecord(
@@ -105,11 +102,26 @@ class _GenericFortuneResultScreenState
         score: report.hero.score,
         date: report.hero.date,
         savedAt: DateTime.now(),
+        // [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] 재열람 시
+        // `/fortune/category` 라우트로 복원할 수 있도록 categoryId를
+        // 명시적으로 저장한다.
+        genericCategoryId: entry.id,
       ),
     );
     if (!mounted) return;
     setState(() => _saved = true);
     AppToast.show(context, '마이 > 내 운세 기록에 저장되었어요');
+  }
+
+  // [REQ-07] 기기(갤러리) 저장 - 신규 추가. 성공/실패 토스트는
+  // saveOriginalResult(REQ-05 반영)가 전담하므로 여기서 별도 처리하지 않는다.
+  Future<void> _onSaveDevice(FortuneCategoryEntry entry) async {
+    await saveOriginalResult(
+      context,
+      _originalResultKey,
+      // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+      name: buildSaveFileName('category', entry.id),
+    );
   }
 }
 
@@ -165,64 +177,21 @@ class _NotFoundView extends StatelessWidget {
   }
 }
 
-/// 게이트에 막힌 경우(무료 소진/프리패스 전용) — 프리패스 유도.
-class _LockedView extends StatelessWidget {
-  const _LockedView({required this.entry, this.reasonLabel});
-
-  final FortuneCategoryEntry entry;
-  final String? reasonLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _Header(title: entry.title),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.lock_outline_rounded,
-                  size: 40,
-                  color: UnifiedColors.textCaption,
-                ),
-                const SizedBox(height: UnifiedTokens.spaceLg),
-                Text(
-                  reasonLabel ?? '프리패스로 열람할 수 있는 콘텐츠예요.',
-                  textAlign: TextAlign.center,
-                  style: UnifiedText.body(),
-                ),
-                const SizedBox(height: UnifiedTokens.spaceXl),
-                PrimaryCTA(
-                  label: '프리패스로 보기',
-                  onPressed: () => showPassRequiredSheet(
-                    context,
-                    categoryTitle: entry.title,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.entry,
     required this.saved,
-    required this.onSave,
-    required this.onOpenAiConsult,
+    required this.captureKey,
+    required this.onSaveDevice,
+    required this.onSaveRecord,
   });
 
   final FortuneCategoryEntry entry;
   final bool saved;
-  final VoidCallback onSave;
-  final VoidCallback onOpenAiConsult;
+  // [REQ-06] 기기 저장(갤러리/다운로드) 캡처 대상 키.
+  final GlobalKey captureKey;
+  final VoidCallback onSaveDevice;
+  final VoidCallback onSaveRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -231,57 +200,68 @@ class _ResultBody extends StatelessWidget {
       children: [
         _Header(title: entry.title),
         Expanded(
-          child: ListView(
+          // [REQ-06/REQ-07] 기존 ListView(지연 렌더링) 대신 OriginalResultBody
+          // (SingleChildScrollView + RepaintBoundary)로 교체해, 화면 밖으로
+          // 스크롤된 영역까지 포함한 전체 본문을 캡처할 수 있게 한다
+          // (ResultCardStack/face_result_screen과 동일한 패턴 재사용).
+          child: OriginalResultBody(
+            captureKey: captureKey,
+            background: UnifiedColors.bg,
             padding: const EdgeInsets.fromLTRB(
               UnifiedTokens.spaceXl,
               UnifiedTokens.spaceMd,
               UnifiedTokens.spaceXl,
               UnifiedTokens.spaceXl,
             ),
-            children: [
-              const DisclaimerBanner.common(),
-              const SizedBox(height: UnifiedTokens.spaceMd),
-              if (entry.disclaimers.isNotEmpty) ...[
-                DisclaimerBanner.forTags(entry.disclaimers),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const DisclaimerBanner.common(),
                 const SizedBox(height: UnifiedTokens.spaceMd),
-              ],
-              HeroSummaryCard(
-                name: report.hero.name,
-                date: report.hero.date,
-                score: report.hero.score,
-                headline: report.hero.headline,
-                statusLabel: report.hero.statusLabel,
-                keywords: report.hero.keywords,
-                subDescription: report.hero.subDescription,
-              ),
-              const SizedBox(height: UnifiedTokens.spaceMd),
-              for (final section in report.sections) ...[
-                _buildSection(section),
-                const SizedBox(height: UnifiedTokens.spaceMd),
-              ],
-              ResultBottomActions(
-                actions: [
-                  ResultActionItem(
-                    icon: Icons.bookmark_border_rounded,
-                    label: '저장',
-                    onTap: onSave,
-                  ),
-                  ResultActionItem(
-                    icon: Icons.grid_view_rounded,
-                    label: '다른 운세',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/home/all-categories'),
-                  ),
-                  ResultActionItem(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: '고민상담',
-                    onTap: onOpenAiConsult,
-                  ),
+                if (entry.disclaimers.isNotEmpty) ...[
+                  DisclaimerBanner.forTags(entry.disclaimers),
+                  const SizedBox(height: UnifiedTokens.spaceMd),
                 ],
-              ),
-              const SizedBox(height: UnifiedTokens.spaceMd),
-              AIConsultBanner(onTap: onOpenAiConsult),
-            ],
+                HeroSummaryCard(
+                  name: report.hero.name,
+                  date: report.hero.date,
+                  score: report.hero.score,
+                  headline: report.hero.headline,
+                  statusLabel: report.hero.statusLabel,
+                  keywords: report.hero.keywords,
+                  subDescription: report.hero.subDescription,
+                ),
+                const SizedBox(height: UnifiedTokens.spaceMd),
+                for (final section in report.sections) ...[
+                  _buildSection(section),
+                  const SizedBox(height: UnifiedTokens.spaceMd),
+                ],
+                // [REQ-07] 기기 저장과 서버 기록 저장을 라벨·동작으로 분리.
+                // "이미지로 저장"(REQ-08 공통 문구)은 기기 갤러리/다운로드
+                // 전용, "기록에 저장"은 마이 > 내 운세 기록 전용이다.
+                ResultBottomActions(
+                  actions: [
+                    ResultActionItem(
+                      icon: Icons.download_rounded,
+                      label: '이미지로 저장',
+                      onTap: onSaveDevice,
+                    ),
+                    ResultActionItem(
+                      icon: Icons.bookmark_border_rounded,
+                      label: '기록에 저장',
+                      onTap: onSaveRecord,
+                    ),
+                    ResultActionItem(
+                      icon: Icons.grid_view_rounded,
+                      label: '다른 운세',
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushNamed('/home/all-categories'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -290,7 +270,7 @@ class _ResultBody extends StatelessWidget {
 
   /// report.sections는 항상 OverviewSection/AspectSection/ListSection/
   /// LuckySection 중 하나이며(GenericFortuneReportBuilder 참고), 잠금 여부는
-  /// 이미 [CategoryGate]에서 판정을 마쳤으므로 이 화면 내부 섹션들은 잠금
+  /// [자유 이용 원칙] 콘텐츠 탐색/열람 자체는 항상 허용되므로 이 화면 내부 섹션들은 잠금
   /// 표시 없이 항상 펼쳐서 보여준다.
   Widget _buildSection(FortuneSection section) {
     switch (section.type) {

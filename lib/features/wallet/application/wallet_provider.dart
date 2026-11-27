@@ -5,7 +5,7 @@ import '../../../core/widgets/luck_pouch_toast.dart';
 
 /// 07단계 §2.1 전역 Provider - WalletProvider(잔액 캐시, 최근 트랜잭션)
 /// [자율 정리 - 정책 위반 무력화] 과거 등급 배율(point_earn_multiplier)을 여기서
-/// 적립액에 곱해 지급하던 로직이 있었으나, 신통방통은 "프리패스(시간권) +
+/// 적립액에 곱해 지급하던 로직이 있었으나, 귀인지도는 "프리패스(시간권) +
 /// 복주머니(유일 화폐)"만 존재하는 무료 광고형 구조라 적립률/배율 개념이
 /// 없어야 한다(정책: 복주머니는 항상 요청 금액 그대로 1:1 지급). 배율 관련
 /// 필드/메서드를 제거해 earn()이 항상 amount 그대로 지급하도록 되돌린다.
@@ -24,6 +24,18 @@ class WalletProvider extends ChangeNotifier {
   int get balance => _balance;
   List<PointHistoryModel> get history => _history;
   bool get isLoading => _isLoading;
+
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 반드시 호출해야 한다.
+  /// 이전 계정의 잔액/거래내역이 메모리에 남아있으면, 같은 기기에서 다른
+  /// 계정으로 재로그인했을 때 새 계정 데이터가 로드되기 전 짧은 순간
+  /// 이전 계정의 잔액이 화면에 노출될 위험이 있다(개인정보 잔존).
+  void clearOnLogout() {
+    _balance = 0;
+    _history = [];
+    _isLoading = false;
+    lastEarnBlockedReason = null;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     _isLoading = true;

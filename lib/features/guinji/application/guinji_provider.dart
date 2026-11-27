@@ -1,0 +1,838 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../auth/domain/user_model.dart';
+import '../../home/domain/jeontong_eighty_report_builder.dart';
+import '../../home/domain/manseryeok/saju_profile.dart';
+import '../../home/domain/saju_engine.dart' show SajuResult;
+import '../../home/domain/saju_interpreter.dart';
+import '../../home/domain/user_profile_to_jeontong_adapter.dart';
+import '../data/funnel_tracker.dart';
+import '../data/guinji_repository.dart';
+import '../domain/guinji_owner_saju_summary.dart';
+import '../domain/guinji_person.dart';
+import '../domain/guinji_saju_adapter.dart';
+
+/// 귀인지도(Guinji Map) 전역 상태 — [GuinjiRepository]를 감싸고, 화면들이
+/// 공유하는 map/members/relationships 상태를 관리한다.
+///
+/// [절대 원칙] 이 Provider는 결제·재화를 직접 다루지 않는다(모든 지급은
+/// 서버 트랜잭션 내부에서만 발생 — 클라이언트는 결과를 조회할 뿐이다).
+/// 로딩/에러 상태는 "느낌표 금지" 원칙에 따라 문구에 느낌표를 쓰지 않는다.
+class GuinjiProvider extends ChangeNotifier {
+  GuinjiProvider(this._repository);
+
+  final GuinjiRepository _repository;
+
+  bool _isLoading = false;
+  String? _error;
+  String? _errorCode;
+
+  /// 서버가 확정한 지도 메타(mapId/name/token/createdAt). 지도가 없으면 null.
+  Map<String, dynamic>? _map;
+
+  /// 서버 응답 원본 members 리스트(각: memberId/name/solarLunar/birthDate/
+  /// birthTime/birthTimeMissing/joined).
+  List<Map<String, dynamic>> _members = const [];
+
+  /// 서버 응답 원본 relationships 리스트(각: memberId/relationType/
+  /// chemistryScore/ohaengEvidence).
+  List<Map<String, dynamic>> _relationships = const [];
+
+  /// [흐름 정합성 — M화면 "나는 어떤 사람인지"] 호스트 본인의 실계산 사주
+  /// 요약. [createMapForUser]/[createMapWithInput] 성공 시 이미 계산해 둔
+  /// [SajuResult]로부터 만들어 캐싱한다(재계산 없음). M(결과) 화면이 이
+  /// 값을 그대로 읽어 "귀인지도" 관계 그래프보다 먼저 "나"를 보여준다.
+  GuinjiOwnerSajuSummary? _ownerSajuSummary;
+
+  /// [성별 캐릭터 버그 수정 — 2026-10-14] 나의정보에서 고른 성별('male'/'female').
+  /// 지도 생성 시 기록되고, 소유자 캐릭터 렌더가 참조한다.
+  String? _ownerGender;
+  String? get ownerGender => _ownerGender;
+  String? _ownerFacePath;
+  String? get ownerFacePath => _ownerFacePath;
+
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  /// 호스트 본인의 실계산 사주 요약(없으면 null — I 화면을 아직 거치지
+  /// 않은 세션이거나 앱 재시작 후 아직 다시 계산되지 않은 상태).
+  GuinjiOwnerSajuSummary? get ownerSajuSummary => _ownerSajuSummary;
+
+  /// 마지막 실패의 서버 에러 코드('UNAUTHORIZED'|'NOT_FOUND'|'EXPIRED' 등).
+  /// [GuinjiJoinScreen]이 'UNAUTHORIZED'일 때만 로그인 유도로 분기하는 데 사용.
+  String? get errorCode => _errorCode;
+  Map<String, dynamic>? get map => _map;
+  bool get hasMap => _map != null;
+  String? get mapId => _map?['mapId'] as String?;
+  String? get mapName => _map?['name'] as String?;
+  String? get mapToken => _map?['token'] as String?;
+
+  /// [친구 초대 마일스톤 — "N명 모으면 축하 이벤트" 실제 기능화]
+  /// 서버(`GET /guinji/maps/me`)가 내려주는 마일스톤 목표 인원(기본 3명).
+  /// 지도가 없으면 null.
+  int? get milestoneGoal => _map?['milestoneGoal'] as int?;
+
+  /// 이미 목표 인원에 도달했는지(달성 후에도 계속 true로 유지됨 —
+  /// 배너가 "축하 이벤트가 열렸어요" 문구로 계속 보일지 판단하는 용도).
+  bool get milestoneReached => _map?['milestoneReached'] as bool? ?? false;
+
+  /// [1회성 이벤트 소비] 이번 [loadMyMap] 호출에서 **막** 목표를 달성해
+  /// 서버가 보너스 복주머니를 지급했는지. 화면이 이 값을 읽어 축하 다이얼로그를
+  /// 띄운 뒤에는 반드시 [consumeMilestoneJustReached]를 호출해 꺼야 한다
+  /// (그러지 않으면 재렌더마다 축하 팝업이 반복해서 뜬다).
+  bool get milestoneJustReached => _milestoneJustReached;
+  bool _milestoneJustReached = false;
+
+  /// 방금 지급된 마일스톤 보너스 복주머니 개수(축하 화면 문구용, 예: 30).
+  int get milestoneRewardPoint => _milestoneRewardPoint;
+  int _milestoneRewardPoint = 0;
+
+  /// [전수검수 2026-10-12 F1] 로그아웃/회원탈퇴 시 메모리 상태를 완전히
+  /// 초기화한다 — app.dart에 등록된 다른 Provider들과 동일한 계정 격리
+  /// 원칙. 기존에는 이 Provider의 등록이 누락돼 로그아웃 후에도 이전
+  /// 계정의 지도 메타와 멤버(이름·생년월일) 정보가 메모리에 잔존해 다음
+  /// 로그인 계정 화면에 섞일 수 있었다.
+  void clearOnLogout() {
+    _isLoading = false;
+    _error = null;
+    _errorCode = null;
+    _map = null;
+    _members = const [];
+    _relationships = const [];
+    _ownerSajuSummary = null;
+    _ownerGender = null;
+    _ownerFacePath = null;
+    _milestoneJustReached = false;
+    _milestoneRewardPoint = 0;
+    _inviteStatus = null;
+    notifyListeners();
+  }
+
+  /// 축하 다이얼로그를 1회 소비 처리한다 — 이후 재렌더에서는 다시 뜨지 않음.
+  void consumeMilestoneJustReached() {
+    if (!_milestoneJustReached) return;
+    _milestoneJustReached = false;
+    notifyListeners();
+  }
+
+  // ── [귀인지도 초대링크 재발급 v1.1] 소유자 링크 관리 상태 ──────────
+  // `GET /guinji/maps/me`는 inviteStatus를 내려주지 않으므로(§Phase 1
+  // 범위 밖), 공유 화면(`GuinjiMapShareScreen`)이 별도로
+  // [fetchInviteStatus]를 호출해 여기 캐싱한다. 재발급/중단/중단해제
+  // 액션 성공 시에도 이 상태를 즉시 갱신해 화면이 새로고침 없이 반영되게
+  // 한다.
+  String? _inviteStatus;
+  int? _joinedMemberCount;
+
+  /// 초대 링크 현재 상태('active' | 'revoked'). 아직 조회하지 않았으면 null.
+  String? get inviteStatus => _inviteStatus;
+
+  /// 초대 링크가 중단된 상태인지("active"가 아니면 true로 간주하지 않고,
+  /// 정확히 "revoked"일 때만 true — 아직 조회 전(null)에는 false).
+  bool get isInviteRevoked => _inviteStatus == "revoked";
+
+  /// 이 링크로 실제 합류한 활성 멤버 수(관리 화면 표시용 — 링크 유입
+  /// 횟수가 아니다. 백엔드 §05 명세 참고).
+  int? get joinedMemberCount => _joinedMemberCount;
+
+  /// GET /guinji/maps/{mapId}/invite-status — 공유 화면 진입 시 호출해
+  /// 현재 링크 상태를 채운다. 실패해도 화면 전체를 막지 않도록 조용히
+  /// 무시할 수 있다(호출부는 null 유지 시 "확인 중"으로 표시).
+  Future<void> loadInviteStatus() async {
+    final id = mapId;
+    if (id == null) return;
+    final result = await _repository.fetchInviteStatus(mapId: id);
+    if (!result.success || result.data == null) {
+      debugPrint(
+        '[GuinjiProvider] [loadInviteStatus] 실패(무시 가능) -> ${result.errorMessage}',
+      );
+      return;
+    }
+    _inviteStatus = result.data!['inviteStatus'] as String?;
+    _joinedMemberCount = result.data!['joinedMemberCount'] as int?;
+    notifyListeners();
+  }
+
+  /// POST /guinji/maps/{mapId}/reissue — 초대 링크 재발급.
+  ///
+  /// [주의 — 옛 링크 즉시 무효화] 성공하면 [mapToken]이 즉시 새 값으로
+  /// 바뀐다(`_map`의 token 필드를 직접 갱신 — [loadMyMap] 재호출 불필요).
+  /// 호출부(공유 화면)는 재발급 전에 반드시 "이전 링크로 들어오던 사람은
+  /// 더 이상 들어올 수 없어요" 경고를 사용자에게 확인시켜야 한다(성공
+  /// 응답에도 동일 `warning` 문구가 실려 오므로 그대로 노출 가능).
+  ///
+  /// 반환: 성공 시 새 데이터({token, url, inviteStatus, tokenIssuedAt,
+  /// ogImageUrl, warning}), 실패 시 null([error] 참고).
+  Future<Map<String, dynamic>?> reissueInviteLink() async {
+    final id = mapId;
+    if (id == null) {
+      _error = '지도 정보를 찾을 수 없습니다.';
+      notifyListeners();
+      return null;
+    }
+    _error = null;
+    final result = await _repository.reissueInviteLink(mapId: id);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '링크 재발급에 실패했습니다.';
+      notifyListeners();
+      return null;
+    }
+    final data = result.data!;
+    final newToken = data['token'] as String?;
+    if (newToken != null && _map != null) {
+      _map = {..._map!, 'token': newToken};
+    }
+    _inviteStatus = data['inviteStatus'] as String?;
+    notifyListeners();
+    return data;
+  }
+
+  /// POST /guinji/maps/{mapId}/revoke — 초대 링크 중단.
+  /// 성공 시 true(호출부가 [inviteStatus]를 읽어 UI 갱신), 실패 시 false.
+  Future<bool> revokeInviteLink() async {
+    final id = mapId;
+    if (id == null) {
+      _error = '지도 정보를 찾을 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+    _error = null;
+    final result = await _repository.revokeInviteLink(mapId: id);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '링크 중단에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+    _inviteStatus = result.data!['inviteStatus'] as String?;
+    notifyListeners();
+    return true;
+  }
+
+  /// POST /guinji/maps/{mapId}/reactivate — 초대 링크 중단 해제.
+  /// 성공 시 true, 실패 시 false([error] 참고).
+  Future<bool> reactivateInviteLink() async {
+    final id = mapId;
+    if (id == null) {
+      _error = '지도 정보를 찾을 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+    _error = null;
+    final result = await _repository.reactivateInviteLink(mapId: id);
+    if (!result.success || result.data == null) {
+      _error = result.errorMessage ?? '링크 중단 해제에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+    _inviteStatus = result.data!['inviteStatus'] as String?;
+    notifyListeners();
+    return true;
+  }
+
+  /// [GuinjiPerson] 리스트로 매핑된 멤버 목록(랭킹/지도 화면이 그대로 사용).
+  List<GuinjiPerson> get people {
+    final relationByMemberId = {
+      for (final r in _relationships) r['memberId'] as String: r,
+    };
+    var result = _members
+        .map(
+          (m) => GuinjiPerson.fromServerJson(
+            member: m,
+            relation: relationByMemberId[m['memberId']],
+          ),
+        )
+        .toList();
+
+    // [성별 캐릭터 버그 수정 — 2026-10-14] 나의정보에서 고른 성별을 소유자
+    // 캐릭터에 반영한다(서버 멤버 응답에 성별이 없어 해시 폴백으로 그려지던 문제).
+    if (_ownerGender != null) {
+      result = result
+          .map((person) => person.id == 'owner'
+              ? GuinjiPerson(
+                  id: person.id,
+                  name: person.name,
+                  birth: person.birth,
+                  ohaeng: person.ohaeng,
+                  relation: person.relation,
+                  score: person.score,
+                  note: person.note,
+                  unlocked: person.unlocked,
+                  gender: _ownerGender,
+                )
+              : person)
+          .toList();
+    }
+    return result;
+  }
+
+  bool get isEmpty => _members.isEmpty;
+
+  /// 온보딩 화면 CTA — 로그인 회원 [UserModel]로 사주를 계산하고
+  /// `POST /guinji/maps`를 호출해 내 귀인지도를 생성한다(이미 있으면 서버가
+  /// 기존 지도를 그대로 반환 — 멱등).
+  ///
+  /// 반환값: 성공 시 true(호출부는 이후 [loadMyMap] 또는 이미 채워진
+  /// [map]/[people]을 그대로 사용), 실패 시 false([error] 참고.
+  Future<bool> createMapForUser(UserModel user) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final jeontongInput = userModelToJeontongInput(user);
+    if (jeontongInput == null) {
+      _isLoading = false;
+      _error = '생년월일 정보가 없어 사주를 계산할 수 없습니다. 프로필을 먼저 완성해 주세요.';
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      final kst = jeontongInput.birthDateTimeUtc.add(const Duration(hours: 9));
+      final sajuGender = jeontongInput.gender == 'F' ? 'female' : 'male';
+      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+        kst: kst,
+        gender: sajuGender,
+        isLunar: jeontongInput.isLunar,
+        isLeapMonth: jeontongInput.effectiveIsLeapMonth,
+        referenceDate: DateTime.now(),
+      );
+      final SajuProfile profile = built.profile;
+      final sajuJson = guinjiSajuInputFromProfile(profile);
+      _cacheOwnerSajuSummary(built.saju);
+
+      final result = await _repository.createMap(saju: sajuJson);
+      if (!result.success) {
+        _isLoading = false;
+        _error = result.errorMessage ?? '지도 생성에 실패했습니다.';
+        notifyListeners();
+        return false;
+      }
+
+      // 생성/조회 성공 후 곧바로 최신 상태(members/relationships 포함)를
+      // 다시 불러온다 — createMap 응답에는 mapId/token만 있고 members는
+      // 없으므로(신규 생성 직후에는 어차피 members가 비어 있음), 단일 소스인
+      // fetchMyMap으로 통일한다.
+      return await loadMyMap();
+    } catch (e) {
+      _isLoading = false;
+      _error = '사주 계산 중 오류가 발생했습니다: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// [흐름 정합성 — M화면 "나는 어떤 사람인지"] 방금 계산한 [SajuResult]로
+  /// [_ownerSajuSummary]를 채운다. [SajuRules]가 아직 preload되지 않았으면
+  /// (이론상 main.dart가 앱 시작 시 fire-and-forget으로 미리 걸어두므로
+  /// 거의 발생하지 않음) 조용히 건너뛴다 — M화면은 null이면 이 섹션을
+  /// 숨기도록 방어적으로 구현되어 있어 전체 흐름을 막지 않는다.
+  void _cacheOwnerSajuSummary(SajuResult saju) {
+    final rules = SajuRules.cachedOrNull;
+    if (rules == null) {
+      debugPrint(
+        '[GuinjiProvider] [_cacheOwnerSajuSummary] SajuRules 미로드 -> 요약 생략',
+      );
+      return;
+    }
+    try {
+      _ownerSajuSummary = GuinjiOwnerSajuSummary.fromSajuResult(saju, rules);
+    } catch (e) {
+      debugPrint('[GuinjiProvider] [_cacheOwnerSajuSummary] 실패 -> $e');
+    }
+  }
+
+  /// [2026 디자인 핸드오프 — `/guinji-map/*` 신규 8화면] I(Input) 화면
+  /// CTA — 기존 [createMapForUser]는 이미 완성된 [UserModel] 프로필(로그인
+  /// 회원의 저장된 생년월일)을 사주 계산 입력으로 쓰지만, 신규 I 화면은
+  /// 화면 자체에서 별명·생년월일·양음력·시간을 직접 입력받으므로(로그인
+  /// 회원이라도 프로필 완성을 강제하지 않는다 — I 화면 UX 자체가 이미 입력
+  /// 폼이기 때문), [joinMap]과 동일한 방식으로 폼 입력값에서 곧바로 사주를
+  /// 계산해 `POST /guinji/maps`를 호출한다.
+  ///
+  /// [로그인 게이트] 이 메서드는 `createMap`이 인증을 요구하므로(백엔드
+  /// `requireUser`) 로그인 상태에서만 호출되어야 한다 — 호출부(I 화면)가
+  /// `AuthProvider.isLoggedIn`을 먼저 확인하고, 비로그인이면 이 메서드를
+  /// 호출하지 않고 로그인 화면으로 안내한다.
+  ///
+  /// 반환값: 성공 시 true(호출부는 이후 [map]/[people]을 그대로 사용),
+  /// 실패 시 false([error] 참고).
+  Future<bool> createMapWithInput({
+    required String name,
+    required bool isLunar,
+    required DateTime birthDate,
+    String? birthTime, // 'HH:mm', null이면 시간 미상
+    String gender = 'female', // [성별 캐릭터 버그 수정] 'male' | 'female'
+    String? ownerFacePath,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      int hour = 12;
+      int minute = 0;
+      if (birthTime != null && birthTime.contains(':')) {
+        final parts = birthTime.split(':');
+        hour = int.tryParse(parts[0]) ?? 12;
+        minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+      }
+      final kst = DateTime(
+        birthDate.year,
+        birthDate.month,
+        birthDate.day,
+        hour,
+        minute,
+      );
+
+      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+        kst: kst,
+        gender: gender, // [성별 버그 수정] 화면에서 고른 성별 사용(대운 방향 외 엔진 영향 없음).
+        isLunar: isLunar,
+        isLeapMonth: false,
+        referenceDate: DateTime.now(),
+      );
+      final sajuJson = guinjiSajuInputFromProfile(built.profile);
+      _cacheOwnerSajuSummary(built.saju);
+      final result = await _repository.createMap(
+        name: name,
+        gender: gender,
+        saju: sajuJson,
+      );
+      if (!result.success) {
+        _isLoading = false;
+        _error = result.errorMessage ?? '지도 생성에 실패했습니다.';
+        notifyListeners();
+        return false;
+      }
+
+      _ownerGender = gender;
+      _ownerFacePath = ownerFacePath;
+      final loaded = await loadMyMap();
+      if (loaded && mapId != null && ownerFacePath != null) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('guinji.ownerFace.$mapId', ownerFacePath);
+        } catch (e) {
+          debugPrint('[GuinjiProvider] 얼굴 로컬 저장 실패: $e');
+        }
+      }
+      return loaded;
+    } catch (e) {
+      _isLoading = false;
+      _error = '사주 계산 중 오류가 발생했습니다: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// `GET /guinji/maps/me` 호출 — 지도/멤버/관계 최신 상태로 갱신.
+  /// 지도가 없으면(온보딩 전) [map]이 null로 유지되고 true를 반환한다
+  /// (에러 아님 — 호출부가 hasMap으로 분기).
+  Future<bool> loadMyMap() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final result = await _repository.fetchMyMap();
+    if (!result.success) {
+      _isLoading = false;
+      _error = result.errorMessage ?? '지도 조회에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    final data = result.data;
+    if (data == null) {
+      _map = null;
+      _members = const [];
+      _relationships = const [];
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+
+    final previousMapId = mapId;
+    _map = data['map'] as Map<String, dynamic>?;
+    if (previousMapId != null && previousMapId != mapId) {
+      _ownerFacePath = null;
+      _ownerGender = null;
+    }
+    if (_ownerFacePath == null && mapId != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        _ownerFacePath = prefs.getString('guinji.ownerFace.$mapId');
+      } catch (e) {
+        debugPrint('[GuinjiProvider] 얼굴 로컬 복원 실패: $e');
+      }
+    }
+    _members = (data['members'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+    _relationships = (data['relationships'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+    // [버그 수정 — 친구 초대 마일스톤] 서버가 이번 조회에서 막 마일스톤을
+    // 달성해 보너스를 지급했는지 실제로 파싱한다(이 대입이 없으면
+    // [milestoneJustReached]/[milestoneRewardPoint] getter가 항상
+    // false/0을 반환해 축하 UI가 절대 뜨지 않는다).
+    _milestoneJustReached = _map?['milestoneJustReached'] as bool? ?? false;
+    _milestoneRewardPoint = _map?['milestoneRewardPoint'] as int? ?? 0;
+    // [P3 앱 퍼널 이벤트 배선 — 2026-12] 서버가 이번 조회에서 막
+    // 마일스톤을 달성했다고 알려준 시점에만 1회 기록한다(화면의
+    // consumeMilestoneJustReached()와 별개 — 그 메서드는 UI 다이얼로그
+    // 1회성 소비용이고, 이 기록은 그보다 먼저 데이터가 갱신되는 시점에
+    // 걸어 fire-and-forget으로 보낸다).
+    if (_milestoneJustReached) {
+      unawaited(
+        FunnelTracker.track(FunnelTracker.milestoneReached, mapToken: mapToken),
+      );
+    }
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  }
+
+  /// [멤버 삭제 — "웹에서도 소유자가 삭제 가능" 요구사항의 앱 측 구현]
+  /// 지도 소유자가 이름/생년월일을 잘못 입력한 멤버를 삭제한다.
+  /// `DELETE /guinji/maps/{mapId}/members/{memberId}` 호출 후, 성공하면
+  /// 로컬 상태(_members/_relationships)에서도 즉시 제거해 UI가 서버
+  /// 재조회 없이 곧바로 갱신되도록 한다(낙관적 갱신 — admin_web
+  /// `/my/guinji` 페이지와 동일한 패턴).
+  ///
+  /// 반환값: 성공 시 true(이미 삭제된 멤버를 다시 호출해도 서버가
+  /// 멱등하게 성공 처리하므로 true), 실패 시 false([error] 참고).
+  Future<bool> deleteMember(String memberId) async {
+    final currentMapId = mapId;
+    if (currentMapId == null) {
+      _error = '지도 정보가 없어 삭제할 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final result = await _repository.deleteMember(
+      mapId: currentMapId,
+      memberId: memberId,
+    );
+    if (!result.success) {
+      _isLoading = false;
+      _error = result.errorMessage ?? '삭제에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _members = _members.where((m) => m['memberId'] != memberId).toList();
+    _relationships = _relationships
+        .where((r) => r['memberId'] != memberId)
+        .toList();
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  }
+
+  /// 참여(join) 화면 — 지인(guest)이 자신의 생년월일 정보를 제출해 지도에
+  /// 합류한다. gender는 참여 폼에 입력 필드가 없으므로 기본값 'M'을 사용한다
+  /// (RelationJudger의 판정 로직·오행 계산은 gender를 사용하지 않으므로
+  /// 결과에 영향이 없다 — 천간/지지 기반 계산이기 때문).
+  Future<Map<String, dynamic>?> joinMap({
+    required String mapId,
+    required String name,
+    required bool isLunar,
+    required DateTime birthDate,
+    String? birthTime, // 'HH:mm', null이면 시간 미상
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      int hour = 12;
+      int minute = 0;
+      if (birthTime != null && birthTime.contains(':')) {
+        final parts = birthTime.split(':');
+        hour = int.tryParse(parts[0]) ?? 12;
+        minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+      }
+      final localDateTime = DateTime(
+        birthDate.year,
+        birthDate.month,
+        birthDate.day,
+        hour,
+        minute,
+      );
+      final kst = localDateTime; // 이미 KST 벽시계 입력으로 간주(참여 폼은 KST 사용자 기준).
+
+      final built = JeontongReportBuilder.buildProfileAndSajuResultViaPhase1to4(
+        kst: kst,
+        gender: 'male',
+        isLunar: isLunar,
+        isLeapMonth: false,
+        referenceDate: DateTime.now(),
+      );
+      final sajuJson = guinjiSajuInputFromProfile(built.profile);
+
+      final birthDateStr =
+          '${birthDate.year.toString().padLeft(4, '0')}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
+
+      final result = await _repository.joinMap(
+        mapId: mapId,
+        name: name,
+        solarLunar: isLunar ? 'lunar' : 'solar',
+        birthDate: birthDateStr,
+        birthTime: birthTime,
+        saju: sajuJson,
+      );
+
+      _isLoading = false;
+      if (!result.success) {
+        _error = result.errorMessage ?? '참여에 실패했습니다.';
+        notifyListeners();
+        return null;
+      }
+      notifyListeners();
+      return result.data;
+    } catch (e) {
+      _isLoading = false;
+      _error = '참여 처리 중 오류가 발생했습니다: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// [귀인지도 DIRECT — 궁합지도 DIRECT 방식과 동일한 개념] 지도 소유자가
+  /// 초대 링크 없이 지인의 정보를 직접 입력해 즉시 등록한다.
+  /// `POST /guinji/maps/{mapId}/members/direct` 호출 후, 성공하면
+  /// [loadMyMap]을 다시 호출해 새 멤버가 반영된 최신 상태로 갱신한다
+  /// (members/relationships는 멤버 수가 많아질수록 수동 append보다 전체
+  /// 재조회가 더 안전·단순하다 — [createMapForUser]가 이미 같은 패턴을
+  /// 쓴다).
+  ///
+  /// [포인트 미지급] 서버가 이 경로에는 `guinji_join` 포인트를 지급하지
+  /// 않는다(소유자 본인이 입력한 것이라 "참여"가 아님) — 클라이언트도
+  /// 별도의 포인트 관련 UI를 띄우지 않는다.
+  ///
+  /// 반환값: 성공 시 true(호출부는 이후 [people]을 그대로 사용), 실패 시
+  /// false([error] 참고).
+  Future<bool> addMemberDirect({
+    required String name,
+    required String gender, // 'male' | 'female'
+    required bool isLunar,
+    required DateTime birthDate,
+    String? birthTime, // 'HH:mm', null이면 시간 미상
+    bool isLeapMonth = false,
+  }) async {
+    final currentMapId = mapId;
+    if (currentMapId == null) {
+      _error = '지도 정보가 없어 등록할 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final birthDateStr =
+        '${birthDate.year.toString().padLeft(4, '0')}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
+
+    final result = await _repository.addMemberDirect(
+      mapId: currentMapId,
+      name: name,
+      gender: gender,
+      solarLunar: isLunar ? 'lunar' : 'solar',
+      birthDate: birthDateStr,
+      birthTime: birthTime,
+      isLeapMonth: isLeapMonth,
+    );
+
+    if (!result.success) {
+      _isLoading = false;
+      _error = result.errorMessage ?? '등록에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    // 새 멤버가 반영된 최신 members/relationships를 다시 불러온다.
+    return await loadMyMap();
+  }
+
+  /// GET /guinji/g/{token}/profile — 게스트(비로그인) 호스트 프로필
+  /// 미리보기. [fetchInvite]와 달리 로그인이 필요 없어 초대장 화면
+  /// (제출 전)에서 호출할 수 있다. 실패해도 조용히 무시 가능(반환 null이면
+  /// 호출부가 일반화된 문구로 폴백).
+  ///
+  /// [귀인지도 v5 — W3 링크 만료 연결] 실패 시 다른 메서드들과 동일하게
+  /// [errorCode]를 세팅한다 — 호출부(`guinji_map_guest_join_screen.dart`)가
+  /// `errorCode == 'NOT_FOUND'`를 확인해 SPEC §6 W3(링크 만료·중단, 토큰이
+  /// 애초에 유효하지 않은 경우)로 분기할 수 있게 하기 위함이다(이전에는
+  /// 호출부가 성공/실패만 알 수 있고 "왜" 실패했는지 구분할 방법이 없어
+  /// 조용히 폴백할 수밖에 없었다).
+  ///
+  /// 반환: {ownerName, characterType: {...} | null}
+  Future<Map<String, dynamic>?> fetchHostProfile(String token) async {
+    _errorCode = null;
+    final result = await _repository.fetchHostProfile(token);
+    if (!result.success) {
+      _errorCode = result.errorCode;
+      debugPrint(
+        '[GuinjiProvider] [fetchHostProfile] 실패(무시 가능) -> ${result.errorMessage} (code=$_errorCode)',
+      );
+      return null;
+    }
+    return result.data;
+  }
+
+  /// GET /guinji/g/{token} — 딥링크 초대 유효성 확인.
+  Future<Map<String, dynamic>?> fetchInvite(String token) async {
+    _isLoading = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+
+    final result = await _repository.fetchInvite(token);
+    _isLoading = false;
+    if (!result.success) {
+      _error = result.errorMessage ?? '초대 링크를 확인할 수 없습니다.';
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return null;
+    }
+    notifyListeners();
+    return result.data;
+  }
+
+  /// POST /guinji/g/{token}/join — 게스트(비로그인) 웹 참여.
+  ///
+  /// [바이럴 게스트 원칙 — 절대] 이 메서드는 회원가입/로그인 상태와 완전히
+  /// 무관하다([GuinjiRepository.joinAnonymous]가 인증 헤더를 사용하지 않음).
+  /// 호출부(게스트 참여+입력 화면)는 성공 시 반환된 데이터를 그대로
+  /// Y(Guest Result) 화면에 넘겨 웹에서 완결된 결과를 보여주고, 회원가입/앱
+  /// 전환 유도는 오직 사용자가 스스로 원할 때만 노출한다(자동 리다이렉트
+  /// 금지).
+  ///
+  /// 반환: 성공 시 {ownerName, relationType, chemistryScore, timeUnknown,
+  /// dayMasterKr, dayMasterElement, joined:true, mapSummary:{total,counts}},
+  /// 실패 시 null([error] 참고).
+  Future<Map<String, dynamic>?> joinAnonymous({
+    required String token,
+    required String name,
+    required String birthDate, // 'YYYY-MM-DD'
+    String calendarType = 'solar',
+    String? birthTime,
+    required String gender,
+    required bool agreePolicy,
+    required bool agreeAge14,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+
+    final result = await _repository.joinAnonymous(
+      token: token,
+      name: name,
+      birthDate: birthDate,
+      calendarType: calendarType,
+      birthTime: birthTime,
+      gender: gender,
+      agreePolicy: agreePolicy,
+      agreeAge14: agreeAge14,
+    );
+
+    _isLoading = false;
+    if (!result.success) {
+      _error = result.errorMessage ?? '참여에 실패했습니다.';
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return null;
+    }
+    notifyListeners();
+    return result.data;
+  }
+
+  /// POST /guinji/g/{token}/preview — 게스트가 지도에 실제로 참여(저장)하지
+  /// 않고 관계 결과만 먼저 미리 본다. I(Input) 화면에서 선택적으로 사용.
+  ///
+  /// 반환: 성공 시 {ownerName, relationType, chemistryScore, isPreview:true,
+  /// timeUnknown, dayMasterKr, dayMasterElement}, 실패 시 null.
+  Future<Map<String, dynamic>?> previewAnonymous({
+    required String token,
+    required String name,
+    required String birthDate,
+    String calendarType = 'solar',
+    String? birthTime,
+    required String gender,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+
+    final result = await _repository.previewAnonymous(
+      token: token,
+      name: name,
+      birthDate: birthDate,
+      calendarType: calendarType,
+      birthTime: birthTime,
+      gender: gender,
+    );
+
+    _isLoading = false;
+    if (!result.success) {
+      _error = result.errorMessage ?? '미리보기에 실패했습니다.';
+      _errorCode = result.errorCode;
+      notifyListeners();
+      return null;
+    }
+    notifyListeners();
+    return result.data;
+  }
+
+  /// GET /guinji/g/{token}/relation-summary — 비식별 집계(total/counts)만
+  /// 조회. L(Landing) 화면의 통계 노출 등에 사용. 실패해도 화면 전체를
+  /// 막지 않도록 호출부에서 조용히 무시할 수 있다(반환 null이면 통계 숨김).
+  Future<Map<String, dynamic>?> fetchRelationSummary(String token) async {
+    final result = await _repository.fetchRelationSummary(token);
+    if (!result.success) {
+      debugPrint(
+        '[GuinjiProvider] [fetchRelationSummary] 실패(무시 가능) -> ${result.errorMessage}',
+      );
+      return null;
+    }
+    return result.data;
+  }
+
+  /// POST /guinji/unlocks — 관계 상세 스페셜 해설 해금.
+  /// 성공 시 true(호출부에서 UI 잠금 해제 처리), 실패 시 false([error] 참고).
+  Future<bool> unlock({
+    required String memberId,
+    required String method,
+  }) async {
+    _error = null;
+    final result = await _repository.unlock(memberId: memberId, method: method);
+    if (!result.success) {
+      _error = result.errorMessage ?? '해금에 실패했습니다.';
+      notifyListeners();
+      return false;
+    }
+    // [P3 앱 퍼널 이벤트 배선 — 2026-12] 광고 시청으로 해금에 성공한
+    // 경우에만 기록한다(결제/프리패스 해금은 퍼널 계약상 집계 대상이
+    // 아님). fire-and-forget — 실패해도 해금 자체는 이미 완료된 상태.
+    if (method == 'ad') {
+      unawaited(
+        FunnelTracker.track(FunnelTracker.unlockAdWatched, mapToken: mapToken),
+      );
+    }
+    return true;
+  }
+
+  void clearError() {
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+  }
+}

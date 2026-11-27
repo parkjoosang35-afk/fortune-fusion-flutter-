@@ -14,15 +14,17 @@ import '../../../core/config/env_config.dart';
 /// 클라이언트는 서버가 이미 정렬해 내려준 목록을 그대로 신뢰한다.
 class NotificationRepository {
   Future<ApiResult<Map<String, dynamic>>> getList({int limit = 50}) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/notifications?userId=$userId&limit=$limit',
+      '${EnvConfig.adminApiBaseUrl}/api/public/notifications?limit=$limit',
     );
     debugPrint('[NotificationRepository] [getList] 요청 -> $uri');
 
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -52,9 +54,16 @@ class NotificationRepository {
     debugPrint('[NotificationRepository] [markRead] 요청 -> $uri');
 
     try {
-      final response = await http
-          .post(uri, headers: {'Content-Type': 'application/json'})
-          .timeout(const Duration(seconds: 10));
+      final response = await http.post(
+        uri,
+        // [전수검수 2026-10-12 F3] 단건 읽음에도 인증 헤더가 필요하다 —
+        // 기존에는 누락돼 서버가 인증 실패로 거부하고, 로컬에서만 읽음
+        // 처리된 척하다가 다음 load() 때 미읽음 배지가 되살아났다.
+        headers: {
+          'Content-Type': 'application/json',
+          ...await AuthTokenStore.authHeader(),
+        },
+      ).timeout(const Duration(seconds: 10));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -71,18 +80,19 @@ class NotificationRepository {
 
   /// POST /api/public/notifications/read-all — 전체 읽음 처리.
   Future<ApiResult<int>> markAllRead() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/notifications/read-all',
     );
-    debugPrint('[NotificationRepository] [markAllRead] 요청 -> userId=$userId');
+    debugPrint('[NotificationRepository] [markAllRead] 요청');
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
           )
           .timeout(const Duration(seconds: 10));
 

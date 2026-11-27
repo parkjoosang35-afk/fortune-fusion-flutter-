@@ -67,10 +67,16 @@ class HeroSummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: UnifiedTokens.spaceSm),
-          SimpleMarkdownText(data: headline, baseStyle: UnifiedText.bodyStrong()),
+          SimpleMarkdownText(
+            data: headline,
+            baseStyle: UnifiedText.bodyStrong(),
+          ),
           if (subDescription != null) ...[
             const SizedBox(height: 4),
-            SimpleMarkdownText(data: subDescription!, baseStyle: UnifiedText.body()),
+            SimpleMarkdownText(
+              data: subDescription!,
+              baseStyle: UnifiedText.body(),
+            ),
           ],
           if (keywords.isNotEmpty) ...[
             const SizedBox(height: UnifiedTokens.spaceSm),

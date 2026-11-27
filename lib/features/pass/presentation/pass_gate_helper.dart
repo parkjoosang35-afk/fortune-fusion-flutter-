@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../core/domain/access/access_checker.dart';
 import '../../../core/router/app_navigator_key.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/app_dialog.dart';
-import '../../auth/application/auth_provider.dart';
-import '../application/pass_provider.dart';
 import '../domain/pending_pass_request.dart';
 import 'coupang_pass_sheet.dart';
+// @deprecated [결과보기 통합 권한 시스템 v1.0 §1/§2 무력화] navigateWithPassGate가
+// 더 이상 이 4개를 참조하지 않아(주석의 "삭제 보류된 원래 로직" 참고) import를
+// 제거했다 — provider/AccessChecker/AuthProvider/PassProvider 자체는 삭제하지
+// 않고 앱 다른 곳에서 여전히 정상 동작한다.
 
 /// [6단계 운세 탭 정리] 열림패스 기반 이용 구조 공통화.
 ///
@@ -20,6 +20,22 @@ import 'coupang_pass_sheet.dart';
 ///   이미 true면(=열림패스 활성) 서버 재검증 없이 즉시 통과시킨다.
 /// - 그 외에는 PassProvider.consume()으로 서버 게이트체크 후, 실패 시(유효한
 ///   열림패스 없음) 발급 유도 바텀시트를 노출한다.
+///
+/// @deprecated [결과보기 통합 권한 시스템 v1.0, §1/§2 자유 이용 원칙(P1/P2)]
+/// 위 판정 로직(레거시 CATEGORY_LIMIT_REACHED 안내 포함)은 "프리패스가 없으면
+/// 화면 진입 자체를 막는다"는 옛 정책 기준으로 작성됐다. 신규 정책에서는
+/// 프리패스 유무와 무관하게 전체 콘텐츠(카테고리 탐색·입력화면)를 항상
+/// 자유롭게 열람할 수 있어야 하고, 결제 판정은 오직 [결과보기] 버튼을 누른
+/// 시점에만([ResultAccessGateSheet]가 §8 공통 ResultAccessService로 처리)
+/// 발생해야 한다. 따라서 이 함수는 이제 [requiresPass] 값과 무관하게 항상
+/// 즉시 라우팅한다 — 아래의 로그인 강제/PassProvider.consume()/게이트 시트
+/// 분기는 모두 도달하지 않는 죽은 코드다. 호출부([_categoryKeyByRoute]에
+/// 등록된 15곳 포함)의 `requiresPass: true` 인자도 더 이상 실제 게이트 여부를
+/// 결정하지 않는 의미 없는 파라미터가 되었지만, 마이그레이션 전 호출부를
+/// 일일이 고치지 않기 위해 시그니처와 인자 값은 그대로 남겨둔다. saju
+/// 프로토타입 검증(§14.2/§14.6/§14.8) 통과 후 tarot/name/face/palm 확산이
+/// 끝나면 이 함수와 15곳의 requiresPass 인자, 그리고 아래 죽은 코드 전체를
+/// 함께 정리한다.
 Future<void> navigateWithPassGate(
   BuildContext context, {
   required String title,
@@ -46,61 +62,23 @@ Future<void> navigateWithPassGate(
   // 게이트 확인, 정확한 카테고리별 2회 제한은 tarot API 자신이 최종 담당).
   String? categoryKey,
 }) async {
-  if (!requiresPass) {
-    Navigator.of(context).pushNamed(route, arguments: arguments);
-    return;
-  }
-
-  // [STEP8-2 로그인 필수 UI] 프리패스가 필요한 카테고리는 반드시 로그인한
-  // 사용자만 이용할 수 있다("프리패스 클릭시 로그인 필수" 원칙). AuthTokenStore의
-  // fallbackUserId(=1)가 있어 API 호출 자체는 비로그인에서도 되지만, 그것과
-  // 무관하게 이 UI 레이어에서 명시적으로 로그인 여부를 강제한다.
-  if (!context.read<AuthProvider>().isLoggedIn) {
-    PendingPassRequestStore.save(
-      PendingPassRequest(
-        title: title,
-        route: route,
-        arguments: arguments,
-        categoryKey: categoryKey,
-      ),
-    );
-    await showLoginRequiredSheet(context, categoryTitle: title);
-    return;
-  }
-
-  final pass = context.read<PassProvider>();
-  if (context.read<AccessChecker>().canAccessFortuneScope()) {
-    Navigator.of(context).pushNamed(route, arguments: arguments);
-    return;
-  }
-
-  final resolvedCategoryKey = categoryKey ?? _categoryKeyByRoute[route];
-
-  final ok = await pass.consume(
-    contentType: 'fortune_category',
-    contentId: title,
-    categoryKey: resolvedCategoryKey,
-  );
-  if (!context.mounted) return;
-
-  if (ok) {
-    Navigator.of(context).pushNamed(route, arguments: arguments);
-    return;
-  }
-
-  // [STEP8] 카테고리별 이용횟수 초과(CATEGORY_LIMIT_REACHED)는 "패스가 없다"는
-  // 안내가 아니라 서버가 내려준 구체적인 안내 문구(예: "오늘 이 프리패스로
-  // 이용할 수 있는 횟수(2회)를 모두 사용했습니다.")를 그대로 보여준다.
-  if (pass.lastErrorReason == 'CATEGORY_LIMIT_REACHED' && context.mounted) {
-    await showCategoryLimitReachedSheet(
-      context,
-      categoryTitle: title,
-      message: pass.lastError,
-    );
-    return;
-  }
-
-  await showPassRequiredSheet(context, categoryTitle: title);
+  // [결과보기 통합 권한 시스템 v1.0 §1/§2 자유 이용 원칙 - 무력화] 위 클래스
+  // 주석대로, [requiresPass] 값과 무관하게 항상 즉시 라우팅한다. 카테고리
+  // 탐색/입력화면 진입은 이제 결제 판정 지점이 아니다(그 판정은 오직
+  // [결과보기] 버튼 클릭 시 ResultAccessGateSheet가 전담). 아래 로그인
+  // 강제/PassProvider.consume()/게이트 시트 분기는 도달하지 않는 죽은
+  // 코드이므로 삭제하지 않고 주석으로만 남겨 마이그레이션 안정화 후 정리
+  // 대상임을 표시한다.
+  //
+  // 삭제 보류된 원래 로직(참고용, 실행되지 않음):
+  //   if (!requiresPass) { push; return; }
+  //   if (!auth.isLoggedIn) { PendingPassRequestStore.save(...); showLoginRequiredSheet; return; }
+  //   if (access.canAccessFortuneScope()) { push; return; }
+  //   final ok = await pass.consume(...);
+  //   if (ok) { push; return; }
+  //   if (pass.lastErrorReason == 'CATEGORY_LIMIT_REACHED') { showCategoryLimitReachedSheet; return; }
+  //   await showPassRequiredSheet(...);
+  Navigator.of(context).pushNamed(route, arguments: arguments);
 }
 
 /// [STEP8 - Flutter categoryKey 연동] 라우트 문자열 → 서버
@@ -122,8 +100,11 @@ Future<void> navigateWithPassGate(
 ///     카테고리)이라 서버 개별 API(daily/route.ts)에 categoryKey 검증 로직이
 ///     아예 없다 — 게이트에서 categoryKey를 보내도 서버가 무시하지만, 굳이
 ///     보낼 필요가 없으므로 매핑을 생략한다.
+// [귀인지도 정통사주 리뉴얼] '/ai-fortune/saju/input'(기존 AI 사주)은
+// app_router.dart에서 더 이상 실제 화면으로 연결되지 않고 '/saju-renewal'로
+// legacy redirect 처리된다. saju_renewal은 서버 게이트체크(checkOnly)를
+// 자체 흐름(story_preview_screen) 내부에서 수행하므로 이 매핑에서 제외한다.
 const Map<String, String> _categoryKeyByRoute = {
-  '/ai-fortune/saju/input': 'saju',
   '/ai-fortune/name/input': 'name',
   '/ai-fortune/face/capture': 'face',
   '/ai-fortune/palm/capture': 'palm',
@@ -181,8 +162,7 @@ Future<void> showCategoryLimitReachedSheet(
   return showAppInfoDialog(
     context,
     title: '이용 횟수 초과',
-    message: message ??
-        '$categoryTitle 운세는 이번 프리패스로 이용할 수 있는 횟수를 모두 사용했습니다.',
+    message: message ?? '$categoryTitle 운세는 이번 프리패스로 이용할 수 있는 횟수를 모두 사용했습니다.',
     confirmLabel: '확인',
   );
 }
@@ -214,67 +194,78 @@ Future<void> showLoginRequiredSheet(
           top: UnifiedTokens.spaceLg,
           bottom: UnifiedTokens.spaceXl + MediaQuery.of(ctx).viewInsets.bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
-                decoration: BoxDecoration(
-                  color: UnifiedColors.border,
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                ),
-              ),
-            ),
-            const Text('🔥', style: TextStyle(fontSize: 32)),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            Text(
-              '프리패스를 이용하려면\n로그인이 필요합니다',
-              style: UnifiedText.title(),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: UnifiedTokens.spaceSm),
-            Text(
-              '"$categoryTitle" 운세는 로그인 후 프리패스로\n이용할 수 있어요. 로그인하면 자동으로\n이어서 진행됩니다.',
-              style: UnifiedText.body(),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXl),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pushNamed('/login');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: UnifiedColors.black,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
+        // [반응형 화면 규격 통일 지시서] categoryTitle은 관리자 카테고리
+        // 목록의 entry.title을 그대로 받아 길이가 보장되지 않는다 — 긴
+        // 카테고리명 + 작은 화면(320px대) + textScale 2.0배 이상 조합에서
+        // 고정 Column(SingleChildScrollView 없음)이 세로 RenderFlex
+        // 오버플로를 일으켰다(실측 223px/522px). SingleChildScrollView로
+        // 감싸 내용이 화면보다 작을 때는 기존과 동일, 넘칠 때만
+        // 스크롤되게 한다 — 디자인/문구/버튼 변경 없음.
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: UnifiedTokens.spaceLg),
+                  decoration: BoxDecoration(
+                    color: UnifiedColors.border,
                     borderRadius: BorderRadius.circular(
                       UnifiedTokens.radiusPill,
                     ),
                   ),
                 ),
-                child: const Text(
-                  '로그인 / 회원가입',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              const Text('🔥', style: TextStyle(fontSize: 32)),
+              const SizedBox(height: UnifiedTokens.spaceMd),
+              Text(
+                '프리패스를 이용하려면\n로그인이 필요합니다',
+                style: UnifiedText.title(),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: UnifiedTokens.spaceSm),
+              Text(
+                '"$categoryTitle" 운세는 로그인 후 프리패스로\n이용할 수 있어요. 로그인하면 자동으로\n이어서 진행됩니다.',
+                style: UnifiedText.body(),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: UnifiedTokens.spaceXl),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).pushNamed('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UnifiedColors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        UnifiedTokens.radiusPill,
+                      ),
+                    ),
+                  ),
+                  child: const Text(
+                    '로그인 / 회원가입',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceSm),
-            TextButton(
-              onPressed: () {
-                PendingPassRequestStore.clear();
-                Navigator.of(ctx).pop();
-              },
-              child: Text('나중에 할게요', style: UnifiedText.caption()),
-            ),
-          ],
+              const SizedBox(height: UnifiedTokens.spaceSm),
+              TextButton(
+                onPressed: () {
+                  PendingPassRequestStore.clear();
+                  Navigator.of(ctx).pop();
+                },
+                child: Text('나중에 할게요', style: UnifiedText.caption()),
+              ),
+            ],
+          ),
         ),
       ),
     ),

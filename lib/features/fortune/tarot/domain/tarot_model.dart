@@ -502,6 +502,19 @@ class TarotResultModel {
   /// 항상 null이며, 기존 화면(TarotResultScreen 등)의 동작에는 영향이 없다.
   final String? answer;
 
+  /// [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 스프레드
+  /// (spreadType == 'choice_ab')에서만 채워지는 사용자가 입력한 두 선택지.
+  /// 그 외 스프레드에서는 항상 null이며, 기존 화면 동작에는 영향이 없다.
+  final String? optionA;
+  final String? optionB;
+
+  /// [65종 타로 리딩엔진 §계획2 - 자유질문 자동매칭] 사용자가 topic을
+  /// 명시하지 않은 자유질문(레거시 general/love)이 서버에서 65개 주제 중
+  /// 하나로 자동 매칭되었을 때만 채워진다. 자동 매칭이 없었던 경우(기존
+  /// 레거시 경로 그대로) 항상 null이며, 기존 화면 동작에는 영향이 없다.
+  final String? autoMatchedTopic;
+  final String? autoMatchedTopicName;
+
   const TarotResultModel({
     required this.id,
     required this.question,
@@ -511,6 +524,10 @@ class TarotResultModel {
     required this.createdAt,
     this.topic = 'general',
     this.answer,
+    this.optionA,
+    this.optionB,
+    this.autoMatchedTopic,
+    this.autoMatchedTopicName,
   });
 }
 

@@ -77,7 +77,20 @@ class AppButton extends StatelessWidget {
                 Icon(icon, size: 18),
                 const SizedBox(width: AppSpacing.sm),
               ],
-              Text(label),
+              // [반응형 화면 규격 통일 — 잘림 현상 수정] 다이얼로그 2버튼(Row+
+              // Expanded) 배치처럼 버튼 폭이 좁게 분할되는 자리 + 글자 확대
+              // (1.3배) 조합에서, 라벨이 "탈퇴하기"/"해지하기"처럼 짧아도
+              // Row(mainAxisSize.min)가 실제 주어진 폭을 14px가량 넘어 가로
+              // 오버플로되던 버그 수정(showAppConfirmDialog 등 AppButton을
+              // 쓰는 모든 화면에 영향). Flexible+ellipsis로 넘치면 줄여
+              // 보이게 한다(디자인·색상·레이블 변경 없음, 레이아웃 제약만 추가).
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           );
 

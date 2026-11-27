@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
-/// [Fortune Fusion 서브 디자인 통일 마스터 프롬프트] §3 버튼 규칙(v2)
+/// [귀인지도 서브 디자인 통일 마스터 프롬프트] §3 버튼 규칙(v2)
 ///
 /// Primary CTA: Deep Navy→Main Purple 그라디언트(홈 히어로 등 기존 화면 유지).
 /// Black CTA: 순수 블랙 배경 + 화이트 텍스트 — 기준 시안의 메인 액션 버튼
@@ -63,6 +63,16 @@ class _PremiumButtonState extends State<PremiumButton> {
 
   @override
   Widget build(BuildContext context) {
+    // [반응형 화면 규격 통일 지시서] 라벨 Text가 Flexible/Expanded 없이
+    // Row(mainAxisSize: min)에 놓여 있어, 버튼은 fullWidth로 전체 폭을
+    // 차지해도 내부 Row는 "자신의 콘텐츠 고유 크기"로 레이아웃된다 —
+    // 즉 버튼이 넓어도 Row 자체는 그 폭 제약을 자동으로 물려받지 않아,
+    // 긴 라벨 + 좁은 화면 + 큰 텍스트스케일(예: 320x568@1.5 이상) 조합에서
+    // RenderFlex 오버플로가 발생했다(free_pass_gate_screen.dart의 "지금
+    // 프리패스 열어보기" 버튼에서 실측). 공용 위젯이라 여러 화면이 함께
+    // 쓰므로, Flexible + ellipsis로 감싸 공간이 부족할 때만 말줄임표로
+    // 축약되게 한다 — 라벨이 짧아 한 줄에 들어가는 기존 모든 버튼의
+    // 모양/정렬/색상은 전혀 달라지지 않는다.
     final content = Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -75,11 +85,16 @@ class _PremiumButtonState extends State<PremiumButton> {
           ),
           const SizedBox(width: 8),
         ],
-        Text(
-          widget.label,
-          style: AppTypography.bodyStrong.copyWith(
-            color: _isDarkBg ? Colors.white : AppColors.premiumDeepNavy,
-            fontWeight: FontWeight.w700,
+        Flexible(
+          child: Text(
+            widget.label,
+            style: AppTypography.bodyStrong.copyWith(
+              color: _isDarkBg ? Colors.white : AppColors.premiumDeepNavy,
+              fontWeight: FontWeight.w700,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
           ),
         ),
       ],

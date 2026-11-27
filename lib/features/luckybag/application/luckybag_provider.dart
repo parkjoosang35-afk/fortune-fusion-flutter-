@@ -18,6 +18,25 @@ class LuckyBagProvider extends ChangeNotifier {
   LuckyBagSummary? get summary => _summary;
   bool get isLoading => _isLoading;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 행운상자
+  /// 개봉 이력(`_history`)/보상요약이 잔존해 다음 계정에 노출되지 않도록
+  /// 초기화한다. `_products`/`_probabilities`(공개 상품/확률 정보, 개인정보
+  /// 아님)는 유지해도 무방하나 일관성을 위해 함께 비운다.
+  void clearOnLogout() {
+    _summary = null;
+    _isLoading = false;
+    _products = [];
+    _probabilities = [];
+    _history = [];
+    _rewardSummary = [];
+    _isProductsLoading = false;
+    _isProbabilitiesLoading = false;
+    _isHistoryLoading = false;
+    _isOpening = false;
+    _actionError = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _isLoading = true;
     notifyListeners();

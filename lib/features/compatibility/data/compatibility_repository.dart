@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
+import '../../../core/api/http_auth_guard.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/compatibility_model.dart';
@@ -11,8 +12,8 @@ import '../domain/compatibility_model.dart';
 /// admin_web에 이미 완성되어 있던 `/api/public/compatibility/*` 3종
 /// (request/result/history)을 호출한다 — 이름 운세 Repository와 동일한
 /// http 호출 패턴을 그대로 재사용한다(신규 구조 없음, 기존 패턴 재사용).
-/// 궁합은 admin_web 쪽에서 이미 "완전 무료"(복주머니 차감 없음) 정책으로
-/// 구현되어 있으므로, 클라이언트에서도 별도 과금 로직을 추가하지 않는다.
+/// 신규 생성은 공용 결과보기 게이트의 거래 정보를 서버에 전달한다.
+/// 이력 조회와 같은 거래 재요청은 새 거래/차감을 만들지 않는다.
 class CompatibilityRepository {
   final List<CompatibilityResultModel> _history = [];
 
@@ -22,8 +23,10 @@ class CompatibilityRepository {
     required String nameB,
     required String birthDateA,
     required String birthDateB,
+    required String paymentMethod,
+    required String transactionId,
+    String? adSessionId,
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/compatibility/request',
     );
@@ -35,28 +38,40 @@ class CompatibilityRepository {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             body: jsonEncode({
-              'userId': userId,
               'type': type.apiValue,
               'nameA': nameA,
               'nameB': nameB,
               'birthDateA': birthDateA,
               'birthDateB': birthDateB,
+              'paymentMethod': paymentMethod,
+              'transactionId': transactionId,
+              if (adSessionId != null) 'adSessionId': adSessionId,
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 90));
 
+      // [엔진 통합 STEP 2 — 공통 401 처리]
+      if (HttpAuthGuard.isUnauthorized(response.statusCode)) {
+        return HttpAuthGuard.unauthorizedResult(
+          tag: 'CompatibilityRepository.requestCompatibility',
+        );
+      }
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '궁합 분석에 실패했습니다.';
         debugPrint('[CompatibilityRepository] [request] 실패 -> $error');
-        return ApiResult.fail(error);
+        return ApiResult.fail(error, code: decoded['reason'] as String?);
       }
 
       final result = CompatibilityResultModel.fromJson(
         decoded['data'] as Map<String, dynamic>,
       );
+      _history.removeWhere((item) => item.id == result.id);
       _history.insert(0, result);
       return ApiResult.ok(result);
     } catch (e) {
@@ -70,11 +85,12 @@ class CompatibilityRepository {
   /// 그대로 보여줄 수 있도록 폴백을 유지한다(이름 운세와 동일 패턴).
   Future<ApiResult<List<CompatibilityResultModel>>> getHistory() async {
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final uri = Uri.parse(
-        '${EnvConfig.adminApiBaseUrl}/api/public/compatibility/history?userId=$userId',
+        '${EnvConfig.adminApiBaseUrl}/api/public/compatibility/history',
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(uri, headers: await AuthTokenStore.authHeader())
+          .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[CompatibilityRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');
@@ -82,8 +98,7 @@ class CompatibilityRepository {
       }
       final list = (decoded['data'] as List<dynamic>)
           .map(
-            (e) =>
-                CompatibilityResultModel.fromJson(e as Map<String, dynamic>),
+            (e) => CompatibilityResultModel.fromJson(e as Map<String, dynamic>),
           )
           .toList();
       return ApiResult.ok(list);

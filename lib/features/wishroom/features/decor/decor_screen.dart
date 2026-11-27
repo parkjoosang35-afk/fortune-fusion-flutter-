@@ -1,0 +1,2512 @@
+// SCR-04 꾸미기 `/decor` (탭4) — docs/CHANGELOG.md · app2/screens-b2.jsx › Decor() 1:1 이식
+// 상단 방 미리보기(캐릭터 숨김, 선택 슬롯에 따라 카메라 포커스 이동)
+// + "지금 켜진 기운" 뱃지 목록 + TopBar(안내서 · 복주머니)
+// + 바텀패널: THEME를 맨 앞에 두는 슬롯칩 + 3열 그리드(등급 TIER · 기운 FxBadge)
+// + THEME 슬롯 선택 시 ThemeSwitch(테마 전환 칩 + TIER 범례)
+// + 아이템 탭 → ItemCard 바텀시트(설명 + 효과 + 구매/적용/자리옮기기)
+// + 배치 성공 시 PlaceFx(빛기둥+링+버스트+라벨) 연출
+// + 하단 고정 "적용하고 소원방 보기" 버튼
+import 'dart:async';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../application/wishroom_provider.dart';
+import '../../data/models.dart';
+import '../../data/wr_catalog.dart';
+import '../../core/theme/wr_theme.dart';
+import '../../core/wr_canvas.dart';
+import '../room/room_scene.dart';
+import '../room/room_layout.dart' as layout;
+import '../guide/guide_sheet.dart';
+import '../../core/wr_nav_pill.dart';
+import '../wallet/wallet_sheet.dart';
+import 'dart:ui' as ui;
+import '../compose/compose_screen.dart';
+import '../../core/wr_toast.dart';
+import '../../core/wr_item_icon.dart';
+import '../shop/shop_screen.dart';
+import '../guide/guide3_sheet.dart';
+import '../guide/guide3_data.dart';
+
+class DecorScreen extends StatefulWidget {
+  const DecorScreen({super.key});
+  @override
+  State<DecorScreen> createState() => _DecorScreenState();
+}
+
+class _DecorScreenState extends State<DecorScreen> {
+  Slot _slot = Slot.THEME; // 원본: const [slot, setSlot] = useState('THEME')
+  // [대표님 판정 — "7일째 전엔 … 안내도 띄우지 않습니다"] _slot 기본값이
+  // THEME인데 아직 잠긴 방이면, 화면을 열자마자 잠긴 내용 대신 바로 쓸 수
+  // 있는 장식(DECORATION) 탭으로 한 번만 조용히 바꿔준다(안내 시트 없이).
+  bool _didAdjustInitialSlot = false;
+
+  /// [꾸미기 한눈에 보기 — A안, 사용자 선택 2026-10-14] 목록을 내리면 방
+  /// 미리보기가 슬림 스트립으로 접히고(소원방은 없애지 않음), 맨 위로
+  /// 돌아오거나 스트립을 탭하면 다시 펼쳐진다.
+  bool _previewCollapsed = false;
+  WrItem? _preview; // pv — 미보유 아이템 임시 미리보기(THEME 칩 탭 미리보기용으로 계속 쓰임)
+  WrItem? _card; // card — 탭한 아이템(ItemCard 시트). 그리드가 보유 아이템만 보여주므로 항상 owned.
+  _Placed? _placed; // 배치 성공 직후 PlaceFx 연출
+  WrItem? _moving; // PlaceMode 진입 아이템
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = context.read<WishRoomProvider>();
+    if (!p.catalogLoaded) p.loadCatalog();
+    // [대표님 판정 — "안내는 한 번에 하나씩"] C3(decor)만 화면 진입 시 띄운다.
+    // C9(theme)는 더 이상 여기서 함께 띄우지 않는다 — 방 분위기 탭(첫 슬롯)을
+    // "처음 누를 때"로 분리했다(아래 슬롯칩 onTap, _onThemeTabTap 참고).
+    // 이전엔 두 안내를 이 화면 진입 시점에 연달아 보여줬으나, "하나씩 쉽게"
+    // 원칙과 맞지 않는다는 지적으로 분리했다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowGuide3(context, 'decor');
+    });
+  }
+
+  /// [대표님 판정 — "방 분위기 탭을 처음 누를 때"] 방 분위기(THEME) 슬롯칩을
+  /// 누른 순간에만 호출. 7일째 전엔 잠금 안내(Guide3Lock, 누를 때마다 보여줌)를,
+  /// 7일째 이후 처음 누르면 C9(theme) 안내(평생 1번)를 보여주고 슬롯을 연다.
+  void _onThemeTabTap(WishRoom room) {
+    final unlocked = room.isFeatureUnlocked('theme');
+    if (!unlocked) {
+      final unlockDay = (WrCatalog.I.raw['UNLOCK'] as Map)['theme'] as int? ?? 7;
+      final dayN = room.dayN;
+      final item = kGuide3['theme'];
+      if (item != null) {
+        showGuide3LockSheet(
+          context,
+          item: item,
+          lock: Guide3Lock(
+            day: unlockDay,
+            left: math.max(1, unlockDay - dayN),
+            dayN: dayN,
+          ),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _slot = Slot.THEME;
+      _preview = null;
+    });
+    maybeShowGuide3(context, 'theme');
+  }
+
+  bool _isOn(WrItem it, WishRoom room) => room.equip.all.contains(it.id);
+  bool _multi(Slot s) => _slotMax(s) > 1;
+  int _slotMax(Slot s) {
+    switch (s) {
+      case Slot.DECORATION:
+        return 5;
+      case Slot.SEAL:
+        return 3;
+      case Slot.THEME:
+        return 5;
+      default:
+        return 1;
+    }
+  }
+
+  void _tap(WrItem it, WishRoom room) {
+    if (it.id.endsWith('_none')) {
+      _equip(it, room);
+      return;
+    }
+    setState(() {
+      _card = it;
+      if (!_isOn(it, room)) _preview = it;
+    });
+  }
+
+  Future<void> _equip(WrItem it, WishRoom room, {bool bought = false}) async {
+    final p = context.read<WishRoomProvider>();
+    final ok = await p.equip(room.id, it.id);
+    if (!mounted) return;
+    if (!ok) {
+      final err = p.lastError;
+      if (err != null) WrToast.show(context, err.message);
+      return;
+    }
+    setState(() {
+      _preview = null;
+      _card = null;
+    });
+    _place(it, p.room!, bought: bought);
+  }
+
+  void _place(
+    WrItem it,
+    WishRoom room, {
+    bool bought = false,
+    bool moved = false,
+  }) {
+    final on = room.equip.all.contains(it.id);
+    if (it.id.endsWith('_none') || !on) {
+      setState(() => _placed = null);
+      return;
+    }
+    final at = layout.focusOf(
+      it,
+      room.equip,
+      context.read<WishRoomProvider>().items,
+      room.layout,
+    );
+    final key = DateTime.now().millisecondsSinceEpoch;
+    setState(
+      () => _placed = _Placed(
+        it: it,
+        at: at,
+        key: key,
+        room: room,
+        bought: bought,
+        moved: moved,
+      ),
+    );
+    Timer(const Duration(milliseconds: 4600), () {
+      if (mounted &&
+          _placed != null &&
+          DateTime.now().millisecondsSinceEpoch - _placed!.key > 4400) {
+        setState(() => _placed = null);
+      }
+    });
+  }
+
+  // [v5 S2 — "2번 진행할 때 지킬 것" ③] 구매는 더 이상 이 화면이 직접 하지 않는다.
+  // 미보유 아이템은 그리드 자체에 나타나지 않고(_itemGrid 필터가 owned만 통과),
+  // "🛍 상점에서 더 보기"를 누르면 ShopScreen(공용 PayScreen 경유 구매)으로 이동한다.
+  void _goToShop() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ShopScreen()));
+  }
+
+  Widget _shopMoreLink() {
+    return GestureDetector(
+      onTap: _goToShop,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: WrC.card,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: WrC.cardBorder),
+        ),
+        child: Text(
+          '🛍 상점에서 더 보기',
+          style: WrF.body(12.5, w: FontWeight.w700, color: WrC.glow),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: wrThemeData(),
+      child: Scaffold(
+        backgroundColor: WrC.bg2,
+        body: Consumer<WishRoomProvider>(
+          builder: (context, p, __) {
+            final room = p.room;
+            // app2/screens-b2.jsx › Decor() `if (!room) return <NoRoom app={app}/>` 1:1.
+            // [버그수정 — 전수감사] 기존엔 room==null일 때 단순 로딩 스피너만 표시했다
+            // (원본은 "아직 소원이 담기지 않았어요" 안내 + "첫 소원 담기" CTA).
+            if (room == null) return const _NoRoom();
+            if (!_didAdjustInitialSlot) {
+              _didAdjustInitialSlot = true;
+              if (_slot == Slot.THEME && !room.isFeatureUnlocked('theme')) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _slot = Slot.DECORATION);
+                });
+              }
+            }
+            final cat = WrCatalog.I;
+            final eq = room.equip;
+            // 미리보기(미보유 선택) 반영한 가상 room
+            final pvRoom = _previewRoom(room, eq);
+            final zone = _zone(_slot);
+            final fy = _placed != null
+                ? _placed!.at.dy
+                : (_preview != null
+                      ? layout
+                            .focusOf(
+                              _preview!,
+                              pvRoom.equip,
+                              p.items,
+                              room.layout,
+                            )
+                            .dy
+                      : zone);
+            final camTop = -math.max(0.0, math.min(844.0 - 380.0, fy - 185.0));
+
+            return Column(
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _previewCollapsed = false),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                    height: _previewCollapsed ? 76 : 400,
+                    // Container의 clipping은 decoration이 있어야 안전하다.
+                    // 투명 장식을 지정해 펼침/접힘 모두 같은 영역을 잘라낸다.
+                    decoration: const BoxDecoration(),
+                    clipBehavior: Clip.hardEdge,
+                    alignment: Alignment.topCenter,
+                    child: Stack(
+                      children: [
+                        SizedBox(
+                          height: 400,
+                          child: Stack(
+                            clipBehavior: Clip.hardEdge,
+                            children: [
+                              Positioned.fill(
+                                child: ClipRect(
+                                  // [반응형 화면 규격 통일 — 꾸미기 미리보기 예외]
+                                  // 이 400px 고정 뷰파인더는 `camTop`으로 특정
+                                  // 좌표를 당겨 "일부만 확대해 보여주는" 의도된
+                                  // 카메라 연출이라 전체 잘림 방지용 min-scale
+                                  // 규칙이 맞지 않는다(wr_canvas.dart 참고).
+                                  // 기존 동작(폭 기준 스케일)을 그대로 유지한다.
+                                  child: WrCanvasScaler(
+                                    legacyFitWidth: true,
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 1000,
+                                      ),
+                                      curve: const Cubic(.22, 1, .36, 1),
+                                      transform: Matrix4.translationValues(
+                                        0,
+                                        camTop,
+                                        0,
+                                      ),
+                                      child: RoomScene(
+                                        room: pvRoom,
+                                        items: p.items,
+                                        hideChar: true,
+                                        fx: _placed != null
+                                            ? [
+                                                _PlaceFx(
+                                                  key: ValueKey(_placed!.key),
+                                                  it: _placed!.it,
+                                                  at: _placed!.at,
+                                                  bought: _placed!.bought,
+                                                  moved: _placed!.moved,
+                                                ),
+                                                _EffectOn(
+                                                  key: ValueKey(
+                                                    'e${_placed!.key}',
+                                                  ),
+                                                  it: _placed!.it,
+                                                  room: _placed!.room,
+                                                ),
+                                              ]
+                                            : const [],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0x33000000),
+                                          Colors.transparent,
+                                          Colors.transparent,
+                                          WrC.bg2,
+                                        ],
+                                        stops: [0, .3, .7, 1],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_preview != null && _card == null)
+                                Positioned(
+                                  top: 104,
+                                  left: 0,
+                                  right: 0,
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: WrC.glass,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '미리보기 · ${_preview!.name}',
+                                        style: WrF.body(
+                                          12,
+                                          w: FontWeight.w700,
+                                          color: WrC.blossom2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              // 지금 켜진 기운
+                              // [반응형 화면 규격 통일] 기존엔 top:318 고정 +
+                              // 높이 제한 없는 Wrap이라, 동시에 켜진 기운이
+                              // 많거나(최대 6개) textScale이 커지면 아래로
+                              // 자라 400px 뷰파인더의 ClipRect 경계에 실제로
+                              // 잘렸다(카메라 연출과 무관한 UI 요소라 그
+                              // 예외 규칙이 적용되지 않음). bottom:8 로 남은
+                              // 영역을 명시적으로 제한하고, 그 안에서만
+                              // FittedBox(scaleDown)으로 전체를 축소해 항상
+                              // 보이게 한다. 평소(1~2개) 케이스는 공간에
+                              // 여유가 있어 scale=1로 기존 모습 그대로다.
+                              if (_fxList(room.effects).isNotEmpty)
+                                Positioned(
+                                  left: 12,
+                                  right: 12,
+                                  top: 318,
+                                  bottom: 8,
+                                  child: LayoutBuilder(
+                                    builder: (context, c) => FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.topCenter,
+                                      child: SizedBox(
+                                        width: c.maxWidth,
+                                        child: Wrap(
+                                          spacing: 4,
+                                          runSpacing: 4,
+                                          alignment: WrapAlignment.center,
+                                          children: _fxList(room.effects)
+                                              .map(
+                                                (t) => Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xB3140810,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          999,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0x59FFDCA0,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    t,
+                                                    style: const TextStyle(
+                                                      fontFamily: 'Pretendard',
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 10.5,
+                                                      color: Color(0xFFFFE6B8),
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              SafeArea(
+                                bottom: false,
+                                child: SizedBox(
+                                  height: 44,
+                                  child: Stack(
+                                    children: [
+                                      // app2/fx2.jsx › TopBar() 제목은 left:104,right:104(화면폭 기준 중앙정렬)
+                                      // 고정값이다. [버그수정 — 전수감사] 기존엔 Expanded+Center라 NavPill+?버튼과
+                                      // PouchPill 사이 남은 공간 기준 중앙정렬이라 좌우 그룹 폭 차이만큼 어긋나 있었다.
+                                      const Positioned(
+                                        top: 0,
+                                        bottom: 0,
+                                        left: 104,
+                                        right: 104,
+                                        child: Center(
+                                          child: Text(
+                                            '내 소원방 꾸미기',
+                                            style: TextStyle(
+                                              fontFamily: 'Pretendard',
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                              color: Colors.white,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        left: 14,
+                                        top: 0,
+                                        bottom: 0,
+                                        child: Row(
+                                          children: [
+                                            // app2/screens-b2.jsx › Decor() TopBar(left=? 안내서버튼) — nav 기본값
+                                            // true로 NavPill이 그 왼쪽에 함께 온다. [버그수정 — 전수감사] 기존엔
+                                            // NavPill이 전혀 없었다.
+                                            WrNavPill(
+                                              onBack: () =>
+                                                  wrBackOrAskExit(context),
+                                              onExitHome: () =>
+                                                  wrExitHome(context),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            GestureDetector(
+                                              onTap: _openGuide,
+                                              child: Container(
+                                                width: 32,
+                                                height: 32,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  color: WrC.glass,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: WrC.line,
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  '?',
+                                                  style: TextStyle(
+                                                    fontFamily: 'NotoSerifKR',
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 13,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Positioned(
+                                        right: 14,
+                                        top: 0,
+                                        bottom: 0,
+                                        child: Center(
+                                          child:
+                                              // app2/screens-b2.jsx › Decor() right={<PouchPill ... onClick={app.openWallet}/>} [버그수정 — 전수감사]
+                                              // 기존엔 탭 핸들러가 전혀 없는 정적 Container였다.
+                                              GestureDetector(
+                                                onTap: () =>
+                                                    openWalletSheet(context),
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 6,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: WrC.glass,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          999,
+                                                        ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Image.asset(
+                                                        'assets/wishroom/items/pouch.png',
+                                                        width: 16,
+                                                        height: 16,
+                                                        errorBuilder:
+                                                            (
+                                                              _,
+                                                              __,
+                                                              ___,
+                                                            ) => const Text(
+                                                              '💰',
+                                                              style: TextStyle(
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                      ),
+                                                      const SizedBox(width: 5),
+                                                      Text(
+                                                        '${p.me?.pouch ?? 0}',
+                                                        style: const TextStyle(
+                                                          fontFamily:
+                                                              'NotoSerifKR',
+                                                          fontWeight:
+                                                              FontWeight.w900,
+                                                          fontSize: 13,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_previewCollapsed)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: IgnorePointer(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 3,
+                                ),
+                                color: const Color(0x66000000),
+                                child: const Text(
+                                  '방 미리보기 · 탭하면 크게 보기',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10.5,
+                                    color: Color(0xFFFFE6B8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF3A1630), Color(0xFF1A0812)],
+                      ),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(26),
+                      ),
+                      border: Border(top: BorderSide(color: Color(0x40FFBED2))),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                          child: SizedBox(
+                            height: 32,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: _orderedSlots().map((s) {
+                                final sel = _slot == s;
+                                final themeInfo = s == Slot.THEME
+                                    ? cat.themes
+                                          .where(
+                                            (t) => t['id'] == room.theme.name,
+                                          )
+                                          .toList()
+                                    : const [];
+                                final T = themeInfo.isNotEmpty
+                                    ? themeInfo.first
+                                    : null;
+                                // [대표님 판정 — "7일째 전엔 탭에 🔒 표시"]
+                                final themeLocked =
+                                    s == Slot.THEME && !room.isFeatureUnlocked('theme');
+                                final label = themeLocked ? '🔒 방 분위기' : _slotLabel(s, room);
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      if (s == Slot.THEME) {
+                                        _onThemeTabTap(room);
+                                        return;
+                                      }
+                                      setState(() {
+                                        _slot = s;
+                                        _preview = null;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 13,
+                                        vertical: 7,
+                                      ),
+                                      decoration: sel
+                                          ? WrDeco.chipOn
+                                          : (T != null
+                                                ? BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          999,
+                                                        ),
+                                                    color: WrC.chipBg,
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0x8CFFD68C,
+                                                      ),
+                                                    ),
+                                                    boxShadow: const [
+                                                      BoxShadow(
+                                                        color: Color(
+                                                          0x40FFC878,
+                                                        ),
+                                                        blurRadius: 12,
+                                                      ),
+                                                    ],
+                                                  )
+                                                : WrDeco.chip),
+                                      child: Opacity(
+                                        opacity: themeLocked ? .5 : 1,
+                                        child: Text(
+                                          themeLocked
+                                              ? label
+                                              : '${T != null ? '${T['glyph']} ' : ''}$label',
+                                          style: WrF.body(
+                                            12,
+                                            w: FontWeight.w700,
+                                            color: sel
+                                                ? Colors.white
+                                                : (T != null
+                                                      ? const Color(0xFFFFE0A8)
+                                                      : WrC.fg),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: NotificationListener<ScrollNotification>(
+                            onNotification: (n) {
+                              if (n.metrics.extentBefore > 0 &&
+                                  !_previewCollapsed) {
+                                setState(() => _previewCollapsed = true);
+                              } else if (n.metrics.extentBefore == 0 &&
+                                  _previewCollapsed) {
+                                setState(() => _previewCollapsed = false);
+                              }
+                              return false;
+                            },
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(
+                                14,
+                                0,
+                                14,
+                                110,
+                              ),
+                              child: _slot == Slot.THEME
+                                  ? (room.isFeatureUnlocked('theme')
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              _themeSwitch(room),
+                                              const SizedBox(height: 10),
+                                              _itemGrid(
+                                                room,
+                                                p,
+                                                Slot.THEME,
+                                                themeOnly: true,
+                                              ),
+                                            ],
+                                          )
+                                        // [대표님 판정 — "7일째 전엔 … 안내도 띄우지
+                                        // 않습니다"] _slot 기본값이 THEME이라 아직
+                                        // 잠긴 채로 화면에 처음 진입했을 수 있다 —
+                                        // 이때도 잠긴 내용을 보여주지 않고 장식
+                                        // 슬롯으로 안내만 한다(빈 화면 방지).
+                                        : Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 24),
+                                            child: Center(
+                                              child: Text(
+                                                '🔒 방 분위기는 7일째에 열려요\n먼저 장식을 둘러보세요',
+                                                textAlign: TextAlign.center,
+                                                style: WrF.body(13, color: WrC.muted, height: 1.6),
+                                              ),
+                                            ),
+                                          ))
+                                  : _itemGrid(room, p, _slot),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 26),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Color(0xFF1A0812)],
+                        stops: [0, .35],
+                      ),
+                    ),
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            context.read<WishRoomProvider>().requestTab(0),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: WrC.blossom,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          '적용하고 소원방 보기',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ).let(
+              (col) => Stack(
+                children: [
+                  col,
+                  if (_card != null) _itemCardSheet(room, p, _card!),
+                  if (_moving != null)
+                    _PlaceModeView(
+                      it: _moving!,
+                      room: room,
+                      items: p.items,
+                      onDone: (patch) async {
+                        final it = _moving!;
+                        setState(() => _moving = null);
+                        if (patch != null) {
+                          final ok = await context
+                              .read<WishRoomProvider>()
+                              .setLayout(
+                                room.id,
+                                it.id,
+                                x: patch.reset ? null : patch.x,
+                                y: patch.reset ? null : patch.y,
+                                s: patch.reset ? null : patch.s,
+                                reset: patch.reset,
+                              );
+                          if (ok && mounted) {
+                            final rm = context.read<WishRoomProvider>().room!;
+                            _place(it, rm, moved: true);
+                          }
+                        }
+                      },
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<Slot> _orderedSlots() => [
+    Slot.THEME,
+    ...Slot.values.where((s) => s != Slot.THEME),
+  ];
+
+  double _zone(Slot s) {
+    switch (s) {
+      case Slot.CANDLE:
+        return 400;
+      case Slot.FLOWER:
+        return 520;
+      case Slot.DECORATION:
+        return 190;
+      case Slot.BACKGROUND:
+        return 214;
+      case Slot.SPECIAL:
+        return 280;
+      case Slot.SEAL:
+        return 500;
+      case Slot.THEME:
+        return 260;
+    }
+  }
+
+  List<String> _fxList(Effects fx) => [
+    if (fx.devo > 0) '정성 +${fx.devo}%',
+    if (fx.support > 0) '응원 +${fx.support}%',
+    if (fx.cool > 0) '머금기 -${fx.cool}초',
+    if (fx.daily > 0) '하루 +${fx.daily}회',
+    if (fx.pouch > 0) '복 +${fx.pouch}',
+    if (fx.decay > 0) '불빛 ${fx.decay}%↑',
+  ];
+
+  WishRoom _previewRoom(WishRoom room, Equip eq) {
+    if (_preview == null || _isOn(_preview!, room)) return room;
+    final it = _preview!;
+    final max = _slotMax(it.slot);
+    Map<String, dynamic> equipJson = {
+      'CANDLE': eq.candle,
+      'FLOWER': eq.flower,
+      'BACKGROUND': eq.background,
+      'SPECIAL': eq.special,
+      'DECORATION': eq.decoration,
+      'SEAL': eq.seal,
+      'THEME': eq.theme,
+    };
+    final key = it.slot.name;
+    if (_multi(it.slot)) {
+      final list = List<String>.from(equipJson[key] as List);
+      list.add(it.id);
+      if (list.length > max) list.removeRange(0, list.length - max);
+      equipJson[key] = list;
+    } else {
+      equipJson[key] = it.id;
+    }
+    return WishRoom.fromJson({
+      'id': room.id,
+      'ownerId': room.ownerId,
+      'owner': room.owner,
+      'region': room.region,
+      'text': room.text,
+      'char': room.char,
+      'status': room.status.name,
+      'visibility': room.visibility.name,
+      'theme': room.theme.name,
+      'outfit': room.outfit?.name,
+      'outfitNow': room.outfitNow.name,
+      'outfitId': room.outfitId,
+      'wishColor': room.wishColor,
+      'paper': room.paper,
+      'devotionCount': room.devotionCount,
+      'supportCount': room.supportCount,
+      'pouchReceived': room.pouchReceived,
+      'level': room.level,
+      'commentCount': room.commentCount,
+      'points': room.points,
+      'levelName': room.levelName,
+      'curLevelPts': room.curLevelPts,
+      'nextLevelPts': room.nextLevelPts,
+      'brightness': room.brightness,
+      'decayLabel': room.decayLabel,
+      'decayBadge': room.decayBadge,
+      'isMine': room.isMine,
+      'supportedToday': room.supportedToday,
+      'absentDays': room.absentDays,
+      'devotionsToday': room.devotionsToday,
+      'devotionsRemaining': room.devotionsRemaining,
+      'dailyLimit': room.dailyLimit,
+      'cooldownSec': room.cooldownSec,
+      'daysLit': room.daysLit,
+      // [버그수정 — 전수감사, main_room_screen.dart _withBrightness와 동일 패턴]
+      // v5 S2 신규 필드 누락 시 미리보기/가상방에서 dayN 등이 기본값으로 리셋됨.
+      'dayN': room.dayN,
+      'prayedN': room.prayedN,
+      'stage': room.stage,
+      'unlocked': room.unlocked,
+      'pendingUnlock': room.pendingUnlock,
+      'lastUnlockAckDay': room.lastUnlockAckDay,
+      'equip': equipJson,
+      'layout': room.layout.map(
+        (k, v) => MapEntry(k, {'x': v.x, 'y': v.y, 's': v.s}),
+      ),
+    });
+  }
+
+  String _slotLabel(Slot s, WishRoom room) {
+    switch (s) {
+      case Slot.CANDLE:
+        return '촛불';
+      case Slot.FLOWER:
+        return '꽃';
+      case Slot.DECORATION:
+        return '장식 ${room.equip.decoration.length}/5';
+      case Slot.BACKGROUND:
+        return '배경';
+      case Slot.SPECIAL:
+        return '특별';
+      case Slot.SEAL:
+        return '인장 ${room.equip.seal.length}/3';
+      case Slot.THEME:
+        return '테마 소품 ${room.equip.theme.length}/5';
+    }
+  }
+
+  Widget _themeSwitch(WishRoom room) {
+    final cat = WrCatalog.I;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '소원방 테마 · 테마를 바꾸면 방 분위기와 수호자 의상이 함께 바뀌어요',
+          style: WrF.body(11, color: WrC.muted),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: cat.themes.map((t) {
+            final on = room.theme.name == t['id'];
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                // [QA 테스트 보조 — 대표 지시, 기본 규칙화] 좌표 클릭 대신
+                // 이름표로 누를 수 있도록 identifier 부여. 시각적 변화 없음.
+                child: Semantics(
+                  identifier: 'theme_${t['id']}',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () => _switchTheme(
+                      room,
+                      t['id'] as String,
+                      t['label'] as String,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        color: on ? WrC.blossom : WrC.chipBg,
+                        border: Border.all(
+                          color: on
+                              ? Colors.transparent
+                              : _hex(t['color'] as String),
+                        ),
+                      ),
+                      child: Text(
+                        '${t['glyph']} ${t['label']}',
+                        style: WrF.body(
+                          11.5,
+                          w: FontWeight.w700,
+                          color: on ? Colors.white : WrC.fg,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          children: _tierEntries()
+              .map(
+                (e) => Text(
+                  '● ${e.value}',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10.5,
+                    color: e.key,
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  List<MapEntry<Color, String>> _tierEntries() => const [
+    MapEntry(Color(0xFFC8F5D4), '무료'),
+    MapEntry(Color(0xFFFFE08A), '🧧 일반'),
+    MapEntry(Color(0xFFE8C8FF), '✨ 특별'),
+  ];
+
+  Color _tierColor(String? tier) {
+    switch (tier) {
+      case 'normal':
+        return const Color(0xFFFFE08A);
+      case 'special':
+        return const Color(0xFFE8C8FF);
+      default:
+        return const Color(0xFFC8F5D4);
+    }
+  }
+
+  String _tierLabel(String? tier) {
+    switch (tier) {
+      case 'normal':
+        return '🧧 일반';
+      case 'special':
+        return '✨ 특별';
+      default:
+        return '무료';
+    }
+  }
+
+  Future<void> _switchTheme(WishRoom room, String id, String label) async {
+    if (_busy || room.theme.name == id) return;
+    setState(() => _busy = true);
+    final p = context.read<WishRoomProvider>();
+    final ok = await p.setTheme(room.id, WrTheme.values.byName(id));
+    if (mounted) {
+      setState(() => _busy = false);
+      if (ok) {
+        WrToast.show(context, '$label 소원방으로 바뀌었어요');
+      } else if (p.lastError != null) {
+        WrToast.show(context, p.lastError!.message);
+      }
+    }
+  }
+
+  Widget _itemGrid(
+    WishRoom room,
+    WishRoomProvider p,
+    Slot slot, {
+    bool themeOnly = false,
+  }) {
+    // [v5 S2 — "가진 물건만"] 미보유(구매 전) 아이템은 더 이상 이 화면에 보이지
+    // 않는다(구매는 ShopScreen 전용). _none 플레이스홀더와 실제 보유 아이템만 표시.
+    final items = p.items.where((i) {
+      if (i.slot != slot) return false;
+      if (!i.owned) return false;
+      if (slot == Slot.THEME) {
+        return i.theme?.name == room.theme.name || _isOn(i, room);
+      }
+      return true;
+    }).toList();
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          children: [
+            Text('아직 가진 물건이 없어요', style: WrF.body(13, color: WrC.muted)),
+            const SizedBox(height: 10),
+            _shopMoreLink(),
+          ],
+        ),
+      );
+    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(top: 2),
+      itemCount: items.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 9,
+        crossAxisSpacing: 9,
+        childAspectRatio: .8,
+      ),
+      itemBuilder: (_, i) {
+        final it = items[i];
+        final on = _isOn(it, room);
+        final isPreview = _preview?.id == it.id;
+        return GestureDetector(
+          onTap: () => _tap(it, room),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            decoration: BoxDecoration(
+              color: on ? const Color(0x24F2628F) : WrC.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: on || isPreview ? WrC.blossom2 : WrC.cardBorder,
+                width: on || isPreview ? 1.6 : 1,
+              ),
+              boxShadow: on
+                  ? const [BoxShadow(color: Color(0x40F2628F), blurRadius: 16)]
+                  : const [],
+            ),
+            // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 카드는
+            // `childAspectRatio: .8`로 셀 "높이"가 화면 "폭"에 비례해 정해지는
+            // 그리드 안에 있는데, 내용물(아이콘+이름+등급+기운뱃지+가격)은
+            // 화면 폭과 무관하게 항상 같은 고정 높이(최소 126px)를 요구했다.
+            // 그 결과 390 너비(셀 높이 123px)에서도 아슬아슬하게,
+            // 360·320처럼 더 좁은 화면(셀 높이 111·94px)에서는 확실하게
+            // `RenderFlex overflowed` 경고가 떴다(실측 결과, 카탈로그
+            // 아이템 대부분이 effect를 갖고 있어 거의 모든 슬롯에서
+            // 재현). 아이콘 영역은 Expanded+FittedBox로, 텍스트·등급·뱃지·
+            // 가격 줄 전체는 또 다른 Expanded+FittedBox(scaleDown)로 묶어
+            // "남는 공간만큼 비율대로 줄어들게" 했다 — 글자가 커지는
+            // textScale(1.5 이상)에서도 0.6px 수준의 미세한 바닥 잘림까지
+            // 재현을 확인해, 아이콘뿐 아니라 텍스트 블록도 함께 유연해지게
+            // 수정 범위를 넓혔다. 다른 디자인·문구·색상 변경 없음.
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: WrItemIcon(it: it, size: 48),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              it.name,
+                              style: WrF.body(
+                                12,
+                                w: FontWeight.w700,
+                                color: WrC.fg,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (it.tier != null)
+                              Text(
+                                _tierLabel(it.tier),
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9.5,
+                                  color: _tierColor(it.tier),
+                                ),
+                              ),
+                            if (it.effect != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: _fxBadge(it, room, big: false),
+                              ),
+                            const SizedBox(height: 2),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // [v5 S2 — "가진 물건만"] 그리드에는 이미 보유한
+                                // 아이템만 올라오므로(구매 전 아이템은 ShopScreen
+                                // 전용) 가격/응원 표시는 더 이상 필요 없다.
+                                Text(
+                                  on ? '놓여 있음' : '보유',
+                                  style: const TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    color: WrC.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (on)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: WrC.blossom,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: WrC.blossom, blurRadius: 8),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        size: 11,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _fxBadge(WrItem it, WishRoom room, {required bool big}) {
+    if (it.effect == null) return const SizedBox.shrink();
+    final cat = WrCatalog.I;
+    final c = cat.wishColors.where((x) => x['id'] == it.aura).toList();
+    final C = c.isNotEmpty ? c.first : null;
+    final match = it.aura != 'all' && room.wishColor == it.aura;
+    final v = (it.effect!.type == 'daily' || it.effect!.type == 'decay')
+        ? it.effect!.v
+        : (it.effect!.v * (match ? 1.5 : 1)).round();
+    final label = _effectLabel(it.effect!.type, v, big: big);
+    final color = C != null
+        ? _hex(C['color'] as String)
+        : const Color(0xFFFFE08A);
+    // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 뱃지는
+    // 좁은 그리드 카드(big:false) 안에서 쓰일 때, `v`값이 큰 효과
+    // (예: "불빛 60%↑", "정성 +30%" 등 — 실제 카탈로그에 다수 존재)의
+    // 라벨 길이가 카드 안쪽 가용 폭(320 화면 기준 약 67px)보다 넓어
+    // `RenderFlex overflowed ... on the right`가 발생했다(이전 Column
+    // 바닥 잘림 수정과는 무관하게 원래부터 있던 별개의 버그 — git
+    // stash로 수정 전/후 동일하게 재현되는 것을 확인함). `FittedBox
+    // (fit: scaleDown)`로 감싸면 — 공간이 충분한 기존 상세 시트
+    // (big:true)에서는 1.0 이상으로 확대하지 않으므로 기존 디자인에
+    // 전혀 영향이 없고, 카드처럼 폭이 좁을 때만 뱃지 전체가 비율대로
+    // 살짝 작아져 잘리지 않는다.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: big ? 10 : 6,
+          vertical: big ? 4 : 1,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: match ? null : const Color(0x59000000),
+          gradient: match
+              ? const LinearGradient(
+                  colors: [Color(0xFFFFE08A), Color(0xFFFFB0C8)],
+                )
+              : null,
+          border: Border.all(color: color.withValues(alpha: .6)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: big ? 7 : 5,
+              height: big ? 7 : 5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                boxShadow: [BoxShadow(color: color, blurRadius: 6)],
+              ),
+            ),
+            const SizedBox(width: 3),
+            Text(
+              '$label${match && big ? ' · 궁합 ×1.5' : ''}',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w800,
+                fontSize: big ? 12 : 9.5,
+                color: match
+                    ? const Color(0xFF3A1A14)
+                    : const Color(0xFFFFE6C8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _effectLabel(String type, int v, {required bool big}) {
+    if (big) {
+      switch (type) {
+        case 'devo':
+          return '정성 1회 성장 +$v%';
+        case 'support':
+          return '받는 응원 효과 +$v%';
+        case 'cool':
+          return '머금는 시간 −$v초';
+        case 'daily':
+          return '하루 정성 +$v회';
+        case 'pouch':
+          return '정성 10회 보너스 복주머니 +$v';
+        case 'decay':
+          return '촛불이 $v% 아래로 약해지지 않아요';
+      }
+    } else {
+      switch (type) {
+        case 'devo':
+          return '정성 +$v%';
+        case 'support':
+          return '응원 +$v%';
+        case 'cool':
+          return '−$v초';
+        case 'daily':
+          return '하루 +$v회';
+        case 'pouch':
+          return '복 +$v';
+        case 'decay':
+          return '불빛 $v%↑';
+      }
+    }
+    return '';
+  }
+
+  Widget _itemCardSheet(WishRoom room, WishRoomProvider p, WrItem card) {
+    final it = p.items.where((i) => i.id == card.id).firstOrNull ?? card;
+    final on = _isOn(it, room);
+    final cat = WrCatalog.I;
+    final c = cat.wishColors.where((x) => x['id'] == it.aura).toList();
+    final C = c.isNotEmpty ? c.first : null;
+    final my = cat.wishColors.where((x) => x['id'] == room.wishColor).toList();
+    final match = it.aura != 'all' && room.wishColor == it.aura;
+    final canPlace =
+        [
+          Slot.FLOWER,
+          Slot.DECORATION,
+          Slot.SEAL,
+          Slot.THEME,
+        ].contains(it.slot) &&
+        on;
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => setState(() {
+              _card = null;
+              _preview = null;
+            }),
+            child: Container(color: const Color(0x80000000)),
+          ),
+        ),
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: 22,
+          // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견] 이 시트는
+          // character_shop_screen.dart의 _infoSheet/_shortageSheet와 정확히
+          // 동일한 구조적 결함(Positioned(bottom:22)로만 배치되고 상단 제약이
+          // 전혀 없는 Column(mainAxisSize:min), 내부 스크롤 없음)을 갖고
+          // 있었다. 실측 결과(아이템 설명 43자 기준) 320x568 화면에서
+          // textScale 1.5 → 상단 "ITEM · ..." 라벨 top=-54.7px, 2.0 →
+          // top=-276.4px로 화면 밖까지 밀려났다(하단 CTA는 화면 안에 남아
+          // 있어 더 눈치채기 어려운 조용한 버그). _infoSheet와 동일한 패턴
+          // (maxHeight를 화면의 80%로 제한 + 드래그 핸들만 고정 헤더로 남기고
+          // 나머지를 Flexible+SingleChildScrollView로 스크롤)으로 수정했다.
+          // 디자인·문구·색상 변경 없음.
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * .8,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            decoration: WrDeco.sheet,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ITEM · ${_slotLabel(it.slot, room).split(' ').first}',
+                          style: WrF.mono(size: 10.5),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          it.name,
+                          style: WrF.display(19, color: Colors.white),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 84,
+                              height: 84,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: WrC.line),
+                                gradient: RadialGradient(
+                                  colors: [
+                                    (C != null
+                                        ? _hex(
+                                            C['color'] as String,
+                                          ).withValues(alpha: .25)
+                                        : const Color(0x40FFDCA0)),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                              child: WrItemIcon(it: it, size: 60),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    C != null
+                                        ? '${C['hanja']} · ${C['label']}의 기운'
+                                        : '✦ 모든 소원의 기운',
+                                    style: TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      color: C != null
+                                          ? _hex(C['color'] as String)
+                                          : WrC.glow,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    it.desc ?? '',
+                                    style: WrF.body(
+                                      13.5,
+                                      color: Colors.white,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (it.effect != null)
+                          Container(
+                            margin: const EdgeInsets.only(top: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: match ? const Color(0x14FFDC82) : WrC.card,
+                              border: Border.all(
+                                color: match
+                                    ? const Color(0x99FFDC82)
+                                    : WrC.cardBorder,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '방에 두면',
+                                  style: WrF.mono(
+                                    size: 10,
+                                    color: WrC.blossom2,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                _fxBadge(it, room, big: true),
+                                const SizedBox(height: 8),
+                                Text(
+                                  match
+                                      ? '내 소원(${my.isNotEmpty ? my.first['label'] : ''})과 같은 기운이라 효과가 1.5배예요.'
+                                      : it.aura == 'all'
+                                      ? '어떤 소원에도 같은 힘을 내요.'
+                                      : '${C != null ? C['label'] : ''} 소원이라면 효과가 1.5배가 돼요.',
+                                  style: WrF.body(
+                                    12,
+                                    color: WrC.muted,
+                                    height: 1.6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            // [v5 S2 — "구매 버튼 제거"] 이 시트는 이제 항상 보유
+                            // 아이템(owned)에 대해서만 열리므로(그리드 필터 참고)
+                            // 미보유 구매 분기는 제거했다 — 배치/치우기만 남는다.
+                            if (on) ...[
+                              if (canPlace)
+                                Expanded(
+                                  flex: 2,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: SizedBox(
+                                      height: 50,
+                                      child: ElevatedButton(
+                                        onPressed: () => setState(() {
+                                          _moving = it;
+                                          _card = null;
+                                        }),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: WrC.glow,
+                                        ),
+                                        child: const Text(
+                                          '✥ 자리 옮기기',
+                                          style: TextStyle(
+                                            color: Color(0xFF4A2A10),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () => _equip(it, room),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WrC.darkBtn,
+                                    ),
+                                    child: Text(
+                                      [
+                                            Slot.FLOWER,
+                                            Slot.SPECIAL,
+                                            Slot.CANDLE,
+                                            Slot.BACKGROUND,
+                                          ].contains(it.slot)
+                                          ? '놓여 있어요'
+                                          : '치우기',
+                                      style: WrF.body(13, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () => _equip(it, room),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WrC.blossom,
+                                    ),
+                                    child: const Text(
+                                      '방에 두기',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // app2/screens-b2.jsx › app.openGuide('decor') 1:1 — guide2.jsx GuideBook(focus:'decor') 재사용.
+  // GuideBook의 "한 바퀴 둘러보기"는 app.room && 조건만 보므로 꾸미기에서도 항상 노출되고,
+  // 누르면 app.go('home') 후 startTour() — Provider.requestTour()로 셸이 탭 전환을 대신한다.
+  void _openGuide() {
+    final p = context.read<WishRoomProvider>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => GuideBook(focus: 'decor', onStartTour: p.requestTour),
+    );
+  }
+}
+
+class _Placed {
+  final WrItem it;
+  final Offset at;
+  final int key;
+  final WishRoom room;
+  final bool bought, moved;
+  _Placed({
+    required this.it,
+    required this.at,
+    required this.key,
+    required this.room,
+    this.bought = false,
+    this.moved = false,
+  });
+}
+
+/// 아이템을 방에 놓는 순간 — 빛 기둥 → 링 2겹 → 반짝이 버스트 → 이름 라벨. app2/screens-b2.jsx › PlaceFx
+class _PlaceFx extends StatefulWidget {
+  const _PlaceFx({
+    super.key,
+    required this.it,
+    required this.at,
+    this.bought = false,
+    this.moved = false,
+  });
+  final WrItem it;
+  final Offset at;
+  final bool bought, moved;
+  @override
+  State<_PlaceFx> createState() => _PlaceFxState();
+}
+
+class _PlaceFxState extends State<_PlaceFx>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  )..forward();
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  static const _colorMap = {
+    Slot.CANDLE: Color(0xFFFFE08A),
+    Slot.FLOWER: Color(0xFFFFB6D0),
+    Slot.DECORATION: Color(0xFFFFD8A0),
+    Slot.BACKGROUND: Color(0xFFC8D8FF),
+    Slot.SPECIAL: Color(0xFFE8C8FF),
+    Slot.SEAL: Color(0xFFFF9A8A),
+    Slot.THEME: Color(0xFFFFE6A8),
+  };
+  static const _verbMap = {
+    Slot.CANDLE: '을(를) 밝혔어요',
+    Slot.FLOWER: '을(를) 꽂았어요',
+    Slot.DECORATION: '을(를) 놓았어요',
+    Slot.BACKGROUND: '(으)로 창밖이 바뀌었어요',
+    Slot.SPECIAL: '이(가) 방에 퍼져요',
+    Slot.SEAL: '을(를) 찍었어요',
+    Slot.THEME: '을(를) 놓았어요',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _colorMap[widget.it.slot] ?? const Color(0xFFFFE08A);
+    final verb = widget.moved ? '의 자리를 옮겼어요' : (_verbMap[widget.it.slot] ?? '');
+    final wide =
+        widget.it.slot == Slot.BACKGROUND || widget.it.slot == Slot.SPECIAL;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, __) {
+        final t = _c.value;
+        return Positioned.fill(
+          child: IgnorePointer(
+            child: Stack(
+              children: [
+                // 빛 기둥
+                if (!wide)
+                  Positioned(
+                    left: widget.at.dx - 22,
+                    top: widget.at.dy - 260 * math.min(1, t * 2),
+                    child: Opacity(
+                      opacity: (1 - t).clamp(0.0, 1.0),
+                      child: Container(
+                        width: 44,
+                        height: 260 * math.min(1, t * 2),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              c.withValues(alpha: .6),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                // 링 2겹
+                for (final d in [0.0, .18])
+                  Positioned(
+                    left: widget.at.dx - (wide ? 130 : 60),
+                    top: widget.at.dy - (wide ? 130 : 60),
+                    child: Opacity(
+                      opacity: (1 - (t - d).clamp(0.0, 1.0)).clamp(0.0, 1.0),
+                      child: Container(
+                        width: (wide ? 260 : 120) * (0.6 + 0.4 * t),
+                        height: (wide ? 260 : 120) * (0.6 + 0.4 * t),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: c, width: 2),
+                          boxShadow: [BoxShadow(color: c, blurRadius: 20)],
+                        ),
+                      ),
+                    ),
+                  ),
+                // 플래시
+                Positioned(
+                  left: widget.at.dx - 70,
+                  top: widget.at.dy - 70,
+                  child: Opacity(
+                    opacity: (1 - t).clamp(0.0, 1.0),
+                    child: Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.white,
+                            c.withValues(alpha: .5),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // 반짝이 버스트
+                for (int i = 0; i < (widget.bought ? 16 : 10); i++)
+                  _sparkle(i, c, t),
+                // 이름 라벨
+                Positioned(
+                  left: (widget.at.dx - 110).clamp(12.0, 390.0 - 232),
+                  top: widget.at.dy + (wide ? 60 : 36),
+                  width: 220,
+                  child: Opacity(
+                    opacity: t > .25 ? 1 : t / .25,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFFFF8FB1), Color(0xFFF2628F)],
+                          ),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x8CF2628F), blurRadius: 18),
+                          ],
+                        ),
+                        child: Text(
+                          '${widget.bought ? '✦ NEW · ' : '✦ '}${widget.it.name}$verb',
+                          style: const TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _sparkle(int i, Color c, double t) {
+    final ang = (i / 10) * math.pi * 2;
+    final dist = 60 * t;
+    final dx = widget.at.dx + math.cos(ang) * dist,
+        dy = widget.at.dy + math.sin(ang) * dist;
+    return Positioned(
+      left: dx - 3,
+      top: dy - 3,
+      child: Opacity(
+        opacity: (1 - t).clamp(0.0, 1.0),
+        child: Container(
+          width: 5,
+          height: 5,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: c,
+            boxShadow: [BoxShadow(color: c, blurRadius: 6)],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 효과 발동 연출 — 기운이 촛불로 흘러들어가며 'EFFECT ON'을 체감. app2/screens-b2.jsx › EffectOn
+class _EffectOn extends StatefulWidget {
+  const _EffectOn({super.key, required this.it, required this.room});
+  final WrItem it;
+  final WishRoom room;
+  @override
+  State<_EffectOn> createState() => _EffectOnState();
+}
+
+class _EffectOnState extends State<_EffectOn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3000),
+  )..forward();
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.it.effect == null) return const SizedBox.shrink();
+    final cat = WrCatalog.I;
+    final c = cat.wishColors.where((x) => x['id'] == widget.it.aura).toList();
+    final col = c.isNotEmpty
+        ? _hex(c.first['color'] as String)
+        : const Color(0xFFFFE08A);
+    final match =
+        widget.it.aura != 'all' && widget.room.wishColor == widget.it.aura;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, __) {
+        final t = _c.value;
+        final show = t > .4;
+        return Positioned.fill(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: show ? ((t - .4) / .2).clamp(0.0, 1.0) : 0,
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 150,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'EFFECT ON',
+                            style: TextStyle(
+                              fontFamily: 'IBMPlexMono',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                              letterSpacing: 3,
+                              color: col,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              color: match ? null : const Color(0x59000000),
+                              gradient: match
+                                  ? const LinearGradient(
+                                      colors: [
+                                        Color(0xFFFFE08A),
+                                        Color(0xFFFFB0C8),
+                                      ],
+                                    )
+                                  : null,
+                              border: Border.all(
+                                color: col.withValues(alpha: .6),
+                              ),
+                            ),
+                            child: Text(
+                              _short(widget.it.effect!),
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                color: match
+                                    ? const Color(0xFF3A1A14)
+                                    : const Color(0xFFFFE6C8),
+                              ),
+                            ),
+                          ),
+                          if (match)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                '✦ 내 소원과 기운이 맞아요',
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                  color: const Color(0xFFFFE08A),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _short(ItemEffect e) {
+    switch (e.type) {
+      case 'devo':
+        return '정성 +${e.v}%';
+      case 'support':
+        return '응원 +${e.v}%';
+      case 'cool':
+        return '−${e.v}초';
+      case 'daily':
+        return '하루 +${e.v}회';
+      case 'pouch':
+        return '복 +${e.v}';
+      case 'decay':
+        return '불빛 ${e.v}%↑';
+    }
+    return '';
+  }
+}
+
+class _LayoutPatch {
+  final double x, y, s;
+  final bool reset;
+  _LayoutPatch(this.x, this.y, this.s, {this.reset = false});
+}
+
+/// 직접 배치 — 끌어서 옮기고, 아래 슬라이더로 크기. app2/screens-b2.jsx › PlaceMode
+class _PlaceModeView extends StatefulWidget {
+  const _PlaceModeView({
+    required this.it,
+    required this.room,
+    required this.items,
+    required this.onDone,
+  });
+  final WrItem it;
+  final WishRoom room;
+  final List<WrItem> items;
+  final void Function(_LayoutPatch?) onDone;
+  @override
+  State<_PlaceModeView> createState() => _PlaceModeViewState();
+}
+
+class _PlaceModeViewState extends State<_PlaceModeView> {
+  late double _x, _y, _s;
+
+  @override
+  void initState() {
+    super.initState();
+    final at = layout.focusOf(
+      widget.it,
+      widget.room.equip,
+      widget.items,
+      widget.room.layout,
+    );
+    final cu = widget.room.layout[widget.it.id];
+    _x = cu?.x ?? at.dx;
+    _y =
+        cu?.y ??
+        (widget.it.kind == 'hang' ? at.dy : at.dy + (widget.it.s ?? 52) / 2);
+    _s = cu?.s ?? (widget.it.slot == Slot.FLOWER ? 96 : (widget.it.s ?? 52));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxS = widget.it.slot == Slot.FLOWER ? 150.0 : 110.0;
+    final vRoom = _virtualRoom();
+    return Positioned.fill(
+      child: Material(
+        color: const Color(0xFF0A0408),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: WrCanvasScaler(
+                child: RoomScene(
+                  room: vRoom,
+                  items: widget.items,
+                  hideChar: true,
+                  frozen: true,
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(child: CustomPaint(painter: _GridPainter())),
+            ),
+            // [반응형 화면 규격 통일 — 잘림 현상 수정 · 실버그 발견]
+            // 기존엔 LayoutBuilder가 Stack의 직계 자식이고, 그 builder가
+            // Positioned를 그대로 반환했다. Positioned는 반드시 Stack의
+            // "직계" 자식이어야 하는데, 실제 부모는 LayoutBuilder가 되어
+            // "여기에 두기/자리 옮기기" 진입 즉시
+            // `Incorrect use of ParentDataWidget`(StackParentData를
+            // BoxParentData 대상에 적용 시도) FlutterError가 발생해 배치모드
+            // 화면 자체가 죽는 치명적 버그였다(디자인과 무관, 위젯 트리 구조
+            // 결함). Positioned가 실제로 Stack 밑에 오도록 LayoutBuilder를
+            // Positioned.fill로 감싸고 builder가 Stack(Positioned(...))를
+            // 반환하도록 구조만 바로잡았다 — 좌표 계산식·시각 요소는 그대로.
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  // WrCanvasScaler가 min(scaleW, scaleH)로 바뀐 것과 동일한
+                  // 배율을 써야 아이템 드래그 핸들이 실제로 그려지는
+                  // RoomScene(WrCanvasScaler로 감싸짐) 위에 정확히 겹친다.
+                  // 폭만 쓰던 기존 식 그대로 두면 세로가 짧은 화면에서 핸들
+                  // 위치가 실제 아이템과 어긋난다.
+                  final scale = wrCanvasScaleFor(Size(c.maxWidth, c.maxHeight));
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: (_x - _s * .6) * scale,
+                        top: (_y - _s * 1.1) * scale,
+                        width: _s * 1.2 * scale,
+                        height: _s * 1.2 * scale,
+                        child: GestureDetector(
+                          onPanUpdate: (d) => setState(() {
+                            _x = (_x + d.delta.dx / scale).clamp(14.0, 376.0);
+                            _y = (_y + d.delta.dy / scale).clamp(70.0, 640.0);
+                          }),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFFFE08A),
+                                width: 2,
+                                style: BorderStyle.solid,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x40FFE08A),
+                                  blurRadius: 24,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: -26,
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFE08A),
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        '✥ 끌어서 옮기기',
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 10.5,
+                                          color: Color(0xFF3A1A14),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              top: 56,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: WrC.glass,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${widget.it.name} · 자리 정하기',
+                    style: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 30,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: const Color(0xEB1A0812),
+                  border: Border.all(color: WrC.line),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 34,
+                          child: Text(
+                            '크기',
+                            style: WrF.body(12, color: WrC.muted),
+                          ),
+                        ),
+                        Expanded(
+                          child: Slider(
+                            value: _s.clamp(24.0, maxS),
+                            min: 24,
+                            max: maxS,
+                            activeColor: WrC.blossom,
+                            onChanged: (v) => setState(() => _s = v),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 34,
+                          child: Text(
+                            '${_s.round()}',
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontFamily: 'IBMPlexMono',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 11,
+                          child: OutlinedButton(
+                            onPressed: () => widget.onDone(
+                              _LayoutPatch(0, 0, 0, reset: true),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: WrC.line),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text(
+                              '기본 자리',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 8,
+                          child: OutlinedButton(
+                            onPressed: () => widget.onDone(null),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: WrC.line),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text(
+                              '취소',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 15,
+                          child: ElevatedButton(
+                            onPressed: () =>
+                                widget.onDone(_LayoutPatch(_x, _y, _s)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: WrC.blossom,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text(
+                              '여기에 두기',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  WishRoom _virtualRoom() {
+    final room = widget.room;
+    final layoutJson = Map<String, Map<String, double>>.from(
+      room.layout.map((k, v) => MapEntry(k, {'x': v.x, 'y': v.y, 's': v.s})),
+    );
+    layoutJson[widget.it.id] = {'x': _x, 'y': _y, 's': _s};
+    return WishRoom.fromJson({
+      'id': room.id,
+      'ownerId': room.ownerId,
+      'owner': room.owner,
+      'region': room.region,
+      'text': room.text,
+      'char': room.char,
+      'status': room.status.name,
+      'visibility': room.visibility.name,
+      'theme': room.theme.name,
+      'outfit': room.outfit?.name,
+      'outfitNow': room.outfitNow.name,
+      'outfitId': room.outfitId,
+      'wishColor': room.wishColor,
+      'paper': room.paper,
+      'devotionCount': room.devotionCount,
+      'supportCount': room.supportCount,
+      'pouchReceived': room.pouchReceived,
+      'level': room.level,
+      'commentCount': room.commentCount,
+      'points': room.points,
+      'levelName': room.levelName,
+      'curLevelPts': room.curLevelPts,
+      'nextLevelPts': room.nextLevelPts,
+      'brightness': room.brightness,
+      'decayLabel': room.decayLabel,
+      'decayBadge': room.decayBadge,
+      'isMine': room.isMine,
+      'supportedToday': room.supportedToday,
+      'absentDays': room.absentDays,
+      'devotionsToday': room.devotionsToday,
+      'devotionsRemaining': room.devotionsRemaining,
+      'dailyLimit': room.dailyLimit,
+      'cooldownSec': room.cooldownSec,
+      'daysLit': room.daysLit,
+      // [버그수정 — 전수감사] v5 S2 신규 필드 누락 방지(_previewRoom과 동일 패턴).
+      'dayN': room.dayN,
+      'prayedN': room.prayedN,
+      'stage': room.stage,
+      'unlocked': room.unlocked,
+      'pendingUnlock': room.pendingUnlock,
+      'lastUnlockAckDay': room.lastUnlockAckDay,
+      'equip': {
+        'CANDLE': room.equip.candle,
+        'FLOWER': room.equip.flower,
+        'BACKGROUND': room.equip.background,
+        'SPECIAL': room.equip.special,
+        'DECORATION': room.equip.decoration,
+        'SEAL': room.equip.seal,
+        'THEME': room.equip.theme,
+      },
+      'layout': layoutJson,
+    });
+  }
+}
+
+class _GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = const Color(0x0FFFFFFF)
+      ..strokeWidth = 1;
+    const step = 26.0;
+    // [반응형 화면 규격 통일] 위 드래그 핸들 스케일과 동일한 기준(min(scaleW,
+    // scaleH))으로 맞춰 격자 간격이 실제 캔버스 배율과 일치하도록 한다.
+    final scale = wrCanvasScaleFor(size);
+    for (double x = 0; x < size.width; x += step * scale) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
+    }
+    for (double y = 0; y < size.height; y += step * scale) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+Color _hex(String s) {
+  final h = s.replaceFirst('#', '');
+  return Color(int.parse('FF$h', radix: 16));
+}
+
+// CSS filter: grayscale(.3) 근사 행렬 — Shortage 시트의 아이템 아이콘에 적용(app2/screens-b2.jsx 1:1)
+const List<double> _grayscale30 = [
+  .76378,
+  .21456,
+  .02166,
+  0,
+  0,
+  .06378,
+  .91456,
+  .02166,
+  0,
+  0,
+  .06378,
+  .21456,
+  .72166,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+];
+
+extension _Let<T> on T {
+  R let<R>(R Function(T) f) => f(this);
+}
+
+// app2/screens-b2.jsx › NoRoom({app}) 1:1 — blur-room(room-lv1.jpg) 배경 +
+// 중앙 정렬 c_basic 아이콘(grayscale(.5) brightness(.7)) + 안내문 + "첫 소원 담기" CTA.
+// 소원방 모듈에서 아직 소원을 작성하지 않은 사용자가 꾸미기 탭에 들어왔을 때만 보인다.
+class _NoRoom extends StatelessWidget {
+  const _NoRoom();
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Image.asset(
+              'assets/wishroom/room-lv1.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(color: WrC.bg2),
+            ),
+          ),
+        ),
+        Positioned.fill(child: Container(color: const Color(0x66000000))),
+        Positioned.fill(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ColorFiltered(
+                    colorFilter: const ColorFilter.matrix(
+                      _grayscale50Brightness70,
+                    ),
+                    child: Image.asset(
+                      'assets/wishroom/items/c_basic.png',
+                      width: 120,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.local_fire_department,
+                        size: 100,
+                        color: Colors.white38,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    '아직 소원이 담기지 않았어요',
+                    textAlign: TextAlign.center,
+                    style: WrF.body(14, color: WrC.muted, height: 1.7),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: 200,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ComposeScreen(),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: WrC.blossom,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        '첫 소원 담기',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// CSS filter: grayscale(.5) brightness(.7) 근사 행렬 — NoRoom c_basic 아이콘 1:1(app2/screens-b2.jsx)
+const List<double> _grayscale50Brightness70 = [
+  .7735 * .7,
+  .3575 * .7,
+  .0361 * .7,
+  0,
+  0,
+  .1065 * .7,
+  .8575 * .7,
+  .0361 * .7,
+  0,
+  0,
+  .1065 * .7,
+  .3575 * .7,
+  .5361 * .7,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+];

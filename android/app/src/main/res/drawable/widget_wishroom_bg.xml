@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 방 썸네일이 아직 없을 때(최초 설치 직후) 보여줄 배경 — wallpaper_thumbnail.xml과
+     같은 톤(어두운 밤 + 은은한 촛불빛)으로 통일해, 실제 방이 로드되기 전에도
+     "샘플 방"처럼 보이는 구체적 형상을 넣지 않는다(기획서 "샘플 방 노출 금지"). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="18dp" />
+    <gradient
+        android:angle="90"
+        android:startColor="#3A1630"
+        android:endColor="#12060E" />
+</shape>

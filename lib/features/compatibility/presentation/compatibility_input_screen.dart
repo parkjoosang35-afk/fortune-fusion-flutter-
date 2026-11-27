@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_unified_style.dart';
+import '../../../core/widgets/birthday_picker/birthday_picker_modal.dart';
+import '../../auth/application/auth_provider.dart';
+import '../../auth/domain/user_model.dart';
 import '../application/compatibility_provider.dart';
 import '../domain/compatibility_model.dart';
+import '../../result_access/presentation/result_access_gate_sheet.dart';
+import '../../pass/application/pass_provider.dart';
+import '../../result_access/domain/result_access_model.dart';
+import '../../result_access/domain/pending_result_access_return.dart';
+import '../../../core/auth/auth_token_store.dart';
 
 /// [궁합(C그룹) 신규 구현] CompatibilityInputScreen (입력형 패턴)
 /// 나(이름+생년월일)와 상대방(이름+생년월일) + 궁합 유형(애정/우정/사업/가족)을
@@ -11,9 +19,16 @@ import '../domain/compatibility_model.dart';
 /// arguments로 [CompatibilityType]을 전달하면 해당 유형이 미리 선택된 채로
 /// 시작한다(예: T-그룹 궁합 항목별 딥링크). 없으면 기본값 love.
 class CompatibilityInputScreen extends StatefulWidget {
-  const CompatibilityInputScreen({super.key, this.initialType});
+  const CompatibilityInputScreen({
+    super.key,
+    this.initialType,
+    this.restoredInput,
+    this.resumeResultAccess = false,
+  });
 
   final CompatibilityType? initialType;
+  final Map<String, dynamic>? restoredInput;
+  final bool resumeResultAccess;
 
   @override
   State<CompatibilityInputScreen> createState() =>
@@ -26,11 +41,107 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
   DateTime? _birthDateA;
   DateTime? _birthDateB;
   late CompatibilityType _type;
+  bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType ?? CompatibilityType.love;
+    final restored = widget.restoredInput;
+    _type =
+        widget.initialType ??
+        CompatibilityType.values.firstWhere(
+          (type) => type.apiValue == restored?['type'],
+          orElse: () => CompatibilityType.love,
+        );
+    if (restored != null) {
+      _nameAController.text = restored['nameA'] as String? ?? '나';
+      _nameBController.text = restored['nameB'] as String? ?? '';
+      _birthDateA = DateTime.tryParse(restored['birthDateA'] as String? ?? '');
+      _birthDateB = DateTime.tryParse(restored['birthDateB'] as String? ?? '');
+    } else {
+      // [귀인지도 통합 사주 프로필 — 재입력 부담 완화, 2026-11] 결과보기
+      // 재개(restoredInput)가 아닌 "처음 들어온" 경우에 한해, 이미 완성된
+      // 공용 프로필([BirthInputScreen]이 저장한 [UserModel])이 있으면 "나"
+      // 칸만 그 값으로 미리 채운다. "상대방" 칸은 이 기능의 본질상 항상
+      // 별도 입력이 필요하므로 손대지 않는다. 화면 레이아웃/스타일은 그대로
+      // 유지하며, 프리필된 값도 사용자가 그대로 수정해 제출할 수 있다(강제
+      // 아님) — 매번 손으로 재입력해야 하는 문제와, 그로 인해 "나의 사주"가
+      // 메뉴마다 실수로 달라질 위험을 줄인다.
+      _seedSelfFromProfileIfNeeded();
+    }
+    if (widget.resumeResultAccess) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resume());
+    }
+  }
+
+  void _seedSelfFromProfileIfNeeded() {
+    UserModel? user;
+    try {
+      user = context.read<AuthProvider>().currentUser;
+    } catch (_) {
+      return;
+    }
+    final birthDate = user?.birthDate;
+    if (birthDate == null || birthDate.isEmpty) return;
+    final parsed = DateTime.tryParse(birthDate);
+    if (parsed == null) return;
+    _nameAController.text = (user?.nickname.isNotEmpty ?? false)
+        ? user!.nickname
+        : '나';
+    _birthDateA = parsed;
+  }
+
+  Future<void> _resume() async {
+    if (!mounted) return;
+    final input = widget.restoredInput;
+    final rawAccess = input?['_resultAccess'];
+    if (rawAccess is Map) {
+      final owner = input?['_ownerUserId'];
+      if (!await AuthTokenStore.isLoggedIn() ||
+          owner != await AuthTokenStore.getCurrentUserId()) {
+        await PendingResultAccessReturnStore.clear();
+        if (mounted) {
+          _nameAController.text = '나';
+          _nameBController.clear();
+          setState(() {
+            _birthDateA = null;
+            _birthDateB = null;
+          });
+        }
+        return;
+      }
+      if (!mounted || !_canSubmit) return;
+      final access = ResultAccessBeginResult.fromJson(
+        rawAccess.cast<String, dynamic>(),
+      );
+      // consume로 꺼낸 상태를 재저장하여 복구 확인 도중 다시 종료되어도 보존한다.
+      await PendingResultAccessReturnStore.save(
+        PendingResultAccessReturn(
+          contentType: 'compatibility',
+          returnRoute: '/compatibility/input',
+          savedAt: DateTime.now(),
+          userInput: input!,
+        ),
+      );
+      if (!mounted) return;
+      context
+          .read<CompatibilityProvider>()
+          .request(
+            type: _type,
+            nameA: _nameAController.text.trim(),
+            nameB: _nameBController.text.trim(),
+            birthDateA: _fmt(_birthDateA),
+            birthDateB: _fmt(_birthDateB),
+            access: access,
+            adSessionId: input['_adSessionId'] as String?,
+          )
+          .then((_) {
+            if (mounted) context.read<PassProvider>().load();
+          });
+      Navigator.of(context).pushNamed('/compatibility/result');
+    } else {
+      await _submit();
+    }
   }
 
   @override
@@ -40,22 +151,37 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDate(bool isA) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000, 1, 1),
-      firstDate: DateTime(1930, 1, 1),
-      lastDate: DateTime.now(),
+  /// [BirthdayPickerModal 적용] 궁합은 dev-spec.md 매핑상 midnight 팔려트
+  /// + 시간 선택(requireTime=false) — 나/상대방 각각 동일한 공용
+  /// 모달을 호출하며, isA로 어려 대상을 구분한다.
+  Future<void> _openBirthdayPicker(bool isA) async {
+    final current = isA ? _birthDateA : _birthDateB;
+    final initial = current == null
+        ? null
+        : BirthdayPickerValue(
+            year: current.year,
+            month: current.month,
+            day: current.day,
+            weekday: current.weekday == 7 ? 0 : current.weekday,
+          );
+    final result = await showBirthdayPicker(
+      context,
+      palette: BirthdayPickerPalette.midnight,
+      requireTime: false,
+      initialValue: initial,
+      sourceLabel: isA ? 'COMPAT · 나' : 'COMPAT · 상대방',
+      title: '알려주세요',
+      ctaLabel: '저장하기',
     );
-    if (picked != null) {
-      setState(() {
-        if (isA) {
-          _birthDateA = picked;
-        } else {
-          _birthDateB = picked;
-        }
-      });
-    }
+    if (result == null) return;
+    setState(() {
+      final picked = DateTime(result.year, result.month, result.day);
+      if (isA) {
+        _birthDateA = picked;
+      } else {
+        _birthDateB = picked;
+      }
+    });
   }
 
   String _fmt(DateTime? d) => d == null
@@ -68,16 +194,47 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
       _birthDateA != null &&
       _birthDateB != null;
 
-  void _submit() {
-    if (!_canSubmit) return;
-    context.read<CompatibilityProvider>().request(
-      type: _type,
-      nameA: _nameAController.text.trim(),
-      nameB: _nameBController.text.trim(),
-      birthDateA: _fmt(_birthDateA),
-      birthDateB: _fmt(_birthDateB),
-    );
-    Navigator.of(context).pushNamed('/compatibility/result');
+  Future<void> _submit() async {
+    if (!_canSubmit || _submitting) return;
+    final type = _type;
+    final nameA = _nameAController.text.trim();
+    final nameB = _nameBController.text.trim();
+    final birthDateA = _fmt(_birthDateA);
+    final birthDateB = _fmt(_birthDateB);
+    setState(() => _submitting = true);
+    try {
+      final access = await showResultAccessGateSheet(
+        context,
+        contentType: 'compatibility',
+        categoryKey: 'compatibility',
+        contentTitle: '궁합 보기',
+        returnRoute: '/compatibility/input',
+        userInputForRestore: {
+          'type': type.apiValue,
+          'nameA': nameA,
+          'nameB': nameB,
+          'birthDateA': birthDateA,
+          'birthDateB': birthDateB,
+        },
+      );
+      if (!mounted || access == null) return;
+      context
+          .read<CompatibilityProvider>()
+          .request(
+            type: type,
+            nameA: nameA,
+            nameB: nameB,
+            birthDateA: birthDateA,
+            birthDateB: birthDateB,
+            access: access,
+          )
+          .then((_) {
+            if (mounted) context.read<PassProvider>().load();
+          });
+      await Navigator.of(context).pushNamed('/compatibility/result');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -124,7 +281,7 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
                 title: '나',
                 nameController: _nameAController,
                 birthDate: _birthDateA,
-                onPickDate: () => _pickDate(true),
+                onPickDate: () => _openBirthdayPicker(true),
                 onChanged: () => setState(() {}),
               ),
               SizedBox(height: UnifiedTokens.spaceLg),
@@ -132,12 +289,12 @@ class _CompatibilityInputScreenState extends State<CompatibilityInputScreen> {
                 title: '상대방',
                 nameController: _nameBController,
                 birthDate: _birthDateB,
-                onPickDate: () => _pickDate(false),
+                onPickDate: () => _openBirthdayPicker(false),
                 onChanged: () => setState(() {}),
               ),
               SizedBox(height: UnifiedTokens.spaceXxl),
               ElevatedButton(
-                onPressed: _canSubmit ? _submit : null,
+                onPressed: _canSubmit && !_submitting ? _submit : null,
                 child: const Text('궁합 보기'),
               ),
             ],

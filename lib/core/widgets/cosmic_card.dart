@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// [Fortune Fusion UI 리뉴얼 프롬프트] §2-1 CosmicCard - 카드의 기본형
+/// [귀인지도 UI 리뉴얼 프롬프트] §2-1 CosmicCard - 카드의 기본형
 ///
 /// 우주 감성 다크 테마의 표준 카드 컨테이너. 배경/테두리/그림자/라운드를
 /// 웹 프로토타입 톤(딥네이비 + 은은한 보라빛 글로우)에 맞춰 통일한다.

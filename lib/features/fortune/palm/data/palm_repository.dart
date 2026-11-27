@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/api/api_result.dart';
+import '../../../../core/api/http_auth_guard.dart';
 import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
 import '../domain/palm_model.dart';
@@ -18,26 +19,50 @@ import '../domain/palm_model.dart';
 class PalmRepository {
   final List<PalmResultModel> _history = [];
 
-  Future<ApiResult<PalmResultModel>> analyze({Uint8List? image}) async {
+  Future<ApiResult<PalmResultModel>> analyze({
+    Uint8List? image,
+    PalmHandSide hand = PalmHandSide.right,
+    // [결과보기 통합 권한 시스템 v1.0, §8] saju/name/face와 동일하게
+    // 게이트 시트가 반환한 결제수단/트랜잭션ID를 그대로 서버에 전달한다.
+    // 둘 다 null이면(기존 호출부) 서버가 자동으로 레거시 경로로 처리한다.
+    String? paymentMethod,
+    String? transactionId,
+  }) async {
     if (image == null) {
       return ApiResult.fail('손바닥 사진을 먼저 촬영하거나 선택해주세요.');
     }
-    final userId = await AuthTokenStore.getCurrentUserId();
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm',
+    );
     final imageBase64 = base64Encode(image);
     debugPrint(
-      '[PalmRepository] [analyze] 요청 -> $uri (userId=$userId, imageBytes=${image.length})',
+      '[PalmRepository] [analyze] 요청 -> $uri (imageBytes=${image.length}, hand=${hand.apiValue})',
     );
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId, 'image': imageBase64}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+            // [귀인지도 리스킨] hand 파라미터를 함께 전송한다. 서버가 아직
+            // 활용하지 않더라도 추가 필드는 무시되므로 안전하며, 추후
+            // 백엔드가 왼손/오른손별 해석을 지원할 때 바로 연동 가능하다.
+            body: jsonEncode({
+              'image': imageBase64,
+              'hand': hand.apiValue,
+              if (paymentMethod != null) 'paymentMethod': paymentMethod,
+              if (transactionId != null) 'transactionId': transactionId,
+            }),
           )
           .timeout(const Duration(seconds: 50));
 
+      // [엔진 통합 STEP 2 — 공통 401 처리]
+      if (HttpAuthGuard.isUnauthorized(response.statusCode)) {
+        return HttpAuthGuard.unauthorizedResult(tag: 'PalmRepository.analyze');
+      }
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '손금 분석에 실패했습니다.';
@@ -65,11 +90,12 @@ class PalmRepository {
   /// 누적된 로컬 결과는 그대로 보여줄 수 있도록 폴백을 유지한다(name_fortune_repository와 동일 패턴).
   Future<ApiResult<List<PalmResultModel>>> getHistory() async {
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final uri = Uri.parse(
-        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm/history?userId=$userId',
+        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/palm/history',
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(uri, headers: await AuthTokenStore.authHeader())
+          .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[PalmRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');

@@ -15,12 +15,17 @@ class NotificationItem {
   final DateTime createdAt;
   bool isRead;
 
+  /// [알림 실제 발송 연동] admin_web `notifications.deep_link` 컬럼 매핑.
+  /// 형식은 "type:targetId" (예: "wish:w_123"). null이면 탭해도 이동하지 않음.
+  final String? deepLink;
+
   NotificationItem({
     required this.id,
     required this.title,
     required this.body,
     required this.createdAt,
     this.isRead = false,
+    this.deepLink,
   });
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
@@ -31,6 +36,7 @@ class NotificationItem {
       createdAt:
           DateTime.tryParse(json['sentAt'] as String? ?? '') ?? DateTime.now(),
       isRead: json['isRead'] as bool? ?? false,
+      deepLink: json['deepLink'] as String?,
     );
   }
 }
@@ -47,6 +53,15 @@ class NotificationProvider extends ChangeNotifier {
   int get unreadCount => _items.where((e) => !e.isRead).length;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
+
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 알림 목록이
+  /// 잔존해 다음 계정에 노출되지 않도록 초기화한다.
+  void clearOnLogout() {
+    _items = [];
+    _isLoading = false;
+    _lastError = null;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     _isLoading = true;

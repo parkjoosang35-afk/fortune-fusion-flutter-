@@ -44,16 +44,19 @@ class PassRepository {
   }
 
   /// GET /api/public/pass/status — 현재 열림패스 활성 상태(홈 화면 상태바)
+  /// [Stage2 결함수정 — 인증우회 회귀 차단] userId 쿼리 대신 Authorization 헤더로 서버가 신원을 판별한다.
   Future<ApiResult<PassStatusModel>> getStatus() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/pass/status?userId=$userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/pass/status',
     );
     debugPrint('[PassRepository] [status] 요청 -> $uri');
 
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -87,19 +90,20 @@ class PassRepository {
     String endpoint, {
     int? policyId,
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/pass/$endpoint',
     );
-    debugPrint('[PassRepository] [$endpoint] 요청 시작 -> userId=$userId');
+    debugPrint('[PassRepository] [$endpoint] 요청 시작');
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             body: jsonEncode({
-              'userId': userId,
               if (policyId != null) 'policyId': policyId,
             }),
           )
@@ -112,18 +116,8 @@ class PassRepository {
         return ApiResult.fail(error);
       }
 
-      final data = decoded['data'] as Map<String, dynamic>;
-      final expiresAt = DateTime.parse(data['expiresAt'] as String);
-      return ApiResult.ok(
-        PassStatusModel(
-          isActive: true,
-          userPassId: data['userPassId'] as int?,
-          policyId: data['policyId'] as int?,
-          policyName: data['policyName'] as String?,
-          expiresAt: expiresAt,
-          remainingSec: expiresAt.difference(DateTime.now()).inSeconds,
-        ),
-      );
+      // 지급 1건의 잔여값이 아닌 사용자 전체 잔여 합계를 다시 조회한다.
+      return await getStatus();
     } catch (e) {
       debugPrint('[PassRepository] [$endpoint] 예외 -> $e');
       return ApiResult.fail('프리패스 발급 중 오류가 발생했습니다: $e');
@@ -144,18 +138,20 @@ class PassRepository {
   /// 서버가 여전히 유효하다고 판단해 잔여시간이 복원되는 문제를 방지하기 위함이다.
   /// 반드시 [AuthTokenStore.clear] (토큰 삭제) 이전에 호출해야 userId를 얻을 수 있다.
   Future<ApiResult<void>> expireOnLogout() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/pass/expire-on-logout',
     );
-    debugPrint('[PassRepository] [expire-on-logout] 요청 -> userId=$userId');
+    debugPrint('[PassRepository] [expire-on-logout] 요청');
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
+            body: jsonEncode({}),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -192,7 +188,6 @@ class PassRepository {
     dynamic contentId,
     String? categoryKey,
   }) async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/pass/consume',
     );
@@ -204,9 +199,11 @@ class PassRepository {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             body: jsonEncode({
-              'userId': userId,
               'contentType': contentType,
               if (contentId != null) 'contentId': contentId,
               if (categoryKey != null) 'categoryKey': categoryKey,
@@ -219,10 +216,7 @@ class PassRepository {
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '유효한 프리패스가 없습니다.';
         debugPrint('[PassRepository] [consume] 실패 -> $error');
-        return ApiResult.fail(
-          error,
-          code: decoded['reason'] as String?,
-        );
+        return ApiResult.fail(error, code: decoded['reason'] as String?);
       }
       return ApiResult.ok(null);
     } catch (e) {

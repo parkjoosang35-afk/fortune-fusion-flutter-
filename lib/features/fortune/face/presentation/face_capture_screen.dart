@@ -1,23 +1,33 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_unified_style.dart';
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_vignette.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../../result_access/domain/result_access_model.dart';
+import '../../../result_access/presentation/result_access_gate_sheet.dart';
+import '../../shared/presentation/sensitive_photo_consent_dialog.dart';
+import '../../guinji/theme/guinji_colors.dart';
+import '../../guinji/theme/guinji_typography.dart';
+import '../../guinji/widgets/guinji_coach_card.dart';
+import '../../guinji/widgets/face_sigil.dart';
+import '../../guinji/widgets/face_silhouette.dart';
+import '../../guinji/widgets/guinji_button.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
 import '../application/face_provider.dart';
+import '../../../../core/sound/sound_route_trigger.dart';
 
-/// 03단계 §3.3 / 07단계 - FaceCaptureScreen (촬영/업로드 안내형 패턴)
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] AI 관상 인트로/촬영 화면.
 ///
-/// 07단계(추가) §3.3 - 손금(PalmCaptureScreen)과 동일한 패턴으로 개편.
-/// "카메라로 촬영" / "갤러리에서 선택" 두 옵션으로 이미지를 먼저 선택하고,
-/// 선택된 이미지를 미리보기(Image.memory)로 확인한 뒤 "분석 시작" 버튼으로
-/// 넘어가는 2단계 플로우로 개편한다.
+/// 기존 로직(image_picker 기반 2단계 플로우: 사진 선택 → 미리보기 →
+/// "분석 시작" 버튼 → FaceProvider.analyze() → analyzing 라우트 이동)은
+/// 전혀 변경하지 않는다. 위젯 트리와 색상/타이포/모티프만 핸드오프의
+/// FaceIntroScreen 디자인(Dawn Hanji 그라디언트 + 방통선녀 코칭 카드 +
+/// 얼굴 마법진/실루엣 + 하자 스텝)으로 교체한다.
 ///
-/// 07단계(추가, 수정2) §3.3 - camera 패키지 대신 image_picker의
-/// ImageSource.camera(OS 네이티브 카메라 앱 호출)를 사용해 모바일 브라우저에서도
-/// 안정적으로 동작하도록 하고, dart:io File 대신 [Uint8List]를 사용한다.
+/// "촬영한 사진은 분석 즉시 파기되며 저장되지 않습니다" 개인정보 안내
+/// 문구는 신뢰에 중요하므로 그대로 하단 캡션으로 유지한다.
 class FaceCaptureScreen extends StatefulWidget {
   const FaceCaptureScreen({super.key});
 
@@ -29,14 +39,34 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isPicking = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // [6-7-4-B-4 전면개정] 얼굴관상 기능 진입 시 1회성 민감정보(얼굴 사진)
+    // 처리 동의를 확인한다. 거부하면 해당 기능만 제한(이 화면을 벗어남).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureConsent());
+  }
+
+  Future<void> _ensureConsent() async {
+    if (!mounted) return;
+    final agreed = await SensitivePhotoConsentDialog.ensureConsent(
+      context,
+      feature: 'face',
+      featureLabel: '관상',
+    );
+    if (!mounted) return;
+    if (!agreed) {
+      Navigator.of(context).maybePop();
+    }
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     if (_isPicking) return;
     setState(() => _isPicking = true);
     try {
-      // 07단계(추가, 수정3) §3.3 - 일부 모바일 브라우저(안드로이드 WebView 계열)는
-      // 파일 선택 취소(cancel) 이벤트가 제대로 발생하지 않아 Future가 영원히
-      // 대기 상태로 멈추는 경우가 있다. 30초 타임아웃으로 버튼이 무한 로딩되는
-      // 현상(사용자에게는 "아무 반응 없음"으로 보임)을 방지한다.
+      // 일부 모바일 브라우저(안드로이드 WebView 계열)는 파일 선택 취소(cancel)
+      // 이벤트가 제대로 발생하지 않아 Future가 영원히 대기 상태로 멈추는
+      // 경우가 있다. 30초 타임아웃으로 버튼이 무한 로딩되는 현상을 방지한다.
       final XFile? picked = await _picker
           .pickImage(source: source, imageQuality: 90, maxWidth: 1600)
           .timeout(const Duration(seconds: 30));
@@ -47,7 +77,6 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     } catch (e) {
       if (!mounted) return;
       final isCamera = source == ImageSource.camera;
-      // 07단계(추가, 수정3) §3.3 - 원인 파악을 위해 실제 예외 내용을 함께 노출한다.
       AppToast.show(
         context,
         isCamera
@@ -60,8 +89,27 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     }
   }
 
-  void _startAnalysis(BuildContext context) {
-    context.read<FaceProvider>().analyze();
+  // [결과보기 통합 권한 시스템 v1.0, §6/§8.5] 사진 촬영/선택까지는 자유
+  // 이용(P1/P2)이므로 게이트 없이 진행하고, "분석 시작하기" 버튼(=곧
+  // 결과보기로 이어지는 지점)을 누른 이 시점에만 3택 게이트를 띄운다.
+  // [§7 예외] 얼굴 사진(개인정보)은 쿠팡 이동 복원 대상에 포함하지 않는다
+  // (다른 콘텐츠와 달리 userInputForRestore를 비워 둔다) — 프로세스가
+  // kill되면 사용자가 다시 촬영해야 하며, 이는 개인정보 보호 관점에서
+  // 의도된 제약이다.
+  Future<void> _startAnalysis(BuildContext context) async {
+    final beginResult = await showResultAccessGateSheet(
+      context,
+      contentType: 'face',
+      categoryKey: 'face',
+      contentTitle: '관상',
+      returnRoute: '/ai-fortune/face/capture',
+    );
+    if (!context.mounted || beginResult == null) return;
+
+    context.read<FaceProvider>().analyze(
+      paymentMethod: beginResult.paymentMethod.code,
+      transactionId: beginResult.transactionId,
+    );
     Navigator.of(context).pushNamed('/ai-fortune/face/analyzing');
   }
 
@@ -70,134 +118,270 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     final selectedImageBytes = context.watch<FaceProvider>().selectedImageBytes;
     final hasImage = selectedImageBytes != null;
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('AI 관상', style: UnifiedText.titleLarge()),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(UnifiedTokens.screenPadding),
-          child: Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (hasImage)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                              UnifiedTokens.radiusMd,
-                            ),
-                            child: Image.memory(
-                              selectedImageBytes,
-                              width: 220,
-                              height: 220,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 220,
-                            height: 220,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: UnifiedColors.border,
-                                width: 2,
-                                style: BorderStyle.solid,
+    // [귀인지도 사운드 배치 개발 기획서 §5.1] face 라우트 BGM(06_face_E)
+    // 트리거(앰비언스 없음).
+    return SoundRouteTrigger(
+      routeKey: 'face',
+      child: Scaffold(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: GuinjiScreenBg()),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // [웹 일반 AdSense 전체 확장 — 관상] 이 화면이 관상 기능의
+                  // 진입점이므로 Vignette(페이지 전환형) 1회 트리거. 레이아웃
+                  // 공간을 차지하지 않아 촬영/분석 버튼과 전혀 겹치지 않는다.
+                  const WebAdVignette(surface: WebAdSurface.face),
+                  _TopNav(
+                    title: '觀相 · INTRO · 03',
+                    onBack: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('STEP 01 / 03', style: GuinjiType.eyebrow),
+                  const SizedBox(height: 8),
+                  Text(
+                    hasImage ? '이 얼굴로 / 들여다볼까요' : '얼굴을 / 보여주세요',
+                    style: GuinjiType.displayLg,
+                  ),
+                  const SizedBox(height: 14),
+
+                  GuinjiCoachCard(
+                    message: hasImage
+                        ? '좋아요, 얼굴이 잘 보여요.\n이대로 분석을 시작해볼게요.'
+                        : '천천히 정면을 바라봐 주세요.\n얼굴결이 잘 보이도록 도와드릴게요.',
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 가이드 영역 — 사진 없을 땐 마법진+실루엣, 있을 땐 실제 미리보기
+                  Expanded(
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              GuinjiColors.glow.withValues(alpha: 0.08),
+                              GuinjiColors.accent.withValues(alpha: 0.04),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: GuinjiColors.line),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: hasImage
+                            ? Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.memory(
+                                    selectedImageBytes,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  Positioned(
+                                    right: 10,
+                                    bottom: 10,
+                                    child: _RetakeChip(
+                                      onTap: () => context
+                                          .read<FaceProvider>()
+                                          .clearSelectedImage(),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Opacity(
+                                    opacity: 0.55,
+                                    child: FaceSigil(size: 240, opacity: 0.55),
+                                  ),
+                                  const FaceSilhouette(
+                                    size: 140,
+                                    showLandmarks: true,
+                                  ),
+                                ],
                               ),
-                              color: UnifiedColors.cardAllMenu,
-                            ),
-                            child: Icon(
-                              Icons.face_retouching_natural_rounded,
-                              size: 96,
-                              color: UnifiedColors.textPrimary,
-                            ),
-                          ),
-                        SizedBox(height: UnifiedTokens.spaceXl),
-                        Text(
-                          hasImage
-                              ? '이 사진으로 분석을 시작할까요?'
-                              : '정면을 바라보고\n밝은 곳에서 촬영해주세요',
-                          style: UnifiedText.title(),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: UnifiedTokens.spaceSm),
-                        if (!hasImage)
-                          Text(
-                            '사진을 선택해주세요',
-                            style: UnifiedText.bodyStrong(
-                              color: UnifiedColors.textPrimary,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        SizedBox(height: UnifiedTokens.spaceXs),
-                        Text(
-                          '촬영한 사진은 분석 즉시 파기되며 저장되지 않습니다',
-                          style: UnifiedText.caption(
-                            color: UnifiedColors.textCaption,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (hasImage) ...[
-                          SizedBox(height: UnifiedTokens.spaceMd),
-                          TextButton.icon(
-                            onPressed: () => context
-                                .read<FaceProvider>()
-                                .clearSelectedImage(),
-                            icon: const Icon(Icons.refresh_rounded, size: 16),
-                            label: const Text('다시 선택하기'),
-                          ),
-                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  if (!hasImage)
+                    Column(
+                      children: const [
+                        _StepRow(num: '一', text: '밝은 곳에서 정면을 바라봐요'),
+                        SizedBox(height: 8),
+                        _StepRow(num: '二', text: '앞머리와 안경은 잠시 벗어주세요'),
+                        SizedBox(height: 8),
+                        _StepRow(num: '三', text: '표정은 자연스럽게 두어요'),
                       ],
                     ),
+
+                  const SizedBox(height: 10),
+                  Text(
+                    '촬영한 사진은 분석 즉시 파기되며 저장되지 않습니다',
+                    style: GuinjiType.caption,
+                    textAlign: TextAlign.center,
                   ),
-                ),
-              ),
-              if (hasImage)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _startAnalysis(context),
-                    icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-                    label: const Text('분석 시작'),
-                  ),
-                )
-              else
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isPicking
-                            ? null
-                            : () => _pickImage(ImageSource.gallery),
-                        icon: const Icon(
-                          Icons.photo_library_outlined,
-                          size: 18,
-                        ),
-                        label: const Text('갤러리에서 선택'),
-                      ),
+                  const SizedBox(height: 14),
+
+                  if (hasImage)
+                    GuinjiPrimaryButton(
+                      label: '분석 시작하기',
+                      icon: Icons.auto_awesome_rounded,
+                      onPressed: () => _startAnalysis(context),
+                    )
+                  else ...[
+                    GuinjiPrimaryButton(
+                      label: '촬영 시작하기',
+                      icon: Icons.camera_alt_outlined,
+                      onPressed: _isPicking
+                          ? null
+                          : () => _pickImage(ImageSource.camera),
                     ),
-                    SizedBox(width: UnifiedTokens.spaceMd),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isPicking
-                            ? null
-                            : () => _pickImage(ImageSource.camera),
-                        icon: const Icon(Icons.camera_alt_rounded, size: 18),
-                        label: const Text('카메라로 촬영'),
-                      ),
+                    const SizedBox(height: 10),
+                    GuinjiGhostButton(
+                      label: '갤러리에서 불러오기',
+                      icon: Icons.photo_library_outlined,
+                      onPressed: _isPicking
+                          ? null
+                          : () => _pickImage(ImageSource.gallery),
                     ),
                   ],
-                ),
-            ],
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
+class _RetakeChip extends StatelessWidget {
+  final VoidCallback onTap;
+  const _RetakeChip({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(999),
         ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.refresh_rounded, size: 14, color: Colors.white),
+            const SizedBox(width: 4),
+            Text(
+              '다시 선택',
+              style: GuinjiType.monoSm.copyWith(color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopNav extends StatelessWidget {
+  final String title;
+  final VoidCallback? onBack;
+  const _TopNav({required this.title, this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          _IconBtn(icon: Icons.arrow_back, onTap: onBack),
+          Expanded(
+            child: Center(child: Text(title, style: GuinjiType.monoSm)),
+          ),
+          const SizedBox(width: 36),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _IconBtn({required this.icon, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: GuinjiColors.card,
+          border: Border.all(color: GuinjiColors.line),
+        ),
+        child: Icon(icon, size: 16, color: GuinjiColors.fg),
+      ),
+    );
+  }
+}
+
+class _StepRow extends StatelessWidget {
+  final String num;
+  final String text;
+  const _StepRow({required this.num, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: GuinjiColors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: GuinjiColors.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: GuinjiColors.accent,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              num,
+              style: TextStyle(
+                fontFamily: GuinjiType.display,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                color: const Color(0xFFFFF9E8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: GuinjiType.bodySmall.copyWith(fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }

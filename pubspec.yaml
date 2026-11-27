@@ -1,5 +1,5 @@
 name: flutter_app
-description: "Fortune Fusion - AI 종합 운세 슈퍼앱"
+description: "귀인지도 - AI 종합 운세 슈퍼앱"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.20+22
 
 environment:
   sdk: ^3.9.2
@@ -30,24 +30,51 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  lunar: 1.7.7
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # [신당 v3 唯一(unique) 오버레이/사진첩 저장 이미지 합성 — 2026-11]
+  # Dart SDK 전이 의존성(material.dart가 간접 제공)이던 characters 패키지를
+  # `talisman_save_image.dart`(Canvas 텍스트 합성, UI 트리 밖 순수 함수)에서
+  # 직접 `.characters`(그래핌 클러스터 단위 순회)로 써야 해서 명시 의존성으로
+  # 승격한다 — 전이 의존성에만 기대면 pub 해석 변경 시 깨질 수 있다.
+  characters: 1.4.0
   # 07단계 Flutter 앱 설계서 §1.3 확정 패키지 (버전 고정)
   provider: 6.1.5+1         # 상태관리
   http: 1.5.0                # API 통신 (10단계 초기: Mock/Real 전환 가능한 ApiClient)
   shared_preferences: 2.5.3  # 토큰/온보딩완료/테마 등 경량 키값 저장
-  hive: 2.2.3                 # 구조화 로컬 캐시(히스토리/오프라인)
-  hive_flutter: 1.1.0         # Hive Flutter 통합
+  # [Stage2 결함수정 — 결함-H01-01] hive/hive_flutter는 초기화만 되고 실제
+  # 어떤 기능도 Hive.openBox()를 호출하지 않던 죽은 의존성이라 제거했다
+  # (모든 로컬 저장은 shared_preferences로 이미 구현되어 있었음).
   intl: ^0.19.0               # 날짜/숫자 포맷팅(사주/운세/포인트 표시)
+
+  # [궁합지도 Phase 4 — 직접 궁합 생성 멱등성] 세션 범위 클라이언트 UUID
+  # (requestKey) 생성용. 이미 다른 패키지(uuid 4.6.0)의 전이 의존성으로
+  # 포함되어 있었으나 직접 사용하므로 명시적으로 선언한다. 버전은 이미
+  # 잠겨있던 전이 버전(4.6.0)과 동일하게 고정해 추가 해석 충돌을 만들지 않는다.
+  uuid: 4.6.0
 
   # 07단계(추가, 수정) - AI 손금/관상 분석 이미지 입력 기능(§3.3)
   # 07단계(추가, 수정2) - camera 패키지(getUserMedia 기반 실시간 미리보기)는 모바일
   # 브라우저 환경에서 초기화 실패가 잦아 제거하고, image_picker의 ImageSource.camera
   # (OS 네이티브 카메라 앱 호출 - 웹에서는 <input capture> 방식으로 폴백)로 통일한다.
   image_picker: 1.2.2          # 갤러리 선택 + 카메라 촬영(OS 네이티브 카메라 호출)
+
+  # [복주머니 마케팅 쿠폰 — QR 스캔] Android는 CameraX/ML Kit, Web은 zxing-js
+  # 기반(6.0.11 changelog: jsqr → zxing-js 교체로 전체 바코드 포맷 지원)으로
+  # 두 플랫폼 모두 지원하는 유일한 성숙한 QR 스캐너 패키지. Dart 3.9.2 고정
+  # 환경과 호환되는 최신판(7.x는 Dart 3.7.0+ 요구하나 pubspec 하한 자체는
+  # 문제 없음 — 다만 안정성 검증된 6.x 계열로 고정해 7.x의 breaking
+  # change/회귀 위험을 피한다). 카메라 권한은 AndroidManifest.xml에 기존
+  # image_picker용으로 이미 선언되어 있어 추가 설정이 필요 없다. 위
+  # "camera 패키지 초기화 실패" 주석은 실시간 미리보기 범용 패키지(camera)에
+  # 대한 과거 이슈이며, mobile_scanner는 전용 QR 디코딩 레이어까지 포함한
+  # 별개 패키지라 동일 문제가 재현되지 않는다(필요 시 수동 코드입력
+  # ([BokjuCouponEntryScreen])으로 항상 폴백 가능 — 카메라 의존이 아님).
+  mobile_scanner: 6.0.11
 
   # CMS 제휴광고(배너) 클릭 시 외부 제휴 링크(쿠팡파트너스 등)를 열기 위한 패키지
   url_launcher: 6.3.1
@@ -63,19 +90,121 @@ dependencies:
   video_player: 2.9.2
 
   # [오늘의 운세 표준 플로우] §6 후속연결 "공유 → 이미지 생성 후 공유" 구현용.
-  # RepaintBoundary로 캡처한 결과 카드를 임시 파일로 저장(path_provider)한 뒤
-  # 네이티브 공유 시트로 전달(share_plus). 둘 다 Web 플랫폼도 지원한다.
+  # RepaintBoundary로 캡처한 결과 카드를 PNG 바이트로 만들어 share_plus로
+  # 전달한다. [타로 공유 안 되는 버그 수정] 과거에는 path_provider로 임시
+  # 파일에 저장한 뒤 그 경로로 XFile을 만들었는데, path_provider는 Web
+  # 플랫폼을 지원하지 않는 패키지라(pub.dev platforms 목록에 web 없음) 웹
+  # 프리뷰/웹 배포에서 getTemporaryDirectory() 호출 자체가 예외를 던져
+  # 공유가 항상 실패했다. XFile.fromData()(메모리 기반, 모든 플랫폼 지원)로
+  # 바꿔 디스크 파일 저장 단계를 완전히 제거한다. XFile은 share_plus가
+  # re-export하므로 cross_file을 별도로 의존성에 추가할 필요는 없다.
   share_plus: 10.1.4
-  path_provider: 2.1.5
+  # [주의] path_provider는 Web 플랫폼을 지원하지 않는 패키지다(pub.dev
+  # platforms 목록에 web 없음). tarot_result_screen.dart와
+  # guinji_result_card_screen.dart 둘 다 이 문제로 XFile.fromData() 방식으로
+  # 전환해 더 이상 이 패키지를 사용하지 않으므로 의존성 자체를 제거했다.
+  # 앞으로 새 화면에서 임시 파일 경로가 필요해지면 다시 추가하되, 그 경우
+  # Web 플랫폼 지원이 필요한지 반드시 먼저 확인할 것.
 
   # [타로 섹션 전면 개편 §11 P5 사운드 시스템] 카드 셔플/탭/리빌 임팩트/
   # 저장완료/UI탭 등 짧은 SFX 재생용. Web/Android 모두 지원.
   audioplayers: ^6.7.1
 
-  # [정통사주 섹션 - 신통방통 테마] design_system.md 타이포그래피 규격
+  # [정통사주 섹션 - 귀인지도 테마] design_system.md 타이포그래피 규격
   # (Noto Serif KR 제목/한자, Noto Sans KR 본문) 적용용. 이 섹션 전용으로만
   # 사용하며 앱 전역 Pretendard 체계는 그대로 유지한다.
-  google_fonts: 6.2.1
+  google_fonts: 6.3.3 # 내장 AssetManifest API 및 현재 SDK FontWeight 호환
+
+  # [정통사주 결과페이지 리디자인 - Dawn Paper 핸드오프] 스크롤 진입 시
+  # 섹션이 순차적으로 페이드업되는 RevealOnScroll 애니메이션에 사용.
+  # Web/Android 모두 지원(pub.dev platforms 확인 완료). Dart 3.9.2/Flutter
+  # 3.35.4 고정 환경 호환 버전.
+  visibility_detector: 0.4.0+2
+
+  # [귀인지도 딥링크 버그수정] 카톡 등으로 공유한 초대 링크를 열었을 때
+  # 실제로 앱을 여는(Android App Links/커스텀 스킴 수신) 데 사용한다.
+  # 지금까지는 이 패키지 자체가 없어 링크를 눌러도 앱이 열리지 않고
+  # 카톡 인앱 브라우저가 존재하지 않는 도메인에 접속을 시도해 404가
+  # 발생했다(실사용자 리포트로 발견). Android/iOS/Web 모두 지원.
+  app_links: 6.4.1              # Dart 3.9.2 고정 환경 호환 최신판(7.x는 Dart 3.10+ 요구)
+
+  # [Phase C-1: 저녁 7시 종소리 알림] 로컬 예약 알림. Dart 3.9.2/Flutter 3.35.4
+  # 고정 환경 호환 버전(21.x+는 Flutter 3.38.1+ 요구로 사용 불가).
+  flutter_local_notifications: 20.1.0
+  timezone: 0.10.1
+
+  # [애드몹 테스트 연동] Google Mobile Ads SDK. Dart 3.9.2/Flutter 3.35.4 고정
+  # 환경 호환 버전(6.x+는 더 최신 Flutter 요구). 지금 단계는 구글 공식 테스트
+  # App ID/Ad Unit ID만 사용하는 "테스트 모드"이며, Web 플랫폼은 지원하지 않아
+  # kIsWeb 분기로 안전하게 no-op 처리한다(admob_ad_ids.dart 참고).
+  google_mobile_ads: 5.2.0
+
+  # [카카오/구글 간편로그인] 1단계(Firebase/카카오 콘솔 설정) 완료 후
+  # 2단계: Flutter SDK 연동. Dart 3.9.2/Flutter 3.35.4 고정 환경 호환 버전.
+  google_sign_in: 6.2.2         # 구글 로그인 (Firebase Authentication과 별개로,
+                                 # ID 토큰만 발급받아 서버(admin_web)로 전달 후
+                                 # 서버가 Google API로 검증하는 방식 - firebase_auth 불필요)
+  google_sign_in_platform_interface: 2.5.0 # [웹 소셜로그인 활성화] social_auth_service.dart가
+                                 # 웹에서 GoogleSignInPlatform.instance.getTokens()를 직접
+                                 # 호출하기 위해 명시적으로 의존성 선언(기존엔 전이
+                                 # 의존성으로만 존재해 flutter analyze 경고 발생).
+  kakao_flutter_sdk_user: 1.9.7+3 # 카카오 로그인(사용자 관리 SDK). 로그인 후 액세스
+                                 # 토큰을 서버로 전달해 서버가 카카오 API로 검증한다.
+  kakao_flutter_sdk_common: 1.9.7+3 # main.dart에서 KakaoSdk.init() 직접 호출용
+                                 # (kakao_flutter_sdk_user의 전이 의존성이지만
+                                 # depend_on_referenced_packages 린트 규칙 준수를
+                                 # 위해 명시적으로 선언).
+  kakao_flutter_sdk_share: 1.9.7+3 # [귀인지도 v2 리스킨] 카카오톡 FeedTemplate
+                                 # 공유(guinji_share_kakao.dart) — kakao_flutter_sdk_user와
+                                 # 동일 버전으로 고정(모노레포 버전 통일).
+
+  # [귀인지도 결과카드 "이미지 저장" 버그수정 — 2026-11] 지금까지 "이미지
+  # 저장" 버튼이 실제로는 "공유하기"와 완전히 동일한 Share.shareXFiles()를
+  # 호출해서, 사용자가 "저장"을 눌러도 항상 OS 공유 시트만 뜨고 갤러리에
+  # 곧바로 저장되지는 않았다(사용자가 시트에서 "저장" 대상을 한 번 더
+  # 선택해야만 저장됨) — "뭘 공유하는 건지 모르겠다"는 불만의 원인 중
+  # 하나. Android는 gal(Uint8List → 갤러리 직접 저장)로 실제 저장을,
+  # Web은 브라우저 다운로드로 대체한다(gal은 Web 미지원 패키지).
+  # Dart 3.9.2/Flutter 3.35.4 고정 환경 호환 최신판.
+  gal: 2.3.3
+
+  # [소원방 v2.6 배경화면] Android 네이티브 라이브 배경화면 서비스(assets를
+  # flutter_assets/ 안에서 직접 읽음)와 달리, "정지 배경화면"(홈만/잠금만) ·
+  # iOS Live Photo 프레임 생성은 RepaintBoundary로 캡처한 PNG를 임시 파일로
+  # 저장해 네이티브(WallpaperManager.setBitmap, PHAssetCreationRequest)에
+  # 파일 경로로 넘겨야 한다. path_provider는 Web 미지원이라(gal과 동일 사유)
+  # Android 전용 분기(!kIsWeb)에서만 사용한다.
+  path_provider: 2.1.5
+
+  # [DEV-2026-001 작업2-4-3 버전 가시화] 설정화면에 앱 버전(versionName+
+  # versionCode)을 표시하기 위한 패키지. 서버 /app/version.txt(커밋해시+
+  # 배포시각)와 나란히 비교해 "서버-앱 버전 불일치"를 운영자/사용자가 즉시
+  # 판별할 수 있게 한다. Dart 3.9.2 고정 환경과 호환되는 최신 안정판(9.0.1,
+  # Min Dart SDK 3.3) 사용. Web/Android 모두 지원.
+  package_info_plus: 9.0.1
+
+  # [하단바 리디자인 — design_handoff_bottom_nav.zip] 심야의 신전 테마
+  # 하단 탭바 아이콘(ic_nav_*.svg, 24x24 viewBox, currentColor 기반)을
+  # 벡터로 렌더링하기 위한 패키지. 미선택/선택 색상을 런타임에 ColorFilter로
+  # 바꿔 그려야 해서(기본 #E8DCC8/선택 #F5CF6A) PNG 대신 SVG를 쓴다.
+  flutter_svg: 2.0.10+1
+
+  # [신당(神堂) 부적 의식 콘텐츠 — P0 환경세팅] 수령한 부적을 A5(148x210mm,
+  # bleed 3mm) 인쇄용 PDF로 내보내기 위한 패키지. Dart 3.9.2/Flutter 3.35.4
+  # 고정 환경 호환 버전(pdf 3.12.0+ 및 printing 5.15.0+는 Dart 3.12+ 요구로
+  # 사용 불가 — pub.dev에서 사전 확인 완료).
+  pdf: 3.11.3
+  printing: 5.14.3
+
+  # [Google Play Billing 실연동 — 2026-11-26] 지금까지 PAYMENT_MODE=mock으로
+  # 스토어 결제창을 거치지 않고 바로 Wallet.earn()을 호출하던 복주머니 충전/구독
+  # 결제를 실제 Google Play 인앱결제로 전환한다. 서버(admin_web)가
+  # google-play-billing-verifier.ts로 purchaseToken을 직접 검증하므로, 이 패키지는
+  # "결제창을 띄우고 purchaseToken을 받아오는" 역할만 담당한다(지급 자체는 서버
+  # confirm-purchase 엔드포인트가 전담 — 클라이언트는 절대 낙관적으로 먼저 지급하지
+  # 않는다). Dart 3.9.2/Flutter 3.35.4 고정 환경 호환 버전(pub-cache에 이미 캐시됨).
+  in_app_purchase: 3.2.3
+  in_app_purchase_android: 0.4.0+10
 
 dev_dependencies:
   flutter_test:
@@ -87,6 +216,16 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+  # [테스트 전용 — cross_check_cta_navigation_test.dart] provider 6.1.5+1가
+  # 내부적으로 의존하는 nested 패키지의 공개 타입(SingleChildWidget)을
+  # 테스트 헬퍼 시그니처에 직접 사용하기 위한 명시적 dev 의존성 추가.
+  # List<ChangeNotifierProvider> 로 선언하면 서로 다른 제네릭 타입 인자를
+  # 가진 Provider 리터럴들이 전부 ChangeNotifierProvider<dynamic>으로
+  # 다운캐스트되어 MultiProvider가 Provider<dynamic>으로 등록해버리는
+  # 실측 버그(ProviderNotFoundException)가 있어, 각 Provider의 구체
+  # 타입을 보존하는 SingleChildWidget을 공용 상위 타입으로 사용한다.
+  nested: ^1.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -101,16 +240,86 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/fonts/wish_room/NotoSansKR-Black.ttf
+    - assets/fonts/wish_room/NotoSansKR-OFL.txt
+    - assets/icons/
+    - assets/icons/bottom_nav/
     - assets/images/
-    - assets/images/wish_counsel/characters/
+    - assets/images/splash/
+    - assets/images/guinji/
+    - assets/images/guinji_home/
+    - assets/images/guinji_home_v2/
+    - assets/images/guinji_home_v2/sections/
+    - assets/images/guinji_home_v2/menu/
+    - assets/gunghap/art/web/sq/
+    - assets/gunghap/art/web/sub/
+    - assets/images/intro/
+    - assets/images/tarot/
+    - assets/images/home/doryeong/
+    - assets/images/guinji/doryeong/
+    - assets/images/guinji/seonnyeo/
+    - assets/images/guinji/chars/
+    - assets/images/guinji/chars_fairy/
     - assets/audio/tarot/
+    - assets/audio/pouch_box/
+    - assets/audio/bgm/
+    - assets/audio/ambience/
+    - assets/audio/sfx/
+    - assets/config/sound_routes.json
     - assets/tarot/cards/majors/
     - assets/tarot/cards/cups/
     - assets/tarot/cards/wands/
     - assets/tarot/cards/swords/
     - assets/tarot/cards/pentacles/
     - assets/tarot/thumbs/
-    - assets/tarot/backs/
+    - assets/tarot/oz/
+    - assets/jeontong/easy_terms.json
+    - assets/jeontong/rules/
+    # [온보딩 영상 삭제 — 2026-11] 스플래시 직후 온보딩 화면 전에 1회
+    # 자동재생하던 5대 기능 소개 영상(assets/videos/onboarding.mp4, 약
+    # 18MB)을 삭제했다 — 사용자 요청. `assets/videos/` 폴더 자체도 비어
+    # 함께 제거했으므로 이 asset 선언도 제거한다.
+    # [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06] 구버전(U1-U13, 어두운
+    # 공포 이야기 버전)은 비용 문제(영상 대역폭)로 전면 삭제되었다.
+    # design_handoff_shrine_v3 핸드오프 기준 신규 에셋 구조(talisman/
+    # suneung/img/vid, WebP 변환본)를 assets/shrine_v3/ 에 새로 반입한다.
+    - assets/shrine_v3/bj/talisman/
+    - assets/shrine_v3/bj/suneung/
+    - assets/shrine_v3/img/
+    - assets/shrine_v3/vid/
+    # [신당(THE SHRINE) v3 전면 재구축 — 2026-11-06 후속 정리] 구버전 신당
+    # (East Sea Dokdo·Nanum Brush Script·Liu Jian Mao Cao 전용 폰트 폴더)이
+    # 전면 삭제되면서 이 폴더 참조는 더 이상 존재하지 않는 자산을 가리키는
+    # 고아 선언이 되어 `flutter analyze`에서 `asset_directory_does_not_exist`
+    # 경고를 유발했다. shrine_v3는 아래 NotoSerifKR/GowunBatang/Pretendard/
+    # IBMPlexMono(이미 다른 fonts: 항목으로 선언됨)만 재사용하므로 별도
+    # 폰트 폴더가 필요 없다 — 죽은 참조를 제거한다.
+    # [소원방 v2.6 재구축] design_handoff_sintong_wishroom_flutter 핸드오프
+    # 에셋 전체(캐릭터22·의상88·포즈94·아이템65·테마방4 등). data/wishroom_data.json
+    # 은 레벨/감쇠/슬롯/아이템/캐릭터/테마 전체 시드(Flutter 로더 + admin_web 서버
+    # 시드 공용 기준).
+    - assets/wishroom/data/
+    - assets/wishroom/chars/
+    - assets/wishroom/items/
+    - assets/wishroom/outfits/
+    - assets/wishroom/poses/
+    - assets/wishroom/rooms/
+    - assets/wishroom/bg-gold.jpg
+    - assets/wishroom/bg-maple.jpg
+    - assets/wishroom/bg-sakura.jpg
+    - assets/wishroom/bg-silver.jpg
+    - assets/wishroom/bg-snow.jpg
+    - assets/wishroom/gate.jpg
+    - assets/wishroom/char-f-pray.png
+    - assets/wishroom/char-f-sm.png
+    - assets/wishroom/char-m-pray.png
+    - assets/wishroom/char-m-sm.png
+    - assets/wishroom/room-empty.jpg
+    - assets/wishroom/room-lv1.jpg
+    - assets/wishroom/room-lv10.jpg
+    - assets/wishroom/room-lv7.jpg
+    - assets/wishroom/room-main.jpg
+    - assets/wishroom/splash.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -135,21 +344,34 @@ flutter:
           weight: 700
         - asset: assets/fonts/Pretendard-ExtraBold.ttf
           weight: 800
-    # [상담(Midnight Comfort) 전용 폰트 3종] wish_counsel 모듈 내부에서만
-    # 참조하며(WishCounselText), 앱 전역 Pretendard 체계와는 별도로 둔다.
-    - family: NotoSerifKRWish
+        # [마이페이지 B시안 폰트 중앙화] 900(Black) 추가 — orioncactus/pretendard
+        # 공식 저장소 배포본(OFL 1.1, 상업적 이용 무료). 지갑 큰 숫자(예: "38개")
+        # 등 가장 굵은 강조 텍스트 전용.
+        - asset: assets/fonts/Pretendard-Black.otf
+          weight: 900
+    # [관상·손금 귀인지도 "새벽 한지" 리스킨 + 상담(Midnight Comfort)] 전용 폰트 3종.
+    # [용량 최적화 2026-09-15] wish_room과 100% 동일한 바이트의 .ttf 파일이
+    # assets/fonts/sintong/ 에도 중복 보관되어 있어 APK/웹 빌드에 약 45MB가
+    # 낭비되고 있었다(다운로드 실패 리포트의 원인 중 하나). family 이름
+    # (NotoSerifKR/GowunBatang/IBMPlexMono)은 핸드오프 코드가 그대로 참조하므로
+    # 유지하되, 실제 파일은 wish_room/ 폴더의 동일 파일을 가리키도록 통합한다.
+    # [로딩 성능 최적화 2026-10-10] 기존에는 동일 파일을 'NotoSerifKRWish' 등
+    # *Wish 접미사 family로 한 번 더 중복 선언해, 웹에서 같은 폰트 파일을
+    # 2번씩 다운로드하는 문제가 있었다(총 로딩시간 +수 초). family를 통합하고
+    # 코드 쪽 fontFamily 참조도 전부 비(非)Wish 이름으로 교체했다.
+    - family: NotoSerifKR
       fonts:
         - asset: assets/fonts/wish_room/NotoSerifKR-Bold.ttf
           weight: 700
         - asset: assets/fonts/wish_room/NotoSerifKR-Black.ttf
           weight: 900
-    - family: GowunBatangWish
+    - family: GowunBatang
       fonts:
         - asset: assets/fonts/wish_room/GowunBatang-Regular.ttf
           weight: 400
         - asset: assets/fonts/wish_room/GowunBatang-Bold.ttf
           weight: 700
-    - family: IBMPlexMonoWish
+    - family: IBMPlexMono
       fonts:
         - asset: assets/fonts/wish_room/IBMPlexMono-Regular.ttf
           weight: 400

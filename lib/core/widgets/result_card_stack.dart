@@ -3,6 +3,7 @@ import '../theme/app_unified_style.dart';
 import 'premium_button.dart';
 import 'premium_card.dart';
 import 'simple_markdown_text.dart';
+import '../util/original_result_capture.dart';
 
 /// [서브 디자인 통일 확산 프롬프트] §6 결과 페이지 표준 스켈레톤.
 ///
@@ -45,6 +46,9 @@ class ResultCardStack extends StatelessWidget {
     this.lockMessage,
     this.remainingLabel,
     this.sectionTitle = '세부 리포트',
+    this.midAd,
+    this.captureKey,
+    this.captureFrame,
   });
 
   /// 히어로 카드 상단 캡션(예: "11월 3일의 운세")
@@ -77,96 +81,121 @@ class ResultCardStack extends StatelessWidget {
   /// 세부 리포트 섹션 상단 제목
   final String sectionTitle;
 
+  /// [웹 일반 AdSense 전체 확장 — 관상/손금] 히어로 카드(종합 해석)와
+  /// 세부 리포트 섹션 사이(콘텐츠-콘텐츠 사이)에 끼워 넣을 광고 위젯
+  /// (예: `WebAdBanner`). 하단 CTA(다시 분석하기/히스토리 보기)와는
+  /// 충분히 떨어져 있어 혼동 우려가 없다. null이면 기존과 동일하게
+  /// 아무것도 렌더링하지 않아 이 위젯을 공유하는 다른 화면(궁합/
+  /// 이름풀이)에는 영향이 없다.
+  final Widget? midAd;
+  final GlobalKey? captureKey;
+  final Widget Function(Widget child)? captureFrame;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: UnifiedColors.bg,
-      child: ListView(
-        padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
-        children: [
-          // 열림패스 상태 바
-          if (isLocked || remainingLabel != null) ...[
-            _PassStatusBar(
-              isLocked: isLocked,
-              message: lockMessage,
-              remainingLabel: remainingLabel,
-            ),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-          ],
-
-          // 히어로 카드
-          PremiumCard(
-            backgroundColor: UnifiedColors.cardMain,
-            borderColor: Colors.transparent,
-            showShadow: false,
-            borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
-            padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(heroCaption, style: UnifiedText.caption()),
-                const SizedBox(height: UnifiedTokens.spaceSm),
-                SimpleMarkdownText(
-                  data: heroSummary,
-                  baseStyle: UnifiedText.body(
-                    color: UnifiedColors.textPrimary,
-                  ).copyWith(fontSize: 15),
-                ),
-                if (heroChips.isNotEmpty) ...[
-                  const SizedBox(height: UnifiedTokens.spaceLg),
-                  Row(
-                    children: [
-                      for (int i = 0; i < heroChips.length; i++) ...[
-                        Expanded(child: heroChips[i]),
-                        if (i != heroChips.length - 1)
-                          const SizedBox(width: UnifiedTokens.spaceMd),
-                      ],
-                    ],
-                  ),
-                ],
-                if (heroExtra != null) ...[
-                  const SizedBox(height: UnifiedTokens.spaceLg),
-                  heroExtra!,
-                ],
-              ],
-            ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 열림패스 상태 바
+        if (isLocked || remainingLabel != null) ...[
+          _PassStatusBar(
+            isLocked: isLocked,
+            message: lockMessage,
+            remainingLabel: remainingLabel,
           ),
-
-          if (sections.isNotEmpty) ...[
-            const SizedBox(height: UnifiedTokens.spaceXxl),
-            Text(sectionTitle, style: UnifiedText.titleLarge()),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            for (int i = 0; i < sections.length; i++)
-              Padding(
-                padding: EdgeInsets.only(
-                  bottom: i == sections.length - 1 ? 0 : UnifiedTokens.spaceMd,
-                ),
-                child: _SectionCard(section: sections[i]),
-              ),
-          ],
-
-          if (ctas.isNotEmpty) ...[
-            const SizedBox(height: UnifiedTokens.spaceXxl),
-            for (int i = 0; i < ctas.length; i++)
-              Padding(
-                padding: EdgeInsets.only(
-                  bottom: i == ctas.length - 1 ? 0 : UnifiedTokens.spaceSm,
-                ),
-                child: i == 0
-                    ? PremiumButton.black(
-                        label: ctas[i].label,
-                        icon: ctas[i].icon,
-                        onPressed: ctas[i].onTap,
-                      )
-                    : PremiumButton.secondary(
-                        label: ctas[i].label,
-                        icon: ctas[i].icon,
-                        onPressed: ctas[i].onTap,
-                      ),
-              ),
-          ],
+          const SizedBox(height: UnifiedTokens.spaceMd),
         ],
-      ),
+
+        // 히어로 카드
+        PremiumCard(
+          backgroundColor: UnifiedColors.cardMain,
+          borderColor: Colors.transparent,
+          showShadow: false,
+          borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+          padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(heroCaption, style: UnifiedText.caption()),
+              const SizedBox(height: UnifiedTokens.spaceSm),
+              SimpleMarkdownText(
+                data: heroSummary,
+                baseStyle: UnifiedText.body(
+                  color: UnifiedColors.textPrimary,
+                ).copyWith(fontSize: 15),
+              ),
+              if (heroChips.isNotEmpty) ...[
+                const SizedBox(height: UnifiedTokens.spaceLg),
+                Row(
+                  children: [
+                    for (int i = 0; i < heroChips.length; i++) ...[
+                      Expanded(child: heroChips[i]),
+                      if (i != heroChips.length - 1)
+                        const SizedBox(width: UnifiedTokens.spaceMd),
+                    ],
+                  ],
+                ),
+              ],
+              if (heroExtra != null) ...[
+                const SizedBox(height: UnifiedTokens.spaceLg),
+                heroExtra!,
+              ],
+            ],
+          ),
+        ),
+
+        if (midAd != null) ...[
+          const SizedBox(height: UnifiedTokens.spaceXxl),
+          midAd!,
+        ],
+
+        if (sections.isNotEmpty) ...[
+          const SizedBox(height: UnifiedTokens.spaceXxl),
+          Text(sectionTitle, style: UnifiedText.titleLarge()),
+          const SizedBox(height: UnifiedTokens.spaceMd),
+          for (int i = 0; i < sections.length; i++)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: i == sections.length - 1 ? 0 : UnifiedTokens.spaceMd,
+              ),
+              child: _SectionCard(section: sections[i]),
+            ),
+        ],
+
+        if (ctas.isNotEmpty) ...[
+          const SizedBox(height: UnifiedTokens.spaceXxl),
+          for (int i = 0; i < ctas.length; i++)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: i == ctas.length - 1 ? 0 : UnifiedTokens.spaceSm,
+              ),
+              child: i == 0
+                  ? PremiumButton.black(
+                      label: ctas[i].label,
+                      icon: ctas[i].icon,
+                      onPressed: ctas[i].onTap,
+                    )
+                  : PremiumButton.secondary(
+                      label: ctas[i].label,
+                      icon: ctas[i].icon,
+                      onPressed: ctas[i].onTap,
+                    ),
+            ),
+        ],
+      ],
+    );
+    if (captureKey != null) {
+      return OriginalResultBody(
+        captureKey: captureKey!,
+        background: UnifiedColors.bg,
+        padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
+        frame: captureFrame,
+        child: content,
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(UnifiedTokens.screenPadding),
+      child: content,
     );
   }
 }

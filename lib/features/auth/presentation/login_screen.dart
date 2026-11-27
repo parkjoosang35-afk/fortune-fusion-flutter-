@@ -1,13 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/luck_pouch_toast.dart';
 import '../../wallet/application/wallet_provider.dart';
+import '../../bokju_coupon/presentation/bokju_coupon_resolve_screen.dart';
+import '../../shrine_v3/presentation/screens/shrine_v3_detail_screen.dart';
+import '../../fortune_period/domain/fortune_saju_profile.dart';
+import '../../guinji/presentation/guinji_input_screen.dart';
+import '../../guinji/presentation/guinji_join_screen.dart';
+import '../../guinji/presentation/guinji_onboarding_screen.dart';
+import '../../home/domain/jeontong_local_to_server_migration.dart';
+import '../../intro/presentation/intro_palette.dart';
+import '../../intro/presentation/intro_text_styles.dart';
+import '../../intro/presentation/widgets/intro_title_text.dart';
+import '../../pass/presentation/pass_gate_helper.dart';
+import '../../result_access/presentation/result_access_gate_sheet.dart';
+import '../../saju_renewal/screens/birth_input_screen.dart';
 import '../application/auth_provider.dart';
+import '../data/social_auth_service.dart';
+import 'find_email_screen.dart';
+import 'reset_password_screen.dart';
+import 'widgets/auth_checkbox.dart';
+import 'widgets/auth_form_field.dart';
+import 'widgets/auth_form_header.dart';
+import 'widgets/auth_primary_button.dart';
 
 /// 03단계 §3.3 공통/온보딩 - LoginScreen
+///
+/// [Phase B - 2026 디자인 핸드오프 콘텐츠 반영] `screens/02_SignUp_Login.html`
+/// PAGE 2(로그인)의 정확한 카피·구조·톤(Moonlit Crystal 팔레트, 신통도령
+/// greeting 히어로)을 1:1로 이식한다.
+///
+/// [기존 로직 불변 원칙] `_login()`/`_socialLogin()`의 AuthProvider 연동,
+/// 로컬→서버 마이그레이션 호출, 첫로그인 보상 토스트, 소셜로그인 501
+/// "추후 지원 예정" 처리 로직은 전혀 손대지 않고 `build()`(순수 UI)만
+/// 교체했다.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,6 +47,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isSubmitting = false;
 
+  // [Phase B 핸드오프 반영 - UI 전용 상태] 핸드오프 `.checkbox.checked`가
+  // 기본 체크 상태인 "로그인 상태 유지" 토글. 서버/리포지토리에 세션
+  // 유지기간을 구분하는 파라미터가 없어(항상 `_persistSession` 호출) 이
+  // 값은 현재 시각적 표시 전용이다 — 향후 실제 세션 정책이 추가되면 이
+  // 상태를 `_login()` 호출에 연결하면 된다.
+  bool _rememberMe = true;
+
   Future<void> _login() async {
     setState(() => _isSubmitting = true);
     final ok = await context.read<AuthProvider>().login(
@@ -29,6 +63,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = false);
     if (!mounted) return;
     if (ok) {
+      // [귀인지도 2단계 - 로컬 → 서버 1회성 마이그레이션] 로그인이 방금
+      // 성공해 로그인 상태가 확정된 시점에도(스플래시의 세션 복원 경로와
+      // 별개로 앱을 켜둔 채 로그인만 새로 하는 경우) 동일하게 1회 시도한다.
+      // 함수 내부에서 이미 서버 데이터가 있으면 스킵하므로 중복 호출에도
+      // 안전하다.
+      await migrateLocalJeontongProfileToServer(context.read<AuthProvider>());
+      if (!mounted) return;
       // [복주머니 정책표 §3 - 첫로그인10(1회)] signup_screen.dart의
       // SignupRewardHandler와 동일한 패턴: 서버가 첫 로그인 보상을 지급했으면
       // (amount>0) WalletProvider를 갱신하고 전용 토스트를 띄운다. 이미
@@ -42,9 +83,60 @@ class _LoginScreenState extends State<LoginScreen> {
         LuckPouchToastController.instance.showFirstLoginReward(rewardAmount);
       }
       if (!mounted) return;
-      Navigator.of(
+      // [회원가입 통합 사주정보 — 전면 재도입, 2026-11] dev-spec.md §4
+      // "POST /api/auth/email/login → { user, session, hasProfile }"
+      // 계약에 따르면 이메일 로그인도 프로필 유무로 분기해야 한다. 서버
+      // 응답 자체에는 hasProfile 필드가 없지만(스키마 변경 최소화 원칙),
+      // `isFortuneSajuComplete(user)`로 동일한 판별이 가능하다 — 과거
+      // (42180cc4 이전/이후 혼재 기간)에 가입했지만 사주정보를 아직 한
+      // 번도 입력하지 않은 기존 계정이 이메일로 재로그인하는 경우를
+      // 포함한다. 소셜 로그인(_socialLogin)과 완전히 동일한 분기 로직이다
+      // — 이미 프로필이 완전한 사용자는 `isFortuneSajuComplete`가 true를
+      // 반환해 아래 분기를 타지 않으므로 회귀가 없다.
+      final user = context.read<AuthProvider>().currentUser;
+      if (!isFortuneSajuComplete(user)) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const BirthInputScreen(isSignupFlow: true),
+          ),
+        );
+        replayPendingPassRequest();
+        replayPendingGuinjiJoin();
+        replayPendingGuinjiOnboarding();
+        replayPendingGuinjiMapEntry();
+        replayPendingBokjuCoupon();
+        replayPendingShrineOrder();
+        return;
+      }
+      // [요청 1 - 프로필체크 강제 이동 제거] 이전에는 생년월일 보유 여부와
+      // 무관하게 항상 '/signup/profile-check'로 먼저 보냈고, 그 화면의
+      // initState()가 다시 '/home'으로 리다이렉트하는 이중 네비게이션
+      // (화면 깜빡임/지연)이 발생했다. 이미 프로필(생년월일)이 있는
+      // 재로그인 사용자는 곧바로 홈으로 보내고, 신규/미입력 사용자만
+      // 위 분기에서 사주정보 입력 화면으로 보낸다.
+      //
+      // [비로그인 결과보기 복귀 지시서 R2] "결과보기" 시트의 "로그인하고
+      // 결과보기" CTA를 거쳐 로그인하러 온 경우, PendingResultAccessReturnStore에
+      // 저장된 복귀 대상이 있다 — 그 경우 이 함수가 원래 화면으로 이미
+      // replace 이동 + 결과보기 시트 재오픈까지 마치므로, 아래의 일반
+      // '/home' 이동은 건너뛴다(중복 네비게이션 방지). 저장된 값이
+      // 없으면(일반 로그인, 기존 동작) false를 반환해 기존 로직을 그대로
+      // 수행한다 — 회귀 없음.
+      final restoredResultAccess = await restorePendingResultAccessAfterLogin(
         context,
-      ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
+      );
+      if (!mounted) return;
+      if (!restoredResultAccess) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/home', (route) => false);
+      }
+      replayPendingPassRequest();
+      replayPendingGuinjiJoin();
+      replayPendingGuinjiOnboarding();
+      replayPendingGuinjiMapEntry();
+      replayPendingBokjuCoupon();
+      replayPendingShrineOrder();
     } else {
       AppToast.show(
         context,
@@ -54,21 +146,101 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// [설계결정 - 로드맵④] 실제 카카오/구글 OAuth SDK 연동은 이번 범위 밖이다.
-  /// 서버(`/api/public/auth/social-login`)가 501을 정직하게 응답하며, 이 화면은
-  /// 그 실패를 "추후 지원 예정" 안내로 표시한다(가짜 성공 처리 금지).
-  Future<void> _socialLogin(String provider) async {
+  /// [로드맵④] 카카오/구글 실제 SDK 로그인 연동.
+  /// SocialAuthService가 각 사 SDK로 로그인해 액세스 토큰을 받아오고,
+  /// 그 토큰을 AuthProvider.loginWithSocial()를 통해 서버(admin_web)로
+  /// 전달해 서버가 각 사 API로 다시 검증하는 방식이다(가짜 성공 처리 금지
+  /// 원칙 유지 — 클라이언트는 위조된 토큰으로 로그인을 성립시킬 수 없다).
+  Future<void> _socialLogin(String label, String provider) async {
     setState(() => _isSubmitting = true);
-    final ok = await context.read<AuthProvider>().loginWithSocial(provider);
-    setState(() => _isSubmitting = false);
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/signup/profile-check', (route) => false);
-    } else {
-      AppToast.show(context, '$provider 로그인은 추후 지원 예정입니다.');
+    try {
+      final authResult = provider == 'google'
+          ? await SocialAuthService.signInWithGoogle()
+          : await SocialAuthService.signInWithKakao();
+      if (authResult == null) {
+        // 사용자가 로그인 창에서 취소함 — 에러 안내 없이 조용히 종료.
+        setState(() => _isSubmitting = false);
+        return;
+      }
+      if (!mounted) return;
+      final ok = await context.read<AuthProvider>().loginWithSocial(
+        authResult.provider,
+        authResult.accessToken,
+        tokenType: authResult.tokenType,
+      );
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      if (ok) {
+        // [회원가입 통합 사주정보 — 전면 재도입, 2026-11] 카카오/구글로
+        // 처음 가입한 "신규" 사용자는 서버에 아직 user_profiles 레코드가
+        // 없다(social-login/route.ts가 user_profiles를 생성하지 않음 —
+        // signup/route.ts와 동일한 설계). 이메일 가입 경로(signup_screen.
+        // dart)와 동일하게, 사주정보가 아직 없는 사용자는 공통 입력
+        // 화면으로 먼저 보내고 가입을 "완료"시킨다. 기존 회원(재로그인)은
+        // 이미 사주정보가 있으므로 지금까지처럼 곧바로 홈으로 이동한다
+        // (회귀 없음 — `isFortuneSajuComplete`는 이미 완전한 프로필에는
+        // true를 반환해 아래 분기를 타지 않는다).
+        final user = context.read<AuthProvider>().currentUser;
+        if (!isFortuneSajuComplete(user)) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const BirthInputScreen(isSignupFlow: true),
+            ),
+          );
+          replayPendingPassRequest();
+          replayPendingGuinjiJoin();
+          replayPendingGuinjiOnboarding();
+          replayPendingGuinjiMapEntry();
+          replayPendingBokjuCoupon();
+          replayPendingShrineOrder();
+          return;
+        }
+        // [비로그인 결과보기 복귀 지시서 R2] 기존 회원 재로그인 경로는
+        // 그대로 유지 — pending 복귀 대상을 먼저 확인한다.
+        final restoredResultAccess = await restorePendingResultAccessAfterLogin(
+          context,
+        );
+        if (!mounted) return;
+        if (!restoredResultAccess) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
+        replayPendingPassRequest();
+        replayPendingGuinjiJoin();
+        replayPendingGuinjiOnboarding();
+        replayPendingGuinjiMapEntry();
+        replayPendingSajuEntry();
+        replayPendingBokjuCoupon();
+        replayPendingShrineOrder();
+      } else {
+        AppToast.show(
+          context,
+          context.read<AuthProvider>().state.errorMessage ??
+              '$label 로그인에 실패했습니다.',
+          isError: true,
+        );
+      }
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      AppToast.show(context, '$label 로그인 중 오류가 발생했습니다.', isError: true);
     }
+  }
+
+  // [로그인 화면 "아이디/비밀번호 찾기" 버그수정 — 2026-09] 기존에는 서버
+  // API가 없어 "추후 지원 예정" 안내만 띄웠으나, find_email_screen.dart /
+  // reset_password_screen.dart 신설로 실제 동작하는 화면으로 연결한다.
+  void _findEmail() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FindEmailScreen()));
+  }
+
+  void _forgotPassword() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ResetPasswordScreen()));
   }
 
   @override
@@ -81,94 +253,267 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: AppSpacing.xxl),
-              const Icon(
-                Icons.auto_awesome,
-                color: AppColors.primary,
-                size: 48,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Fortune Fusion',
-                style: Theme.of(context).textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: '이메일',
-                  prefixIcon: Icon(Icons.email_outlined),
+      // [버그 수정 - 회원가입 화면과 동일한 원인] DecoratedBox는 자식(스크롤
+      // 콘텐츠)의 실제 높이에만 맞춰 그려지므로, 콘텐츠가 화면보다 짧은
+      // 경우(작은 화면/큰 폰트스케일 등) 그 아래로 Scaffold 기본 배경색
+      // (흰색)이 노출될 수 있다. Stack + Positioned.fill로 배경을 화면
+      // 전체에 강제로 채워 콘텐츠 길이와 무관하게 항상 꽉 차게 한다.
+      //
+      // [1차 수정 실패 원인 - 추가 수정] Stack은 기본적으로 포지션 없는
+      // 자식(SafeArea)의 실제 렌더링 크기에 맞춰 자기 크기를 정하므로,
+      // Positioned.fill만으로는 부족했다. `fit: StackFit.expand`를 지정해
+      // Stack이 항상 부모(Scaffold body)의 최대 크기로 확장되도록 한다.
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    IntroPalette.backgroundTop,
+                    IntroPalette.backgroundBottom,
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: '비밀번호',
-                  prefixIcon: Icon(Icons.lock_outline),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _login,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text('이메일로 로그인'),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: const [
-                  Expanded(child: Divider()),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AuthFormHeader(
+                    eyebrow: 'SIGN IN · WELCOME BACK',
+                    onBack: () => Navigator.of(context).maybePop(),
+                  ),
+                  const SizedBox(height: 12),
+                  // `.title-block` (중앙정렬)
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    child: Text(
-                      '또는',
-                      style: TextStyle(color: AppColors.textHint),
+                    padding: const EdgeInsets.only(bottom: 26),
+                    child: Column(
+                      children: [
+                        IntroTitleText(
+                          '다시 오셨네요\n오늘도 좋은 하루예요',
+                          style: IntroTextStyles.formTitle(),
+                          highlight: '좋은 하루',
+                          highlightColors: const [
+                            IntroPalette.gold,
+                            IntroPalette.primary,
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '이메일과 비밀번호를 입력해주세요.',
+                          textAlign: TextAlign.center,
+                          style: IntroTextStyles.formSubtitle(),
+                        ),
+                      ],
                     ),
                   ),
-                  Expanded(child: Divider()),
+                  AuthFormField(
+                    controller: _emailController,
+                    label: '이메일',
+                    hintText: 'example@guinjido.app',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  AuthFormField(
+                    controller: _passwordController,
+                    label: '비밀번호',
+                    hintText: '비밀번호를 입력해주세요',
+                    obscureText: true,
+                  ),
+                  // Remember + forgot
+                  // [반응형 화면 규격 통일 지시서] 바깥 Row(spaceBetween)의
+                  // 양쪽 자식("로그인 상태 유지" 체크박스 그룹 /
+                  // "아이디 찾기 | 비밀번호 찾기" 그룹)이 모두
+                  // Row(mainAxisSize: min)로만 구성되어 있어 Flexible/
+                  // Expanded 보호가 전혀 없었다. 좁은 화면(320px)과 큰
+                  // 텍스트스케일(1.5x~2.5x)이 겹치면 두 그룹의 자연폭 합이
+                  // 가용폭을 초과해 RenderFlex 오버플로가 발생했다
+                  // (debugDumpRenderTree로 RenderFlex#23210/#954a3 확인).
+                  // Row를 explore_screen.dart에서 검증된 패턴과 동일하게
+                  // Wrap(spaceBetween) + SizedBox(width: double.infinity)로
+                  // 교체해, 공간이 부족하면 두 번째 줄로 자연스럽게
+                  // 줄바꿈되도록 한다(기존 정렬/간격/디자인은 그대로 유지).
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        runSpacing: 4,
+                        children: [
+                          InkWell(
+                            onTap: () =>
+                                setState(() => _rememberMe = !_rememberMe),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 2,
+                              ),
+                              child: Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                children: [
+                                  AuthCheckbox(value: _rememberMe),
+                                  Text(
+                                    '로그인 상태 유지',
+                                    style: IntroTextStyles.bottomLink(
+                                      color: IntroPalette.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: _findEmail,
+                                child: Text(
+                                  '아이디 찾기',
+                                  style: IntroTextStyles.bottomLink().copyWith(
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: IntroPalette.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                                child: Text(
+                                  '|',
+                                  style: IntroTextStyles.bottomLink(
+                                    color: IntroPalette.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: _forgotPassword,
+                                child: Text(
+                                  '비밀번호 찾기',
+                                  style: IntroTextStyles.bottomLink().copyWith(
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: IntroPalette.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  AuthPrimaryButton(
+                    label: '로그인',
+                    isLoading: _isSubmitting,
+                    onPressed: _isSubmitting ? null : _login,
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: IntroPalette.cardBorder)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text('또는', style: IntroTextStyles.fieldHint()),
+                      ),
+                      Expanded(child: Divider(color: IntroPalette.cardBorder)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // [로드맵④ 완료] 카카오/구글 실제 SDK 연동 완료 - "준비 중"
+                  // 라벨 제거.
+                  _SocialButton(
+                    icon: Icons.chat_bubble_rounded,
+                    label: '카카오로 계속하기',
+                    onTap: _isSubmitting
+                        ? null
+                        : () => _socialLogin('카카오', 'kakao'),
+                  ),
+                  const SizedBox(height: 10),
+                  _SocialButton(
+                    icon: Icons.g_mobiledata_rounded,
+                    label: '구글로 계속하기',
+                    onTap: _isSubmitting
+                        ? null
+                        : () => _socialLogin('구글', 'google'),
+                  ),
+                  const SizedBox(height: 18),
+                  // `.bottom-link`
+                  // [02 회원가입 선택 화면 신설] 핸드오프 flow-main.jsx의
+                  // EmailLogin.onSignup()은 "02 선택"이 아니라 바로
+                  // "이메일 회원가입"(email)으로 연결된다 — 이메일로
+                  // 로그인하다가 "회원가입"을 누르면 곧장 이메일 가입
+                  // 폼으로 가야 한다(카카오/구글 선택을 다시 거치지 않음).
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed('/signup/email'),
+                      child: RichText(
+                        text: TextSpan(
+                          style: IntroTextStyles.bottomLink(),
+                          children: [
+                            const TextSpan(text: '계정이 없으신가요?'),
+                            TextSpan(
+                              text: ' 회원가입',
+                              style: IntroTextStyles.bottomLink(
+                                color: IntroPalette.primary,
+                              ).copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-              OutlinedButton.icon(
-                onPressed: _isSubmitting ? null : () => _socialLogin('카카오'),
-                icon: const Icon(Icons.chat_bubble_rounded, size: 18),
-                label: const Text('카카오로 계속하기'),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              OutlinedButton.icon(
-                onPressed: _isSubmitting ? null : () => _socialLogin('구글'),
-                icon: const Icon(Icons.g_mobiledata_rounded, size: 22),
-                label: const Text('구글로 계속하기'),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              TextButton(
-                onPressed: _isSubmitting
-                    ? null
-                    : () => Navigator.of(context).pushNamed('/signup'),
-                child: const Text(
-                  '계정이 없으신가요? 회원가입',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// [Phase B 핸드오프 반영] 소셜 로그인 버튼 — 카드 배경 + 옅은 테두리의
+/// outlined 스타일(핸드오프에는 소셜 로그인 UI가 없어 기존 톤을 그대로
+/// Moonlit Crystal 팔레트로만 재도색했다).
+class _SocialButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _SocialButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: IntroPalette.primaryLight,
+          side: const BorderSide(color: IntroPalette.cardBorder),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
+        icon: Icon(icon, size: 18, color: IntroPalette.textPrimary),
+        label: Text(label, style: IntroTextStyles.btnGhost()),
       ),
     );
   }

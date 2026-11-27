@@ -1,0 +1,283 @@
+// 지갑 시트 — app2/pouch2.jsx › WalletSheet() 1:1. 어디서든(복주머니 pill 탭) 열 수
+// 있는 공용 지갑 바텀시트. 5개 일일 미션 + 사용처 바로가기 + 전체 내역(보관함
+// 복주머니 탭)으로 이동하는 구조.
+//
+// [대표님 지시 — 소원방 "광고 보고 복주머니" 기능 삭제] 기존에 있던 "짧은 영상
+// 보기"(AdMob RewardedAd) 카드와 그 호출 경로를 전부 제거했다. 복주머니 획득처
+// 카탈로그(wishroom_data.json EARN[])에는 'ad' 항목이 여전히 존재하지만(서버
+// 쪽 데이터 파일은 별도 사유로 수정 금지 대상), 화면에는 노출하지 않도록
+// `earn.where((e) => e['id'] != 'ad')`로 계속 걸러낸다.
+//
+// [버그수정 — 전수 감사로 발견] 상단 복주머니 pill(main_room_screen.dart › _pouchPill)이
+// 탭 핸들러가 전혀 없는 정적 위젯이었다. 원본은 PouchPill({onClick: app.openWallet})로
+// 탭하면 이 시트가 열려야 한다. vault_screen.dart의 _PouchTab(보관함 탭의 "복주머니
+// 모으기" 전체화면)과 로직은 동일하되, 여기서는 모달 시트 레이아웃으로 축약 재구현한다
+// (사용처 바로가기 3개 그리드 추가가 원본과의 차이점).
+//
+// [대표님 지시 — 출석/미션 보상 완전 제거] v5 S1 전환(구 EARN 카탈로그 attend/
+// devo10/m_visit/m_cheer/m_msg → pray/streak7/cheer/ad/welcome/dispatchRecv)이
+// 서버·데이터(wishroom_data.json) 쪽에서는 이미 끝나 있었지만, 이 화면에만 당시의
+// 구 ID를 참조하는 죽은 코드(어느 현재 카탈로그 항목과도 매칭되지 않아 실행될 수
+// 없는 분기)가 남아 있었다. 전부 제거했다 — 이제 모든 적립 카드는 `_doEarn()`
+// 하나로만 처리된다(이동형 미션 분기 없음).
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../application/wishroom_provider.dart';
+import '../../data/wr_catalog.dart';
+import '../../core/theme/wr_theme.dart';
+import '../../core/fx/wr_fx.dart';
+import '../characters/character_shop_screen.dart';
+import '../decor/decor_screen.dart';
+import '../../core/wr_toast.dart';
+
+// 바텀탭 인덱스(wishroom_shell.dart `_tabs` 순서) 1:1 대응.
+const int _kTabExplore = 1;
+
+/// 어디서든 호출 가능한 지갑 시트 오프너. app2 `app.openWallet()` 1:1 대응.
+void openWalletSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => const WalletSheet(),
+  );
+}
+
+class WalletSheet extends StatefulWidget {
+  const WalletSheet({super.key});
+  @override
+  State<WalletSheet> createState() => _WalletSheetState();
+}
+
+class _WalletSheetState extends State<WalletSheet> {
+  int _gotKey = 0;
+  int _gotAmount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // [4-A — 대표 판정] "적립·사용 내역"이 이 시트 안에 바로 보여야 하므로
+    // (vault_screen.dart의 복주머니 탭이 없어지며 이곳이 유일한 내역 화면이
+    // 됐다) 시트가 열릴 때마다 최신 내역을 불러온다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<WishRoomProvider>().loadLedger();
+    });
+  }
+
+  Future<void> _tap(Map<String, dynamic> src) async {
+    final id = src['id'] as String;
+    await _doEarn(id);
+  }
+
+  Future<void> _doEarn(String source) async {
+    final p = context.read<WishRoomProvider>();
+    final res = await p.earn(source);
+    if (!mounted) return;
+    if (res != null) {
+      setState(() { _gotKey++; _gotAmount = res.$1; });
+    } else if (p.lastError != null) {
+      final msg = p.lastError!.code == 'EARN_LIMIT' ? '오늘은 모두 받았어요' : p.lastError!.message;
+      WrToast.show(context, msg);
+    }
+  }
+
+  // vault_screen.dart `_PouchTabState._agoLedger`/내역 행 1:1 — 복주머니 탭 삭제로
+  // 이 시트가 유일한 내역 화면이 되며 그대로 옮겨왔다.
+  Widget _ledgerRow(Map<String, dynamic> e, {bool last = false}) {
+    final amount = ((e['amount'] ?? 0) as num).toInt();
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: last ? null : const BoxDecoration(border: Border(bottom: BorderSide(color: WrC.line))),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text((e['label'] ?? e['reason'] ?? '').toString(), style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)),
+          const SizedBox(height: 2),
+          Text(_agoLedger(e['at']), style: WrF.body(11, color: WrC.muted)),
+        ])),
+        Text('${amount > 0 ? '+' : ''}$amount', style: WrF.body(14, w: FontWeight.w700, color: amount > 0 ? WrC.glow : WrC.fg)),
+      ]),
+    );
+  }
+
+  String _agoLedger(dynamic at) {
+    if (at == null) return '';
+    DateTime? t;
+    if (at is num) t = DateTime.fromMillisecondsSinceEpoch(at.toInt());
+    if (at is String) t = DateTime.tryParse(at);
+    if (t == null) return '';
+    final m = DateTime.now().difference(t).inMinutes;
+    if (m < 1) return '지금';
+    if (m < 60) return '$m분 전';
+    final h = m ~/ 60;
+    return h < 24 ? '$h시간 전' : '${h ~/ 24}일 전';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<WishRoomProvider>(builder: (context, p, __) {
+      final me = p.me;
+      final cat = WrCatalog.I;
+      final today = me?.earnToday ?? const <String, int>{};
+      final earn = cat.earn;
+
+      return DraggableScrollableSheet(
+        initialChildSize: .84, minChildSize: .5, maxChildSize: .92, expand: false,
+        builder: (context, scrollCtrl) => Container(
+          decoration: WrDeco.sheet,
+          child: ListView(controller: scrollCtrl, padding: const EdgeInsets.fromLTRB(20, 14, 20, 32), children: [
+            Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
+            // 잔액
+            Row(children: [
+              Stack(clipBehavior: Clip.none, children: [
+                const _BobbingPouchIcon(),
+                if (_gotKey > 0) WrBurst(key: ValueKey(_gotKey), x: 39, y: 40, n: 16, glyph: '✨', spread: 90),
+              ]),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                // "내 복주머니" 라벨 + "귀인지도 공용" 배지가 고정 Row로 배치돼
+                // 글자 확대(1.3배)+좁은 화면(320~360px) 조합에서 가로 폭을
+                // 넘어 11px RenderFlex overflow가 발생했다. Wrap으로 바꿔
+                // 공간이 부족하면 배지가 다음 줄로 자연스럽게 내려가게 한다
+                // (라벨·배지 모양·간격은 그대로 유지).
+                Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 6, runSpacing: 4, children: [
+                  Text('내 복주머니', style: WrF.body(11.5, color: WrC.muted)),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                    decoration: BoxDecoration(color: const Color(0x26F5CF6A), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x66F5CF6A))),
+                    child: Text('귀인지도 공용', style: WrF.body(10, color: const Color(0xFFFFE7A0)))),
+                ]),
+                Text('${me?.pouch ?? 0}', key: ValueKey(me?.pouch), style: WrF.display(36, color: Colors.white)),
+                if (_gotKey > 0) Text('+$_gotAmount 담겼어요', key: ValueKey('got$_gotKey'), style: WrF.body(12.5, color: WrC.glow)),
+              ])),
+            ]),
+            const SizedBox(height: 14),
+            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black.withValues(alpha: .2),
+                borderRadius: BorderRadius.circular(12), border: Border.all(color: WrC.line, style: BorderStyle.solid)),
+              child: Text('귀인지도 어디서 모은 복주머니든 소원방에서 그대로 쓸 수 있어요. 돈으로는 살 수 없어요.',
+                style: WrF.body(11.5, color: WrC.muted, height: 1.6))),
+            const SizedBox(height: 18),
+            Text('오늘 모을 수 있는 복', style: WrF.display(14)),
+            Text('자정에 다시 채워져요', style: WrF.body(11, color: WrC.muted)),
+            const SizedBox(height: 8),
+            ...earn.where((e) => e['id'] != 'ad').map((src) {
+              final id = src['id'] as String;
+              final limit = (src['limit'] as num).toInt();
+              final amount = (src['amount'] as num).toInt();
+              final n = today[id] ?? 0;
+              final done = n >= limit;
+              return Padding(padding: const EdgeInsets.only(bottom: 6), child: GestureDetector(
+                onTap: done ? null : () => _tap(src),
+                child: Opacity(opacity: done ? .5 : 1, child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
+                  // [버그수정 — 반응형 화면 규격 통일 작업 중 실제 테스트로 발견]
+                  // 라벨(Expanded)과 보상 뱃지("+N ›")가 한 Row에 있어, 라벨이
+                  // 길고 글자 확대(1.3배)+좁은 화면 조합일 때 ellipsis 없이
+                  // 보상 뱃지가 오른쪽으로 최대 47px까지 밀려나가 overflow가
+                  // 발생했다. 라벨에 maxLines:1+ellipsis를 주고 보상 뱃지는
+                  // Flexible로 감싸 전체 폭을 넘지 않게 한다(레이아웃·디자인은
+                  // 그대로 유지, 긴 라벨만 "…"으로 줄어든다).
+                  child: Row(children: [
+                    Container(width: 30, height: 30, alignment: Alignment.center,
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(9), color: done ? Colors.white10 : const Color(0x40F2628F)),
+                      child: Text(done ? '✓' : '•', style: const TextStyle(fontSize: 13))),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(src['label'] as String? ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: WrF.body(13, w: FontWeight.w700, color: WrC.fg)
+                      .copyWith(decoration: done ? TextDecoration.lineThrough : null))),
+                    const SizedBox(width: 6),
+                    Flexible(child: Text(done ? '받음' : '+$amount',
+                      textAlign: TextAlign.right,
+                      style: WrF.body(12, w: FontWeight.w700, color: done ? WrC.muted : WrC.glow))),
+                  ]),
+                )),
+              ));
+            }),
+            const SizedBox(height: 18),
+            Text('소원방에서 쓰는 곳', style: WrF.display(14)),
+            const SizedBox(height: 8),
+            Row(children: [
+              _UseCard(asset: 'assets/wishroom/items/lotus.png', fallback: '🪷', label: '수호자', value: '300~500', onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CharacterShopScreen()));
+              }),
+              const SizedBox(width: 6),
+              _UseCard(asset: 'assets/wishroom/items/lantern.png', fallback: '🏮', label: '꾸미기', value: '50~200', onTap: () {
+                // [v5 S2 — 탭3이 ShopScreen으로 바뀌며 수정] "꾸미기" 카드는
+                // 상점이 아니라 방 배치 화면(DecorScreen)으로 바로 들어가야
+                // 한다(수호자 카드가 CharacterShopScreen을 직접 push하는 것과
+                // 동일한 패턴). requestTab(옛 _kTabDecor=3)은 이제 ShopScreen을
+                // 열게 되므로 더 이상 쓰지 않는다.
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecorScreen()));
+              }),
+              const SizedBox(width: 6),
+              _UseCard(asset: 'assets/wishroom/items/pouch.png', fallback: '💰', label: '선물하기', value: '자유롭게', onTap: () {
+                Navigator.of(context).pop();
+                context.read<WishRoomProvider>().requestTab(_kTabExplore);
+              }),
+            ]),
+            const SizedBox(height: 18),
+            // [4-A — 대표 판정] vault_screen.dart의 복주머니 탭이 없어지며, "적립·
+            // 사용 내역"은 이 지갑 시트 안에서 바로 보여야 한다(전체 내역 화면으로
+            // 이동하는 버튼 대신 최근 내역을 인라인 리스트로 직접 렌더링).
+            Text('적립·사용 내역', style: WrF.display(14)),
+            const SizedBox(height: 8),
+            if (p.ledger.isEmpty)
+              Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Center(
+                child: Text('아직 내역이 없어요', style: WrF.body(12, color: WrC.muted))))
+            else
+              Container(
+                decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Column(children: [
+                  for (final (i, e) in p.ledger.take(10).indexed) _ledgerRow(e, last: i == p.ledger.take(10).length - 1),
+                ]),
+              ),
+          ]),
+        ),
+      );
+    });
+  }
+}
+
+class _BobbingPouchIcon extends StatefulWidget {
+  const _BobbingPouchIcon();
+  @override
+  State<_BobbingPouchIcon> createState() => _BobbingPouchIconState();
+}
+
+class _BobbingPouchIconState extends State<_BobbingPouchIcon> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(animation: _c, builder: (_, __) {
+      final dy = -6 * Curves.easeInOut.transform(_c.value);
+      return Transform.translate(offset: Offset(0, dy), child: Image.asset('assets/wishroom/items/pouch.png', width: 78,
+        errorBuilder: (_, __, ___) => const Text('💰', style: TextStyle(fontSize: 56))));
+    });
+  }
+}
+
+class _UseCard extends StatelessWidget {
+  const _UseCard({required this.asset, required this.fallback, required this.label, required this.value, required this.onTap});
+  final String asset, fallback, label, value;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(child: GestureDetector(onTap: onTap, child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(color: WrC.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: WrC.cardBorder)),
+      child: Column(children: [
+        Image.asset(asset, width: 34, height: 34, errorBuilder: (_, __, ___) => Text(fallback, style: const TextStyle(fontSize: 24))),
+        const SizedBox(height: 3),
+        Text(label, style: WrF.body(12, w: FontWeight.w700, color: WrC.fg)),
+        Text(value, style: WrF.body(10.5, color: WrC.glow)),
+      ]),
+    )));
+  }
+}

@@ -1,4 +1,4 @@
-/// 열림패스(AlarmPass) — Fortune Fusion 3대 재화 중 ①시간제 콘텐츠 열람권.
+/// 열림패스(AlarmPass) — 귀인지도 3대 재화 중 ①시간제 콘텐츠 열람권.
 /// admin_web PassPolicy(정책 마스터)/UserPass(발급 이력) 모델 대응.
 /// [문서8 DB스키마초안 승인 반영] passType: ad/partner/subscription/event
 enum PassType { ad, partner, subscription, event }
@@ -25,6 +25,11 @@ class PassPolicyModel {
   final String name;
   final PassType passType;
   final int durationMin;
+  // [결과보기 통합 권한 시스템 v1.0, 2026-09-28] §1/§3 시간제→횟수제 전환.
+  // null이면 레거시 시간제 정책(기존 durationMin 문구 그대로 사용), non-null이면
+  // 신규 횟수제 정책(현재는 쿠팡 정책 id=11)이며 이 값이 1회 발급당 지급되는
+  // "결과보기 횟수"다. UI는 이 필드 유무로 시간제/횟수제 문구를 분기해야 한다.
+  final int? grantCount;
   final int? dailyLimit;
   final String? ctaText;
   final String? bannerImageUrl;
@@ -55,6 +60,7 @@ class PassPolicyModel {
     required this.name,
     required this.passType,
     required this.durationMin,
+    this.grantCount,
     this.dailyLimit,
     this.ctaText,
     this.bannerImageUrl,
@@ -75,6 +81,7 @@ class PassPolicyModel {
       name: json['name'] as String,
       passType: PassTypeLabel.fromCode(json['passType'] as String? ?? 'ad'),
       durationMin: json['durationMin'] as int? ?? 60,
+      grantCount: json['grantCount'] as int?,
       dailyLimit: json['dailyLimit'] as int?,
       ctaText: json['ctaText'] as String?,
       bannerImageUrl: json['bannerImageUrl'] as String?,
@@ -106,6 +113,10 @@ class PassStatusModel {
   final DateTime? activatedAt;
   final DateTime? expiresAt;
   final int remainingSec;
+  final int? remainingCount;
+  final bool hasLegacyUnlimited;
+
+  bool get isCountBased => remainingCount != null;
 
   const PassStatusModel({
     required this.isActive,
@@ -116,6 +127,8 @@ class PassStatusModel {
     this.activatedAt,
     this.expiresAt,
     this.remainingSec = 0,
+    this.remainingCount,
+    this.hasLegacyUnlimited = false,
   });
 
   factory PassStatusModel.inactive() => const PassStatusModel(isActive: false);
@@ -138,6 +151,8 @@ class PassStatusModel {
           ? DateTime.parse(json['expiresAt'] as String)
           : null,
       remainingSec: json['remainingSec'] as int? ?? 0,
+      remainingCount: json['remainingCount'] as int?,
+      hasLegacyUnlimited: json['hasLegacyUnlimited'] as bool? ?? false,
     );
   }
 }

@@ -166,71 +166,86 @@ class _RewardedAdDialogState extends State<_RewardedAdDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
       ),
+      // [반응형 화면 규격 통일 지시서] 이 다이얼로그는 관리자가 등록한
+      // 광고소스의 networkName/sourceName을 그대로 보여줘 길이가
+      // 보장되지 않는다 — 긴 네트워크명 + 작은 화면(320px대) + textScale
+      // 2.5배 조합에서 고정 SizedBox(height: 380) 안의 Column이 그 높이를
+      // 넘어 세로 RenderFlex 오버플로가 발생했다(실측 62px). 바깥
+      // SizedBox(height: 380)는 우상단 닫기 버튼 등 Positioned 자식들의
+      // 기준 높이로 유지하면서, 가운데 콘텐츠만 SingleChildScrollView로
+      // 감싸 내용이 짧을 때는 기존처럼 중앙정렬, 넘칠 때만 스크롤되게
+      // 한다 — 디자인/문구/버튼 변경 없음.
       child: SizedBox(
         height: 380,
         child: Stack(
           children: [
             Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.smart_display_rounded,
-                    color: UnifiedColors.neon,
-                    size: 64,
-                  ),
-                  const SizedBox(height: UnifiedTokens.spaceMd),
-                  Text(
-                    _isMock ? '테스트 리워드 광고 재생 중' : '리워드 광고 재생 중',
-                    style: UnifiedText.bodyStrong(color: Colors.white),
-                  ),
-                  const SizedBox(height: UnifiedTokens.spaceXs),
-                  Text(
-                    source.networkName ?? source.sourceName,
-                    style: UnifiedText.caption(color: const Color(0xFFB8B8B8)),
-                  ),
-                  const SizedBox(height: UnifiedTokens.spaceLg),
-                  if (_isMock) ...[
-                    // [프리패스 테스트 인프라] §10 — 진행바 형태로 시청 경과를
-                    // 시각화(관리자가 지정한 simulatedDurationSeconds 기준).
-                    SizedBox(
-                      width: 200,
-                      child: LinearProgressIndicator(
-                        value: widget.watchSeconds == 0
-                            ? 1
-                            : 1 - (_remaining / widget.watchSeconds),
-                        backgroundColor: const Color(0xFF2A2A2A),
-                        color: UnifiedColors.neon,
-                      ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.smart_display_rounded,
+                      color: UnifiedColors.neon,
+                      size: 64,
                     ),
                     const SizedBox(height: UnifiedTokens.spaceMd),
                     Text(
-                      _finished ? _mockResultLabel : '$_remaining초 남음 (테스트 광고)',
-                      textAlign: TextAlign.center,
-                      style: UnifiedText.caption(color: UnifiedColors.neon),
+                      _isMock ? '테스트 리워드 광고 재생 중' : '리워드 광고 재생 중',
+                      style: UnifiedText.bodyStrong(color: Colors.white),
                     ),
-                  ] else if (!_finished)
+                    const SizedBox(height: UnifiedTokens.spaceXs),
                     Text(
-                      '$_remaining초 후 보상 받기 활성화',
-                      style: UnifiedText.caption(color: UnifiedColors.neon),
-                    )
-                  else
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).pop(RewardedAdOutcome.completed),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: UnifiedColors.neon,
-                        foregroundColor: UnifiedColors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            UnifiedTokens.radiusPill,
-                          ),
+                      source.networkName ?? source.sourceName,
+                      style: UnifiedText.caption(
+                        color: const Color(0xFFB8B8B8),
+                      ),
+                    ),
+                    const SizedBox(height: UnifiedTokens.spaceLg),
+                    if (_isMock) ...[
+                      // [프리패스 테스트 인프라] §10 — 진행바 형태로 시청 경과를
+                      // 시각화(관리자가 지정한 simulatedDurationSeconds 기준).
+                      SizedBox(
+                        width: 200,
+                        child: LinearProgressIndicator(
+                          value: widget.watchSeconds == 0
+                              ? 1
+                              : 1 - (_remaining / widget.watchSeconds),
+                          backgroundColor: const Color(0xFF2A2A2A),
+                          color: UnifiedColors.neon,
                         ),
                       ),
-                      child: const Text('보상 받기'),
-                    ),
-                ],
+                      const SizedBox(height: UnifiedTokens.spaceMd),
+                      Text(
+                        _finished
+                            ? _mockResultLabel
+                            : '$_remaining초 남음 (테스트 광고)',
+                        textAlign: TextAlign.center,
+                        style: UnifiedText.caption(color: UnifiedColors.neon),
+                      ),
+                    ] else if (!_finished)
+                      Text(
+                        '$_remaining초 후 보상 받기 활성화',
+                        style: UnifiedText.caption(color: UnifiedColors.neon),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pop(RewardedAdOutcome.completed),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: UnifiedColors.neon,
+                          foregroundColor: UnifiedColors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              UnifiedTokens.radiusPill,
+                            ),
+                          ),
+                        ),
+                        child: const Text('보상 받기'),
+                      ),
+                  ],
+                ),
               ),
             ),
             Positioned(

@@ -22,6 +22,8 @@ class OpenPassState {
     required this.remaining,
     this.policyName,
     this.expiresAt,
+    this.remainingCount,
+    this.hasLegacyUnlimited = false,
   });
 
   final OpenPassStatus status;
@@ -30,6 +32,8 @@ class OpenPassState {
   final Duration remaining;
   final String? policyName;
   final DateTime? expiresAt;
+  final int? remainingCount;
+  final bool hasLegacyUnlimited;
 
   bool get isActive => status == OpenPassStatus.active;
 
@@ -54,6 +58,18 @@ class OpenPassState {
       );
     }
 
+    if (model.isCountBased && !model.hasLegacyUnlimited) {
+      final count = model.remainingCount!;
+      final expired = model.expiresAt != null && !model.expiresAt!.isAfter(DateTime.now());
+      return OpenPassState(
+        status: count > 0 && !expired ? OpenPassStatus.active : OpenPassStatus.expired,
+        remaining: Duration.zero,
+        remainingCount: count,
+        policyName: model.policyName,
+        expiresAt: model.expiresAt,
+      );
+    }
+
     final Duration remaining;
     if (model.expiresAt != null) {
       remaining = model.expiresAt!.difference(DateTime.now());
@@ -68,11 +84,17 @@ class OpenPassState {
       remaining: remaining > Duration.zero ? remaining : Duration.zero,
       policyName: model.policyName,
       expiresAt: model.expiresAt,
+      remainingCount: model.remainingCount,
+      hasLegacyUnlimited: model.hasLegacyUnlimited,
     );
   }
 
   /// "42분 남음" 형태의 표시용 라벨(만료/비활성이면 null).
   String? get remainingLabel {
+    if (status == OpenPassStatus.active && remainingCount != null) {
+      if (hasLegacyUnlimited) return '기존 시간제 이용권 보유 · $remainingCount회 남음';
+      return '$remainingCount회 남음';
+    }
     if (status != OpenPassStatus.active || remaining <= Duration.zero) {
       return null;
     }

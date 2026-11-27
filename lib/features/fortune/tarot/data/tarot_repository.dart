@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/api/api_result.dart';
+import '../../../../core/api/http_auth_guard.dart';
 import '../../../../core/auth/auth_token_store.dart';
 import '../../../../core/config/env_config.dart';
 import '../domain/tarot_model.dart';
@@ -26,17 +27,58 @@ import '../domain/tarot_model.dart';
 class TarotRepository {
   final List<TarotResultModel> _history = [];
 
-  Future<ApiResult<TarotResultModel>> drawOneCard({required String question}) =>
-      _draw(question: question, spreadType: 'one_card', topic: 'general');
+  Future<ApiResult<TarotResultModel>> drawOneCard({
+    required String question,
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'one_card',
+    topic: 'general',
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   Future<ApiResult<TarotResultModel>> drawThreeCard({
     required String question,
-  }) => _draw(question: question, spreadType: 'three_card', topic: 'general');
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'three_card',
+    topic: 'general',
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   Future<ApiResult<TarotResultModel>> drawThreeCards({
     required String question,
     String topic = 'general',
-  }) => _draw(question: question, spreadType: 'three_card', topic: topic);
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'three_card',
+    topic: topic,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
+
+  /// [65종 타로 리딩엔진 §계획3] 5카드 심화 리딩. 신규 파일럿 주제(78장
+  /// 풀덱 + DB 포지션 기반)에서만 서버가 실제로 지원하며, 레거시 주제로
+  /// 요청 시 서버가 "지원하지 않는 스프레드"로 안전하게 차단한다.
+  Future<ApiResult<TarotResultModel>> drawFiveCards({
+    required String question,
+    String topic = 'general',
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'five_card',
+    topic: topic,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   /// [운세 카테고리 확장] 타로 YES/NO 스프레드(1장 뽑아 방향으로 답변).
   /// 기존 [drawOneCard]/[drawThreeCards]와 동일한 `_draw` 경로를 공유하며,
@@ -44,12 +86,48 @@ class TarotRepository {
   Future<ApiResult<TarotResultModel>> drawYesNo({
     required String question,
     String topic = 'general',
-  }) => _draw(question: question, spreadType: 'yes_no', topic: topic);
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'yes_no',
+    topic: topic,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
+
+  /// [65종 타로 리딩엔진 §계획1 - choice_ab] A/B 양자택일 5장 스프레드.
+  /// `daily_direction_of_choice` 주제 전용. optionA/optionB(사용자가 입력한
+  /// 두 선택지 텍스트)를 서버에 함께 전달해야 한다.
+  Future<ApiResult<TarotResultModel>> drawChoiceAb({
+    required String question,
+    required String optionA,
+    required String optionB,
+    String topic = 'daily_direction_of_choice',
+    String? paymentMethod,
+    String? transactionId,
+  }) => _draw(
+    question: question,
+    spreadType: 'choice_ab',
+    topic: topic,
+    optionA: optionA,
+    optionB: optionB,
+    paymentMethod: paymentMethod,
+    transactionId: transactionId,
+  );
 
   Future<ApiResult<TarotResultModel>> _draw({
     required String question,
     required String spreadType,
     required String topic,
+    String? optionA,
+    String? optionB,
+    // [결과보기 통합 권한 시스템 v1.0, §8] saju/name/face/palm과 동일하게
+    // 게이트 시트가 반환한 결제수단/트랜잭션ID를 그대로 서버에 전달한다.
+    // 둘 다 null이면(기존 호출부) 서버가 자동으로 레거시 경로(무료)로
+    // 처리한다(하위호환).
+    String? paymentMethod,
+    String? transactionId,
   }) async {
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot',
@@ -59,16 +137,21 @@ class TarotRepository {
     );
 
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
             body: jsonEncode({
-              'userId': userId,
               'question': question,
               'spreadType': spreadType,
               'topic': topic,
+              if (optionA != null) 'optionA': optionA,
+              if (optionB != null) 'optionB': optionB,
+              if (paymentMethod != null) 'paymentMethod': paymentMethod,
+              if (transactionId != null) 'transactionId': transactionId,
             }),
           )
           .timeout(const Duration(seconds: 45));
@@ -77,11 +160,20 @@ class TarotRepository {
         '[TarotRepository] [_draw] 응답 수신 -> statusCode=${response.statusCode}',
       );
 
+      // [엔진 통합 STEP 2 — 공통 401 처리] 토큰 만료/무효는 다른 에러와
+      // 구분해 세션을 정리하고 "로그인이 필요합니다"로 명확히 안내한다.
+      if (HttpAuthGuard.isUnauthorized(response.statusCode)) {
+        return HttpAuthGuard.unauthorizedResult(tag: 'TarotRepository._draw');
+      }
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         final error = decoded['error'] as String? ?? '타로 리딩에 실패했습니다.';
+        // [프리패스 카테고리 제한 안내 버그 수정] 서버가 함께 내려주는
+        // reason('CATEGORY_LIMIT_REACHED' 등)을 errorCode로 함께 전달해야
+        // 화면단(TarotSessionController/tarot_card_select_screen)이 일반
+        // 에러(OOPS)와 "이용횟수 초과" 안내를 구분해 보여줄 수 있다.
         debugPrint('[TarotRepository] [_draw] 실패 -> $error');
-        return ApiResult.fail(error);
+        return ApiResult.fail(error, code: decoded['reason'] as String?);
       }
 
       final data = decoded['data'] as Map<String, dynamic>;
@@ -111,6 +203,10 @@ class TarotRepository {
         createdAt: DateTime.parse(data['createdAt'] as String),
         topic: data['topic'] as String? ?? 'general',
         answer: data['answer'] as String?,
+        optionA: data['optionA'] as String?,
+        optionB: data['optionB'] as String?,
+        autoMatchedTopic: data['autoMatchedTopic'] as String?,
+        autoMatchedTopicName: data['autoMatchedTopicName'] as String?,
       );
 
       _history.insert(0, result);
@@ -128,11 +224,12 @@ class TarotRepository {
   /// 누적된 로컬 결과는 그대로 보여줄 수 있도록 폴백을 유지한다.
   Future<ApiResult<List<TarotResultModel>>> getHistory() async {
     try {
-      final userId = await AuthTokenStore.getCurrentUserId();
       final uri = Uri.parse(
-        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot/history?userId=$userId',
+        '${EnvConfig.adminApiBaseUrl}/api/public/fortune/tarot/history',
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(uri, headers: await AuthTokenStore.authHeader())
+          .timeout(const Duration(seconds: 15));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200 || decoded['success'] != true) {
         debugPrint('[TarotRepository] [getHistory] 서버 조회 실패, 로컬로 폴백');
@@ -167,6 +264,10 @@ class TarotRepository {
           createdAt: DateTime.parse(item['createdAt'] as String),
           topic: item['topic'] as String? ?? 'general',
           answer: item['answer'] as String?,
+          optionA: item['optionA'] as String?,
+          optionB: item['optionB'] as String?,
+          autoMatchedTopic: item['autoMatchedTopic'] as String?,
+          autoMatchedTopicName: item['autoMatchedTopicName'] as String?,
         );
       }).toList();
 

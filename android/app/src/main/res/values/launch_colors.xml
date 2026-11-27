@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- [2026-10 스플래시 디자인 교체 — "귀인지도"] 네이티브 OS 런치
+         스크린(Flutter 엔진이 첫 프레임을 그리기 전 잠깐 보이는 화면)을
+         핸드오프 README §네이티브 런치스크린 명세("아이콘 없이 단색
+         #14214a")에 맞춘다. 이 색은 애니메이션 스플래시(splash_screen.dart)
+         배경 그라데이션의 중간 색(§배경 레이어1 50% 지점)과 동일해,
+         런치스크린 → Flutter 스플래시 전환 시 색 끊김이 없다. -->
+    <color name="gwiinjido_launch_background">#FF14214A</color>
+</resources>

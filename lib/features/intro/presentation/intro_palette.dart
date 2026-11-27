@@ -1,0 +1,214 @@
+import 'package:flutter/material.dart';
+
+/// [인트로 3종 색상 정리 → Moonlit Crystal 리스킨] 스플래시/인트로페이저
+/// (카드1·카드2)/CTA 3개 화면 전용 브랜드 팔레트.
+///
+/// [2026 디자인 핸드오프 반영] 온보딩 디자인 핸드오프(design_handoff_onboarding_flow)의
+/// "Moonlit Crystal(달빛 크리스탈)" 팔레트 값을 그대로 이식했다. 이 값들은 프로젝트에
+/// 이미 존재하는 `wish_room/theme/wish_room_theme.dart`의 `WishRoomColors`와
+/// 색상값이 완전히 동일하다(다크 보라~네이비 배경 + 라벤더 glow 강조 + 아쿠아 accent).
+///
+/// [범위 격리 원칙 유지] `core/theme/app_unified_style.dart`의 `UnifiedColors`
+/// (앱 전역 화이트 톤, 216회+ 참조)와 `core/theme/app_colors.dart`(메인 브랜드 컬러)는
+/// 절대 건드리지 않는다. 이 파일은 인트로 3개 화면(및 그 하위 위젯)에서만 참조되는
+/// 격리된 전용 팔레트다 — 웰컴 리워드 팝업(Phase C)도 이 원칙에 따라 별도 격리된
+/// 색상만 사용하고 앱 전역 메인 컬러는 참조하지 않는다.
+class IntroPalette {
+  IntroPalette._();
+
+  /// 화면 배경 그라데이션 상단(핸드오프 --bg-1).
+  static const Color backgroundTop = Color(0xFF3D3568);
+
+  /// 화면 배경 그라데이션 하단(핸드오프 --bg-2).
+  static const Color backgroundBottom = Color(0xFF1E1A3A);
+
+  /// 기존 참조 호환용 별칭(Scaffold backgroundColor 등 단일 색 필요 시).
+  static const Color backgroundSoft = backgroundTop;
+
+  /// 포인트 컬러 - 달빛 라벤더 glow(핸드오프 --glow). 버튼/인디케이터/강조 아이콘에 사용.
+  static const Color primary = Color(0xFFE8C8F5);
+
+  /// 그라데이션 보조 톤 - 아쿠아 accent(핸드오프 --accent).
+  static const Color primaryDark = Color(0xFF7FB8D4);
+
+  /// 반투명 카드/배지 배경(핸드오프 --card, 다크 배경 위에 얹는 옅은 오버레이).
+  static const Color primaryLight = Color(0x14C8B4FF);
+
+  /// 카드/배지 테두리(핸드오프 --line).
+  static const Color cardBorder = Color(0x26DCC8FF);
+
+  /// glow(=primary) 솔리드 배경 위에 얹는 텍스트/아이콘 색
+  /// (핸드오프 버튼 텍스트 색 #2a1a3a와 동일 톤 - 대비 확보용 진한 남보라).
+  static const Color onPrimary = Color(0xFF2A1A3A);
+
+  /// 다크 배경 위 기본 텍스트(핸드오프 --fg).
+  static const Color textPrimary = Color(0xFFF0EAFF);
+
+  /// 다크 배경 위 보조/캡션 텍스트(핸드오프 --muted).
+  static const Color textSecondary = Color(0xA6DCD2F5);
+
+  /// 페이지 인디케이터(비활성 점) 등 아주 옅은 강조가 필요한 자리 전용.
+  /// primaryLight(카드 오버레이용, alpha 8%)보다 조금 더 진해 다크 배경에서도
+  /// 위치를 식별할 수 있다.
+  static const Color indicatorInactive = Color(0x40DCC8FF);
+
+  // ───────────────────────── [핸드오프 콘텐츠 반영] 추가 색상 ─────────────────────────
+  // 아래 3개는 2026 핸드오프 콘텐츠 재작업(카피/구조 1:1 이식) 시 새로 필요해진
+  // 값으로, tokens/colors_and_type.css의 나머지 변수를 마저 옮긴 것이다.
+
+  /// 페이지2(오늘의 결) 캐릭터 halo·accent 그라디언트용 아쿠아(핸드오프 --crystal).
+  static const Color crystal = Color(0xFFA8D5E3);
+
+  /// 제목 accent 그라디언트 상단 톤(핸드오프 --gold), page2/4 title.accent에 사용.
+  static const Color gold = Color(0xFFF5D97A);
+
+  /// 제목 text-shadow 전용(핸드오프 --glow-shadow, primary의 35% 알파).
+  static const Color glowShadow = Color(0x59E8C8F5);
+
+  // ───────────────────────── [Phase B - 02_SignUp_Login.html 반영] ─────────────────────────
+
+  /// 필드 에러/위험 상태 전용(핸드오프 --danger). 로그인/회원가입 화면에서
+  /// 비밀번호 확인 불일치 등 에러 힌트 텍스트·테두리에 사용한다. 인트로
+  /// 3화면(01_Intro.html)에는 없던 색으로, 02번 핸드오프 문서에서 처음 등장했다.
+  static const Color danger = Color(0xFFF5A8BD);
+
+  /// [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 중복확인
+  /// "사용할 수 있는 이메일이에요" 성공 문구 전용(README.md 명시값 #b8f0d4).
+  /// 기존 danger(#F5A8BD)와는 별개 색으로, 성공 상태 전용으로 신설한다.
+  static const Color success = Color(0xFFB8F0D4);
+
+  // ───────────────────────── [Phase C - 03_Welcome_Reward.html 반영] ─────────────────────────
+
+  /// 웰컴 리워드 팝업 stage 배경(핸드오프 `html, body { background: #0a0716 }`).
+  /// 팝업 백드롭(반투명 흑자색 + blur)의 기저색으로 사용한다.
+  static const Color voidBlack = Color(0xFF0A0716);
+
+  // ───────────────────────── [온보딩 화면 교체 2026-10-11 반영] ─────────────────────────
+  // `design_handoff_onboarding_redesign.zip`(Onboarding.html)의 Design Tokens
+  // 중 기존 상수와 값이 다르거나 없던 것만 추가한다. 배경 3단
+  // 그라디언트(--bg-1/--bg-mid/--bg-2)의 --bg-1/--bg-2는 기존
+  // backgroundTop/backgroundBottom과 동일값이라 재사용하고, 중간톤만
+  // 아래 [backgroundMid]로 추가한다.
+
+  /// 배경 그라디언트 중간톤(핸드오프 --bg-mid #2c2650, 45% 지점).
+  static const Color backgroundMid = Color(0xFF2C2650);
+
+  /// Primary 버튼 그라디언트 상단(핸드오프 --glow-light #f2dcfb).
+  /// 기존 [primary](#e8c8f5)는 그라디언트 하단에 그대로 쓰인다.
+  static const Color glowLight = Color(0xFFF2DCFB);
+
+  /// 벚꽃 꽃잎 색(핸드오프 --petal #f6b9cf).
+  static const Color petal = Color(0xFFF6B9CF);
+
+  /// 바텀시트 배경 그라디언트 상단(핸드오프 --sheet 3a3264→241f45).
+  static const Color sheetTop = Color(0xFF3A3264);
+
+  /// 바텀시트 배경 그라디언트 하단.
+  static const Color sheetBottom = Color(0xFF241F45);
+
+  // ───────────────────────── [온보딩 v2 리디자인 2026-10-18 반영] ─────────────────────────
+  // `design_handoff_onboarding_redesign (2).zip`(온보딩 v2.html) Design Tokens 중 v1에
+  // 없던 값만 추가한다. 배경 그라디언트(bg-top/mid/bot)는 README가 "기존 그대로
+  // 유지"를 명시했고 값 자체도 기존 backgroundTop/Mid/Bottom과 동일해 재사용한다.
+
+  /// 緣 인장 배경(핸드오프 --seal #c94a3b, 봉은 인주색). v1의 glow 그라디언트
+  /// 인장을 v2에서 이 단색 인주 인장으로 교체.
+  static const Color sealRed = Color(0xFFC94A3B);
+
+  /// 인장 위 글자색(핸드오프 #fff9e8).
+  static const Color sealInk = Color(0xFFFFF9E8);
+
+  /// Arch 윈도우(이미지 영역) 배경(핸드오프 --arch window bg #15102a).
+  static const Color archWindowBg = Color(0xFF15102A);
+
+  // ───────────────────────── [회원가입 통합 사주정보 04/05 반영] ─────────────────────────
+  // `design_handoff_signup_saju_profile` README.md 토큰표의 --rose. 04(생년월일
+  // 입력) 화면의 "＊ 필수 입력" 마커 및 時(시) 전용 포인트 컬러로 쓰인다.
+
+  /// 필수 입력 마커 / 時(시) 전용 포인트(핸드오프 --rose #f3a6c8).
+  static const Color rose = Color(0xFFF3A6C8);
+
+  // ───────────────────────── [온보딩 전면 교체 - design_handoff_onboarding_v2.zip 반영] ─────────────────────────
+  // `Onboarding v2.html`(달+마법진+소개 3장 캐러셀 디자인)의 Design Tokens 중
+  // 기존 상수와 값이 미세하게 다르거나(픽셀 정확도 요구) 없던 것만 추가한다.
+  // 배경 3단 그라디언트(--bg-1/--bg-mid/--bg-2)는 README "배경색은 지금과
+  // 똑같이 유지"에 따라 기존 backgroundTop/Mid/Bottom을 그대로 재사용한다.
+
+  /// 가장 옅은 텍스트(핸드오프 --faint rgba(220,210,245,.4)). 기존
+  /// [textSecondary](65% 알파)보다 더 옅은 전용 톤 — SINTONG 라벨/안내 링크.
+  static const Color introFaint = Color(0x66DCD2F5);
+
+  /// glow 배경 위 잉크색(핸드오프 --ink #2a2050). 기존 [onPrimary]
+  /// (#2a1a3a)와 톤은 비슷하나 다른 핸드오프 값이라 픽셀 정확도를 위해
+  /// 별도 보관한다.
+  static const Color introInk = Color(0xFF2A2050);
+
+  /// Primary 버튼/달 그라디언트 상단(핸드오프 --glow-light #f3defb). 기존
+  /// [glowLight](#f2dcfb, 다른 핸드오프 값)와 별개로 둔다.
+  static const Color introGlowLight = Color(0xFFF3DEFB);
+
+  /// 진행 점(활성) 배경(핸드오프 rgba(232,200,245,.25) = glow 25% 알파).
+  static const Color introDotActiveBg = Color(0x40E8C8F5);
+
+  /// 緣 인장 그라디언트 시작(핸드오프 #d9604f, 160deg 그라디언트 최상단).
+  static const Color introSealLight = Color(0xFFD9604F);
+
+  /// 緣 인장 그라디언트 끝(핸드오프 #a33a2e).
+  static const Color introSealDark = Color(0xFFA33A2E);
+
+  /// 緣 인장 위 글자색(핸드오프 #fbeee6). 기존 [sealInk](#fff9e8)와 다른
+  /// 핸드오프 값이라 별도 보관한다.
+  static const Color introSealText = Color(0xFFFBEEE6);
+
+  // ───────────────────────── [온보딩 v3 네이비+골드 리컬러 — design_handoff_onboarding_v3.zip 반영] ─────────────────────────
+  // `Onboarding v3.html`(라벤더 → 네이비+골드, 「신통방통/SINTONG/神」 →
+  // 「귀인지도/GWIIN JIDO」 브랜드 교체) README §1 색상 토큰 변경표를 그대로
+  // 이식한다. 기존 `backgroundTop/Mid/Bottom`·`primary`·`crystal`·
+  // `cardBorder`·`onPrimary`·`textPrimary`·`textSecondary` 등은 로그인/
+  // 회원가입/약관/웰컴팝업 등 다른 화면과 공유되는 토큰이라 값을 바꾸지
+  // 않고, 이 온보딩 화면 전용 신규 토큰을 `onboardingV3` 접두사로 분리
+  // 신설한다(기존 `intro*` 접두사 토큰도 v2 전용값이라 그대로 보존).
+
+  /// 배경 그라디언트 상단(--bg-1 #1b2b50). 바텀시트 상단 톤과도 동일.
+  static const Color onboardingV3Bg1 = Color(0xFF1B2B50);
+
+  /// 배경 그라디언트 45% 지점(--bg-mid #131f3b).
+  static const Color onboardingV3BgMid = Color(0xFF131F3B);
+
+  /// 배경 그라디언트 하단(--bg-2 #0b1428).
+  static const Color onboardingV3Bg2 = Color(0xFF0B1428);
+
+  /// 본문 글자(--fg #f5eedd).
+  static const Color onboardingV3Fg = Color(0xFFF5EEDD);
+
+  /// 보조/캡션 글자(--muted rgba(232,222,200,.64)).
+  static const Color onboardingV3Muted = Color(0xA3E8DEC8);
+
+  /// 가장 옅은 글자, 안내 링크/영문 라벨(--faint rgba(232,222,200,.4)).
+  static const Color onboardingV3Faint = Color(0x66E8DEC8);
+
+  /// 강조 글자/마법진/점/버튼(--glow #e0c264).
+  static const Color onboardingV3Glow = Color(0xFFE0C264);
+
+  /// Primary 버튼·달 그라디언트 위쪽(--glow-light #f1da92).
+  static const Color onboardingV3GlowLight = Color(0xFFF1DA92);
+
+  /// 빛 번짐/버튼 shadow(--glow-shadow rgba(224,194,100,.35)).
+  static const Color onboardingV3GlowShadow = Color(0x59E0C264);
+
+  /// Eyebrow/안쪽 마법진/공전 별(--crystal #9fb6dc).
+  static const Color onboardingV3Crystal = Color(0xFF9FB6DC);
+
+  /// 보조(Ghost) 버튼 배경(--card rgba(224,194,100,.06)).
+  static const Color onboardingV3Card = Color(0x0FE0C264);
+
+  /// 테두리/구분선/점(비활성)(--line rgba(224,194,100,.18)).
+  static const Color onboardingV3Line = Color(0x2EE0C264);
+
+  /// 골드 배경 위 글자(--ink #111a30).
+  static const Color onboardingV3Ink = Color(0xFF111A30);
+
+  /// 바텀시트 배경 그라디언트 하단(핸드오프 #0f1931). 상단은
+  /// [onboardingV3Bg1]과 동일값이라 재사용한다.
+  static const Color onboardingV3SheetBottom = Color(0xFF0F1931);
+}

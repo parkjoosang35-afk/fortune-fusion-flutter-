@@ -11,7 +11,76 @@ class EnvConfig {
 
   static const String adminApiBaseUrl = String.fromEnvironment(
     'ADMIN_API_BASE_URL',
-    defaultValue:
-        'https://3000-icl3vxc7xf6zjzgg3f9cz-8f57ffe2.sandbox.novita.ai',
+    // [Phase C] 가비아 운영 서버(sintong.kr) 도메인으로 전환.
+    // 이전 샌드박스 임시 프리뷰 주소는 세션 종료 시 무효화되는 문제가 있어
+    // 영구 운영 도메인으로 고정한다.
+    defaultValue: 'https://sintong.kr',
+  );
+
+  /// 공유 링크와 API가 서로 다른 운영/검수 환경을 가리키지 않게 한다.
+  ///
+  /// [웹 공유 전용 — 귀인지도 앱·웹 공유 정상화 지시서 §3-B] 앱 설치를
+  /// 유도하지 않는 "웹 전용" 주소. Android App Links(pathPrefix="/r")와
+  /// 겹치지 않도록 admin_web `web-result/[id]/page.tsx`가 의도적으로 별도
+  /// 경로로 분리해뒀다 — 웹에서 공유할 때는 반드시 이 메서드만 사용한다.
+  static String webResultUrl(String shareId) => Uri.parse(adminApiBaseUrl)
+      .replace(path: '/web-result/${Uri.encodeComponent(shareId)}', query: null, fragment: null)
+      .toString();
+
+  /// [앱 공유 전용 — 귀인지도 앱·웹 공유 정상화 지시서 §3-A] Android App
+  /// Links 대상 `/r/{shareId}` 절대 URL. 받는 사람 기기에 귀인지도 앱이
+  /// 설치되어 있고 App Links 검증(autoVerify)이 성공한 상태면 OS가 이 링크를
+  /// 클릭하는 즉시 앱의 [SharedResultScreen]으로 직접 연결한다(미설치이거나
+  /// 검증 전/실패 상태면 동일 경로의 `/r/[id]` SSR 웹페이지로 자연스럽게
+  /// 폴백 — AndroidManifest.xml의 `pathPrefix="/r"` intent-filter 참고).
+  ///
+  /// **웹 공유에는 절대 사용하지 않는다** — 웹에서 공유할 때 이 주소를 쓰면
+  /// 앱이 설치된 사람이 공유 링크를 열 때 원치 않게 앱으로 끌려갈 수 있어
+  /// §3-B("앱 설치를 강제하거나 앱 전용 화면으로 보내면 안 됨") 위반이다.
+  /// 웹 공유는 항상 [webResultUrl]만 사용할 것.
+  static String resultDeepLinkUrl(String shareId) => Uri.parse(adminApiBaseUrl)
+      .replace(path: '/r/${Uri.encodeComponent(shareId)}', query: null, fragment: null)
+      .toString();
+
+  /// 확인된 정식 Play Store 주소만 APP_DOWNLOAD_URL로 명시한다.
+  /// 미설정이면 설치 링크를 생략하며 홈페이지나 검수 서버로 대체하지 않는다.
+  static const String appDownloadUrl = String.fromEnvironment(
+    'APP_DOWNLOAD_URL', defaultValue: '',
+  );
+
+  /// [정통사주 v3 - 4차 지시서 항목③ 인증 연결] saju_v3 엔진 서버 전용
+  /// X-Free-Pass 토큰. img2_인증연결가이드.png의 의도대로 앱의 표준 인증
+  /// (`AuthTokenStore.authHeader()` → `Authorization: Bearer <JWT>`, admin
+  /// API용)은 그대로 유지하고, saju_v3 엔진 요청에만 이 별도 헤더를 얹는다
+  /// — 두 인증 체계가 서로 충돌하지 않는다(엔진 코드 변경 없이 해결).
+  ///
+  /// 하드코딩 금지: 값은 항상 `--dart-define=SAJU_FREEPASS=<발급된_토큰>`
+  /// (빌드/런타임 주입)으로만 전달한다. 빈 문자열이면 SajuV3Api가 헤더를
+  /// 생략하고, 엔진 서버는 402(FREE_PASS_REQUIRED)로 안내한다 — 별도의
+  /// "임시 우회" 분기를 두지 않는다(4차 지시서 원칙 그대로).
+  static const String sajuFreePassToken = String.fromEnvironment(
+    'SAJU_FREEPASS',
+    defaultValue: '',
+  );
+
+  /// [귀인지도 메인 히어로 영상 전환 지시서 v1.0 §5] 히어로 영상/포스터
+  /// 자산이 서빙되는 base URL(호스트+경로 접두사, 트레일링 슬래시 없음).
+  ///
+  /// [CDN 미구축 상태의 임시 구조] 사용자 확정: "현재 S3+CloudFront는
+  /// 구축되어 있지 않으므로 우선 sintong.kr 서버의 정적 디렉토리에서
+  /// 서빙한다... 영상 URL과 코드 구조는 추후 CDN으로 이전할 수 있도록
+  /// 하드코딩하지 말고 환경변수 또는 설정값으로 관리한다." 이 요구에 따라
+  /// 코드 어디에도 실제 도메인/경로를 직접 쓰지 않고, 오직 이 상수 하나만
+  /// 참조한다. 나중에 S3+CloudFront(또는 다른 CDN)로 옮길 때는 배포
+  /// 스크립트에서 --dart-define=HERO_VIDEO_BASE_URL=https://cdn.xxx/hero
+  /// 값만 바꿔 재빌드하면 되고, Dart 코드는 한 줄도 수정할 필요가 없다.
+  ///
+  /// 기본값(sintong.kr 자체 서버, nginx가 /static/hero/ 를 정적 서빙 —
+  /// 배포 시 nginx 설정과 반드시 짝을 맞출 것)은 개발/프리뷰 편의를 위한
+  /// 것이며, 운영 배포 시에도 현재는 이 기본값 그대로 사용한다(§5.5
+  /// "오리진 보호" 규칙은 CDN 도입 후 적용 대상).
+  static const String heroVideoBaseUrl = String.fromEnvironment(
+    'HERO_VIDEO_BASE_URL',
+    defaultValue: 'https://sintong.kr/static/hero',
   );
 }

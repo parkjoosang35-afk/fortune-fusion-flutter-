@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
+import '../../../core/utils/email_validator.dart';
 import '../domain/user_model.dart';
 
 /// 06단계 §4.1 `/v1/auth`, `/v1/users` 대응 Repository
@@ -30,16 +31,46 @@ class AuthRepository {
 
   /// 02번 §1.1 "이메일 가입" — 로그인과 분리된 신규 가입 절차.
   /// 서버 응답이 성공하면 JWT를 [AuthTokenStore]에 저장한다.
+  ///
+  /// [6-7-4-B-4] admin_web `/api/public/auth/signup`이 이용약관/개인정보처리방침
+  /// 동의를 필수 요건으로 검증하도록 변경됨에 따라(미동의 시 400/TERMS_NOT_AGREED),
+  /// 클라이언트도 이 두 값을 함께 전송한다. 상위 레이어(AuthProvider/SignupScreen)가
+  /// 체크박스 상태를 그대로 전달하므로 여기서는 값 검증만 하고 통과시킨다.
+  /// [6-7-4-B-4 전면개정] 만14세 확인(필수)과 마케팅 수신동의(선택, 기본값 false)도
+  /// 같은 패턴으로 추가했다. 만14세 미확인 시 서버와 동일한 AGE14_NOT_CONFIRMED 코드로
+  /// 클라이언트에서도 선제 차단한다(네트워크 왕더 방지).
   Future<ApiResult<UserModel>> emailSignup(
     String email,
     String password,
-    String nickname,
-  ) async {
+    String nickname, {
+    required bool termsAgreed,
+    required bool privacyAgreed,
+    required bool age14Confirmed,
+    bool marketingAgreed = false,
+  }) async {
     if (email.isEmpty || password.isEmpty || nickname.isEmpty) {
       return ApiResult.fail('필수 정보를 모두 입력해 주세요.');
     }
+    // [이메일 회원가입 오류 수정 지시서] 서버 왕복 전에 선제적으로 형식을
+    // 차단한다(네트워크 왕복 낭비 방지 — age14Confirmed 체크와 동일 패턴).
+    // 최종 방어선은 서버(signup/route.ts)에도 동일하게 추가되어 있다.
+    if (!EmailValidator.isValid(email)) {
+      return ApiResult.fail(EmailValidator.errorMessage, code: 'INVALID_EMAIL');
+    }
     if (password.length < 8) {
       return ApiResult.fail('비밀번호는 8자 이상이어야 합니다.');
+    }
+    if (!termsAgreed || !privacyAgreed) {
+      return ApiResult.fail(
+        '이용약관 및 개인정보처리방침에 동의해야 가입할 수 있습니다.',
+        code: 'TERMS_NOT_AGREED',
+      );
+    }
+    if (!age14Confirmed) {
+      return ApiResult.fail(
+        '만 14세 이상만 가입할 수 있습니다.',
+        code: 'AGE14_NOT_CONFIRMED',
+      );
     }
     final uri = Uri.parse('$_base/signup');
     try {
@@ -51,6 +82,10 @@ class AuthRepository {
               'email': email,
               'password': password,
               'nickname': nickname,
+              'termsAgreed': termsAgreed,
+              'privacyAgreed': privacyAgreed,
+              'age14Confirmed': age14Confirmed,
+              'marketingAgreed': marketingAgreed,
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -71,6 +106,45 @@ class AuthRepository {
     } catch (e) {
       debugPrint('[AuthRepository] [emailSignup] 예외 -> $e');
       return ApiResult.fail('회원가입 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 입력란
+  /// blur 시점에 중복 여부를 선제 확인한다 — README.md "이메일 blur 시
+  /// 중복 확인 → 상태 문구: 확인하고 있어요… / 사용할 수 있는 이메일이에요 /
+  /// 이미 가입된 이메일이에요. 로그인해 주세요. / 이메일 형식을 확인해
+  /// 주세요" 스펙 대응. 서버 `GET /api/public/auth/email-check`를 호출하며,
+  /// 형식이 유효하지 않으면 서버 왕복 없이 바로 INVALID_EMAIL을 반환한다.
+  ///
+  /// [주의] 이 결과는 "제출 시점"의 최종 방어선이 아니다 — 실제 가입
+  /// (emailSignup)은 여전히 서버 UNIQUE 제약(P2002)으로 한 번 더 검증되며,
+  /// blur 체크와 제출 사이에 다른 사용자가 같은 이메일로 먼저 가입하는
+  /// 경쟁 상황도 그 쪽에서 최종적으로 걸러진다.
+  Future<ApiResult<bool>> checkEmailAvailable(String email) async {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) {
+      return ApiResult.fail('이메일을 입력해 주세요.', code: 'EMAIL_REQUIRED');
+    }
+    if (!EmailValidator.isValid(trimmed)) {
+      return ApiResult.fail(EmailValidator.errorMessage, code: 'INVALID_EMAIL');
+    }
+    final uri = Uri.parse(
+      '$_base/email-check',
+    ).replace(queryParameters: {'email': trimmed});
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '이메일 확인 중 오류가 발생했습니다.',
+          code: decoded['code'] as String?,
+        );
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(data['available'] as bool);
+    } catch (e) {
+      debugPrint('[AuthRepository] [checkEmailAvailable] 예외 -> $e');
+      return ApiResult.fail('이메일 확인 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -99,8 +173,7 @@ class AuthRepository {
       await _persistSession(user, data['token'] as String);
       // [복주머니 정책표 §3] 서버가 함께 내려준 첫 로그인 보상 정보를 보관해둔다
       // (없으면 null — 이미 로그인한 적 있음/정책 비활성 케이스).
-      lastFirstLoginReward =
-          data['firstLoginReward'] as Map<String, dynamic>?;
+      lastFirstLoginReward = data['firstLoginReward'] as Map<String, dynamic>?;
       return ApiResult.ok(user);
     } catch (e) {
       debugPrint('[AuthRepository] [emailLogin] 예외 -> $e');
@@ -108,31 +181,124 @@ class AuthRepository {
     }
   }
 
-  /// [설계결정 - 로드맵④] 실제 카카오/구글 OAuth SDK 연동은 이번 범위 밖이다.
-  /// 서버는 501(NOT_IMPLEMENTED)을 정직하게 응답하며, 이 메서드는 그 실패를
-  /// 그대로 전달한다(가짜 성공 처리 금지). presentation 레이어(login_screen.dart)는
-  /// 이 실패를 "추후 지원 예정" 안내로 표시한다.
-  Future<ApiResult<UserModel>> socialLogin(String provider) async {
+  /// [로그인 화면 "아이디 찾기" 버그수정 — 2026-09] 닉네임+생년월일 본인확인
+  /// 후 마스킹된 이메일을 반환한다(서버 `/api/public/auth/find-email`).
+  /// [정직성 원칙] 이 환경에는 이메일/SMS 발송 인프라가 없어 "메일 발송"
+  /// 방식 대신, 서버가 보유한 데이터로 즉시 본인확인 후 결과를 보여주는
+  /// 정공법으로 구현했다(가짜 성공 안내 금지).
+  ///
+  /// 반환: 성공 시 마스킹된 이메일 문자열(예: "ab***@example.com"),
+  /// 실패 시 null(에러 메시지는 [lastError] 참고).
+  String? lastError;
+
+  Future<String?> findEmail({
+    required String nickname,
+    required String birthDate, // 'YYYY-MM-DD'
+  }) async {
+    lastError = null;
+    final uri = Uri.parse('$_base/find-email');
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'nickname': nickname, 'birthDate': birthDate}),
+          )
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        lastError = decoded['error'] as String? ?? '아이디를 찾을 수 없습니다.';
+        return null;
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      return data['maskedEmail'] as String?;
+    } catch (e) {
+      debugPrint('[AuthRepository] [findEmail] 예외 -> $e');
+      lastError = '아이디 찾기 중 오류가 발생했습니다: $e';
+      return null;
+    }
+  }
+
+  /// [로그인 화면 "비밀번호 찾기" 버그수정 — 2026-09] 이메일+닉네임+생년월일
+  /// 3중 본인확인 후 즉시 새 비밀번호로 재설정한다
+  /// (서버 `/api/public/auth/reset-password`). [findEmail]과 동일한 정직성
+  /// 원칙 — 실제로 서버 DB의 비밀번호를 변경하는 정공법이다.
+  ///
+  /// 반환: 성공 시 true, 실패 시 false([lastError] 참고).
+  Future<bool> resetPassword({
+    required String email,
+    required String nickname,
+    required String birthDate, // 'YYYY-MM-DD'
+    required String newPassword,
+  }) async {
+    lastError = null;
+    final uri = Uri.parse('$_base/reset-password');
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': email,
+              'nickname': nickname,
+              'birthDate': birthDate,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        lastError = decoded['error'] as String? ?? '비밀번호 재설정에 실패했습니다.';
+        return false;
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[AuthRepository] [resetPassword] 예외 -> $e');
+      lastError = '비밀번호 재설정 중 오류가 발생했습니다: $e';
+      return false;
+    }
+  }
+
+  /// [로드맵⑤] 실제 카카오/구글 OAuth SDK 연동 완료.
+  /// [provider]는 'kakao' 또는 'google', [accessToken]은 각 SDK가 발급한
+  /// 액세스 토큰(카카오)/ID 토큰(구글)이다. 서버(admin_web)가 이 토큰을 다시
+  /// 각 사(카카오/구글) API로 검증하므로, 클라이언트가 위조한 값으로는
+  /// 로그인이 성립하지 않는다(가짜 성공 처리 금지 원칙 유지).
+  Future<ApiResult<UserModel>> socialLogin(
+    String provider,
+    String accessToken, {
+    String tokenType = 'id_token',
+  }) async {
     final uri = Uri.parse('$_base/social-login');
     try {
       final response = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'provider': provider}),
+            body: jsonEncode({
+              'provider': provider,
+              'accessToken': accessToken,
+              // [웹 소셜로그인 활성화] 구글 웹은 idToken 대신 accessToken을
+              // 보내므로 서버가 검증 엔드포인트를 구분할 수 있게 표시한다.
+              'tokenType': tokenType,
+            }),
           )
           .timeout(const Duration(seconds: 10));
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      return ApiResult.fail(
-        decoded['error'] as String? ?? '$provider 로그인은 추후 지원 예정입니다.',
-        code: decoded['code'] as String? ?? 'NOT_IMPLEMENTED',
-      );
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        return ApiResult.fail(
+          decoded['error'] as String? ?? '$provider 로그인에 실패했습니다.',
+          code: decoded['code'] as String?,
+        );
+      }
+      final data = decoded['data'] as Map<String, dynamic>;
+      final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      await _persistSession(user, data['token'] as String);
+      lastFirstLoginReward = data['firstLoginReward'] as Map<String, dynamic>?;
+      return ApiResult.ok(user);
     } catch (e) {
       debugPrint('[AuthRepository] [socialLogin] 예외 -> $e');
-      return ApiResult.fail(
-        '$provider 소셜 로그인은 추후 지원 예정입니다.',
-        code: 'NOT_IMPLEMENTED',
-      );
+      return ApiResult.fail('$provider 로그인 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -152,9 +318,15 @@ class AuthRepository {
             },
             body: jsonEncode({
               'nickname': updated.nickname,
+              'real_name': updated.realName,
               'birth_date': updated.birthDate,
               'birth_time': updated.birthTime,
               'is_lunar': updated.isLunar,
+              // [귀인지도 2단계] 음력이 아니면 항상 false로 전송(양력에서는
+              // 윤달 개념을 사용하지 않는다는 원칙을 서버 전송 시점에도 지킨다).
+              'is_leap_month': updated.isLunar ? updated.isLeapMonth : false,
+              'birth_time_unknown': updated.birthTimeUnknown,
+              'birth_place': updated.birthPlace,
               'gender': updated.gender,
             }),
           )
@@ -237,5 +409,23 @@ class AuthRepository {
 
   Future<void> _persistSession(UserModel user, String token) async {
     await AuthTokenStore.save(token: token, userId: int.parse(user.id));
+  }
+
+  /// [Phase C - 웰컴 리워드 팝업 1회성 노출] WelcomeRewardModal의 CTA("복주머니
+  /// 받기") 탭 시 호출. 서버 `users.welcome_gift_claimed`를 true로 갱신해
+  /// 이후 세션 복원/재로그인 시 팝업이 다시 뜨지 않도록 한다. 실패해도(네트워크
+  /// 오류 등) 팝업 자체는 이미 닫힌 뒤이므로 조용히 무시한다(사용자 경험을
+  /// 막지 않음 — 다음 세션에서 재시도될 수 있음을 감수).
+  Future<void> claimWelcomeGift() async {
+    final token = await AuthTokenStore.getToken();
+    if (token == null) return;
+    final uri = Uri.parse('$_base/welcome-gift/claim');
+    try {
+      await http
+          .post(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('[AuthRepository] [claimWelcomeGift] 예외 -> $e');
+    }
   }
 }

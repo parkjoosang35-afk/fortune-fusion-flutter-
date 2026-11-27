@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// [Fortune Fusion UI 리뉴얼 프롬프트] §2-3 StarryBackground - 별 배경 위젯
+/// [귀인지도 UI 리뉴얼 프롬프트] §2-3 StarryBackground - 별 배경 위젯
 ///
 /// 화면 전체에 은은하게 반짝이는 별 파티클을 그리는 배경 위젯.
 /// 3~5개의 큰 별(보라빛 20%) + 30~50개의 작은 별(흰색 15%)을 랜덤 배치하고

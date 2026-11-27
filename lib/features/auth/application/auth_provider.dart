@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/api/api_result.dart';
+import '../../../core/data/my_fortune_record_store.dart';
 import '../../../core/utils/load_state.dart';
 import '../data/auth_repository.dart';
 import '../data/grade_repository.dart';
@@ -25,6 +27,22 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _state.isSuccess && _state.data != null;
   UserModel? get currentUser => _state.data;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 AuthProvider 외 다른
+  /// Provider(잔액/이력/미션/알림 등 개인정보를 담은 화면 상태)가 초기화되지
+  /// 않고 그대로 남아있으면, 같은 기기에서 다른 계정으로 재로그인했을 때
+  /// 새 계정 데이터가 로드되기 전 짧은 순간 이전 계정의 데이터가 화면에
+  /// 노출될 위험이 있었다. AuthProvider는 다른 feature Provider를 직접
+  /// 참조하지 않으므로(계층 분리 원칙), 대신 `app.dart`가 앱 시작 시 각
+  /// Provider의 `clearOnLogout()`을 이 리스트에 등록해두면 [logout]이
+  /// 호출될 때 자동으로 전부 실행되는 콜백 레지스트리 패턴을 사용한다.
+  final List<VoidCallback> _onLogoutCallbacks = [];
+
+  /// 다른 Provider가 자신의 `clearOnLogout()`을 등록한다(`app.dart`에서
+  /// 각 Provider 생성 직후 1회 호출).
+  void registerLogoutCallback(VoidCallback callback) {
+    _onLogoutCallbacks.add(callback);
+  }
+
   /// [인트로 전면 개편] 직전 signup() 성공 시 서버가 함께 내려준 회원가입
   /// 보상 정보(`{amount, balanceAfter}` 또는 null). signup_screen.dart의
   /// SignupRewardHandler가 이 값으로 토스트를 띄우고 WalletProvider를 갱신한다.
@@ -36,8 +54,65 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? get lastFirstLoginReward =>
       _repository.lastFirstLoginReward;
 
+  /// [로그인 화면 "아이디 찾기" 버그수정 — 2026-09] 닉네임+생년월일 본인확인
+  /// 후 마스킹된 이메일을 반환한다. 실패 시 null([lastError] 참고).
+  String? get lastError => _repository.lastError;
+
+  Future<String?> findEmail({
+    required String nickname,
+    required String birthDate,
+  }) {
+    return _repository.findEmail(nickname: nickname, birthDate: birthDate);
+  }
+
+  /// [회원가입·본인 사주정보 통합 흐름 전면 검수 지시서 §4] 이메일 중복확인.
+  /// `SignupScreen`이 이메일 필드 blur 시점에 호출한다.
+  Future<ApiResult<bool>> checkEmailAvailable(String email) {
+    return _repository.checkEmailAvailable(email);
+  }
+
+  /// [로그인 화면 "비밀번호 찾기" 버그수정 — 2026-09] 이메일+닉네임+생년월일
+  /// 3중 본인확인 후 즉시 새 비밀번호로 재설정한다.
+  Future<bool> resetPassword({
+    required String email,
+    required String nickname,
+    required String birthDate,
+    required String newPassword,
+  }) {
+    return _repository.resetPassword(
+      email: email,
+      nickname: nickname,
+      birthDate: birthDate,
+      newPassword: newPassword,
+    );
+  }
+
   Future<void> _loadGrade(UserModel user) async {
     _currentGrade = await _gradeRepository.getGradeByCode(user.grade);
+  }
+
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-08 — 8절 Q2 기본안
+  /// "기기 로컬 저장 후 로그인 시 히스토리로 이관(동기화)"]
+  ///
+  /// 로그인/회원가입/소셜로그인이 **성공**한 직후(= `_state`가
+  /// `LoadState.success`로 바뀐 바로 다음) 호출해, 이 기기에 비로그인
+  /// 상태로 저장돼 있던 사주 이야기 기록
+  /// ([MyFortuneRecordStore]의 게스트 버킷)을 방금 로그인한 계정의 정식
+  /// 히스토리로 옮긴다. 실패해도(예: SharedPreferences 접근 오류) 로그인
+  /// 자체를 막아서는 안 되므로 예외를 삼키고 디버그 로그만 남긴다 —
+  /// 저장/이관은 로그인 플로우의 필수 조건이 아닌 부가 기능이다.
+  Future<void> _migrateGuestFortuneRecords() async {
+    try {
+      final migrated =
+          await MyFortuneRecordStore.migrateGuestRecordsToAccount();
+      if (kDebugMode && migrated > 0) {
+        debugPrint('[AuthProvider] REQ-08: 게스트 사주 기록 $migrated건 이관 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthProvider] REQ-08: 게스트 기록 이관 실패(무시): $e');
+      }
+    }
   }
 
   Future<void> restoreSession() async {
@@ -54,14 +129,35 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Phase2-2: 이메일 회원가입(로그인과 분리된 절차)
-  Future<bool> signup(String email, String password, String nickname) async {
+  /// [6-7-4-B-4] 이용약관/개인정보처리방침 동의는 회원가입의 필수 요건이므로
+  /// SignupScreen의 체크박스 상태를 그대로 전달받아 Repository로 넘긴다.
+  /// [6-7-4-B-4 전면개정] 만14세 확인(필수)/마케팅 수신동의(선택)도 동일한
+  /// 패턴으로 그대로 전달한다.
+  Future<bool> signup(
+    String email,
+    String password,
+    String nickname, {
+    required bool termsAgreed,
+    required bool privacyAgreed,
+    required bool age14Confirmed,
+    bool marketingAgreed = false,
+  }) async {
     _state = const LoadState.loading();
     notifyListeners();
-    final result = await _repository.emailSignup(email, password, nickname);
+    final result = await _repository.emailSignup(
+      email,
+      password,
+      nickname,
+      termsAgreed: termsAgreed,
+      privacyAgreed: privacyAgreed,
+      age14Confirmed: age14Confirmed,
+      marketingAgreed: marketingAgreed,
+    );
     if (result.success && result.data != null) {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);
       notifyListeners();
+      await _migrateGuestFortuneRecords(); // [REQ-08]
       return true;
     }
     _state = LoadState.error(result.errorMessage ?? '회원가입에 실패했습니다.');
@@ -77,6 +173,7 @@ class AuthProvider extends ChangeNotifier {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);
       notifyListeners();
+      await _migrateGuestFortuneRecords(); // [REQ-08]
       return true;
     }
     _state = LoadState.error(result.errorMessage ?? '로그인에 실패했습니다.');
@@ -84,14 +181,23 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> loginWithSocial(String provider) async {
+  Future<bool> loginWithSocial(
+    String provider,
+    String accessToken, {
+    String tokenType = 'id_token',
+  }) async {
     _state = const LoadState.loading();
     notifyListeners();
-    final result = await _repository.socialLogin(provider);
+    final result = await _repository.socialLogin(
+      provider,
+      accessToken,
+      tokenType: tokenType,
+    );
     if (result.success && result.data != null) {
       await _loadGrade(result.data!);
       _state = LoadState.success(result.data!);
       notifyListeners();
+      await _migrateGuestFortuneRecords(); // [REQ-08]
       return true;
     }
     _state = LoadState.error(result.errorMessage ?? '로그인에 실패했습니다.');
@@ -103,32 +209,80 @@ class AuthProvider extends ChangeNotifier {
     String? birthDate,
     String? birthTime,
     bool? isLunar,
+    bool? isLeapMonth,
+    bool? birthTimeUnknown,
+    String? birthPlace,
     String? gender,
     String? nickname,
+    String? realName,
   }) async {
     final user = currentUser;
-    if (user == null) return false;
+    if (user == null) {
+      // [버그 수정 — "출생정보 저장안됨" 원인] 이전에는 비로그인(게스트)
+      // 상태에서 호출되면 에러 메시지를 설정하지 않고 그냥 false만
+      // 반환해, 02 화면이 "출생정보를 저장하지 못했습니다. 다시
+      // 시도해주세요" 라는 원인을 알 수 없는 폴백 문구만 보여줬다.
+      // saju_renewal_home_screen._start()에 로그인 게이트를 추가해 이
+      // 경로로는 보통 도달하지 않지만, 혹시 다른 진입점(딥링크 등)으로
+      // 비로그인 상태에 02 화면에 도달하더라도 정확한 원인을 보여주기
+      // 위한 방어선으로 남겨둔다.
+      _lastProfileUpdateError = '로그인 후 이용할 수 있어요';
+      notifyListeners();
+      return false;
+    }
     final updated = user.copyWith(
       birthDate: birthDate,
       birthTime: birthTime,
       isLunar: isLunar,
+      isLeapMonth: isLeapMonth,
+      birthTimeUnknown: birthTimeUnknown,
+      birthPlace: birthPlace,
       gender: gender,
       nickname: nickname,
+      realName: realName,
     );
     final result = await _repository.updateProfile(updated);
     if (result.success && result.data != null) {
       _state = LoadState.success(result.data!);
+      _lastProfileUpdateError = null;
       notifyListeners();
       return true;
     }
+    // [버그 수정 — 프로필 저장 실패 방치] 이전에는 실패해도 아무 상태 변화가
+    // 없어(그리고 호출부도 반환값을 확인하지 않아) 실패 원인을 사용자에게
+    // 보여줄 방법이 없었다. isLoggedIn은 `_state.isSuccess` 기준이므로 여기서
+    // `_state`를 error로 바꾸면 로그인 자체가 풀린 것처럼 보이는 부작용이
+    // 생긴다 — 그래서 로그인 상태(`_state`)는 그대로 유지하고, 별도의
+    // 경량 필드에만 실패 메시지를 보관한다.
+    _lastProfileUpdateError = result.errorMessage ?? '프로필 수정에 실패했습니다.';
+    notifyListeners();
     return false;
   }
+
+  /// 직전 [updateProfile] 호출이 실패했을 때의 서버 에러 메시지(성공 시 null).
+  String? _lastProfileUpdateError;
+  String? get lastProfileUpdateError => _lastProfileUpdateError;
 
   Future<void> logout() async {
     await _repository.logout();
     _state = const LoadState.initial();
     _currentGrade = null;
     notifyListeners();
+    // [결함-A10-01 수정] 등록된 다른 모든 Provider의 캐시도 함께 초기화한다.
+    for (final callback in _onLogoutCallbacks) {
+      callback();
+    }
+  }
+
+  /// [Phase C - 웰컴 리워드 팝업 1회성 노출] WelcomeRewardModal CTA 탭 시 호출.
+  /// 서버에 클레임을 기록하는 동시에, 현재 세션의 UserModel도 즉시 갱신해
+  /// (재조회 없이) `welcomeGiftClaimed == true`가 바로 반영되도록 한다.
+  Future<void> claimWelcomeGift() async {
+    final user = currentUser;
+    if (user == null || user.welcomeGiftClaimed) return;
+    _state = LoadState.success(user.copyWith(welcomeGiftClaimed: true));
+    notifyListeners();
+    await _repository.claimWelcomeGift();
   }
 
   /// Phase2-3: 회원탈퇴(소프트삭제) - 02번 §1.1

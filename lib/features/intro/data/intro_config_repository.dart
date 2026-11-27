@@ -9,7 +9,9 @@ import '../domain/intro_config_model.dart';
 /// HomePageConfigRepository와 동일한 http 호출 패턴을 재사용한다.
 class IntroConfigRepository {
   Future<ApiResult<IntroConfigModel>> getIntroConfig() async {
-    final uri = Uri.parse('${EnvConfig.adminApiBaseUrl}/api/public/intro-config');
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/intro-config',
+    );
     debugPrint('[IntroConfigRepository] [getIntroConfig] 요청 -> $uri');
 
     try {

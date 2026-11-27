@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
-import '../../../core/theme/app_unified_style.dart';
+import '../../ads_test/domain/admob_ad_ids.dart';
+import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
+import '../../mypage/presentation/theme/mypage_dashed_border.dart';
+import '../../mypage/presentation/theme/mypage_success_celebration.dart';
 import '../application/fortune_ad_provider.dart';
 import '../domain/fortune_ad_model.dart';
 
-/// [신통방통 복주머니 광고 적립 시스템] 광고 시청 팝업 결과.
+/// [귀인지도 복주머니 광고 적립 시스템] 광고 시청 팝업 결과.
 enum FortuneAdWatchOutcome {
   /// 끝까지 시청 + 서버 지급 성공.
   granted,
@@ -39,17 +44,30 @@ class FortuneAdWatchResult {
       );
   factory FortuneAdWatchResult.cancelled() =>
       const FortuneAdWatchResult._(FortuneAdWatchOutcome.cancelled);
-  factory FortuneAdWatchResult.failed(String message) =>
-      FortuneAdWatchResult._(FortuneAdWatchOutcome.failed, errorMessage: message);
+  factory FortuneAdWatchResult.failed(String message) => FortuneAdWatchResult._(
+    FortuneAdWatchOutcome.failed,
+    errorMessage: message,
+  );
 }
 
-/// [신통방통 복주머니 광고 적립 시스템] 광고 시청 팝업 —
+/// [귀인지도 복주머니 광고 적립 시스템] 광고 시청 팝업 —
 /// 시작(자격확인) → 시청중(진행률/남은시간/보상, 중간종료시 보상없음) →
 /// 완료(서버검증) → 지급애니메이션("복주머니가 열렸습니다! +N") 순으로 진행한다.
 ///
 /// 서버 최종 지급 원칙: 이 다이얼로그는 시청 진행률만 표시할 뿐, 실제 지급은
 /// 전적으로 서버(`POST /api/ads/{adId}/complete`)가 결정한다 — 클라이언트가
 /// "다 봤다"고 판단해도 서버가 자격 재검증에서 거부하면 지급되지 않는다.
+///
+/// [마이페이지 리뉴얼 · DEV 2026-11-06 §S04] 디자인 핸드오프
+/// `design_handoff_mypage_minimal.zip` README §4 "S02 / S04 광고 바텀시트"
+/// 스펙으로 전면 리스킨. 기존 `UnifiedColors`/`UnifiedText`(다크 테마,
+/// `Dialog` 카드) → `MyPageColors`/`MyPageTextStyles`(한지/부적 라이트
+/// 테마) 기반 **바텀시트 형태**(`showModalBottomSheet`, S02와 동일한 톤)로
+/// 교체했을 뿐, 상태 머신(`_Stage`: starting/watching/verifying/granted/
+/// error)·서버 세션 발급(`startWatch`)·AdMob SDK 로드/표시·
+/// `onUserEarnedReward` 콜백 처리(절대 지급량으로 신뢰하지 않음)·서버 최종
+/// 검증(`completeWatch`) 등 기능 로직은 단 한 줄도 바꾸지 않았다(S01/S02와
+/// 동일한 "로직은 그대로, 스킨만 교체" 원칙).
 class FortuneAdWatchDialog extends StatefulWidget {
   final FortuneAdModel ad;
   const FortuneAdWatchDialog({super.key, required this.ad});
@@ -58,9 +76,19 @@ class FortuneAdWatchDialog extends StatefulWidget {
     BuildContext context, {
     required FortuneAdModel ad,
   }) async {
-    final result = await showDialog<FortuneAdWatchResult>(
+    // README §S02/S04: dim rgba(30,18,10,.45), 시트 radius 30 30 0 0.
+    final result = await showModalBottomSheet<FortuneAdWatchResult>(
       context: context,
-      barrierDismissible: false,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: MyPageColors.surface,
+      barrierColor: const Color(0x731E120A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(MyPageRadius.sheet),
+        ),
+      ),
       builder: (_) => FortuneAdWatchDialog(ad: ad),
     );
     return result ?? FortuneAdWatchResult.cancelled();
@@ -82,6 +110,17 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
   String? _errorMessage;
   VideoPlayerController? _videoController;
   bool _closed = false;
+
+  bool get _isAdmob => widget.ad.adType == 'admob';
+
+  /// [애드몹 실제 연동] AdMob SDK의 `onUserEarnedReward` 콜백이 호출됐는지만
+  /// 기록한다 — 이 콜백이 전달하는 [RewardItem.amount]는 절대 사용하지
+  /// 않는다. 실제 지급 개수는 오직 서버(`/complete` 응답의
+  /// `FortuneAd.rewardAmount`, 즉 admin_web에서 관리자가 설정한 값)만이
+  /// 결정한다는 원칙(사장님이 명시적으로 강조하신 사항)을 지키기 위함이다.
+  /// 이 플래그는 "광고를 끝까지 봤다"는 사실 여부만 서버 호출 여부를
+  /// 판단하는 데 쓰인다.
+  bool _admobRewardEarned = false;
 
   @override
   void initState() {
@@ -113,18 +152,94 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
     _totalSeconds = session.watchSeconds;
     _remaining = _totalSeconds;
 
-    if (widget.ad.adType == 'video' &&
-        (widget.ad.videoUrl ?? '').isNotEmpty) {
-      _videoController = VideoPlayerController.networkUrl(
-        Uri.parse(widget.ad.videoUrl!),
-      )..initialize().then((_) {
-          if (!mounted) return;
-          _videoController!.play();
-        });
+    if (_isAdmob) {
+      setState(() => _stage = _Stage.watching);
+      _loadAndShowAdmobRewardedAd();
+      return;
+    }
+
+    if (widget.ad.adType == 'video' && (widget.ad.videoUrl ?? '').isNotEmpty) {
+      _videoController =
+          VideoPlayerController.networkUrl(Uri.parse(widget.ad.videoUrl!))
+            ..initialize().then((_) {
+              if (!mounted) return;
+              _videoController!.play();
+            });
     }
 
     setState(() => _stage = _Stage.watching);
     _tick();
+  }
+
+  /// [애드몹 실제 연동] 서버가 세션(PENDING 로그)을 발급해 준 뒤에만 실제
+  /// AdMob 보상형 광고를 로드/표시한다 — 즉 자격 검증(일일한도 등)은
+  /// 여전히 기존과 동일하게 서버가 먼저 통과시켜야 광고 자체가 뜬다.
+  /// 광고 재생 자체는 AdMob SDK의 전체화면 오버레이가 담당하고, 이
+  /// 다이얼로그는 그 뒤에서 대기하다가 광고가 닫히는 시점에 결과를 반영한다.
+  void _loadAndShowAdmobRewardedAd() {
+    if (!AdmobAdIds.isSupportedPlatform) {
+      setState(() {
+        _stage = _Stage.error;
+        _errorMessage = '이 플랫폼(Web 등)에서는 애드몹 보상형 광고를 지원하지 않아요.';
+      });
+      return;
+    }
+    RewardedAd.load(
+      adUnitId: AdmobAdIds.rewardedUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          if (!mounted) {
+            ad.dispose();
+            return;
+          }
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              if (!mounted) return;
+              if (_admobRewardEarned) {
+                // 끝까지 시청 완료 — 기존과 동일하게 서버 /complete를
+                // 호출해 최종 지급 여부·개수를 서버에 맡긴다.
+                _complete();
+              } else {
+                // 중간에 닫음(스킵) — 지급 요청 자체를 보내지 않는다
+                // (기존 이미지/영상 광고의 "중간 종료 시 보상 없음"과 동일한
+                // 정책, PENDING 세션은 그대로 남아 자연히 미지급 처리된다).
+                _closeAsCancelled();
+              }
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+              if (kDebugMode) {
+                debugPrint('[FortuneAdWatchDialog] 애드몹 표시 실패 -> $error');
+              }
+              if (!mounted) return;
+              setState(() {
+                _stage = _Stage.error;
+                _errorMessage = '광고 표시에 실패했어요. 잠시 후 다시 시도해주세요.';
+              });
+            },
+          );
+          ad.show(
+            onUserEarnedReward: (ad, reward) {
+              // reward.amount는 AdMob 콘솔의 리워드 설정값일 뿐 실제 지급과
+              // 무관하다 — 여기서는 "끝까지 봤다"는 사실만 기록한다.
+              _admobRewardEarned = true;
+            },
+          );
+        },
+        onAdFailedToLoad: (error) {
+          if (kDebugMode) {
+            debugPrint('[FortuneAdWatchDialog] 애드몹 로드 실패 -> $error');
+          }
+          if (!mounted) return;
+          setState(() {
+            _stage = _Stage.error;
+            _errorMessage = '지금은 광고를 불러올 수 없어요. 잠시 후 다시 시도해주세요.';
+          });
+        },
+      ),
+    );
   }
 
   void _tick() {
@@ -158,6 +273,10 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
       });
       return;
     }
+    // [핵심 원칙] 지급 개수는 오직 이 서버 응답(result.data!.rewardAmount,
+    // admin_web에서 관리자가 FortuneAd.rewardAmount로 설정한 값)만 신뢰한다.
+    // AdMob 콘솔에 등록된 "1 복주머니" 같은 리워드 설정값은 여기서 절대
+    // 참조하지 않는다(AdMob 리워드 설정 ≠ 실제 지급량 원칙).
     final reward = result.data!;
     // 시청 다이얼로그 캐시(오늘 N/M회 표시)도 서버 최신 상태로 즉시 재조회.
     unawaited(provider.refreshStatus(widget.ad));
@@ -177,30 +296,52 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
   void _closeAsGranted() {
     if (_closed) return;
     _closed = true;
-    Navigator.of(context).pop(
-      FortuneAdWatchResult.granted(_grantedAmount ?? 0, _balanceAfter),
-    );
+    Navigator.of(
+      context,
+    ).pop(FortuneAdWatchResult.granted(_grantedAmount ?? 0, _balanceAfter));
   }
 
   void _closeAsFailed() {
     if (_closed) return;
     _closed = true;
-    Navigator.of(context).pop(
-      FortuneAdWatchResult.failed(_errorMessage ?? '처리 중 오류가 발생했습니다.'),
-    );
+    Navigator.of(
+      context,
+    ).pop(FortuneAdWatchResult.failed(_errorMessage ?? '처리 중 오류가 발생했습니다.'));
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: Dialog(
-        backgroundColor: UnifiedColors.black,
-        insetPadding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(UnifiedTokens.radiusLg),
+    // README §S02/S04: 시트 padding `12 24 40`.
+    //
+    // [반응형 전수 점검 · 2026-11-11] watching 단계는 원래 `Expanded` 기반
+    // 레이아웃을 쓰기 위해 `SizedBox(height: 420)`로 높이를 강제 고정했었다
+    // (420px 안에서 광고 영역이 Expanded로 "남는 공간을 채우는" 구조였음).
+    // 그런데 시스템 글자배율이 커지면(2.0~2.5배) 제목/안내문구/배너 텍스트가
+    // 커져 420px를 초과하고, Expanded는 이를 0으로 클램프하면서 Column
+    // 전체가 세로로 31~124px만큼 overflow되는 실제 버그가 있었다
+    // (debugDumpRenderTree로 확인: `RenderFlex#...OVERFLOWING` 안의
+    // 광고영역 SizedBox가 `h=0.0`으로 찌그러짐).
+    //
+    // 근본 수정: watching 단계도 다른 단계와 동일하게
+    // `ConstrainedBox(maxHeight:420) + SingleChildScrollView`로 통일한다 —
+    // 420px 안에 들어가면(기존 모든 실사용 케이스) 지금과 완전히 동일하게
+    // 보이고, 글자배율이 커져 내용이 420px를 넘으면 overflow 예외 대신
+    // 자연스럽게 스크롤된다. 이에 맞춰 `_WatchingView`의 광고 영역도
+    // `Expanded`로 감싸지 않고 README 스펙대로 150px 고정 높이를 그대로
+    // 쓰도록 수정했다(아래 `_WatchingView.build()` 참고).
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: MyPageSpacing.sp6,
+          right: MyPageSpacing.sp6,
+          top: MyPageSpacing.sp3,
+          bottom: 40 + MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: SizedBox(height: 420, child: _buildBody()),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 420),
+          child: SingleChildScrollView(child: _buildBody()),
+        ),
       ),
     );
   }
@@ -208,42 +349,125 @@ class _FortuneAdWatchDialogState extends State<FortuneAdWatchDialog> {
   Widget _buildBody() {
     switch (_stage) {
       case _Stage.starting:
-        return const Center(
-          child: CircularProgressIndicator(color: UnifiedColors.neon),
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: MyPageSpacing.sp8),
+          child: Center(
+            child: CircularProgressIndicator(color: MyPageColors.red),
+          ),
         );
       case _Stage.watching:
-        return _WatchingView(
-          ad: widget.ad,
-          videoController: _videoController,
-          remaining: _remaining,
-          total: _totalSeconds,
-          onClose: _closeAsCancelled,
+        // [반응형 전수 점검 · 2026-11-11] 바깥쪽이 이제
+        // `SingleChildScrollView`(높이 제약 없음)라 `Expanded`를 쓸 수 없다
+        // (Expanded는 반드시 "유한한 높이"를 가진 조상이 필요한데, 스크롤뷰는
+        // 그 반대로 자식에게 무한한 높이를 내려준다 — 그대로 두면
+        // "RenderFlex children have non-zero flex but incoming height
+        // constraints are unbounded" 예외가 난다). `_WatchingView`는 내부에서
+        // 광고 영역(150px)을 README 스펙대로 고정 높이로 직접 그리도록
+        // 수정했으므로, 여기서는 그냥 내용 크기만큼만 차지하면 된다.
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHandle(),
+            _WatchingView(
+              ad: widget.ad,
+              videoController: _videoController,
+              remaining: _remaining,
+              total: _totalSeconds,
+              onClose: _closeAsCancelled,
+            ),
+          ],
         );
       case _Stage.verifying:
-        return const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: UnifiedColors.neon),
-              SizedBox(height: UnifiedTokens.spaceMd),
-              Text(
-                '서버에서 시청 결과를 확인하고 있어요...',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
-              ),
-            ],
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: MyPageSpacing.sp8),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: MyPageColors.red),
+                SizedBox(height: MyPageSpacing.sp3),
+                Text(
+                  '서버에서 시청 결과를 확인하고 있어요...',
+                  style: MyPageTextStyles.caption,
+                ),
+              ],
+            ),
           ),
         );
       case _Stage.granted:
-        return _GrantedView(
-          amount: _grantedAmount ?? 0,
-          onDone: _closeAsGranted,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MyPageSuccessCelebration(
+              title: '복주머니가 열렸습니다!',
+              subtitle: '+${_grantedAmount ?? 0}개가 담겼어요',
+            ),
+            _buildDoneButton('확인', _closeAsGranted),
+          ],
         );
       case _Stage.error:
-        return _ErrorView(
-          message: _errorMessage ?? '오류가 발생했습니다.',
-          onDone: _closeAsFailed,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: MyPageSpacing.sp6),
+              child: Icon(
+                Icons.error_outline_rounded,
+                color: MyPageColors.red2,
+                size: 48,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: MyPageSpacing.sp2,
+              ),
+              child: Text(
+                _errorMessage ?? '오류가 발생했습니다.',
+                textAlign: TextAlign.center,
+                style: MyPageTextStyles.body,
+              ),
+            ),
+            _buildDoneButton('확인', _closeAsFailed),
+          ],
         );
     }
+  }
+
+  // README §S02/S04: 그랩바 40×4.
+  Widget _buildHandle() {
+    return Container(
+      width: 40,
+      height: 4,
+      margin: const EdgeInsets.only(bottom: MyPageSpacing.sp3),
+      decoration: BoxDecoration(
+        color: MyPageColors.hair,
+        borderRadius: BorderRadius.circular(MyPageRadius.pill),
+      ),
+    );
+  }
+
+  Widget _buildDoneButton(String label, VoidCallback onPressed) {
+    return Padding(
+      padding: const EdgeInsets.only(top: MyPageSpacing.sp2),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: MyPageColors.red,
+            foregroundColor: const Color(0xFFFBF1DE),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(MyPageRadius.pill),
+            ),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -262,42 +486,129 @@ class _WatchingView extends StatelessWidget {
     required this.onClose,
   });
 
+  /// [애드몹 실제 연동] admob 타입은 이 다이얼로그가 배경일 뿐, 실제 광고는
+  /// AdMob SDK가 별도의 전체화면 오버레이로 그 위에 띄운다. 따라서 여기서는
+  /// 기존 이미지/영상 광고처럼 남은 시간을 세거나 "N초 후 +M개 지급"을
+  /// 표시하면 안 된다(admob 모드에서는 `_tick()`이 아예 호출되지 않으므로
+  /// remaining/total이 갱신되지 않아 화면에 멈춘 숫자가 보이는 버그가 생김).
+  /// 대신 광고를 불러오는 중이라는 간단한 안내만 보여준다.
+  bool get _isAdmob => ad.adType == 'admob';
+
   @override
   Widget build(BuildContext context) {
+    if (_isAdmob) {
+      return _buildAdmobWaitingView();
+    }
     final progress = total == 0 ? 1.0 : 1 - (remaining / total);
+    // [반응형 전수 점검 · 2026-11-11] 바깥쪽이 더 이상 "유한한 높이를 강제로
+    // 채우는" Expanded 컨테이너가 아니라 `SingleChildScrollView`(무한 높이
+    // 허용)이므로, 이 Column도 `mainAxisSize: min`으로 바꿔 내용물 높이만큼만
+    // 차지하게 한다(기존 기본값 max는 "가능한 최대 높이"를 요구하는데,
+    // 무한 높이 컨텍스트에서는 이것이 레이아웃 예외의 원인이 된다).
     return Stack(
       children: [
         Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Center(
-                child: _buildContent(),
+            // README §S04: 제목 "광고 보고 / 복주머니 받기" 21px/800 2줄,
+            // 리드 "광고를 끝까지 보면 복주머니 3개가 담겨요".
+            const Text(
+              '광고 보고\n복주머니 받기',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w800,
+                fontSize: 21,
+                height: 1.3,
+                color: MyPageColors.ink,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(UnifiedTokens.spaceLg),
-              child: Column(
+            const SizedBox(height: MyPageSpacing.sp2),
+            Text(
+              '광고를 끝까지 보면 복주머니 ${ad.rewardAmount}개가 담겨요',
+              textAlign: TextAlign.center,
+              style: MyPageTextStyles.body,
+            ),
+            const SizedBox(height: MyPageSpacing.sp4),
+            // README §S04: 광고 영역 150px, radius 16, 1px dashed, 하단 3px
+            // 빨강 진행바 — S02와 동일한 공용 위젯 재사용.
+            //
+            // [반응형 전수 점검 · 2026-11-11] 이전에는 이 박스를 `Expanded`로
+            // 감싸 "남는 공간을 채우도록" 했었다 — 하지만
+            // `MyPageDashedBorderBox` 자체가 이미 내부적으로
+            // `SizedBox(height: 150)`(고정값)을 갖고 있어 Expanded는 전혀
+            // 불필요했고, 오히려 글자배율이 커져 제목/안내문구가 길어지면
+            // 바깥 Column(420px 제약 안)의 "남는 공간"이 0 밑으로 떨어지면서
+            // Expanded가 이를 강제로 0으로 찌그러뜨려(h=0.0) Column 전체가
+            // 31~124px 세로로 overflow되는 실제 버그의 직접 원인이었다
+            // (debugDumpRenderTree로 확인). README 스펙대로 150px 고정
+            // 높이만 쓰고 Expanded는 제거한다 — 공간이 모자라면 바깥
+            // `SingleChildScrollView`가 전체를 스크롤 처리한다.
+            MyPageDashedBorderBox(
+              radius: MyPageRadius.btn,
+              height: 150,
+              child: Stack(
                 children: [
-                  Text(
-                    ad.title,
-                    textAlign: TextAlign.center,
-                    style: UnifiedText.bodyStrong(color: Colors.white),
-                  ),
-                  const SizedBox(height: UnifiedTokens.spaceSm),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6,
-                      backgroundColor: const Color(0xFF2A2A2A),
-                      color: UnifiedColors.neon,
+                    borderRadius: BorderRadius.circular(MyPageRadius.btn - 1),
+                    child: Center(child: _buildContent()),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(MyPageRadius.btn - 1),
+                      ),
+                      child: SizedBox(
+                        height: 3,
+                        child: LinearProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          minHeight: 3,
+                          backgroundColor: Colors.transparent,
+                          color: MyPageColors.red,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: UnifiedTokens.spaceSm),
-                  Text(
-                    '$remaining초 후 +${ad.rewardAmount}개 지급 (끝까지 시청해야 지급돼요)',
-                    textAlign: TextAlign.center,
-                    style: UnifiedText.caption(color: UnifiedColors.neon),
+                ],
+              ),
+            ),
+            const SizedBox(height: MyPageSpacing.sp3),
+            // README §S04: CTA가 "광고 재생 중…"으로 바뀌는 동안의 상태 안내.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(MyPageSpacing.sp3),
+              decoration: BoxDecoration(
+                color: MyPageColors.redSoft,
+                borderRadius: BorderRadius.circular(MyPageRadius.btn),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation(MyPageColors.red),
+                    ),
+                  ),
+                  const SizedBox(width: MyPageSpacing.sp2),
+                  Flexible(
+                    child: Text(
+                      '광고 재생 중... $remaining초 후 +${ad.rewardAmount}개 자동 지급',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: MyPageTextStyles.caption.copyWith(
+                        color: MyPageColors.redDeep,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -305,12 +616,66 @@ class _WatchingView extends StatelessWidget {
           ],
         ),
         Positioned(
-          top: UnifiedTokens.spaceSm,
-          right: UnifiedTokens.spaceSm,
-          child: IconButton(
-            onPressed: onClose,
-            icon: const Icon(Icons.close_rounded, color: Color(0xFFB8B8B8)),
-            tooltip: '중간에 닫으면 보상이 지급되지 않아요',
+          top: 0,
+          right: 0,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, color: MyPageColors.ink3),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: '중간에 닫으면 보상이 지급되지 않아요',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// [애드몹 실제 연동] 광고 로드~표시 사이의 짧은 대기 화면. 카운트다운/진행률
+  /// 표시 없이, 실제 지급 여부와 개수는 전적으로 광고 시청 완료 후 서버가
+  /// 결정한다는 것만 짧게 안내한다. 이 화면 위로 AdMob 전체화면 광고가 곧
+  /// 덮이므로 디자인은 최소한으로 유지한다.
+  Widget _buildAdmobWaitingView() {
+    return Stack(
+      children: [
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: MyPageColors.red),
+              const SizedBox(height: MyPageSpacing.sp4),
+              Text(
+                ad.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: MyPageTextStyles.cardTitle,
+              ),
+              const SizedBox(height: MyPageSpacing.sp2),
+              Text(
+                '광고를 불러오고 있어요...\n끝까지 시청하면 복주머니가 지급돼요',
+                textAlign: TextAlign.center,
+                style: MyPageTextStyles.caption,
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, color: MyPageColors.ink3),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: '중간에 닫으면 보상이 지급되지 않아요',
+            ),
           ),
         ),
       ],
@@ -328,7 +693,7 @@ class _WatchingView extends StatelessWidget {
     }
     if (ad.adType == 'image' && (ad.imageUrl ?? '').isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(UnifiedTokens.radiusMd),
+        borderRadius: BorderRadius.circular(MyPageRadius.btn - 1),
         child: Image.network(
           ad.imageUrl!,
           fit: BoxFit.contain,
@@ -342,97 +707,8 @@ class _WatchingView extends StatelessWidget {
   Widget _fallbackIcon() {
     return const Icon(
       Icons.smart_display_rounded,
-      color: UnifiedColors.neon,
-      size: 72,
-    );
-  }
-}
-
-class _GrantedView extends StatelessWidget {
-  final int amount;
-  final VoidCallback onDone;
-  const _GrantedView({required this.amount, required this.onDone});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🧧', style: TextStyle(fontSize: 64)),
-          const SizedBox(height: UnifiedTokens.spaceMd),
-          const Text(
-            '복주머니가 열렸습니다!',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: UnifiedTokens.spaceSm),
-          Text(
-            '+$amount개',
-            style: const TextStyle(
-              color: UnifiedColors.neon,
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: UnifiedTokens.spaceXxl),
-          ElevatedButton(
-            onPressed: onDone,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: UnifiedColors.neon,
-              foregroundColor: UnifiedColors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            ),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onDone;
-  const _ErrorView({required this.message, required this.onDone});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(UnifiedTokens.spaceXl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-            const SizedBox(height: UnifiedTokens.spaceMd),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-            const SizedBox(height: UnifiedTokens.spaceXxl),
-            ElevatedButton(
-              onPressed: onDone,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: UnifiedColors.neon,
-                foregroundColor: UnifiedColors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              ),
-              child: const Text('확인'),
-            ),
-          ],
-        ),
-      ),
+      color: MyPageColors.red,
+      size: 56,
     );
   }
 }

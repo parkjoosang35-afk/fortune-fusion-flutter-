@@ -3,12 +3,12 @@ import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/widgets/premium_card.dart';
 import '../../domain/fortune_matrix.dart';
 
-/// [운섹션 37 카테고리 정리 - 미연동 콘텐츠 삭제] 37개 카테고리 전체를
-/// 그룹(5개)별로 펼쳐 보여주는 전체보기 화면 전용 섹션(궁합 C 그룹 포함
+/// [운섹션 32 카테고리 정리 - 미연동 콘텐츠 삭제] 32개 카테고리 전체를
+/// 그룹(4개)별로 펼쳐 보여주는 전체보기 화면 전용 섹션(궁합 C 그룹 포함
 /// - fortune_matrix.dart 헤더 참고).
 ///
 /// 기존 관리자 8그룹 섹션("전체 카테고리")과 별개로, [FortuneMatrix]를 단일
-/// 소스로 삼아 실제 연동된 카테고리(오늘/사주/이름/궁합/관상·손금)를
+/// 소스로 삼아 실제 연동된 카테고리(오늘/사주/궁합/관상·손금)를
 /// 탐색할 수 있게 한다. 그룹별 카드 안에 하위 카테고리를 칩으로
 /// 나열하고, 각 칩에는 게이트 정책을 한눈에 알 수 있는 짧은 배지 라벨을
 /// 붙인다(무료/1회무료/첫무료/프리패스).
@@ -20,17 +20,28 @@ class FortuneMatrixSection extends StatelessWidget {
   static const Map<FortuneGroupCode, IconData> _groupIcon = {
     FortuneGroupCode.t: Icons.wb_sunny_outlined,
     FortuneGroupCode.s: Icons.auto_stories_outlined,
-    FortuneGroupCode.n: Icons.badge_outlined,
     FortuneGroupCode.c: Icons.favorite_outline,
     FortuneGroupCode.f: Icons.face_outlined,
   };
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] "오늘 운세"(T) 섹션 전체를 화면에서
+  // 숨긴다. FortuneMatrix 데이터(fortune_matrix.dart)는 삭제하지 않고 그대로
+  // 유지하며, 이 위젯의 렌더링 단계에서만 그룹을 제외한다. 향후 이 Set에서
+  // 코드를 빼면 즉시 섹션이 복원된다. (이름 운세(N그룹)는 2026-11 사용자
+  // 요청으로 완전 삭제되어 enum 자체가 없음 - fortune_matrix.dart 참고)
+  static const Set<FortuneGroupCode> _hiddenGroups = {
+    FortuneGroupCode.t,
+  };
+
   @override
   Widget build(BuildContext context) {
+    final visibleGroups = FortuneMatrix.groups
+        .where((g) => !_hiddenGroups.contains(g.code))
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final group in FortuneMatrix.groups)
+        for (final group in visibleGroups)
           Padding(
             padding: const EdgeInsets.only(bottom: UnifiedTokens.spaceMd),
             child: _GroupCard(
@@ -102,23 +113,17 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-/// 하위 카테고리 1개 칩 — 라벨 + 게이트 정책 축약 배지.
+/// 하위 카테고리 1개 칩 — 라벨만 표시.
+/// [자유 이용 원칙 - 프리패스 어뷰징 제한 삭제, 2026-11] 과거에는
+/// [entry.gate]([GateResult]) 기반 "무료"/"1회무료"/"프리패스" 배지를
+/// 붙였으나, 실제 진입 제한이 사라진 뒤에는 배지가 더 이상 사실과 맞지
+/// 않아(눌러도 늘 바로 열림) 제거했다. 결제 판정은 각 결과 화면의
+/// [결과보기] 버튼에서 ResultAccessService가 전담한다.
 class _EntryChip extends StatelessWidget {
   const _EntryChip({required this.entry, required this.onTap});
 
   final FortuneCategoryEntry entry;
   final VoidCallback onTap;
-
-  String get _badgeLabel => switch (entry.gate) {
-    GateResult.openFree => '무료',
-    GateResult.freeOncePerDay => '1회무료',
-    GateResult.lockedFreeFirst => '첫무료',
-    GateResult.paidOnlyPassGate => '프리패스',
-    GateResult.cooldown => '대기',
-    GateResult.granted => '무료',
-  };
-
-  bool get _isFree => entry.gate == GateResult.openFree;
 
   @override
   Widget build(BuildContext context) {
@@ -130,28 +135,9 @@ class _EntryChip extends StatelessWidget {
           color: UnifiedColors.bg,
           borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              entry.title,
-              style: UnifiedText.chipLabel(color: UnifiedColors.textPrimary),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: _isFree
-                    ? UnifiedColors.chipInactiveBg
-                    : UnifiedColors.cardBanner,
-                borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-              ),
-              child: Text(
-                _badgeLabel,
-                style: UnifiedText.caption(color: UnifiedColors.textCaption),
-              ),
-            ),
-          ],
+        child: Text(
+          entry.title,
+          style: UnifiedText.chipLabel(color: UnifiedColors.textPrimary),
         ),
       ),
     );

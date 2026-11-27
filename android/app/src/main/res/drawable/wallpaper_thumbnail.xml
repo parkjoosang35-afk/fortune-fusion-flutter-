@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [소원방 v2.6 배경화면] 시스템 '배경화면 설정' 목록 썸네일. 실제 소원방 PNG
+     에셋 없이도(에셋은 사용자별로 다름) 벡터로 어두운 밤 + 촛불 느낌만 표현한다. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#3A1630"
+                android:endColor="#12060E" />
+        </shape>
+    </item>
+    <item
+        android:width="48dp"
+        android:height="48dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="24dp"
+                android:startColor="#CCFFF0BE"
+                android:endColor="#00FFF0BE" />
+        </shape>
+    </item>
+</layer-list>

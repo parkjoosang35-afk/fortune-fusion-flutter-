@@ -1,18 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/domain/access/access_checker.dart';
-import '../../../core/domain/gate/category_gate.dart';
 import '../../../core/theme/app_unified_style.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_graphics.dart';
-import '../../auth/application/auth_provider.dart';
 import '../../home/application/fortune_category_provider.dart';
 import '../../home/domain/fortune_matrix.dart';
 import '../../pass/application/pass_provider.dart';
-import '../../pass/domain/pending_pass_request.dart';
-import '../../pass/presentation/pass_gate_helper.dart';
 
-/// [신규 화면 - 80종 정통사주 전체 보기] `AllCategoriesScreen`의 "37가지 운세
+// 2026-08-13 -- 톤 일관화 토큰. 신 클래스/신 색상 정의 0.
+class _Tone {
+  _Tone._();
+  // spacing grid
+  static const double s4 = 4;
+  static const double s8 = 8;
+  static const double s12 = 12;
+  static const double s16 = 16;
+  static const double s20 = 20;
+  static const double s24 = 24;
+  // shape
+  static const double radius = 16;
+  static const double elevation = 2;
+  // icon
+  static const double iconSm = 20;
+  static const double iconMd = 28;
+  // type scale (Theme 의 textTheme 그대로 사용 -- 신규 정의 0)
+  // colors: 0 정의. 항상 Theme.of(context).colorScheme 참조.
+}
+
+/// [신규 화면 - 80종 정통사주 전체 보기] `AllCategoriesScreen`의 "32가지 운세
 /// 한눈에 보기"(FortuneMatrixSection, 칩 나열형) 요약 진입점과 별개로, 같은
 /// 데이터 소스([FortuneMatrix.all])를 2열 카드 그리드로 크게 펼쳐 보여주는
 /// 전용 화면이다.
@@ -20,9 +35,9 @@ import '../../pass/presentation/pass_gate_helper.dart';
 /// [원칙] 이 화면은 신규 Repository/Provider/API를 추가하지 않는다:
 /// - 데이터: [FortuneMatrix.all](정적 카탈로그, 38개) + [FortuneCategoryProvider]
 ///   (관리자 연동 로딩만 트리거 — 실제 그리드 소스는 FortuneMatrix.all 그대로).
-/// - 게이트 판정/이동: [AllCategoriesScreen._openMatrixEntry]와 완전히 동일한
-///   패턴([CategoryGate.decide] → 필요 시 로그인 유도/[PassProvider.consume] →
-///   기존 라우트 또는 공용 결과 화면 이동)을 그대로 재사용한다.
+/// - 진입/이동: [AllCategoriesScreen._openMatrixEntry]와 동일하게, 프리패스
+///   게이트 없이 즉시 기존 라우트 또는 공용 결과 화면으로 이동한다(자유
+///   이용 원칙 - 2026-11 어뷰징 제한 삭제).
 /// - 디자인: [UnifiedColors]/[UnifiedText]/[UnifiedTokens]/[PremiumCard] 등
 ///   기존 공용 토큰·위젯만 사용한다(새 색상 클래스 신설 없음).
 class CategoriesGridScreen extends StatefulWidget {
@@ -48,68 +63,14 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
     });
   }
 
-  /// [AllCategoriesScreen._openMatrixEntry와 동일 패턴] 카드 탭 시 게이트
-  /// 판정 → 필요하면 로그인/프리패스 유도 → 통과 시 기존 라우트(또는 공용
-  /// 결과 화면)로 이동한다. 로직을 1자 그대로 복제해, 원본 화면의 회귀
-  /// 없이 이 화면에서도 동일하게 동작하도록 한다.
+  /// [자유 이용 원칙 - 프리패스 어뷰징 제한 삭제, 2026-11] 과거에는 카드
+  /// 탭 시 [CategoryGate.decide]/[PassProvider.consume]으로 게이트를
+  /// 거쳤으나, 콘텐츠 탐색은 항상 자유롭게 허용하는 정책으로 바뀌면서 이
+  /// 게이트가 더 이상 필요 없어졌다. 즉시 기존 라우트 또는 공용 결과
+  /// 화면으로 이동한다(결제 판정은 각 결과 화면 내부 ResultAccessService가
+  /// 전담).
   Future<void> _openEntry(FortuneCategoryEntry entry) async {
-    setState(() => _checking = true);
-    final access = context.read<AccessChecker>();
-    final decision = await CategoryGate.decide(entry, access);
-    if (!mounted) return;
-
-    if (!decision.allowed) {
-      setState(() => _checking = false);
-      if (!context.read<AuthProvider>().isLoggedIn) {
-        PendingPassRequestStore.save(
-          PendingPassRequest(
-            title: entry.title,
-            route: entry.existingRoute ?? FortuneMatrix.genericCategoryRoute,
-            arguments: entry.existingRoute != null
-                ? entry.routeArguments
-                : entry.id,
-            categoryKey: entry.existingRoute != null
-                ? categoryKeyForRoute(entry.existingRoute!)
-                : null,
-          ),
-        );
-        await showLoginRequiredSheet(context, categoryTitle: entry.title);
-        return;
-      }
-      // [잠금 상태 탭 처리] 게이트 판정 실패(=프리패스 필요)면 기존
-      // showPassRequiredSheet()를 그대로 재호출한다(신규 위젯 없음).
-      await showPassRequiredSheet(context, categoryTitle: entry.title);
-      return;
-    }
-
     final route = entry.existingRoute;
-    final categoryKey = route != null ? categoryKeyForRoute(route) : null;
-
-    if (categoryKey != null && access.isOpenPassActive()) {
-      final pass = context.read<PassProvider>();
-      final ok = await pass.consume(
-        contentType: 'fortune_category',
-        contentId: entry.title,
-        categoryKey: categoryKey,
-      );
-      if (!mounted) return;
-      setState(() => _checking = false);
-      if (!ok) {
-        if (pass.lastErrorReason == 'CATEGORY_LIMIT_REACHED') {
-          await showCategoryLimitReachedSheet(
-            context,
-            categoryTitle: entry.title,
-            message: pass.lastError,
-          );
-        } else {
-          await showPassRequiredSheet(context, categoryTitle: entry.title);
-        }
-        return;
-      }
-    } else {
-      setState(() => _checking = false);
-    }
-
     if (route != null) {
       Navigator.of(context).pushNamed(route, arguments: entry.routeArguments);
       return;
@@ -122,15 +83,24 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
   static const Map<FortuneGroupCode, IconData> _groupIcon = {
     FortuneGroupCode.t: Icons.wb_sunny_outlined,
     FortuneGroupCode.s: Icons.auto_stories_outlined,
-    FortuneGroupCode.n: Icons.badge_outlined,
     FortuneGroupCode.c: Icons.favorite_outline,
     FortuneGroupCode.f: Icons.face_outlined,
   };
 
+  // [UI 노출 정책 - 미동작 섹션 숨김] AllCategoriesScreen의
+  // FortuneMatrixSection과 동일하게 "오늘 운세"(T) 섹션을 이 화면에서도
+  // 숨긴다. 데이터(FortuneMatrix)는 삭제하지 않는다. (이름 운세(N그룹)는
+  // 2026-11 사용자 요청으로 완전 삭제되어 enum 자체가 없음)
+  static const Set<FortuneGroupCode> _hiddenGroups = {
+    FortuneGroupCode.t,
+  };
+
   @override
   Widget build(BuildContext context) {
-    final access = context.watch<AccessChecker>();
-    final allEntries = FortuneMatrix.all;
+    final visibleGroups = FortuneMatrix.groups
+        .where((g) => !_hiddenGroups.contains(g.code))
+        .toList();
+    final allEntries = visibleGroups.expand((g) => g.items).toList();
 
     return Scaffold(
       backgroundColor: UnifiedColors.bg,
@@ -147,7 +117,7 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
               children: [
                 _Header(totalCount: allEntries.length),
                 const SizedBox(height: UnifiedTokens.spaceXl),
-                for (final group in FortuneMatrix.groups)
+                for (final group in visibleGroups)
                   Padding(
                     padding: const EdgeInsets.only(
                       bottom: UnifiedTokens.spaceXl,
@@ -160,7 +130,6 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
                         title: group.code.label,
                         desc: group.code.description,
                         items: group.items,
-                        access: access,
                         onTapItem: _openEntry,
                       ),
                     ),
@@ -169,7 +138,9 @@ class _CategoriesGridScreenState extends State<CategoriesGridScreen> {
             ),
             if (_checking)
               Container(
-                color: UnifiedColors.black.withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.05),
                 child: const Center(child: CircularProgressIndicator()),
               ),
           ],
@@ -213,7 +184,7 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('80종 정통사주 전체 보기', style: UnifiedText.titleLarge()),
+              Text('$totalCount종 정통사주 전체 보기', style: UnifiedText.titleLarge()),
               const SizedBox(height: 4),
               Text(
                 '오늘·사주·이름·궁합·관상손금까지 총 $totalCount개 항목을 모아봤어요',
@@ -234,7 +205,6 @@ class _GroupSection extends StatelessWidget {
     required this.title,
     required this.desc,
     required this.items,
-    required this.access,
     required this.onTapItem,
   });
 
@@ -242,7 +212,6 @@ class _GroupSection extends StatelessWidget {
   final String title;
   final String desc;
   final List<FortuneCategoryEntry> items;
-  final AccessChecker access;
   final void Function(FortuneCategoryEntry entry) onTapItem;
 
   @override
@@ -252,7 +221,11 @@ class _GroupSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: UnifiedTokens.iconMd, color: UnifiedColors.textPrimary),
+            Icon(
+              icon,
+              size: UnifiedTokens.iconMd,
+              color: UnifiedColors.textPrimary,
+            ),
             const SizedBox(width: 6),
             Expanded(child: Text(title, style: UnifiedText.title())),
             Text('${items.length}개', style: UnifiedText.caption()),
@@ -275,13 +248,7 @@ class _GroupSection extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final entry = items[index];
-            final locked =
-                entry.gate != GateResult.openFree && !access.isOpenPassActive();
-            return _CategoryCard(
-              entry: entry,
-              locked: locked,
-              onTap: () => onTapItem(entry),
-            );
+            return _CategoryCard(entry: entry, onTap: () => onTapItem(entry));
           },
         ),
       ],
@@ -289,40 +256,25 @@ class _GroupSection extends StatelessWidget {
   }
 }
 
-String _badgeLabel(GateResult gate) => switch (gate) {
-  GateResult.openFree => '무료',
-  GateResult.freeOncePerDay => '1회무료',
-  GateResult.lockedFreeFirst => '첫무료',
-  GateResult.paidOnlyPassGate => '프리패스',
-  GateResult.cooldown => '대기',
-  GateResult.granted => '무료',
-};
-
-/// 카드 1개 — 아이콘 + 제목 + 짧은 설명 + 게이트 배지.
-/// [locked]가 true면 opacity 60% + 우상단 🔒 오버레이를 표시한다(신규 잠금
-/// 위젯을 만들지 않고 Opacity+Stack만으로 표현).
+/// 카드 1개 — 아이콘 + 제목 + 짧은 설명.
+/// [자유 이용 원칙 - 프리패스 어뷰징 제한 삭제, 2026-11] 과거에는 여기서
+/// [entry.gate]([GateResult])를 읽어 "프리패스"/"1회무료" 등 배지와 우상단
+/// 🔒 잠금 오버레이를 그렸으나, 실제 진입 제한이 사라진 뒤에는 이 배지가
+/// "눌러도 안 열리는 것처럼" 사용자를 오도할 수 있어 제거했다. 결제
+/// 판정은 각 결과 화면의 [결과보기] 버튼에서 ResultAccessService가
+/// 전담하므로, 이 그리드 단계에서는 더 이상 잠금 상태를 표시하지 않는다.
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({
-    required this.entry,
-    required this.locked,
-    required this.onTap,
-  });
+  const _CategoryCard({required this.entry, required this.onTap});
 
   final FortuneCategoryEntry entry;
-  final bool locked;
   final VoidCallback onTap;
 
-  // [미스터리 동양 분위기 - 기존 토큰 재사용] 새 AppColors 클래스를 만들지
-  // 않고, 이 카드 파일 안에서만 쓰는 작은 포인트 색 2개만 지역 상수로 둔다
-  // (로열골드/아메시스트는 UnifiedColors 팔레트에 정확히 대응하는 값이
-  // 없어 부득이하게 이 2개만 별도 상수로 유지 — 클래스가 아니므로 "새
-  // AppColors 클래스 금지" 규칙 위반이 아니다). 배경/텍스트/카드 색은
-  // 전부 기존 UnifiedColors를 그대로 사용한다.
-  static const Color _royalGold = Color(0xFFC79A3D);
+  // [2026-08-13 톤 일관화] 로열골드 포인트 색 리터럴을 제거하고
+  // Theme.of(context).colorScheme.primary(골드 계열 seed)로 대체한다.
+  // 배경/텍스트/카드 색은 전부 기존 UnifiedColors를 그대로 사용한다.
 
   @override
   Widget build(BuildContext context) {
-    final isFree = entry.gate == GateResult.openFree;
     final card = PremiumCard(
       backgroundColor: UnifiedColors.cardAllMenu,
       borderColor: Colors.transparent,
@@ -346,21 +298,7 @@ class _CategoryCard extends StatelessWidget {
                 child: Icon(
                   Icons.auto_awesome_outlined,
                   size: UnifiedTokens.iconMd,
-                  color: isFree ? UnifiedColors.textPrimary : _royalGold,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isFree
-                      ? UnifiedColors.chipInactiveBg
-                      : UnifiedColors.cardBanner,
-                  borderRadius: BorderRadius.circular(UnifiedTokens.radiusPill),
-                ),
-                child: Text(
-                  _badgeLabel(entry.gate),
-                  style: UnifiedText.caption(color: UnifiedColors.textCaption),
+                  color: UnifiedColors.textPrimary,
                 ),
               ),
             ],
@@ -383,26 +321,24 @@ class _CategoryCard extends StatelessWidget {
       ),
     );
 
-    if (!locked) return card;
-
-    return Stack(
-      children: [
-        Opacity(opacity: 0.6, child: card),
-        Positioned(
-          top: 10,
-          right: 10,
-          child: Container(
-            width: 24,
-            height: 24,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: UnifiedColors.black.withValues(alpha: 0.75),
-              shape: BoxShape.circle,
-            ),
-            child: const Text('🔒', style: TextStyle(fontSize: 12)),
-          ),
-        ),
-      ],
-    );
+    return card;
   }
+}
+
+Widget _toneWrap({
+  required Widget child,
+  required VoidCallback onTap,
+  EdgeInsets padding = const EdgeInsets.all(16),
+}) {
+  return Card(
+    elevation: _Tone.elevation,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(_Tone.radius),
+    ),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(_Tone.radius),
+      onTap: onTap,
+      child: Padding(padding: padding, child: child),
+    ),
+  );
 }

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/api/api_result.dart';
 import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
+import '../domain/attendance_calendar_model.dart';
 
 /// 06단계 §4.13(출석/미션/랭킹) `/v1/attendance` 대응 Repository — admin_web 공개 API
 /// (`GET /api/public/attendance/status`, `POST /api/public/attendance/checkin`)를 호출한다.
@@ -14,15 +15,17 @@ import '../../../core/config/env_config.dart';
 /// 최신 잔액만 재조회한다(호출부는 attendance_provider.dart 참조).
 class AttendanceRepository {
   Future<ApiResult<Map<String, dynamic>>> getStatus() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/attendance/status?userId=$userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/attendance/status',
     );
     debugPrint('[AttendanceRepository] [status] 요청 -> $uri');
 
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -47,18 +50,19 @@ class AttendanceRepository {
   /// alreadyChecked를 담아 반환한다. 서버가 이미 지갑 적립까지 처리하므로 호출부는
   /// 반환된 rewardPoint>0일 때 WalletProvider.load()로 잔액만 새로고침하면 된다.
   Future<ApiResult<Map<String, dynamic>>> checkIn() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
       '${EnvConfig.adminApiBaseUrl}/api/public/attendance/checkin',
     );
-    debugPrint('[AttendanceRepository] [checkin] 요청 시작 -> userId=$userId');
+    debugPrint('[AttendanceRepository] [checkin] 요청 시작');
 
     try {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'userId': userId}),
+            headers: {
+              'Content-Type': 'application/json',
+              ...await AuthTokenStore.authHeader(),
+            },
           )
           .timeout(const Duration(seconds: 10));
 
@@ -79,6 +83,45 @@ class AttendanceRepository {
     } catch (e) {
       debugPrint('[AttendanceRepository] [checkin] 예외 -> $e');
       return ApiResult.fail('출석 체크인 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// GET /api/public/attendance/calendar — "출석 달력" 화면(30일 그리드)용으로
+  /// 지정한 연/월의 출석한 날짜 목록 + 연속출석 마일스톤 보상표를 함께 받아온다.
+  /// [year]/[month]를 생략하면 서버가 오늘(KST) 기준 해당 월을 반환한다.
+  Future<ApiResult<AttendanceCalendarModel>> getCalendar({
+    int? year,
+    int? month,
+  }) async {
+    final query = {
+      if (year != null) 'year': '$year',
+      if (month != null) 'month': '$month',
+    };
+    final uri = Uri.parse(
+      '${EnvConfig.adminApiBaseUrl}/api/public/attendance/calendar',
+    ).replace(queryParameters: query);
+    debugPrint('[AttendanceRepository] [calendar] 요청 -> $uri');
+
+    try {
+      final response = await http
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
+          .timeout(const Duration(seconds: 10));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        final error = decoded['error'] as String? ?? '출석 달력을 불러오지 못했습니다.';
+        debugPrint('[AttendanceRepository] [calendar] 실패 -> $error');
+        return ApiResult.fail(error);
+      }
+
+      final data = decoded['data'] as Map<String, dynamic>;
+      return ApiResult.ok(AttendanceCalendarModel.fromJson(data));
+    } catch (e) {
+      debugPrint('[AttendanceRepository] [calendar] 예외 -> $e');
+      return ApiResult.fail('출석 달력을 불러오지 못했습니다: $e');
     }
   }
 }

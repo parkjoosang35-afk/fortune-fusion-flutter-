@@ -89,17 +89,6 @@ class LuckPouchToastController extends ChangeNotifier {
     );
   }
 
-  /// [인트로 전면 개편] 회원가입 보상 전용 토스트 — 사용자 요청서에 지정된
-  /// 정확한 카피("회원가입 완료! 복주머니 N개가 적립되었어요" /
-  /// "지금 바로 소원게시판과 소원성에서 사용할 수 있어요")를 그대로 사용한다.
-  void showSignupReward(int amount) {
-    _enqueue(
-      LuckPouchToastType.earn,
-      '회원가입 완료! 복주머니 $amount개가 적립되었어요',
-      '지금 바로 소원게시판과 소원성에서 사용할 수 있어요',
-    );
-  }
-
   /// [복주머니 정책표 §3 - 첫로그인10(1회)] 첫 로그인 보상 전용 토스트.
   void showFirstLoginReward(int amount) {
     _enqueue(

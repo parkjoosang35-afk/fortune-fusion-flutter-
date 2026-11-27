@@ -1,0 +1,977 @@
+import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/widgets/app_toast.dart';
+import '../../ads_test/domain/admob_ad_ids.dart';
+import '../../mypage/presentation/theme/mypage_minimal_theme.dart';
+import '../../pass/presentation/coupang_pass_sheet.dart';
+import '../../pouch_box/presentation/widgets/mini_pouch_icon.dart';
+import '../../result_access/application/result_access_provider.dart';
+import '../../result_access/data/result_access_repository.dart';
+import '../../result_access/domain/pending_result_access_return.dart';
+import '../../result_access/domain/result_access_model.dart';
+
+/// [귀인지도 정통사주 리뉴얼] 화면06 결과보기 게이트.
+///
+/// [결과보기 게이트 시각 통일 — 2026] 기존에는 `saju_dark_tokens.dart`
+/// (SajuViolet/SajuGold/SajuInk 다크 자수정+금빛 테마)로 스킨되어 있었으나,
+/// 사용자 피드백("결과보기게이트가 각각 틀리니 보기가 싫어") 에 따라
+/// `coupang_pass_sheet.dart`가 쓰는 `MyPageColors`/`MyPageTextStyles`
+/// (한지 크림 + 부적 주홍/금빛 라이트 테마)로 재통일한다 —
+/// `result_access_gate_sheet.dart`(§8 공통 게이트)도 동일 작업으로 이미
+/// 전환됨. 이 파일 역시 "로직은 재사용, 외형은 교체" 원칙을 그대로
+/// 따른다 — 아래 로직 메서드들은 과거 다크 버전과 단 한 줄도 다르지 않다:
+/// [_loadQuote]/[_beginAndClose]/[_handleFreePass]/[_handlePouch]/
+/// [_handleAd]/[_handleCoupangClaim]/[_handleLoginRequired]는
+/// [ResultAccessProvider](quote 조회 · begin 호출 · AdMob RewardedAd
+/// 로드/표시 · 서버 재검증)와 [showCoupangPassSheet]/
+/// [PendingResultAccessReturnStore]를 그대로 호출한다 — 판정·차감·광고
+/// 로직을 다시 구현하지 않는다. 바뀌는 것은 오직 비주얼(크림 바텀시트,
+/// 인용 마스킹 카드, GateOption 3행, 금빛 프리패스 인장)뿐이다.
+class SajuResultAccessGateSheet extends StatefulWidget {
+  const SajuResultAccessGateSheet({
+    super.key,
+    required this.contentId,
+    required this.contentTitle,
+    required this.quoteText,
+    this.returnRoute = '/saju-renewal',
+  });
+
+  final String? contentId;
+  final String contentTitle;
+
+  /// 인용 카드에 쓸 문장(summary의 마지막 문장, C-06-8). null/빈 문자열이면
+  /// 인용 카드 자체를 생략한다.
+  final String? quoteText;
+  final String returnRoute;
+
+  @override
+  State<SajuResultAccessGateSheet> createState() =>
+      _SajuResultAccessGateSheetState();
+}
+
+/// 06-D/06-E "수단 사용 중" 오버레이 연출 종류.
+enum _UsingOverlay { none, pass, pouch }
+
+class _SajuResultAccessGateSheetState extends State<SajuResultAccessGateSheet> {
+  ResultAccessPaymentMethod? _processingMethod;
+  bool _launchingCoupang = false;
+  _UsingOverlay _overlay = _UsingOverlay.none;
+
+  bool get _busy =>
+      _processingMethod != null ||
+      _launchingCoupang ||
+      _overlay != _UsingOverlay.none;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadQuote());
+  }
+
+  Future<void> _loadQuote() async {
+    await context.read<ResultAccessProvider>().loadQuote(
+      contentType: 'saju_renewal',
+      categoryKey: 'saju_renewal',
+    );
+  }
+
+  Future<void> _beginAndClose(
+    ResultAccessPaymentMethod method, {
+    String? adSessionId,
+  }) async {
+    final provider = context.read<ResultAccessProvider>();
+    final transactionId = generateResultAccessTransactionId();
+    final result = await provider.begin(
+      transactionId: transactionId,
+      contentType: 'saju_renewal',
+      contentId: widget.contentId,
+      categoryKey: 'saju_renewal',
+      paymentMethod: method,
+      adSessionId: adSessionId,
+    );
+    if (!mounted) return;
+    if (result == null) {
+      setState(() {
+        _processingMethod = null;
+        _overlay = _UsingOverlay.none;
+      });
+      AppToast.show(
+        context,
+        provider.lastError ?? '결과보기에 실패했습니다.',
+        isError: true,
+      );
+      return;
+    }
+    Navigator.of(context).pop(result);
+  }
+
+  /// 06-D 프리패스 사용 연출 — "通" 인장 1.2s 후 07로(=시트 close).
+  Future<void> _handleFreePass() async {
+    if (_busy) return;
+    setState(() {
+      _processingMethod = ResultAccessPaymentMethod.freepass;
+      _overlay = _UsingOverlay.pass;
+    });
+    await Future.delayed(const Duration(milliseconds: 1300));
+    if (!mounted) return;
+    await _beginAndClose(ResultAccessPaymentMethod.freepass);
+  }
+
+  /// 06-E 복주머니 사용 연출 — 개봉 1.4s 후 07로.
+  Future<void> _handlePouch() async {
+    if (_busy) return;
+    setState(() {
+      _processingMethod = ResultAccessPaymentMethod.pouch;
+      _overlay = _UsingOverlay.pouch;
+    });
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    await _beginAndClose(ResultAccessPaymentMethod.pouch);
+  }
+
+  Future<void> _handleAd() async {
+    if (_busy) return;
+    if (!AdmobAdIds.isSupportedPlatform) {
+      AppToast.show(context, '이 플랫폼(Web 등)에서는 광고를 지원하지 않아요.', isError: true);
+      return;
+    }
+    setState(() => _processingMethod = ResultAccessPaymentMethod.ad);
+
+    final provider = context.read<ResultAccessProvider>();
+    final sessionId = await provider.startAdSession();
+    if (!mounted) return;
+    if (sessionId == null) {
+      setState(() => _processingMethod = null);
+      AppToast.show(
+        context,
+        provider.lastError ?? '광고를 시작할 수 없어요.',
+        isError: true,
+      );
+      return;
+    }
+
+    var earned = false;
+    RewardedAd.load(
+      adUnitId: AdmobAdIds.rewardedUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          if (!mounted) {
+            ad.dispose();
+            return;
+          }
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) async {
+              ad.dispose();
+              if (!mounted) return;
+              if (!earned) {
+                setState(() => _processingMethod = null);
+                AppToast.show(
+                  context,
+                  '광고를 끝까지 시청해야 무료로 볼 수 있어요.',
+                  isError: true,
+                );
+                return;
+              }
+              final completed = await provider.completeAdSession(sessionId);
+              if (!mounted) return;
+              if (!completed) {
+                setState(() => _processingMethod = null);
+                AppToast.show(
+                  context,
+                  provider.lastError ?? '광고 시청 완료 처리에 실패했습니다.',
+                  isError: true,
+                );
+                return;
+              }
+              await _beginAndClose(
+                ResultAccessPaymentMethod.ad,
+                adSessionId: sessionId,
+              );
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+              if (!mounted) return;
+              setState(() => _processingMethod = null);
+              AppToast.show(
+                context,
+                '광고 표시에 실패했어요. 잠시 후 다시 시도해주세요.',
+                isError: true,
+              );
+            },
+          );
+          ad.show(
+            onUserEarnedReward: (ad, reward) {
+              earned = true;
+            },
+          );
+        },
+        onAdFailedToLoad: (error) {
+          if (!mounted) return;
+          setState(() => _processingMethod = null);
+          AppToast.show(
+            context,
+            '지금은 광고를 불러올 수 없어요. 잠시 후 다시 시도해주세요.',
+            isError: true,
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleCoupangClaim() async {
+    if (_busy) return;
+    setState(() => _launchingCoupang = true);
+
+    await PendingResultAccessReturnStore.save(
+      PendingResultAccessReturn(
+        contentType: 'saju_renewal',
+        contentId: widget.contentId,
+        selectedCategory: null,
+        question: null,
+        userInput: const {},
+        resultRequestId: null,
+        returnRoute: widget.returnRoute,
+        savedAt: DateTime.now(),
+        contentTitle: widget.contentTitle,
+        categoryKey: 'saju_renewal',
+      ),
+    );
+    if (!mounted) return;
+
+    await showCoupangPassSheet(context, categoryTitle: widget.contentTitle);
+
+    await PendingResultAccessReturnStore.clear();
+    if (!mounted) return;
+    setState(() => _launchingCoupang = false);
+    await _loadQuote();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<ResultAccessProvider>();
+    // [작은 화면/글자확대 잘림 수정 — 2026 반응형 규격 통일] 이 시트는
+    // 호출부(showSajuResultAccessGateSheet)가 isScrollControlled: true로
+    // 열지만, 본문 Column 자체에는 스크롤이 없어 쿠팡 프리패스 클레임
+    // 안내 블록까지 모두 보여야 하는 상태(프리패스 미보유)에서 작은
+    // 화면/글자확대 조건에 RenderFlex 바닥 오버플로가 실측됐다(320×568
+    // @1.3배 widget test로 확인). 내용을 SingleChildScrollView로 감싸
+    // "들어가면 그대로, 넘칠 때만 스크롤"되게 한다 — 그랩바·옵션
+    // 레이아웃은 그대로다.
+    return Stack(
+      children: [
+        SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+            decoration: const BoxDecoration(
+              color: MyPageColors.surface,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(MyPageRadius.sheet),
+              ),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. 그랩바.
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: MyPageSpacing.sp4),
+                  decoration: BoxDecoration(
+                    color: MyPageColors.hair,
+                    borderRadius: BorderRadius.circular(MyPageRadius.pill),
+                  ),
+                ),
+                // 2. 인용 카드(C-06-8) — 마지막 문장 마스킹.
+                if (widget.quoteText != null && widget.quoteText!.isNotEmpty)
+                  _QuoteCard(text: widget.quoteText!),
+                if (widget.quoteText != null && widget.quoteText!.isNotEmpty)
+                  const SizedBox(height: 18),
+                // 3. 타이틀(C-06-1).
+                const Text(
+                  '이 사주 이야기를\n더 깊이 알아볼까요?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: MyPageFonts.ui,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                    height: 1.3,
+                    color: MyPageColors.ink,
+                  ),
+                ),
+                const SizedBox(height: MyPageSpacing.sp4),
+                // 4. 부제(C-06-2).
+                const Text(
+                  '아래 3가지 중 하나로 열 수 있어요',
+                  textAlign: TextAlign.center,
+                  style: MyPageTextStyles.caption,
+                ),
+                const SizedBox(height: MyPageSpacing.sp5),
+                if (provider.isLoadingQuote)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: CircularProgressIndicator(color: MyPageColors.red),
+                    ),
+                  )
+                else if (provider.quote == null)
+                  _buildLoadError(provider)
+                else
+                  _buildOptions(provider.quote!),
+              ],
+              ),
+            ),
+          ),
+        ),
+        // 06-D/06-E "수단 사용 중" 전체 오버레이.
+        if (_overlay != _UsingOverlay.none)
+          Positioned.fill(child: _UsingOverlayView(kind: _overlay)),
+      ],
+    );
+  }
+
+  Widget _buildLoadError(ResultAccessProvider provider) {
+    final needsLogin = provider.lastErrorReason == 'UNAUTHORIZED';
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            children: [
+              if (needsLogin) ...[
+                const Text('🔒', style: TextStyle(fontSize: 28)),
+                const SizedBox(height: MyPageSpacing.sp2),
+              ],
+              Text(
+                needsLogin
+                    ? '로그인 후 결과보기를 이용할 수 있어요.'
+                    : (provider.lastError ?? '결과보기 권한 정보를 불러오지 못했습니다.'),
+                textAlign: TextAlign.center,
+                style: MyPageTextStyles.body,
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: needsLogin ? _handleLoginRequired : _loadQuote,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MyPageColors.red,
+              foregroundColor: const Color(0xFFFBF1DE),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(MyPageRadius.pill),
+              ),
+            ),
+            child: Text(
+              needsLogin ? '로그인하고 결과보기' : '다시 시도',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleLoginRequired() async {
+    await PendingResultAccessReturnStore.save(
+      PendingResultAccessReturn(
+        contentType: 'saju_renewal',
+        contentId: widget.contentId,
+        selectedCategory: null,
+        question: null,
+        userInput: const {},
+        resultRequestId: null,
+        returnRoute: widget.returnRoute,
+        savedAt: DateTime.now(),
+        contentTitle: widget.contentTitle,
+        categoryKey: 'saju_renewal',
+      ),
+    );
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    Navigator.of(context).pushNamed('/login');
+  }
+
+  Widget _buildOptions(ResultAccessQuote quote) {
+    final showCoupangClaim = !quote.freePassAvailable && !quote.todayClaimed;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _GateOption(
+          leading: _PassMarkIcon(dim: !quote.freePassAvailable),
+          title: '프리패스로 보기',
+          // [버그 수정 — C-06b(docs/08) 결함 발견] docs/06_카피덱.md
+          // C-06-3 및 원본 `screens-b.jsx` ScreenGate
+          // `sub={canPass ? '프리패스 1회 사용' : '보유한 프리패스가 없어요'}`
+          // — 활성 상태에도 부제("프리패스 1회 사용")가 있어야 하는데
+          // 기존 코드는 활성 시 subtitle을 null로 비워 두던 결함.
+          subtitle: quote.freePassAvailable ? '프리패스 1회 사용' : '보유한 프리패스가 없어요',
+          trailing:
+              quote.freePassHasLegacyUnlimited && quote.freePassRemaining <= 0
+              ? null
+              : '보유 ${quote.freePassRemaining}회',
+          enabled: quote.freePassAvailable && !_busy,
+          loading: _processingMethod == ResultAccessPaymentMethod.freepass,
+          onTap: _handleFreePass,
+        ),
+        const SizedBox(height: 8),
+        _GateOption(
+          leading: const MiniPouchIcon(size: 30),
+          title: '복주머니로 보기',
+          // [버그 수정 — C-06b(docs/08) 결함 발견] docs/06_카피덱.md
+          // C-06-4 및 원본 jsx
+          // `sub={canPouch ? '복주머니 '+POUCH_COST+'개 사용' : POUCH_COST+'개가 필요해요'}`
+          // — 활성 상태 부제("복주머니 {COST}개 사용")가 null로 비어 있던 결함.
+          // 차감량은 서버 정책값([quote.pouchPrice])을 그대로 사용한다
+          // (C-06g "차감량·지급량은 서버 정책값 사용" 원칙 준수, 하드코딩 아님).
+          subtitle: quote.pouchAvailable && quote.pouchSufficient
+              ? '복주머니 ${quote.pouchPrice}개 사용'
+              : '${quote.pouchPrice}개가 필요해요',
+          trailing: '보유 ${quote.pouchBalance}개',
+          enabled: quote.pouchAvailable && quote.pouchSufficient && !_busy,
+          loading: _processingMethod == ResultAccessPaymentMethod.pouch,
+          onTap: _handlePouch,
+        ),
+        const SizedBox(height: 8),
+        _GateOption(
+          leading: const _AdIcon(),
+          title: '광고 보고 무료로 보기',
+          // [Freepass-first 강제 퍼널, 2026-11] 광고 1일 1회 캡 — 오늘 이미
+          // 사용했으면 부제/trailing으로 안내한다(실제 차단은 enabled +
+          // 서버 재검증 2중).
+          subtitle: quote.adUsedToday ? '내일 다시 이용할 수 있어요' : '짧은 광고 한 편이면 열려요',
+          trailing: quote.adUsedToday ? '오늘 사용 완료' : '무료',
+          enabled: quote.adAvailable &&
+              !quote.adUsedToday &&
+              AdmobAdIds.isSupportedPlatform &&
+              !_busy,
+          loading: _processingMethod == ResultAccessPaymentMethod.ad,
+          onTap: _handleAd,
+        ),
+        if (showCoupangClaim) ...[
+          const SizedBox(height: 16),
+          Container(height: 1, color: MyPageColors.hair),
+          const SizedBox(height: 14),
+          _CoupangClaimButton(
+            loading: _launchingCoupang,
+            onTap: _busy ? null : _handleCoupangClaim,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '쿠팡 방문 시 하루 한 번 받을 수 있어요',
+            textAlign: TextAlign.center,
+            style: MyPageTextStyles.caption,
+          ),
+        ] else if (!quote.freePassAvailable && quote.todayClaimed)
+          const Padding(
+            padding: EdgeInsets.only(top: 14),
+            child: Text(
+              '오늘의 프리패스를 받았어요 · 내일 다시 받을 수 있어요',
+              textAlign: TextAlign.center,
+              style: MyPageTextStyles.caption,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// 인용 카드 — 미리보기 마지막 문장 + 오른쪽 마스크(텍스트가 가려지는 연출).
+class _QuoteCard extends StatelessWidget {
+  const _QuoteCard({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: MyPageColors.hair),
+        color: MyPageColors.paper2,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShaderMask(
+            shaderCallback: (rect) => const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Colors.black, Colors.black, Colors.transparent],
+              stops: [0.0, 0.45, 0.92],
+            ).createShader(rect),
+            blendMode: BlendMode.dstIn,
+            child: Text(
+              '"$text"',
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: const TextStyle(
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                height: 1.65,
+                color: MyPageColors.ink2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text('◆', style: TextStyle(color: MyPageColors.red, fontSize: 8)),
+              const SizedBox(width: 6),
+              Text(
+                '정통사주 분석',
+                style: TextStyle(
+                  fontFamily: MyPageFonts.ui,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  color: MyPageColors.red,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 프리패스 아이콘 — 36×36 r9, 금빛 그라데이션, "通" 각인, −6° 회전.
+class _PassMarkIcon extends StatelessWidget {
+  const _PassMarkIcon({this.dim = false});
+  final bool dim;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: -6 * 3.14159265 / 180,
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(9),
+          gradient: RadialGradient(
+            center: const Alignment(-0.3, -0.4),
+            colors: dim
+                ? [MyPageColors.gold.withValues(alpha: 0.35), MyPageColors.paper2]
+                : const [MyPageColors.gold2, MyPageColors.gold, MyPageColors.attendTo],
+            stops: dim ? const [0.0, 1.0] : const [0.0, 0.45, 1.0],
+          ),
+        ),
+        child: Text(
+          '通',
+          style: TextStyle(
+            fontFamily: MyPageFonts.hanja,
+            fontWeight: FontWeight.w900,
+            fontSize: 17,
+            color: dim ? MyPageColors.ink3 : const Color(0xFF3A2A12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AdIcon extends StatelessWidget {
+  const _AdIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: MyPageColors.red.withValues(alpha: 0.35)),
+      ),
+      child: const Text('☾', style: TextStyle(color: MyPageColors.red, fontSize: 16)),
+    );
+  }
+}
+
+/// "오늘의 프리패스 2회 받기" 강조 버튼 — coupang_pass_sheet.dart 메인 CTA와
+/// 동일한 부적 주홍 톤으로 통일한다(결과보기 게이트 시각 통일).
+class _CoupangClaimButton extends StatelessWidget {
+  const _CoupangClaimButton({required this.loading, required this.onTap});
+
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(MyPageRadius.pill),
+          boxShadow: onTap != null ? MyPageShadows.cta : null,
+        ),
+        child: ElevatedButton(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: MyPageColors.red,
+            disabledBackgroundColor: MyPageColors.red.withValues(alpha: 0.5),
+            foregroundColor: const Color(0xFFFBF1DE),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(MyPageRadius.pill),
+            ),
+          ),
+          child: loading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFFBF1DE),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBF1DE),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '通',
+                        style: TextStyle(
+                          fontFamily: MyPageFonts.hanja,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          color: MyPageColors.red,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // [반응형 전수 점검 · 2026-11-11] 아이콘+라벨 폭이
+                    // textScale 1.3배 이상에서 버튼 가용 폭(약 279px)을
+                    // 넘어 가로 RenderFlex 오버플로(@1.3: 25px, @2.5:
+                    // 91px)를 일으켰다. result_access_gate_sheet.dart의
+                    // _GateOptionButton·coupang_pass_sheet.dart의
+                    // "쿠팡 방문하기"와 동일한 구조적 문제라 동일한
+                    // 해법(Flexible+ellipsis)으로 통일한다.
+                    Flexible(
+                      child: Text(
+                        '오늘의 프리패스 2회 받기',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// GateOption — 최소 높이 64 · r14 · 크림 서피스 배경 · 부적 톤 보더.
+class _GateOption extends StatefulWidget {
+  const _GateOption({
+    required this.leading,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    required this.enabled,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final Widget leading;
+  final String title;
+  final String? subtitle;
+  final String? trailing;
+  final bool enabled;
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  State<_GateOption> createState() => _GateOptionState();
+}
+
+class _GateOptionState extends State<_GateOption> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = !widget.enabled;
+    return Opacity(
+      opacity: disabled ? 0.5 : 1,
+      child: GestureDetector(
+        onTapDown: disabled ? null : (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: disabled ? null : widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? 0.98 : 1,
+          duration: const Duration(milliseconds: 120),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 64),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: disabled ? MyPageColors.paper2 : MyPageColors.surface,
+              border: Border.all(
+                color: disabled
+                    ? MyPageColors.hair
+                    : MyPageColors.red.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Row(
+              children: [
+                widget.leading,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: const TextStyle(
+                          fontFamily: MyPageFonts.ui,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: MyPageColors.ink,
+                        ),
+                      ),
+                      if (widget.subtitle != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.subtitle!,
+                          style: const TextStyle(
+                            fontFamily: MyPageFonts.ui,
+                            fontSize: 12,
+                            color: MyPageColors.ink3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (widget.loading)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: MyPageColors.red,
+                    ),
+                  )
+                else if (widget.trailing != null)
+                  // [오버플로 수정] 복주머니 보유량이 많이 쌓인 사용자(큰
+                  // 숫자) + 큰 textScale에서 "보유 N개" trailing 텍스트가
+                  // 320x568@2.0에서 25px, @2.5에서 91px RenderFlex
+                  // 오버플로를 일으킴을 확인. Flexible+ellipsis로 감싸
+                  // result_access_gate_sheet.dart의 동일 구조 수정과
+                  // 같은 패턴 적용 (디자인/색상/문구 변경 없음).
+                  Flexible(
+                    child: Text(
+                      widget.trailing!,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: MyPageFonts.ui,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: disabled ? MyPageColors.ink3 : MyPageColors.red,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 06-D/06-E 수단 사용 중 전체화면 오버레이 — 프리패스 "通" 인장 모션 /
+/// 복주머니 개봉 모션. 배경을 한지 크림 톤으로 재통일했을 뿐, 애니메이션
+/// 타이밍(kind별 1.2s/1.4s)·구성 요소는 다크 버전과 동일하다.
+class _UsingOverlayView extends StatefulWidget {
+  const _UsingOverlayView({required this.kind});
+  final _UsingOverlay kind;
+
+  @override
+  State<_UsingOverlayView> createState() => _UsingOverlayViewState();
+}
+
+class _UsingOverlayViewState extends State<_UsingOverlayView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // [버그 수정 — C-06d(docs/08) 결함 발견] docs/03_화면명세.md §06:
+    // "프리패스 사용(06-D): … 모션 1.2s" / "복주머니 사용(06-E): …
+    // 개봉 1.4s" — 서로 다른 지속시간인데 기존 코드는 kind와 무관하게
+    // 항상 1200ms로 고정되어 있었다. kind별로 정확한 시간을 적용한다.
+    final duration = widget.kind == _UsingOverlay.pass
+        ? const Duration(milliseconds: 1200)
+        : const Duration(milliseconds: 1400);
+    _controller = AnimationController(vsync: this, duration: duration)
+      ..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPass = widget.kind == _UsingOverlay.pass;
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: MyPageColors.surface),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final t = _controller.value;
+                final scale = isPass
+                    ? (1.8 - 0.8 * Curves.easeOutBack.transform(t.clamp(0, 1)))
+                    : (0.6 + 0.4 * Curves.elasticOut.transform(t.clamp(0, 1)));
+                return Transform.scale(
+                  scale: scale.clamp(0.4, 2.0),
+                  child: isPass
+                      ? Container(
+                          width: 96,
+                          height: 96,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const RadialGradient(
+                              colors: [
+                                MyPageColors.gold2,
+                                MyPageColors.gold,
+                                MyPageColors.attendTo,
+                              ],
+                              stops: [0.0, 0.45, 1.0],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: MyPageColors.gold.withValues(alpha: 0.55),
+                                blurRadius: 36,
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            '通',
+                            style: TextStyle(
+                              fontFamily: MyPageFonts.hanja,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 42,
+                              color: Color(0xFF3A2A12),
+                            ),
+                          ),
+                        )
+                      : const MiniPouchIcon(size: 130),
+                );
+              },
+            ),
+            const SizedBox(height: 28),
+            Text(
+              isPass ? '프리패스로 이야기를 열고 있어요' : '복주머니를 열고 있어요',
+              style: const TextStyle(
+                fontFamily: MyPageFonts.ui,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: MyPageColors.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isPass ? '프리패스 1회를 사용해요' : '복주머니 100개를 사용해요',
+              style: MyPageTextStyles.caption,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [호출 헬퍼] 정통사주 결과보기 게이트 바텀시트를 띄운다. 성공 시
+/// [ResultAccessBeginResult]를 반환, 취소/닫힘이면 null.
+///
+/// [Freepass-first 강제 퍼널, 2026-11] result_access_gate_sheet.dart의
+/// [showResultAccessGateSheet]와 동일한 분기 로직 — 쓸 수 있는 프리패스가
+/// 0개이고 오늘 쿠팡 프리패스를 아직 안 받았으면, 결제 게이트(3택)를 열기
+/// 전에 쿠팡 프리패스 발급 화면을 먼저 반드시 보여준다. 받으면 이어서
+/// 결제 게이트를 열고, 받지 않고 건너뛰면 이번 시도는 여기서 끝난다(다음
+/// 시도에도 조건이 그대로라 다시 쿠팡 화면이 뜬다) — 두 진입점(공통
+/// 게이트/사주 전용 게이트)이 동일한 정책을 공유해야 하므로(§15 "판정
+/// 기준 불일치 금지"와 같은 이유) 판정 로직 자체는 중복 구현하지 않고
+/// 여기서도 동일한 Provider(quote)/화면(showCoupangPassSheet)을 그대로
+/// 재사용한다.
+Future<ResultAccessBeginResult?> showSajuResultAccessGateSheet(
+  BuildContext context, {
+  String? contentId,
+  required String contentTitle,
+  String? quoteText,
+  String returnRoute = '/saju-renewal',
+}) async {
+  final resultAccessProvider = context.read<ResultAccessProvider>();
+  await resultAccessProvider.loadQuote(
+    contentType: 'saju_renewal',
+    categoryKey: 'saju_renewal',
+  );
+  final preQuote = resultAccessProvider.quote;
+  if (preQuote != null && !preQuote.freePassAvailable && !preQuote.todayClaimed) {
+    if (!context.mounted) return null;
+    await showCoupangPassSheet(context, categoryTitle: contentTitle);
+    if (!context.mounted) return null;
+    await resultAccessProvider.loadQuote(
+      contentType: 'saju_renewal',
+      categoryKey: 'saju_renewal',
+    );
+    final postQuote = resultAccessProvider.quote;
+    final stillNoPass =
+        postQuote == null ||
+        (!postQuote.freePassAvailable && !postQuote.todayClaimed);
+    if (stillNoPass) return null;
+  }
+
+  if (!context.mounted) return null;
+  return showModalBottomSheet<ResultAccessBeginResult>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    // [결과보기 게이트 시각 통일] coupang_pass_sheet.dart와 동일한 한지
+    // 크림 톤 dim으로 맞춘다(기존 Colors.black 0.55 → 따뜻한 톤).
+    barrierColor: const Color(0x731E120A),
+    builder: (ctx) => SajuResultAccessGateSheet(
+      contentId: contentId,
+      contentTitle: contentTitle,
+      quoteText: quoteText,
+      returnRoute: returnRoute,
+    ),
+  );
+}

@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_unified_style.dart';
 
-/// [Phase22 - "Fortune Fusion 마스터 개발 프롬프트" 3부 IntroShell 철학 이식]
+/// [Phase22 - "귀인지도 마스터 개발 프롬프트" 3부 IntroShell 철학 이식]
 /// 운세/AI서비스 결과를 받아오기 전 보여주는 "의례감 있는" 4단계 인트로 연출.
 /// 새 마스터 프롬프트가 제안한 "호명 → 소환 → 참여 → 개안" 4단 구조를 그대로
 /// 이식하되, Riverpod/Supabase 신규스택이 아니라 기존 StatefulWidget 패턴으로

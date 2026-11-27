@@ -20,6 +20,26 @@ class FaceProvider extends ChangeNotifier {
   List<FaceResultModel> _history = [];
   List<FaceResultModel> get history => _history;
 
+  /// [Stage2 결함수정 — 결함-A10-01] 로그아웃 시 이전 계정의 관상 분석
+  /// 결과/이력(얼굴 이미지 기반 개인정보 포함 가능)이 잔존해 다음 계정에
+  /// 노출되지 않도록 초기화한다.
+  void clearOnLogout() {
+    _state = const LoadState.initial();
+    _history = [];
+    notifyListeners();
+  }
+
+  /// [테스트 전용 — 외부 검수 지시 ③ Task 5] 실제 서버 왕복(POST
+  /// /api/public/fortune/face) 없이 [FaceResultScreen] 위젯 트리를 결과
+  /// 성공 상태로 곧바로 전환하기 위한 헬퍼. TarotProvider.debugInjectResult
+  /// 와 동일한 패턴 — 위젯 테스트 전용이며 앱 정상 동작 경로(analyze/
+  /// retry/selectFromHistory)에는 전혀 영향을 주지 않는다.
+  @visibleForTesting
+  void debugInjectResult(FaceResultModel result) {
+    _state = LoadState.success(result);
+    notifyListeners();
+  }
+
   // 07단계(추가) §3.3 - 촬영/선택된 관상 사진(바이트). 분석 완료 즉시 자동 해제됨.
   Uint8List? _selectedImageBytes;
   Uint8List? get selectedImageBytes => _selectedImageBytes;
@@ -37,11 +57,15 @@ class FaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> analyze() async {
+  Future<void> analyze({String? paymentMethod, String? transactionId}) async {
     _state = const LoadState.loading();
     notifyListeners();
 
-    final result = await _repository.analyze(image: _selectedImageBytes);
+    final result = await _repository.analyze(
+      image: _selectedImageBytes,
+      paymentMethod: paymentMethod,
+      transactionId: transactionId,
+    );
 
     if (result.success && result.data != null) {
       _state = LoadState.success(result.data!);

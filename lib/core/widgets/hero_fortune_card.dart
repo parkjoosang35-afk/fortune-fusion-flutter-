@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// [Fortune Fusion UI 리뉴얼 프롬프트] §2-4 HeroFortuneCard - 홈 히어로용
+/// [귀인지도 UI 리뉴얼 프롬프트] §2-4 HeroFortuneCard - 홈 히어로용
 ///
 /// 홈 화면 최상단에 노출되는 대형 히어로 카드. 우주 코스믹 그라디언트 배경 위에
 /// 인사말 + 메인 카피 + CTA 버튼을 배치한다.

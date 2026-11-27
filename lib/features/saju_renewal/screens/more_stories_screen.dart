@@ -1,0 +1,932 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/data/my_fortune_record_store.dart';
+import '../../../core/router/main_bottom_nav_bar.dart';
+import '../../../core/web_ads/web_ad_config.dart';
+import '../../../core/web_ads/widgets/web_ad_in_page.dart';
+import '../../../core/widgets/app_toast.dart';
+import '../../auth/application/auth_provider.dart';
+import '../data/models/topic_card.dart';
+import '../state/saju_renewal_provider.dart';
+import '../theme/saju_dark_tokens.dart';
+import '../widgets/saju_base_widgets.dart';
+import 'story_preview_screen.dart';
+import 'error_screen.dart';
+
+/// [귀인지도 정통사주 리뉴얼 — 다크 디자인 핸드오프] 화면⑧ 다른 사주
+/// 이야기 후보 목록. `design_files/saju/screens-b.jsx`의 `ScreenOthers`를
+/// 재현한다 — 카드형 레이아웃(장면 조명 그라데이션 + 글리프 + "시기"
+/// 배지 + "열어 보기 →")만 다크 스타일로 재스킨하고, 데이터 선정 로직은
+/// 전혀 바꾸지 않는다.
+///
+/// [Flutter 임의선정 절대 금지] 이 화면은 Topic Engine이 이미 내려준
+/// `topicsState.data!.candidates`를 그대로 노출만 한다 — 후보를 다시
+/// 정렬/필터링/임의 추천하지 않는다(지시서 §흐름 요구사항).
+///
+/// [버그 수정 — C-08b(docs/08) 결함 발견] 과거에는 이 주석이 "JSX
+/// 원안의 rotated/page 로컬 순환은 포트하지 않고, 항상 서버
+/// loadMoreTopics를 호출한다"고 적혀 있었으나, 이는
+/// docs/03_화면명세.md §08 "[새로운 이야기]: 남은 후보로 교체(애니 rise
+/// 재생). 남은 후보 < 3 → topics/select 재호출"과 §08 목적 "선택에만
+/// LLM 비용(후보 노출은 0비용)"을 위반하는 결함이었다(항상 서버
+/// 재호출 + 재호출마다 summary interpret까지 추가로 트리거됨). 이제는
+/// [SajuRenewalProvider.refreshCandidates]를 호출한다 — 이 메서드가
+/// 내부적으로 "남은 후보 ≥ 3장이면 로컬 교체(0비용), 미만이면만 서버
+/// 재호출" 분기를 담당한다. "이미 본 이야기" 재노출 방지는 여전히
+/// 서버(Exposure History)가 최종 판단하며, Flutter는 지금까지 상세까지
+/// 완료한 topic_id만 `exclude_topic_ids`로 참고 전달한다.
+///
+/// [isTiming 필드 재사용] JSX는 `tp.evidence.type === 'luck'`로 "시기" 배지
+/// 여부를 추론하지만, Flutter 쪽 `TopicCard`는 서버가 이미 내려주는
+/// `isTiming` 필드를 직접 가지고 있으므로 그대로 사용한다(재추론 금지).
+class MoreStoriesScreen extends StatefulWidget {
+  const MoreStoriesScreen({super.key});
+
+  @override
+  State<MoreStoriesScreen> createState() => _MoreStoriesScreenState();
+}
+
+class _MoreStoriesScreenState extends State<MoreStoriesScreen> {
+  bool _selecting = false;
+  bool _loadingMore = false;
+
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-05~07] 저장 처리 중인
+  /// 후보 topic_id — 비동기 exists()+save() 시퀀스 도중 같은 카드를
+  /// 연속으로 눌러 중복 저장/중복 토스트가 뜨지 않도록 막는다.
+  final Set<String> _savingTopicIds = {};
+
+  /// [MORE·08 무한 로딩 근본 수정 2026-10-12 — "에러 분기 부재" 마감]
+  /// 첫 topics/select가 두 번 모두 실패해 E-04의 LIFE_000 폴백(후보 0건)
+  /// 로 진행된 사용자가 상세까지 본 뒤 "또 다른 이야기 보기"로 이 화면에
+  /// 진입하면, 기존에는 아무 재조회도 트리거되지 않았다 — 후보 0건 +
+  /// candidatesRefreshFailed/candidatesExhausted 플래그 모두 false(한 번도
+  /// refreshCandidates를 호출한 적 없음) 상태라, build()의 빈 목록 분기
+  /// 중 "새로운 사주 이야기를 찾고 있어요." 문구가 **실제 로딩 없이**
+  /// 영구히 남는 무한 로딩(먹통)이 됐다.
+  ///
+  /// 수정: 이 화면 진입 직후 첫 프레임에서 위 정체 상태를 감지해 1회
+  /// 자동 재조회(_loadMore)를 트리거한다. 성공하면 카드가 채워지고,
+  /// 실패하면 Provider의 candidatesRefreshFailed 플래그가 서서 실패
+  /// 안내+[다시 시도] 분기로 전환된다 — 어떤 경로로 와도 "정체 상태"가
+  /// 남지 않는다. 로딩/재조회 중이거나 플래그가 이미 서 있으면(기존
+  /// 수정분이 처리) 아무것도 하지 않는다(중복 호출 방지).
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final provider = context.read<SajuRenewalProvider>();
+      final stuckOnEmpty =
+          provider.displayableCandidates.isEmpty &&
+          !provider.candidatesRefreshFailed &&
+          !provider.candidatesExhausted &&
+          !provider.isRefreshingCandidates &&
+          !provider.isTopicsLoading;
+      if (stuckOnEmpty) _loadMore();
+    });
+  }
+
+  Future<void> _selectCandidate(TopicCard candidate) async {
+    if (_selecting) return; // [중복클릭 방어]
+    setState(() => _selecting = true);
+    final provider = context.read<SajuRenewalProvider>();
+
+    await provider.loadPreview(candidate);
+    if (!mounted) return;
+    setState(() => _selecting = false);
+
+    if (provider.status == SajuRenewalFlowStatus.storyPreview) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const StoryPreviewScreen()));
+    } else if (provider.status == SajuRenewalFlowStatus.error) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ErrorScreen()));
+    }
+  }
+
+  /// [버그 수정 — C-08b(docs/08) 결함 발견] "[↻ 새로운 이야기]" 버튼 —
+  /// docs/03_화면명세.md §08 규칙 그대로
+  /// [SajuRenewalProvider.refreshCandidates]를 호출하면 Provider가
+  /// 로컬 교체(0비용)와 서버 재호출(남은 후보 < 3일 때만) 중 알맞은
+  /// 쪽을 스스로 선택한다. 화면은 그 결과(로딩 여부)만 반영한다.
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-01~04] 기존에는 여기서
+  /// `provider.status == error`일 때만 ErrorScreen으로 전체화면 전환했는데,
+  /// 이 화면(08)의 재호출 실패/소진은 더 이상 `_status`를 error로 바꾸지
+  /// 않는다(Provider 수정 참고) — 대신 `candidatesRefreshFailed`/
+  /// `candidatesExhausted` 플래그로 이 화면 안에서 안내+재시도를 보여준다.
+  /// 따라서 이 메서드는 이제 단순히 Provider 호출 결과를 반영하는 역할만
+  /// 하고, 화면 전환 분기는 제거한다 — build()의 플래그 기반 분기가 전부를
+  /// 처리한다.
+  Future<void> _loadMore() async {
+    if (_selecting || _loadingMore) return;
+    setState(() => _loadingMore = true);
+    final provider = context.read<SajuRenewalProvider>();
+    await provider.refreshCandidates();
+    if (!mounted) return;
+    setState(() => _loadingMore = false);
+  }
+
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-05~07] 후보 카드의
+  /// [저장] 아이콘 탭 처리. 이 화면은 아직 이야기 "본문"(interpret
+  /// summary/detail)을 받지 않은 후보 목록 단계이므로, 저장 항목의
+  /// summary는 장면/시기 정보로 간단히 구성한다 — 전용 신규 저장소를
+  /// 만들지 않고, story_detail_screen.dart가 이미 쓰고 있는 공용
+  /// 저장소([MyFortuneRecordStore])와 **동일한 id 규칙**
+  /// (`saju_${topicId}`)을 그대로 사용한다. 이렇게 하면 같은 주제를 나중에
+  /// 상세까지 열람해 다시 저장할 때 새 레코드가 아니라 기존 레코드가
+  /// 갱신되므로(저장소의 "같은 id면 갱신" 정책), 중복 항목 없이 정합성이
+  /// 유지된다(REQ-06 "동일한 저장 규격 사용").
+  ///
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-08 — 8절 Q2 기본안
+  /// "기기 로컬 저장 후 로그인 시 히스토리로 이관(동기화)"] 비로그인
+  /// 상태에서도 저장 버튼은 동일하게 동작하되(로그인 유도 팝업으로
+  /// 막지 않음 — 사주 분석 자체의 비회원 둘러보기 원칙과 동일 기조),
+  /// 결과를 메인 저장소가 아니라 게스트 임시 버킷에 담는다
+  /// (`MyFortuneRecordStore.save(asGuest: true)`). 이후 로그인/회원가입에
+  /// 성공하면 `AuthProvider.login`/`signup`/`loginWithSocial`이
+  /// [MyFortuneRecordStore.migrateGuestRecordsToAccount]를 호출해 이
+  /// 임시 기록을 계정의 정식 히스토리로 옮긴다(REQ-08 동기화 로직 본체는
+  /// auth_provider.dart에 있다 — 이 화면은 "게스트면 임시 버킷에 쓴다"는
+  /// 저장 시점 분기만 담당). 중복 저장 판정(REQ-07)은 게스트/로그인 버킷을
+  /// 모두 확인하는 [MyFortuneRecordStore.exists]의 기본 동작을 그대로
+  /// 사용한다.
+  Future<void> _toggleSave(TopicCard candidate, SajuScene scene) async {
+    final id = 'saju_${candidate.topicId}';
+    if (_savingTopicIds.contains(id)) return;
+    setState(() => _savingTopicIds.add(id));
+    try {
+      // [REQ-07] 이미 저장된 이야기면(게스트 버킷 포함) 추가 생성하지
+      // 않고 안내만 한다.
+      final already = await MyFortuneRecordStore.exists(id);
+      if (!mounted) return;
+      if (already) {
+        AppToast.show(context, '이미 저장된 이야기예요.');
+        return;
+      }
+      final isGuest = !context.read<AuthProvider>().isLoggedIn;
+      // [버그 수정 — 2026-12 "보관만 하고 안 열려" 결함] story_detail_
+      // screen.dart와 동일하게 TopicCard 복원 정보를 함께 저장해, 마이
+      // 페이지 "사주 히스토리"에서 이 항목을 탭하면 다시 열 수 있게 한다
+      // (이 시점은 아직 상세를 보지 않은 후보 단계이므로 재열람 시
+      // loadPreview로 05 미리보기부터 다시 시작한다).
+      await MyFortuneRecordStore.save(
+        SavedFortuneRecord(
+          id: id,
+          categoryLabel: '사주',
+          title: candidate.title,
+          summary:
+              '${scene.nameKo} 영역에서 발견한 이야기'
+              '${candidate.isTiming ? ' · 시기' : ''}',
+          date: DateTime.now(),
+          savedAt: DateTime.now(),
+          sajuTopicId: candidate.topicId,
+          sajuScene: candidate.scene.name,
+          sajuEvidenceFactKeys: candidate.evidenceFactKeys,
+        ),
+        asGuest: isGuest,
+      );
+      if (!mounted) return;
+      // [REQ-08] 게스트는 "이 기기에만" 저장됐음과 로그인 시 자동으로
+      // 보관된다는 점을 짧게 안내한다 — 로그인 사용자의 기존 문구("저장
+      // 되었어요.")는 그대로 유지한다(동작 변화 없음 요구사항).
+      AppToast.show(
+        context,
+        isGuest ? '이 기기에 저장했어요. 로그인하면 계정에 보관돼요.' : '저장되었어요.',
+      );
+    } finally {
+      if (mounted) setState(() => _savingTopicIds.remove(id));
+    }
+  }
+
+  /// [MORE·08 버그 수정 개발지시서 2026-10-11 REQ-09] 어떤 상태(로딩·
+  /// 실패 안내 포함)에서도 항상 동작하는 [홈으로] 이동. 기존 메인 홈
+  /// 라우트(`/home`)를 그대로 재사용하고(신규 라우트 추가 금지), 다른
+  /// 화면(타로 결과 등)의 "홈으로 가기"와 동일하게
+  /// `pushNamedAndRemoveUntil` + `arguments: 0`(첫 탭)으로 스택을
+  /// 완전히 비우고 교체한다.
+  void _goHome(BuildContext context) {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: 0);
+  }
+
+  /// [REQ-09] 세 렌더 분기(로딩/실패/성공)가 모두 동일한 TopBar를 쓰도록
+  /// 공용화한다 — [홈으로] 아이콘을 매 분기마다 따로 추가하면 하나를
+  /// 빠뜨릴 위험이 있으므로, TopBar 자체에 항상 포함시켜 "로딩 중·실패
+  /// 안내 중에도 항상 노출" 요구사항을 구조적으로 보장한다.
+  Widget _topBar(BuildContext context) {
+    return SajuTopBar(
+      left: SajuIconButton(
+        icon: '←',
+        onTap: () => Navigator.of(context).maybePop(),
+      ),
+      title: 'MORE · 08',
+      right: SajuIconButton(icon: '⌂', onTap: () => _goHome(context)),
+    );
+  }
+
+  SajuScene _tokenOf(SajuRenewalScene scene) {
+    switch (scene) {
+      case SajuRenewalScene.money:
+        return SajuScene.money;
+      case SajuRenewalScene.talent:
+        return SajuScene.talent;
+      case SajuRenewalScene.love:
+        return SajuScene.love;
+      case SajuRenewalScene.life:
+        return SajuScene.life;
+      case SajuRenewalScene.guin:
+        return SajuScene.guin;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<SajuRenewalProvider>();
+    final topicsState = provider.topicsState;
+
+    return Scaffold(
+      body: SajuDarkBase(
+        child: SafeArea(
+          child: Builder(
+            builder: (context) {
+              // [버그 수정 — C-08b] `provider.isRefreshingCandidates`는
+              // 여기서 검사하지 않는다 — docs/03 §08 "재호출 중 버튼만
+              // disabled"이므로, 이 전면 스피너 분기는 최초 로드 실패
+              // 후 재조회처럼 topicsState 자체가 비어있는 경우에만
+              // 써야 한다. refreshCandidates 호출 중에는 기존 카드가
+              // 화면에 그대로 남아있어야 하므로 isRefreshingCandidates를
+              // 여기 조건에 추가하지 않는다(의도적).
+              if (topicsState.isLoading || provider.isTopicsLoading) {
+                return Column(
+                  children: [
+                    _topBar(context),
+                    const Expanded(
+                      child: Center(
+                        child: CircularProgressIndicator(color: SajuGold.g300),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              if (topicsState.isError) {
+                return Column(
+                  children: [
+                    _topBar(context),
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(28),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                topicsState.errorMessage ?? '이야기를 불러오지 못했습니다.',
+                                style: SajuType.body14,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 20),
+                              SajuButton(
+                                label: '다시 시도',
+                                variant: SajuButtonVariant.secondary,
+                                height: 48,
+                                onTap: _loadMore,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // [버그 수정 — C-08a(docs/08) 결함 발견] 기존에는
+              // `topicsState.data.candidates`를 그대로 노출해 이미
+              // 상세까지 본 주제가 다시 나타나고 4개 이상 표시될 수
+              // 있었다. Provider의 [displayableCandidates](이미 본
+              // 주제 제외 + 3장 cap, docs/13 Q-06)를 사용한다.
+              final candidates = provider.displayableCandidates;
+              // [버그 수정 — C-08b] docs/04_모션.md §4-5 "08: 카드 rise
+              // 600, i×80ms. [새로운 이야기] 시 리스트 키 변경 → 재생" —
+              // jsx 원본 `<div key={page}>`와 동일한 역할. 배치가 바뀔
+              // 때마다(=[refreshCandidates] 성공) 이 값이 바뀌어 아래
+              // `_RiseIn`들이 매번 처음부터 다시 재생된다.
+              final batchKey = provider.candidateBatch;
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _topBar(context),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '당신의 사주에서 발견한\n또 다른 이야기',
+                            style: TextStyle(
+                              fontFamily: SajuType.body,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 24,
+                              height: 1.4,
+                              letterSpacing: -0.02 * 24,
+                              color: SajuGold.g100,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text('오늘은 어떤 이야기가 나올까요?', style: SajuType.body14),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: candidates.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // [MORE·08 버그 수정 개발지시서 2026-10-11
+                                  // REQ-02/03/04 — 핵심 버그 수정] 기존에는
+                                  // 이 분기가 "새로운 사주 이야기를 찾고
+                                  // 있어요." 문구 하나만 보여줘서, 재호출이
+                                  // 실패하거나(네트워크 오류 등) 후보가
+                                  // 소진돼도 똑같은 문구가 재시도 수단 없이
+                                  // 영구히 남아있는 버그가 있었다(지시서
+                                  // §2 "로딩 문구에 머무름"). 이제
+                                  // Provider의 candidatesRefreshFailed/
+                                  // candidatesExhausted 플래그로 세 가지
+                                  // 상태(로딩/실패/소진)를 구분해 각각 올바른
+                                  // 안내+버튼을 보여준다.
+                                  if (provider.candidatesRefreshFailed) ...[
+                                    const Text(
+                                      '일시적인 오류로 이야기를 못 찾았어요.\n다시 시도해 주세요.',
+                                      style: SajuType.body14,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    SajuButton(
+                                      label: '다시 시도',
+                                      variant: SajuButtonVariant.secondary,
+                                      height: 48,
+                                      onTap: _loadMore,
+                                    ),
+                                  ] else if (provider
+                                      .candidatesExhausted) ...[
+                                    // [소진 화면 디자인 업그레이드 2026-10-12]
+                                    // "텍스트 한 줄 + 회색 버튼"뿐이던 소진
+                                    // 상태를 카드 디자인 언어(보라 그라데이션
+                                    // + 금 테두리 + 발광 글리프)의 완결
+                                    // 패널로 승격한다. 안내 3종(감상 수·
+                                    // 7일 재후보화 일정·무료 재열람)을 한
+                                    // 곳에 모아 사용자가 "끝"이 아니라
+                                    // "일주일 뒤 리필 + 지금은 무료 복습"임을
+                                    // 정확히 알게 한다. 7일 기준은 서버
+                                    // topic-engine의 recentlyShown 감쇠
+                                    // 정책과 동일하다.
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: SajuText.lineGold,
+                                        ),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            SajuViolet.v800,
+                                            SajuViolet.v900,
+                                          ],
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          // 발광 별 글리프 — 카드의 장면
+                                          // 글리프와 같은 글로우 처리.
+                                          Text(
+                                            '✦',
+                                            style: TextStyle(
+                                              fontSize: 30,
+                                              color: SajuGold.g100.withValues(
+                                                alpha: 0.9,
+                                              ),
+                                              shadows: [
+                                                Shadow(
+                                                  color: SajuGold.g300,
+                                                  blurRadius: 18,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 14),
+                                          const Text(
+                                            '모든 이야기를 다 보셨어요',
+                                            style: TextStyle(
+                                              fontFamily: SajuType.body,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 18,
+                                              color: SajuGold.g100,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          // [viewedStoryCount] 이번 세션에서
+                                          // 상세까지 감상한 이야기 수 —
+                                          // 성취감을 주는 한 줄.
+                                          Text(
+                                            '지금까지 ${provider.viewedStoryCount}편의 이야기를 감상했어요.',
+                                            style: SajuType.body14,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 18),
+                                          Container(
+                                            width: 56,
+                                            height: 1,
+                                            color: SajuText.lineGold,
+                                          ),
+                                          const SizedBox(height: 18),
+                                          const Text(
+                                            '일주일 뒤면 이야기들이\n새 후보로 다시 찾아와요.',
+                                            style: SajuType.body14,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            '그때까지는 아래 버튼으로 본 이야기를\n처음부터 다시 볼 수 있어요. 다시 볼 때는 무료예요.',
+                                            style: TextStyle(
+                                              fontFamily: SajuType.body,
+                                              fontSize: 13,
+                                              height: 1.6,
+                                              color: SajuText.muted,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _RefreshButton(
+                                      label: '처음부터 다시 보기',
+                                      spinning:
+                                          _loadingMore ||
+                                          provider.isRefreshingCandidates,
+                                      onTap: _loadMore,
+                                    ),
+                                  ] else ...[
+                                    Text(
+                                      '새로운 사주 이야기를 찾고 있어요.',
+                                      style: SajuType.body14,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _RefreshButton(
+                                      spinning:
+                                          _loadingMore ||
+                                          provider.isRefreshingCandidates,
+                                      onTap: _loadMore,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            )
+                          : Column(
+                              children: [
+                                // [REQ-04] 재호출로 제외 목록을 리셋해 다시
+                                // 채운 직후에는 "모두 보셨어요" 안내를 카드
+                                // 목록과 함께 한 번 보여준다(초기화 정책
+                                // 안내 — 사용자가 왜 같은 후보가 다시
+                                // 보이는지 알 수 있도록).
+                                if (provider.candidatesExhausted) ...[
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 16,
+                                    ),
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: SajuText.lineGold,
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      '모든 이야기를 다 보셨어요. 처음부터 다시 보여드려요.\n'
+                                      '다시 볼 때는 무료예요 · 일주일 뒤면 새 후보로 다시 찾아와요.',
+                                      style: SajuType.body14,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                                for (int i = 0; i < candidates.length; i++) ...[
+                                  _RiseIn(
+                                    key: ValueKey(
+                                      '$batchKey-${candidates[i].topicId}',
+                                    ),
+                                    delay: Duration(milliseconds: i * 80),
+                                    child: _CandidateCard(
+                                      candidate: candidates[i],
+                                      scene: _tokenOf(candidates[i].scene),
+                                      enabled: !_selecting,
+                                      onTap: () =>
+                                          _selectCandidate(candidates[i]),
+                                      // [REQ-05~07] 카드별 저장 아이콘 —
+                                      // 이 화면은 아직 후보(제목) 단계라
+                                      // "이야기" 단위가 카드 1장과
+                                      // 대응하므로, 공용 하단 버튼 대신
+                                      // 카드별 저장 아이콘으로 구현한다.
+                                      saving: _savingTopicIds.contains(
+                                        'saju_${candidates[i].topicId}',
+                                      ),
+                                      onSaveTap: () => _toggleSave(
+                                        candidates[i],
+                                        _tokenOf(candidates[i].scene),
+                                      ),
+                                    ),
+                                  ),
+                                  if (i != candidates.length - 1)
+                                    const SizedBox(height: 12),
+                                ],
+                                const SizedBox(height: 24),
+                                // [웹 AdSense — STEP E] 후보 카드 리스트와
+                                // "새로운 이야기" 버튼 사이, 충분한 여백을
+                                // 두고 배치한다. 카드와 디자인(테두리/배경)
+                                // 을 공유하지 않아 후보 카드로 오인되지
+                                // 않는다(지시서 §5 버튼/카드 비혼동 원칙).
+                                const WebAdInPage(
+                                  surface: WebAdSurface.sajuRenewal,
+                                  adSlot: '',
+                                ),
+                                const SizedBox(height: 24),
+                                _RefreshButton(
+                                  spinning:
+                                      _loadingMore ||
+                                      provider.isRefreshingCandidates,
+                                  onTap: _selecting ? null : _loadMore,
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+      // [버그 수정 — "정통사주에도 하단바 다넣어"] push 화면이라 이름 있는
+      // 라우트 전용 전역 래퍼(wrapWithGlobalBottomNav)를 거치지 않는다.
+      // 다른 공용 화면과 동일한 MainBottomNavBar를 그대로 재사용한다
+      // (디자인/기능 변경 없음, 탭 0=홈 고정).
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 0),
+    );
+  }
+}
+
+/// JSX `ScreenOthers` 후보 카드 — 장면 조명 그라데이션 + 글리프 + "시기"
+/// 배지 + 타이틀 + "열어 보기 →".
+class _CandidateCard extends StatelessWidget {
+  const _CandidateCard({
+    required this.candidate,
+    required this.scene,
+    required this.enabled,
+    required this.onTap,
+    required this.saving,
+    required this.onSaveTap,
+  });
+
+  final TopicCard candidate;
+  final SajuScene scene;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  /// [MORE·08 저장 기능 개발지시서 2026-10-11 REQ-05] 저장 요청이 진행
+  /// 중인 동안 true — 아이콘을 스피너로 바꾸고 재탭을 막는다.
+  final bool saving;
+
+  /// REQ-05 저장 버튼 탭 콜백. 카드별로 독립된 저장 상태를 유지한다.
+  final VoidCallback onSaveTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          height: 132,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: SajuText.lineGold),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [SajuViolet.v800, SajuViolet.v900],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // 우상단 방사형 조명(radial glow).
+              Positioned(
+                right: -30,
+                top: -30,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        scene.tint.withValues(alpha: 0.25),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.65],
+                    ),
+                  ),
+                ),
+              ),
+              // 장면 글리프(발광).
+              Positioned(
+                right: 18,
+                top: 10,
+                child: Text(
+                  scene.glyph,
+                  style: TextStyle(
+                    fontSize: 34,
+                    color: scene.tint.withValues(alpha: 0.85),
+                    shadows: [Shadow(color: scene.tint, blurRadius: 18)],
+                  ),
+                ),
+              ),
+              // [MORE·08 REQ-05] 우측 중단 저장 아이콘 — 장면 글리프(top~10~44)와
+              // "열어 보기 →"(bottom:18) 사이의 빈 공간에 배치해 겹치지 않는다.
+              Positioned(
+                right: 14,
+                top: 56,
+                child: Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: saving ? null : onSaveTap,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: saving
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: SajuGold.g300,
+                              ),
+                            )
+                          : Text(
+                              '🔖',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: SajuGold.g300,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+              // 좌상단 장면 이름 + "시기" 배지.
+              Positioned(
+                left: 18,
+                top: 18,
+                child: Row(
+                  children: [
+                    Text(
+                      scene.nameKo,
+                      style: TextStyle(
+                        fontFamily: SajuType.ui,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: scene.tint,
+                      ),
+                    ),
+                    if (candidate.isTiming) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: SajuText.lineGold),
+                        ),
+                        child: const Text(
+                          '시기',
+                          style: TextStyle(
+                            fontFamily: SajuType.ui,
+                            fontSize: 10,
+                            color: SajuGold.g100,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // 좌하단 타이틀.
+              Positioned(
+                left: 18,
+                right: 70,
+                bottom: 18,
+                child: Text(
+                  candidate.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: SajuType.body,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18.5,
+                    height: 1.35,
+                    letterSpacing: -0.02 * 18.5,
+                    color: SajuGold.g100,
+                  ),
+                ),
+              ),
+              // 우하단 "열어 보기 →".
+              Positioned(
+                right: 18,
+                bottom: 18,
+                child: Text(
+                  '열어 보기 →',
+                  style: TextStyle(
+                    fontFamily: SajuType.ui,
+                    fontSize: 12,
+                    color: SajuGold.g300,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [버그 수정 — C-08b(docs/08) 결함 발견] docs/04_모션.md §4-5 "08: 카드
+/// rise 600, i×80ms"를 재현하는 등장 애니메이션. jsx 원본
+/// `animation: sj-rise .6s ${i*0.08}s var(--ease-sj) both`
+/// (`screens-b.jsx` `ScreenOthers`)와 1:1 대응 — 불투명도 0→1 +
+/// translateY(14px)→0을 지연(delay) 후 600ms에 걸쳐 재생한다. 이
+/// 화면에는 그런 등장 애니메이션 위젯이 전혀 없었다(기존 결함 —
+/// "카드 리스트가 아무 모션 없이 즉시 나타남").
+class _RiseIn extends StatefulWidget {
+  const _RiseIn({super.key, required this.child, this.delay = Duration.zero});
+
+  final Widget child;
+  final Duration delay;
+
+  @override
+  State<_RiseIn> createState() => _RiseInState();
+}
+
+class _RiseInState extends State<_RiseIn> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: SajuMotion.card, // 600ms — docs/04 "카드 rise 600".
+    );
+    _fade = CurvedAnimation(parent: _controller, curve: SajuMotion.easeSj);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.08), // CSS translateY(14px) 근사.
+      end: Offset.zero,
+    ).animate(_fade);
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}
+
+/// [버그 수정 — C-08b(docs/08) 결함 발견] docs/03_화면명세.md §08
+/// "[새로운 이야기]: ... 재호출 중 버튼 disabled + **라벨 앞 글리프
+/// 회전**." — 기존 `SajuButton`에는 글리프 회전 기능이 없어 이 요구를
+/// 재현할 수 없었다(기존 `SajuButton.loading`은 전체 라벨을 스피너로
+/// 바꿔버려 "↻ 새로운 이야기" 문구 자체가 사라지는 다른 동작이었다).
+/// 전용 Ghost 버튼을 만들어 "↻" 글리프만 회전시키고 라벨은 그대로 둔다.
+class _RefreshButton extends StatefulWidget {
+  const _RefreshButton({
+    required this.spinning,
+    required this.onTap,
+    this.label = '새로운 이야기',
+  });
+
+  final bool spinning;
+  final VoidCallback? onTap;
+
+  /// [소진 화면 디자인 업그레이드 2026-10-12] 소진 상태에선 "새로운
+  /// 이야기"가 아니라 "처음부터 다시 보기"가 맞는 라벨 — 상태별로
+  /// 라벨을 바꿔 기대와 동작을 일치시킨다.
+  final String label;
+
+  @override
+  State<_RefreshButton> createState() => _RefreshButtonState();
+}
+
+class _RefreshButtonState extends State<_RefreshButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    if (widget.spinning) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RefreshButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.spinning && !_controller.isAnimating) {
+      _controller.repeat();
+    } else if (!widget.spinning && _controller.isAnimating) {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = widget.onTap == null || widget.spinning;
+    return Opacity(
+      opacity: disabled ? 0.6 : 1,
+      child: GestureDetector(
+        onTap: disabled ? null : widget.onTap,
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: SajuText.line),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RotationTransition(
+                turns: _controller,
+                child: Text(
+                  '↻',
+                  style: TextStyle(fontSize: 14, color: SajuText.muted),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontFamily: SajuType.ui,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  color: SajuText.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

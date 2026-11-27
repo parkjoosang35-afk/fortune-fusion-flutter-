@@ -27,3 +27,10 @@ String formatPassDuration(int durationMin) {
   final m = durationMin % 60;
   return m == 0 ? '$h시간' : '$h시간 $m분';
 }
+
+/// [결과보기 통합 권한 시스템 v1.0, 2026-09-28] §1/§3 시간제→횟수제 전환.
+/// PassPolicyModel.grantCount가 non-null인 정책(현재는 쿠팡 정책 id=11)의
+/// 화면 표시 라벨을 durationMin과 무관하게 "N회"로 통일한다. 기존
+/// formatPassDuration(시간제 전용)은 그대로 두고, 이 함수는 호출부에서
+/// grantCount != null일 때만 대신 사용한다.
+String formatPassGrantCount(int grantCount) => '$grantCount회';

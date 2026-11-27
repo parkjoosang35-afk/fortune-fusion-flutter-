@@ -11,7 +11,7 @@ import 'feature_flag_counter.dart';
 ///   돌려준다. 호출부(SajuProvider)는 이 값으로 "실제 LLM 호출" vs
 ///   "룰 기반 우회" 분기를 결정한다.
 ///
-/// [주의] 이 클래스는 게이트 판정([CategoryGate]/[PassProvider])과 전혀
+/// [주의] 이 클래스는 게이트 판정(PassProvider 등)과 전혀
 /// 무관하다. 오직 "메인 AI 해석 호출을 얼마나 하고 있는지" 관측/제어만
 /// 담당한다.
 class AiCallCounter {

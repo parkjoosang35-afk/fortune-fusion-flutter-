@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_unified_style.dart';
 import '../../../../core/utils/load_state.dart';
+import '../../../../core/web_ads/web_ad_config.dart';
+import '../../../../core/web_ads/widgets/web_ad_banner.dart';
 import '../../../../core/widgets/app_error_state.dart';
-import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/result_card_stack.dart';
+import '../../../../core/widgets/result_text_scale_overlay.dart';
+import '../../guinji/theme/guinji_colors.dart';
+import '../../guinji/theme/guinji_typography.dart';
+import '../../guinji/widgets/hanja_stamp.dart';
+import '../../guinji/widgets/guinji_screen_bg.dart';
+import '../../../share/application/share_service.dart';
+import '../../../share/domain/share_result_model.dart';
 import '../application/palm_provider.dart';
 import '../domain/palm_model.dart';
+import '../../../../core/util/original_result_capture.dart';
+import '../../../../core/util/save_filename.dart';
+import '../../shared/domain/reading_artifact_builder.dart';
+import '../../shared/presentation/reading_disclosure_widgets.dart';
+import '../../shared/presentation/seal_reading_flow.dart';
+import '../../../../core/sound/guinji_sound_service.dart';
 
-/// [서브 디자인 통일 확산 프롬프트] 결과 페이지 표준 스켈레톤([ResultCardStack])을
-/// 재사용해 오늘의 운세/사주/궁합/관상 결과와 동일한 "카드 스택형 리포트" 톤을
-/// 적용한다. 손금선별 색상 구분/그림자·호버 효과/이모지는 모두 제거하고,
-/// 손금선 특징 + 주제별 해석을 하나의 세부 리포트 카드 스택으로 통일한다.
+/// [관상·손금 귀인지도 "새벽 한지" 리스킨] 손금 결과 화면.
+///
+/// [기존 시스템 유지 원칙] 결과 페이지 표준 스켈레톤인 [ResultCardStack]은
+/// 사주/타로/관상 결과 화면과 공유되는 컴포넌트이므로 내부 구조·스타일은
+/// 그대로 유지한다(사용자 승인 #1). 이 화면에서는 바깥쪽 배경/상단바만
+/// Dawn Hanji 톤(한지 배경 + 紋 인장 + 하자 라벨)으로 감싸고,
+/// [ResultCardStack]은 그 안에 "종이 위에 올려진 리포트 카드"처럼 얹는
+/// 방식으로 리스킨한다. [face_result_screen.dart]와 동일한 패턴이다.
 class PalmResultScreen extends StatefulWidget {
   final String? resultId;
   const PalmResultScreen({super.key, this.resultId});
@@ -29,6 +46,8 @@ const Map<String, IconData> _topicIcons = {
 };
 
 class _PalmResultScreenState extends State<PalmResultScreen> {
+  final _originalResultKey = GlobalKey();
+  final _originalHeaderKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -37,42 +56,86 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         context.read<PalmProvider>().selectFromHistory(widget.resultId!);
       });
     }
+    // [귀인지도 사운드 배치 개발 기획서 §5.2/§7.1] 결과 공개 화면 진입
+    // = "reveal" 덕킹(BGM -12dB/앰비언스 -12dB, attack 80ms/release
+    // 1500ms) 트리거.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<GuinjiSoundService>().duckMomentary('reveal');
+      } catch (_) {}
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PalmProvider>();
     final state = provider.state;
+    final canGoBack = Navigator.canPop(context);
 
-    return Scaffold(
-      backgroundColor: UnifiedColors.bg,
-      appBar: AppBar(
-        backgroundColor: UnifiedColors.bg,
-        elevation: 0,
-        title: Text('손금 결과', style: UnifiedText.titleLarge()),
-        actions: [
-          if (state.isSuccess)
-            IconButton(
-              icon: Icon(
-                Icons.share_outlined,
-                color: UnifiedColors.textPrimary,
+    return ResultTextScaleOverlay(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            const Positioned.fill(child: GuinjiScreenBg()),
+            SafeArea(
+              child: Column(
+                children: [
+                  OriginalResultScene(
+                    captureKey: _originalHeaderKey,
+                    background: GuinjiColors.bg1,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRect(
+                            child: OverflowBox(
+                              alignment: Alignment.topCenter,
+                              minHeight: MediaQuery.sizeOf(context).height,
+                              maxHeight: MediaQuery.sizeOf(context).height,
+                              child: const GuinjiScreenBg(),
+                            ),
+                          ),
+                        ),
+                        _ResultTopBar(
+                          hanja: '紋',
+                          hanjaColor: GuinjiColors.stampMun,
+                          title: '手紋 · REPORT',
+                          onBack: canGoBack
+                              ? () => Navigator.of(context).pop()
+                              : null,
+                          onShare: state.isSuccess
+                              ? () => _shareResult(context, state.data!)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: state.isSuccess
+                        ? _buildResult(context, state.data!)
+                        : _PaperSheet(
+                            child: switch (state.status) {
+                              LoadStatus.loading => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                              LoadStatus.error => AppErrorState(
+                                message: state.errorMessage ?? '분석에 실패했습니다.',
+                                onRetry: () => provider.retry(),
+                              ),
+                              LoadStatus.success => _buildResult(
+                                context,
+                                state.data!,
+                              ),
+                              LoadStatus.initial => const AppErrorState(
+                                message: '입력 정보가 없습니다.',
+                              ),
+                            },
+                          ),
+                  ),
+                ],
               ),
-              onPressed: () => AppToast.show(context, '공유 링크가 복사되었습니다.'),
             ),
-        ],
-      ),
-      body: SafeArea(
-        child: switch (state.status) {
-          LoadStatus.loading => const Center(
-            child: CircularProgressIndicator(),
-          ),
-          LoadStatus.error => AppErrorState(
-            message: state.errorMessage ?? '분석에 실패했습니다.',
-            onRetry: () => provider.retry(),
-          ),
-          LoadStatus.success => _buildResult(context, state.data!),
-          LoadStatus.initial => const AppErrorState(message: '입력 정보가 없습니다.'),
-        },
+          ],
+        ),
       ),
     );
   }
@@ -83,9 +146,27 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
         .toList();
 
     return ResultCardStack(
+      captureKey: _originalResultKey,
+      captureFrame: (child) => _PaperSheet(child: child),
       heroCaption: '종합 손금 해석',
       heroSummary: result.summary,
+      // [v7 통합 — TotalScreens.jsx 포팅] face_result_screen.dart와 동일
+      // 패턴. KeySeal+ProofStrip+출전+고지문을 한 번에 보여준다.
+      heroExtra: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ReadingTotalHeroExtra(
+            artifact: ReadingArtifactBuilder.fromPalm(result),
+          ),
+          const SizedBox(height: 12),
+          const ReadingFunDisclaimer(),
+        ],
+      ),
       sectionTitle: '세부 리포트',
+      // [웹 일반 AdSense 전체 확장 — 손금] 히어로 카드(종합 손금 해석)와
+      // 세부 리포트 섹션 사이에 배치 — CTA("다시 분석하기"/"히스토리
+      // 보기")와는 섹션 전체 길이만큼 떨어져 있어 혼동 우려가 없다.
+      midAd: const WebAdBanner(surface: WebAdSurface.palm, adSlot: ''),
       sections: [
         ...result.lines.entries.map(
           (e) => ResultSection(title: e.key, body: e.value),
@@ -96,13 +177,44 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
             body: e.value,
             trailing: Icon(
               _topicIcons[e.key] ?? Icons.auto_awesome_outlined,
-              size: UnifiedTokens.iconMd,
-              color: UnifiedColors.textSecondary,
+              size: 20,
+              color: Colors.black45,
             ),
           ),
         ),
       ],
       ctas: [
+        // [v7 통합 — 관상·손금 결과화면 + 소원방 봉인] face_result_screen.dart와
+        // 동일한 패턴. ResultCardStack 내부 구조는 건드리지 않는다.
+        ResultCta(
+          label: '🕯 이 풀이를 내 소원에 봉인하기',
+          icon: Icons.auto_awesome_rounded,
+          onTap: () => sealReadingToWishRoom(
+            context,
+            ReadingArtifactBuilder.fromPalm(result),
+          ),
+        ),
+        ResultCta(
+          label: '풀이만 보관하고 나가기',
+          icon: Icons.inventory_2_outlined,
+          onTap: () => keepReadingForLater(
+            context,
+            ReadingArtifactBuilder.fromPalm(result),
+          ),
+        ),
+        // [REQ-08 — 귀인지도_저장기능_정상화_개발지시서_v1.0] 기기 저장
+        // 버튼 문구를 전 화면 공통 "이미지로 저장"으로 통일.
+        ResultCta(
+          label: '이미지로 저장',
+          icon: Icons.download_rounded,
+          onTap: () => saveOriginalResult(
+            context,
+            _originalResultKey,
+            // [REQ-09] 파일명 규칙 통일: guinji_{서비스}_{결과ID}_{yyyyMMdd_HHmmss}.
+            name: buildSaveFileName('palm', result.id),
+            leadingKeys: [_originalHeaderKey],
+          ),
+        ),
         ResultCta(
           label: '다시 분석하기',
           icon: Icons.refresh_rounded,
@@ -115,7 +227,151 @@ class _PalmResultScreenState extends State<PalmResultScreen> {
           onTap: () =>
               Navigator.of(context).pushNamed('/ai-fortune/palm/history'),
         ),
+        // [엔진 통합 지시문 STEP 3 — 2탭 도달성] face_result_screen.dart와
+        // 동일한 패턴으로 교차검증 화면 진입점을 추가한다.
+        ResultCta(
+          label: '다른 운세와 비교해보기',
+          icon: Icons.compare_arrows_rounded,
+          onTap: () => Navigator.of(context).pushNamed('/cross-check/result'),
+        ),
       ],
+    );
+  }
+
+  /// [결과 공유 기능] `POST /api/public/share`로 공유 링크를 생성한 뒤 OS 공유
+  /// 시트로 전달한다. [payload]에는 화면 표시용 요약 값만 담고, 원본 촬영
+  /// 사진/실명 등 민감정보는 절대 포함하지 않는다(제안서 (h)절 보안 원칙).
+  void _shareResult(BuildContext context, PalmResultModel result) {
+    // [결과 공유 링크 콘텐츠 부실 버그 수정 — 타로/관상과 동일 원칙 적용]
+    // 손금은 lines(생명선/두뇌선/감정선/운명선)가 핵심 해석 대상이므로
+    // topicResults 3개만이 아니라 lines 전체도 highlights에 포함한다.
+    final lineLines = result.lines.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
+    final topicLines = result.topicResults.entries
+        .map((e) => '${e.key}: ${e.value}')
+        .toList();
+    ShareService.shareResult(
+      context,
+      resultType: ShareResultType.palm,
+      title: '손금 결과 · 귀인지도',
+      description: result.summary,
+      payload: {
+        // [앱·웹 공유 구조 확정] admin_web 전용 렌더러가 생명선/두뇌선/
+        // 감정선/운명선과 주제별 운세를 구획으로 나눠 보여줄 수 있도록
+        // 구조화 필드를 추가한다(face_result_screen.dart와 동일 패턴).
+        'kind': 'palm',
+        'lines': result.lines,
+        'topicResults': result.topicResults,
+        'summary': result.summary,
+        'highlights': [...lineLines, ...topicLines],
+      },
+      sourceRefId: result.id,
+      originalResultKey: _originalResultKey,
+      originalLeadingKeys: [_originalHeaderKey],
+    );
+  }
+}
+
+/// 결과 화면 공용 상단바. [face_result_screen.dart]의 동명 위젯과 동일한
+/// 구조이나, 각 파일이 독립적으로 유지보수될 수 있도록 파일별로 각각 둔다.
+class _ResultTopBar extends StatelessWidget {
+  const _ResultTopBar({
+    required this.hanja,
+    required this.hanjaColor,
+    required this.title,
+    this.onBack,
+    this.onShare,
+  });
+
+  final String hanja;
+  final Color hanjaColor;
+  final String title;
+  final VoidCallback? onBack;
+  final VoidCallback? onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Row(
+        children: [
+          if (onBack != null)
+            _CircleIconButton(icon: Icons.arrow_back_rounded, onTap: onBack!)
+          else
+            const SizedBox(width: 36),
+          const SizedBox(width: 10),
+          HanjaStamp(text: hanja, size: 28, color: hanjaColor, rotation: -6),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: GuinjiType.monoSm.copyWith(color: GuinjiColors.accent),
+            ),
+          ),
+          if (onShare != null)
+            _CircleIconButton(icon: Icons.ios_share_rounded, onTap: onShare!)
+          else
+            const SizedBox(width: 36),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: GuinjiColors.card,
+          border: Border.all(color: GuinjiColors.line),
+        ),
+        child: Icon(icon, size: 18, color: GuinjiColors.fg),
+      ),
+    );
+  }
+}
+
+/// [ResultCardStack]을 감싸는 "종이 시트" 컨테이너. 상단 모서리만 둥글게 잘라
+/// 한지 배경 위에 리포트 용지가 얹힌 듯한 느낌을 준다. 내부 [child]는
+/// [ResultCardStack]이 그대로 렌더링하는 흰 배경 리스트 뷰이므로, 여기서는
+/// 바깥 프레임(둥근 모서리 + 은은한 그림자)만 추가하고 내부 스타일은 전혀
+/// 건드리지 않는다.
+class _PaperSheet extends StatelessWidget {
+  const _PaperSheet({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: GuinjiColors.sigil.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
     );
   }
 }

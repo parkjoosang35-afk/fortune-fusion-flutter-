@@ -20,15 +20,17 @@ import '../domain/mission_model.dart';
 /// 테스트 유저(userId=1)를 고정으로 사용한다.
 class MissionRepository {
   Future<ApiResult<List<MissionModel>>> getMissions() async {
-    final userId = await AuthTokenStore.getCurrentUserId();
     final uri = Uri.parse(
-      '${EnvConfig.adminApiBaseUrl}/api/public/missions?userId=$userId',
+      '${EnvConfig.adminApiBaseUrl}/api/public/missions',
     );
     debugPrint('[MissionRepository] [getMissions] 요청 시작 -> $uri');
 
     try {
       final response = await http
-          .get(uri, headers: {'Accept': 'application/json'})
+          .get(uri, headers: {
+            'Accept': 'application/json',
+            ...await AuthTokenStore.authHeader(),
+          })
           .timeout(const Duration(seconds: 10));
 
       debugPrint(
