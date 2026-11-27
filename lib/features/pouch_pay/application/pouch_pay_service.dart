@@ -55,6 +55,11 @@ class PouchPayService extends ChangeNotifier {
   final SubscriptionRepository _subscriptionRepo = SubscriptionRepository();
   List<SubscriptionPlanModel> _subPlans = [];
   bool _subPlansLoaded = false;
+  // [결제 레이스 컨디션 버그 수정 — 2026-11-27] pouch_product_provider.dart의
+  // 동일 수정과 짝을 이룬다 — loadSubPlans()가 아직 끝나지 않은 상태에서
+  // findServerPlan()이 빈 캐시를 보고 "서버 미등록"으로 착각해 구독도
+  // 모의결제로 샐 수 있었다.
+  Future<void>? _subPlansInFlight;
 
   PouchPayService(this._pouch) {
     PouchPayLocalStore.I.load();
@@ -266,7 +271,15 @@ class PouchPayService extends ChangeNotifier {
   /// [초심/정성/신통 구독 실결제 연동 — 2026-11-27] 서버 subscription_plans를
   /// 로드해 캐시한다. 체크아웃 화면이 열릴 때 1회 호출하면 충분하다(관리자가
   /// 가격/상품ID를 바꾸면 다음 로드 때 반영됨 — 실시간 반영은 범위 밖).
-  Future<void> loadSubPlans() async {
+  Future<void> loadSubPlans() {
+    final inFlight = _subPlansInFlight;
+    if (inFlight != null) return inFlight;
+    final future = _doLoadSubPlans();
+    _subPlansInFlight = future;
+    return future.whenComplete(() => _subPlansInFlight = null);
+  }
+
+  Future<void> _doLoadSubPlans() async {
     final result = await _subscriptionRepo.getPlans();
     if (result.success) {
       _subPlans = result.data!;
@@ -276,6 +289,17 @@ class PouchPayService extends ChangeNotifier {
   }
 
   bool get subPlansLoaded => _subPlansLoaded;
+
+  /// [결제 레이스 컨디션 버그 수정 — 2026-11-27] findServerPlan()을 결제
+  /// 분기 판단에 쓰기 직전에 반드시 호출해 캐시 로드를 보장한다
+  /// (PouchProductProvider.ensureLoaded()와 동일한 원칙).
+  Future<void> ensureSubPlansLoaded() async {
+    if (_subPlansLoaded) return;
+    await loadSubPlans();
+    if (!_subPlansLoaded) {
+      await loadSubPlans();
+    }
+  }
 
   /// [결정 — 2026-11-27] 곳간 "구독중" 배지는 지금까지 로컬 캐시
   /// (PouchPayLocalStore, shared_preferences)만 보고 있었다. 구독이 완전히

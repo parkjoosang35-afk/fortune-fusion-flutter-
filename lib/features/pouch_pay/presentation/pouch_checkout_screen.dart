@@ -103,6 +103,12 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
     PouchPayResult result;
     try {
       if (req.isSub) {
+        // [결제 레이스 컨디션 버그 수정 — 2026-11-27] 서버 캐시가 아직
+        // 로드되지 않은 상태로 findServerPlan()을 호출하면 "서버 미등록"과
+        // "로딩 중"을 구분할 수 없어 실결제 상품이 모의결제(공짜 지급)로
+        // 새어버리는 사고가 실기기에서 재현됐다 — 분기 직전 반드시 로드
+        // 완료를 기다린다(이미 로드돼 있으면 즉시 반환되어 체감 지연 없음).
+        await service.ensureSubPlansLoaded();
         // [Google Play Billing 실연동 — 2026-11-27] 서버 subscription_plans에
         // 초심/정성/신통 + googlePlayProductId가 등록되어 있으면 진짜 결제
         // 흐름(buySubscriptionReal)을 타고, 아직 준비되지 않았으면 기존
@@ -123,9 +129,12 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
           );
         }
       } else {
-        final product = context.read<PouchProductProvider>().findByClientId(
-          req.pack!.id,
-        );
+        // [결제 레이스 컨디션 버그 수정 — 2026-11-27] 위 구독 분기와 동일한
+        // 이유로, 팩(일회성 상품) 쪽도 findByClientId() 호출 전에 서버
+        // 카탈로그 로드 완료를 보장한다.
+        final productProvider = context.read<PouchProductProvider>();
+        await productProvider.ensureLoaded();
+        final product = productProvider.findByClientId(req.pack!.id);
         if (product != null && product.canRealPurchase) {
           final results = await Future.wait([
             service.buyPackReal(product),
