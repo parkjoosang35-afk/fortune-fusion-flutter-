@@ -18,6 +18,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 enum IapOutcome { purchased, restored, canceled, error, unavailable, timeout }
 
@@ -92,6 +93,12 @@ class IapPurchaseManager {
   /// [consumable]이 true면 소모성(복주머니 충전 등 — 재구매 가능), false면
   /// 비소모성/구독(subscriptionId=productId로 동일하게 처리된다).
   ///
+  /// [basePlanId]는 "구독 2계층 구조"(부모 제품ID + 기본요금제ID) 대응용이다.
+  /// 지정하면 [productId]를 "부모 구독 상품ID"(예: chosim)로 쿼리한 뒤,
+  /// `subscriptionOfferDetails` 중 `basePlanId`가 일치하는 항목의 offerToken을
+  /// 찾아 `GooglePlayPurchaseParam(offerToken: ...)`으로 구매한다(일회성 상품/
+  /// 복주머니 팩은 이 파라미터를 생략한다 — offerToken 자체가 없음).
+  ///
   /// 반환된 [IapPurchaseResult.purchaseToken]을 서버 confirm-purchase
   /// 엔드포인트로 보내 검증받기 전까지는 어떤 지급도 수행하지 않아야 한다.
   /// 서버 확정 후에는 반드시 [completePurchase]를 호출해 결제 파이프라인을
@@ -99,6 +106,7 @@ class IapPurchaseManager {
   Future<IapPurchaseResult> buy({
     required String productId,
     required bool consumable,
+    String? basePlanId,
     Duration timeout = const Duration(minutes: 3),
   }) async {
     if (!_initialized) init();
@@ -121,11 +129,45 @@ class IapPurchaseManager {
       );
     }
 
-    final details = response.productDetails.first;
+    ProductDetails details = response.productDetails.first;
+    String? offerToken;
+    if (basePlanId != null && basePlanId.isNotEmpty) {
+      // 구독: 여러 기본요금제(월간/연간)가 subscriptionOfferDetails 각각으로
+      // 리스트에 흩어져 돌아온다 — basePlanId가 일치하는 항목을 찾아야 한다.
+      GooglePlayProductDetails? matched;
+      for (final d in response.productDetails) {
+        if (d is GooglePlayProductDetails) {
+          final idx = d.subscriptionIndex;
+          final offers = d.productDetails.subscriptionOfferDetails;
+          if (idx != null && offers != null && idx < offers.length) {
+            if (offers[idx].basePlanId == basePlanId) {
+              matched = d;
+              break;
+            }
+          }
+        }
+      }
+      if (matched == null) {
+        return IapPurchaseResult(
+          outcome: IapOutcome.unavailable,
+          productId: productId,
+          errorMessage:
+              'Play Console에 등록되지 않은 기본요금제입니다($productId/$basePlanId).',
+        );
+      }
+      details = matched;
+      offerToken = matched.offerToken;
+    }
+
     final completer = Completer<PurchaseDetails>();
     _pending[productId] = completer;
 
-    final param = PurchaseParam(productDetails: details);
+    final param = offerToken != null
+        ? GooglePlayPurchaseParam(
+            productDetails: details,
+            offerToken: offerToken,
+          )
+        : PurchaseParam(productDetails: details);
     try {
       if (consumable) {
         await _iap.buyConsumable(purchaseParam: param);

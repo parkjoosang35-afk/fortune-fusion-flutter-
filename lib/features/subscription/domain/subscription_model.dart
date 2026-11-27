@@ -14,6 +14,12 @@ class SubscriptionPlanModel {
   /// 기존 서버 시뮬레이션 결제(subscribe)로만 동작해야 한다.
   final String? googlePlayProductId;
 
+  /// [초심/정성/신통 구독 실결제 연동 — 2026-11-27] 구독 결제 성공 시 서버가
+  /// 추가로 지급하는 복주머니 기본/보너스 수량. null이면 복주머니 미지급
+  /// 플랜(과거 베이직/프리미엄류 알림패스 전용 구독)이다.
+  final int? pouchBaseAmount;
+  final int? pouchBonusAmount;
+
   const SubscriptionPlanModel({
     required this.id,
     required this.name,
@@ -22,10 +28,35 @@ class SubscriptionPlanModel {
     required this.benefits,
     this.isActive = true,
     this.googlePlayProductId,
+    this.pouchBaseAmount,
+    this.pouchBonusAmount,
   });
 
   bool get canRealPurchase =>
       googlePlayProductId != null && googlePlayProductId!.isNotEmpty;
+
+  /// 이 구독을 결제했을 때 받게 될 복주머니 총량(기본+보너스). 미지급 플랜이면 0.
+  int get pouchGrantTotal => (pouchBaseAmount ?? 0) + (pouchBonusAmount ?? 0);
+
+  /// [Google Play Billing 구독 2계층 구조] `googlePlayProductId`(예:
+  /// chosim-monthly)는 Play Console의 "기본요금제(Base Plan) ID"이고,
+  /// 실제 `queryProductDetails()` 조회는 그 "부모 구독 상품 ID"(예: chosim)로
+  /// 해야 한다. 이 환경은 기본요금제 ID가 항상 `<부모ID>-monthly` 또는
+  /// `<부모ID>-yearly`(혹은 과거 오탈자 `-year`) 패턴을 따르도록 등록되어
+  /// 있음이 Play Console 스크린샷으로 확인되었으므로, 그 접미사를 제거해
+  /// 부모ID를 역산한다. 패턴이 깨진 상품ID라면 null을 반환해 "정책준비중"과
+  /// 동일하게 취급한다(섣불리 잘못된 ID로 결제 시도하지 않음).
+  static final RegExp _basePlanSuffix = RegExp(
+    r'-(monthly|yearly|year|annual)$',
+  );
+
+  String? get googlePlayParentProductId {
+    final id = googlePlayProductId;
+    if (id == null || id.isEmpty) return null;
+    final match = _basePlanSuffix.firstMatch(id);
+    if (match == null) return null;
+    return id.substring(0, match.start);
+  }
 }
 
 /// 04A K-3 `period` 컬럼(VARCHAR) 대응 - `monthly`/`yearly`

@@ -312,9 +312,14 @@ class App extends StatelessWidget {
         ),
         // [S5 복주머니 결제] 곳간(Store)/체크아웃/ShortageQuickSheet 전용 구매
         // 서비스 — ShopProvider와 동일하게 LuckPouchProvider 위에 얇게 얹는다.
+        // [초심/정성/신통 구독 실결제 연동 — 2026-11-27] PouchProductProvider와
+        // 동일하게 생성 시점에 ..loadSubPlans()로 서버 subscription_plans를
+        // 1회 캐시해 곳간 구독탭이 열릴 때 바로 canRealPurchase 판단이
+        // 가능하도록 한다.
         ChangeNotifierProxyProvider<LuckPouchProvider, PouchPayService>(
           create: (context) =>
-              PouchPayService(context.read<LuckPouchProvider>()),
+              PouchPayService(context.read<LuckPouchProvider>())
+                ..loadSubPlans(),
           update: (context, pouch, previous) {
             if (previous != null) {
               previous.updatePouch(pouch);

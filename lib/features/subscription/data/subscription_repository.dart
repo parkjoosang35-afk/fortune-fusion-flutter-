@@ -6,6 +6,19 @@ import '../../../core/auth/auth_token_store.dart';
 import '../../../core/config/env_config.dart';
 import '../domain/subscription_model.dart';
 
+/// [초심/정성/신통 구독 실결제 연동 — 2026-11-27] confirmRealPurchase()의 확장
+/// 반환값 — 구독 활성화 결과 + 이번 결제로 서버가 지급한 복주머니 총량.
+/// 멱등(이미 처리된 재시도) 응답일 때는 grantedPouchAmount=0(서버가 이중
+/// 지급을 방지하기 위해 명시적으로 0을 반환 — confirm-purchase/route.ts 참고).
+class SubscriptionPurchaseConfirmation {
+  final UserSubscriptionModel subscription;
+  final int grantedPouchAmount;
+  const SubscriptionPurchaseConfirmation({
+    required this.subscription,
+    required this.grantedPouchAmount,
+  });
+}
+
 /// 06단계 §4.11(결제/구독) `/v1/subscriptions/*`, `/v1/payments` 대응 Repository
 /// — admin_web 공개 API(`/api/public/subscription/*`)를 호출한다.
 /// [방법 A] 테스트 유저(userId=1) 고정(matching_repository.dart와 동일 패턴).
@@ -157,6 +170,8 @@ class SubscriptionRepository {
           .toList(),
       isActive: j['isActive'] as bool? ?? true,
       googlePlayProductId: j['googlePlayProductId'] as String?,
+      pouchBaseAmount: (j['pouchBaseAmount'] as num?)?.toInt(),
+      pouchBonusAmount: (j['pouchBonusAmount'] as num?)?.toInt(),
     );
   }
 
@@ -164,7 +179,7 @@ class SubscriptionRepository {
   /// 받은 purchaseToken을 서버로 보내 실제 검증 + 구독 활성화를 요청한다.
   /// 서버가 503을 반환하면(서비스 계정 키 미설정) "결제 검증 시스템 준비중"
   /// 메시지를 그대로 전달한다 — 절대 클라이언트가 대신 성공 처리하지 않는다.
-  Future<ApiResult<UserSubscriptionModel>> confirmRealPurchase({
+  Future<ApiResult<SubscriptionPurchaseConfirmation>> confirmRealPurchase({
     required String googlePlayProductId,
     required String purchaseToken,
   }) async {
@@ -189,12 +204,25 @@ class SubscriptionRepository {
         return ApiResult.fail(decoded['error'] as String? ?? '구독 결제 확인에 실패했습니다.');
       }
       final data = decoded['data'] as Map<String, dynamic>;
+      final grantedPouchAmount = (data['grantedPouchAmount'] as num?)?.toInt() ?? 0;
       if (data['alreadyProcessed'] == true && data['plan'] == null) {
         // 멱등 응답(최초 요청이 이미 처리됨) — 최신 구독 상태를 다시 조회해 반환한다.
         final latest = await getMySubscription();
-        if (latest.success && latest.data != null) return ApiResult.ok(latest.data!);
+        if (latest.success && latest.data != null) {
+          return ApiResult.ok(
+            SubscriptionPurchaseConfirmation(
+              subscription: latest.data!,
+              grantedPouchAmount: grantedPouchAmount,
+            ),
+          );
+        }
       }
-      return ApiResult.ok(_subscriptionFromJson(data));
+      return ApiResult.ok(
+        SubscriptionPurchaseConfirmation(
+          subscription: _subscriptionFromJson(data),
+          grantedPouchAmount: grantedPouchAmount,
+        ),
+      );
     } catch (e) {
       debugPrint('[SubscriptionRepository] [confirmRealPurchase] 예외 -> $e');
       return ApiResult.fail('구독 결제 확인 중 오류가 발생했습니다: $e');

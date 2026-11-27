@@ -20,6 +20,8 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/iap/iap_purchase_manager.dart';
 import '../../luckpouch/application/luck_pouch_provider.dart';
+import '../../subscription/data/subscription_repository.dart';
+import '../../subscription/domain/subscription_model.dart';
 import '../data/pouch_pay_local_store.dart';
 import '../data/pouch_product_repository.dart';
 import '../domain/pouch_pay_catalog.dart';
@@ -46,6 +48,14 @@ class PouchPayResult {
 class PouchPayService extends ChangeNotifier {
   LuckPouchProvider _pouch;
   final PouchProductRepository _pouchProducts = PouchProductRepository();
+  // [초심/정성/신통 구독 실결제 연동 — 2026-11-27] 곳간 "매달 받기" 탭의
+  // 구독 결제를 subscription_plans(서버)와 직접 연결하기 위한 레포지토리.
+  // features/subscription 모듈의 SubscriptionProvider와는 별개 인스턴스로
+  // 가볍게 조회만 한다(마이페이지→구독 쪽 상태관리와 분리 — 02§21 범위분리).
+  final SubscriptionRepository _subscriptionRepo = SubscriptionRepository();
+  List<SubscriptionPlanModel> _subPlans = [];
+  bool _subPlansLoaded = false;
+
   PouchPayService(this._pouch) {
     PouchPayLocalStore.I.load();
   }
@@ -108,7 +118,11 @@ class PouchPayService extends ChangeNotifier {
     );
     await PouchPayLocalStore.I.addReceipt(receipt);
     notifyListeners();
-    return PouchPayResult(success: true, grantedAmount: granted, receipt: receipt);
+    return PouchPayResult(
+      success: true,
+      grantedAmount: granted,
+      receipt: receipt,
+    );
   }
 
   /// 구독 가입/전환(업그레이드·다운그레이드 포함) — 가입 즉시 월/연 분의
@@ -140,7 +154,10 @@ class PouchPayService extends ChangeNotifier {
       ['복주머니', '${pouchSubBase(tier)}개'],
       ['구독 덤 +${tier.bonusPct}%', '+${pouchSubBonus(tier)}개'],
       ['담기는 때', billing == 'year' ? '매년' : '매달'],
-      ['다음 결제일', '${next.year}.${next.month.toString().padLeft(2, '0')}.${next.day.toString().padLeft(2, '0')}'],
+      [
+        '다음 결제일',
+        '${next.year}.${next.month.toString().padLeft(2, '0')}.${next.day.toString().padLeft(2, '0')}',
+      ],
     ];
     final receipt = PouchReceipt(
       orderId: orderId,
@@ -160,7 +177,11 @@ class PouchPayService extends ChangeNotifier {
       ),
     );
     notifyListeners();
-    return PouchPayResult(success: true, grantedAmount: granted, receipt: receipt);
+    return PouchPayResult(
+      success: true,
+      grantedAmount: granted,
+      receipt: receipt,
+    );
   }
 
   /// [Google Play Billing 실연동 — 2026-11-26] 서버(PouchProduct)에
@@ -197,10 +218,15 @@ class PouchPayService extends ChangeNotifier {
     if (!confirm.success) {
       // 서버 확정에 실패하면 Google 결제를 완료 처리하지 않는다 — 다음 앱
       // 실행 시 purchaseStream이 동일 구매를 재통지해 재시도할 수 있게 한다.
-      return PouchPayResult(success: false, blockedReason: confirm.errorMessage);
+      return PouchPayResult(
+        success: false,
+        blockedReason: confirm.errorMessage,
+      );
     }
 
-    await IapPurchaseManager.instance.completePurchaseFor(product.googlePlayProductId!);
+    await IapPurchaseManager.instance.completePurchaseFor(
+      product.googlePlayProductId!,
+    );
 
     final granted = confirm.data ?? 0;
     await _pouch.load();
@@ -222,7 +248,137 @@ class PouchPayService extends ChangeNotifier {
     );
     await PouchPayLocalStore.I.addReceipt(receipt);
     notifyListeners();
-    return PouchPayResult(success: true, grantedAmount: granted, receipt: receipt);
+    return PouchPayResult(
+      success: true,
+      grantedAmount: granted,
+      receipt: receipt,
+    );
+  }
+
+  /// [초심/정성/신통 구독 실결제 연동 — 2026-11-27] 서버 subscription_plans를
+  /// 로드해 캐시한다. 체크아웃 화면이 열릴 때 1회 호출하면 충분하다(관리자가
+  /// 가격/상품ID를 바꾸면 다음 로드 때 반영됨 — 실시간 반영은 범위 밖).
+  Future<void> loadSubPlans() async {
+    final result = await _subscriptionRepo.getPlans();
+    if (result.success) {
+      _subPlans = result.data!;
+      _subPlansLoaded = true;
+      notifyListeners();
+    }
+  }
+
+  bool get subPlansLoaded => _subPlansLoaded;
+
+  /// [tier.id]("chosim"/"jeongseong"/"sintong")와 [billing]("month"/"year")에
+  /// 대응하는 서버 SubscriptionPlan을 찾는다. tier.id가 Play Console의
+  /// "부모 구독 상품ID"와 정확히 동일하도록 등록되어 있음을 전제한다(Play
+  /// Console 스크린샷으로 확인됨: chosim/jeongseong/sintong).
+  SubscriptionPlanModel? findServerPlan(PouchSubTier tier, String billing) {
+    final period = billing == 'year'
+        ? SubscriptionPeriod.yearly
+        : SubscriptionPeriod.monthly;
+    for (final p in _subPlans) {
+      if (p.period == period && p.googlePlayParentProductId == tier.id) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  /// [Google Play Billing 실연동 — 2026-11-27] 곳간 "매달 받기" 탭의 진짜
+  /// 결제 흐름. 순서는 buyPackReal()과 동일한 원칙(클라이언트는 절대 낙관적
+  /// 지급을 하지 않는다): ①서버 플랜 확인 → ②Google Play 구독 결제창
+  /// (부모ID+기본요금제 offerToken) → ③purchaseToken을 서버
+  /// subscription/confirm-purchase로 전송(Google Play Developer API v2로
+  /// 검증 후에만 복주머니 지급) → ④서버 성공 응답을 받은 뒤에만 Google 결제
+  /// 완료 처리 → ⑤LuckPouchProvider 재조회.
+  Future<PouchPayResult> buySubscriptionReal(
+    PouchSubTier tier, {
+    required String billing,
+  }) async {
+    final plan = findServerPlan(tier, billing);
+    if (plan == null || !plan.canRealPurchase) {
+      return const PouchPayResult(
+        success: false,
+        blockedReason: '아직 실결제가 준비되지 않은 구독입니다.',
+      );
+    }
+    final parentId = plan.googlePlayParentProductId;
+    if (parentId == null) {
+      return const PouchPayResult(
+        success: false,
+        blockedReason: '구독 상품ID 구성이 올바르지 않습니다.',
+      );
+    }
+
+    final purchase = await IapPurchaseManager.instance.buy(
+      productId: parentId,
+      basePlanId: plan.googlePlayProductId!,
+      consumable: false,
+    );
+    if (!purchase.isSuccess || purchase.purchaseToken == null) {
+      return PouchPayResult(
+        success: false,
+        blockedReason: purchase.errorMessage ?? '결제가 완료되지 않았습니다.',
+      );
+    }
+
+    final confirm = await _subscriptionRepo.confirmRealPurchase(
+      googlePlayProductId: plan.googlePlayProductId!,
+      purchaseToken: purchase.purchaseToken!,
+    );
+    if (!confirm.success) {
+      // 서버 확정 실패 시 Google 결제를 완료 처리하지 않는다 — 다음 앱 실행 시
+      // purchaseStream이 재통지해 재시도할 수 있게 한다(buyPackReal과 동일 원칙).
+      return PouchPayResult(
+        success: false,
+        blockedReason: confirm.errorMessage,
+      );
+    }
+
+    // completePurchaseFor의 키는 buy()에 넘긴 productId(=parentId)와 일치해야 한다.
+    await IapPurchaseManager.instance.completePurchaseFor(parentId);
+
+    final granted = confirm.data!.grantedPouchAmount;
+    await _pouch.load();
+
+    final orderId = _genOrderId();
+    final next = DateTime.now().add(
+      Duration(days: billing == 'year' ? 365 : 30),
+    );
+    final rows = <List<String>>[
+      ['복주머니', '${plan.pouchBaseAmount ?? 0}개'],
+      if ((plan.pouchBonusAmount ?? 0) > 0)
+        ['구독 덤', '+${plan.pouchBonusAmount}개'],
+      ['담기는 때', billing == 'year' ? '매년' : '매달'],
+      [
+        '다음 결제일',
+        '${next.year}.${next.month.toString().padLeft(2, '0')}.${next.day.toString().padLeft(2, '0')}',
+      ],
+    ];
+    final receipt = PouchReceipt(
+      orderId: orderId,
+      title: '${tier.hanja} · ${tier.name}',
+      rows: rows,
+      payNow: plan.price,
+      gain: granted,
+      createdAt: DateTime.now(),
+      isSub: true,
+    );
+    await PouchPayLocalStore.I.addReceipt(receipt);
+    await PouchPayLocalStore.I.setSubscription(
+      PouchSubscriptionState(
+        tierId: tier.id,
+        billing: billing,
+        nextBillingAt: next,
+      ),
+    );
+    notifyListeners();
+    return PouchPayResult(
+      success: true,
+      grantedAmount: granted,
+      receipt: receipt,
+    );
   }
 
   /// 구독 해지(모의 — 즉시 해지, 환불 없음. 실결제 전환 시 스토어

@@ -154,12 +154,7 @@ class _PouchStoreScreenState extends State<PouchStoreScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: WishRoomColors.surfaceCardBorder),
       ),
-      child: Row(
-        children: [
-          _tabBtn('한번 담기', 0),
-          _tabBtn('매달 받기', 1),
-        ],
-      ),
+      child: Row(children: [_tabBtn('한번 담기', 0), _tabBtn('매달 받기', 1)]),
     );
   }
 
@@ -197,9 +192,7 @@ class _PouchStoreScreenState extends State<PouchStoreScreen> {
   Widget _packsPanel() {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      children: [
-        for (final pk in kPouchPacks) _packRow(pk),
-      ],
+      children: [for (final pk in kPouchPacks) _packRow(pk)],
     );
   }
 
@@ -296,12 +289,13 @@ class _PouchStoreScreenState extends State<PouchStoreScreen> {
   }
 
   Widget _subsPanel(PouchSubscriptionState? activeSub) {
+    final pay = context.watch<PouchPayService>();
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       children: [
         _billingToggle(),
         const SizedBox(height: 12),
-        for (final tier in kPouchSubs) _tierCard(tier, activeSub),
+        for (final tier in kPouchSubs) _tierCard(tier, activeSub, pay),
       ],
     );
   }
@@ -354,10 +348,24 @@ class _PouchStoreScreenState extends State<PouchStoreScreen> {
     );
   }
 
-  Widget _tierCard(PouchSubTier tier, PouchSubscriptionState? activeSub) {
+  Widget _tierCard(
+    PouchSubTier tier,
+    PouchSubscriptionState? activeSub,
+    PouchPayService pay,
+  ) {
     final selected = _selSub?.id == tier.id;
     final isCurrent = activeSub?.tierId == tier.id;
-    final price = _billing == 'year' ? pouchSubYearPrice(tier) : tier.month;
+    // [초심/정성/신통 구독 실결제 연동 — 2026-11-27] 서버에 실결제 가능한
+    // 플랜이 등록돼 있으면 서버 가격/지급량을 우선 표시한다(관리자가 바꾼
+    // 값과 화면이 어긋나지 않도록). 서버 미등록 시에만 클라이언트 하드코딩
+    // 카탈로그(pouch_pay_catalog.dart) 값으로 폴백한다.
+    final serverPlan = pay.findServerPlan(tier, _billing);
+    final price = serverPlan?.canRealPurchase == true
+        ? serverPlan!.price
+        : (_billing == 'year' ? pouchSubYearPrice(tier) : tier.month);
+    final grant = serverPlan?.canRealPurchase == true
+        ? serverPlan!.pouchGrantTotal
+        : pouchSubGrant(tier);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Semantics(
@@ -415,9 +423,7 @@ class _PouchStoreScreenState extends State<PouchStoreScreen> {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: WishRoomColors.success.withValues(
-                            alpha: 0.2,
-                          ),
+                          color: WishRoomColors.success.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
@@ -450,7 +456,7 @@ class _PouchStoreScreenState extends State<PouchStoreScreen> {
                 Text(tier.tagline, style: WishRoomTextStyles.bodySm),
                 const SizedBox(height: 10),
                 Text(
-                  '$price원 · 🧧 ${pouchSubGrant(tier)}개 (기본+${tier.bonusPct}%)',
+                  '$price원 · 🧧 $grant개 (기본+${tier.bonusPct}%)',
                   style: WishRoomTextStyles.bodyMd.copyWith(
                     fontWeight: FontWeight.w700,
                     color: tier.premium

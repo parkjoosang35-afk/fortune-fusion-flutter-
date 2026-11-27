@@ -73,17 +73,28 @@ class SubscriptionProvider extends ChangeNotifier {
   /// 서버 확정이 실패하면 Google 결제를 완료 처리하지 않는다(재시도 가능
   /// 상태 유지 — subscribe()의 서버 시뮬레이션 결제와 달리 절대 낙관적으로
   /// 먼저 활성화하지 않는다).
+  ///
+  /// [구독 2계층 구조 — 2026-11-27] plan.googlePlayProductId는 서버에
+  /// "기본요금제ID"(예: chosim-monthly)로 저장되어 있으나, Google Play
+  /// Billing에 상품을 조회(queryProductDetails)할 때는 반드시 "부모 구독
+  /// 상품ID"(예: chosim)를 사용해야 한다. 부모ID는
+  /// plan.googlePlayParentProductId로 역산한다.
   Future<({bool success, String? errorMessage})> subscribeReal(
     SubscriptionPlanModel plan,
   ) async {
     if (!plan.canRealPurchase) {
       return (success: false, errorMessage: '아직 실결제가 준비되지 않은 플랜입니다.');
     }
+    final parentId = plan.googlePlayParentProductId;
+    if (parentId == null) {
+      return (success: false, errorMessage: '구독 상품ID 구성이 올바르지 않습니다.');
+    }
     _isProcessing = true;
     notifyListeners();
     try {
       final purchase = await IapPurchaseManager.instance.buy(
-        productId: plan.googlePlayProductId!,
+        productId: parentId,
+        basePlanId: plan.googlePlayProductId!,
         consumable: false,
       );
       if (!purchase.isSuccess || purchase.purchaseToken == null) {
@@ -99,8 +110,11 @@ class SubscriptionProvider extends ChangeNotifier {
       if (!confirm.success) {
         return (success: false, errorMessage: confirm.errorMessage);
       }
-      await IapPurchaseManager.instance.completePurchaseFor(plan.googlePlayProductId!);
-      _mySubscription = confirm.data;
+      // [중요] completePurchaseFor의 키는 buy()에 넘긴 productId(=parentId)와
+      // 반드시 일치해야 한다 — IapPurchaseManager가 _pending/_awaitingCompletion을
+      // 그 값으로 관리하기 때문이다(기본요금제ID가 아님).
+      await IapPurchaseManager.instance.completePurchaseFor(parentId);
+      _mySubscription = confirm.data!.subscription;
       return (success: true, errorMessage: null);
     } finally {
       _isProcessing = false;

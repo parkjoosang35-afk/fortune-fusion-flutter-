@@ -82,15 +82,29 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
     PouchPayResult result;
     try {
       if (req.isSub) {
-        // 구독 실결제는 SubscriptionPlan 경로(마이페이지 → 구독)로 이미
-        // 별도 구현되어 있다 — 곳간(PouchStore) 구독탭은 여전히 서버
-        // 시뮬레이션(복주머니 정기지급 모의)만 다룬다(범위 분리, 02§21).
-        await Future.delayed(const Duration(milliseconds: 3200));
-        result = await service.buySubscription(req.sub!, billing: req.subBilling);
+        // [Google Play Billing 실연동 — 2026-11-27] 서버 subscription_plans에
+        // 초심/정성/신통 + googlePlayProductId가 등록되어 있으면 진짜 결제
+        // 흐름(buySubscriptionReal)을 타고, 아직 준비되지 않았으면 기존
+        // 시뮬레이션(buySubscription)으로 폴백한다 — buyPackReal/buyPack과
+        // 정확히 동일한 분기 패턴.
+        final serverPlan = service.findServerPlan(req.sub!, req.subBilling);
+        if (serverPlan != null && serverPlan.canRealPurchase) {
+          final results = await Future.wait([
+            service.buySubscriptionReal(req.sub!, billing: req.subBilling),
+            Future.delayed(const Duration(milliseconds: 3200)),
+          ]);
+          result = results[0] as PouchPayResult;
+        } else {
+          await Future.delayed(const Duration(milliseconds: 3200));
+          result = await service.buySubscription(
+            req.sub!,
+            billing: req.subBilling,
+          );
+        }
       } else {
-        final product = context
-            .read<PouchProductProvider>()
-            .findByClientId(req.pack!.id);
+        final product = context.read<PouchProductProvider>().findByClientId(
+          req.pack!.id,
+        );
         if (product != null && product.canRealPurchase) {
           final results = await Future.wait([
             service.buyPackReal(product),
@@ -251,11 +265,7 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
                   decoration: WrDeco.card,
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.android,
-                        size: 18,
-                        color: WrC.glow,
-                      ),
+                      const Icon(Icons.android, size: 18, color: WrC.glow),
                       const SizedBox(width: 10),
                       Text(
                         'Google Play 결제',
@@ -324,10 +334,7 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  label,
-                  style: WrF.body(12, color: WrC.muted),
-                ),
+                child: Text(label, style: WrF.body(12, color: WrC.muted)),
               ),
             ],
           ),
@@ -368,10 +375,7 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
           const SizedBox(height: 22),
           Text('봉인하는 중', style: WrF.display(16, color: Colors.white)),
           const SizedBox(height: 8),
-          Text(
-            '잠시만 기다려 주세요…',
-            style: WrF.mono(size: 11, color: WrC.muted),
-          ),
+          Text('잠시만 기다려 주세요…', style: WrF.mono(size: 11, color: WrC.muted)),
         ],
       ),
     );
@@ -514,10 +518,7 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
           children: [
             const WishRoomCandle(size: 60, lit: false),
             const SizedBox(height: 22),
-            Text(
-              '잠시 바람이 불었어요',
-              style: WrF.display(18, color: Colors.white),
-            ),
+            Text('잠시 바람이 불었어요', style: WrF.display(18, color: Colors.white)),
             const SizedBox(height: 10),
             Text(
               '결제가 끝나지 않았어요.\n빠져나간 돈은 없으니 안심하세요.',
