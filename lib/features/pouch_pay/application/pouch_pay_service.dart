@@ -125,6 +125,14 @@ class PouchPayService extends ChangeNotifier {
     );
   }
 
+  /// [결정 — 2026-11-27] 서버에 해당 tier/billing의 실결제 플랜
+  /// (googlePlayProductId 등록 + canRealPurchase)이 없을 때만 호출되는
+  /// **의도된 폴백**이다(pouch_checkout_screen.dart `_seal()`의 분기 참고).
+  /// 관리자가 아직 특정 조합(예: 신규 등급 신설 직후)을 Play Console에
+  /// 등록하지 못한 과도기에도 곳간 구독탭이 완전히 막히지 않도록 유지한다.
+  /// 초심/정성/신통 6개 조합이 전부 서버에 등록된 뒤에는 이 메서드가
+  /// 실제로 호출될 일은 없어야 정상이다 — 제거하지 않고 안전망으로만 둔다.
+  ///
   /// 구독 가입/전환(업그레이드·다운그레이드 포함) — 가입 즉시 월/연 분의
   /// 복주머니를 담아준다(디자인핸드오프 PayCheckout.jsx `orderOf` sub 분기
   /// 1:1: gain = pouchSubGrant(tier)). 실제 정기결제 엔진이 없으므로
@@ -268,6 +276,59 @@ class PouchPayService extends ChangeNotifier {
   }
 
   bool get subPlansLoaded => _subPlansLoaded;
+
+  /// [결정 — 2026-11-27] 곳간 "구독중" 배지는 지금까지 로컬 캐시
+  /// (PouchPayLocalStore, shared_preferences)만 보고 있었다. 구독이 완전히
+  /// 모의(mock)였던 과거에는 이걸로 충분했지만, 실결제 전환 후에는 사용자가
+  /// 마이페이지→구독 화면에서 해지하거나(features/subscription 모듈) 서버가
+  /// 만료 처리해도 곳간 화면 로컬 상태는 그대로 남아 두 화면이 어긋나는
+  /// 문제가 생긴다. 곳간 화면이 열릴 때 서버의 진짜 구독 상태
+  /// (`/api/public/subscription/my`)를 조회해 로컬 표시를 맞춰준다 — 서버가
+  /// 유일한 진실 공급원(single source of truth)이라는 원칙을 구독 표시에도
+  /// 동일하게 적용(재화 절대 원칙과 동일한 설계 사상).
+  Future<void> syncSubscriptionFromServer() async {
+    final result = await _subscriptionRepo.getMySubscription();
+    if (!result.success) return; // 비로그인/네트워크 실패 시 로컬 표시 유지(안전한 기본값)
+    final sub = result.data;
+    if (sub == null || !sub.isActive) {
+      // 서버에 활성 구독이 없거나 해지/만료됨 — 로컬 배지도 내린다.
+      if (PouchPayLocalStore.I.subscription != null) {
+        await PouchPayLocalStore.I.setSubscription(null);
+        notifyListeners();
+      }
+      return;
+    }
+    final parentId = sub.plan.googlePlayParentProductId;
+    PouchSubTier? matchedTier;
+    if (parentId != null) {
+      for (final t in kPouchSubs) {
+        if (t.id == parentId) {
+          matchedTier = t;
+          break;
+        }
+      }
+    }
+    if (matchedTier == null) {
+      // 초심/정성/신통과 무관한 구독(향후 확장 대비) — 곳간 배지는 건드리지 않는다.
+      return;
+    }
+    final billing = sub.plan.period == SubscriptionPeriod.yearly
+        ? 'year'
+        : 'month';
+    final local = PouchPayLocalStore.I.subscription;
+    if (local?.tierId != matchedTier.id ||
+        local?.billing != billing ||
+        local?.nextBillingAt != sub.currentPeriodEnd) {
+      await PouchPayLocalStore.I.setSubscription(
+        PouchSubscriptionState(
+          tierId: matchedTier.id,
+          billing: billing,
+          nextBillingAt: sub.currentPeriodEnd,
+        ),
+      );
+      notifyListeners();
+    }
+  }
 
   /// [tier.id]("chosim"/"jeongseong"/"sintong")와 [billing]("month"/"year")에
   /// 대응하는 서버 SubscriptionPlan을 찾는다. tier.id가 Play Console의

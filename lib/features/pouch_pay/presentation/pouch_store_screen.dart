@@ -34,6 +34,14 @@ class _PouchStoreScreenState extends State<PouchStoreScreen> {
     super.initState();
     _selPack = kPouchPacks[3]; // 가장 많이 담아요 기본 선택
     _selSub = kPouchSubs[1]; // 정성 기본 선택
+    // [초심/정성/신통 구독 실결제 연동 — 2026-11-27] 곳간 화면이 열릴
+    // 때마다 서버의 진짜 구독 상태로 "구독중" 배지를 맞춘다 — 마이페이지→
+    // 구독에서 해지했거나 서버가 만료 처리한 경우 로컬 캐시가 낡아 두 화면이
+    // 어긋나는 문제를 막는다(PouchPayService.syncSubscriptionFromServer).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<PouchPayService>().syncSubscriptionFromServer();
+    });
   }
 
   @override
