@@ -12,6 +12,7 @@
 // [S5 — 동일 결제 중복 처리 방지] pay_screen.dart의 _oid 패턴과 동일하게
 // 이 화면도 자체 주문번호를 생성해 Sealing 단계 재진입/중복 실행을 막는다.
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -79,6 +80,26 @@ class _PouchCheckoutScreenState extends State<PouchCheckoutScreen> {
     // PayCheckout.jsx SealingScreen의 3.2초 연출 — "봉인하는 중" 체감 시간.
     // [Google Play Billing 실연동] 실결제 흐름은 Google 결제창 응답을 함께
     // 기다려야 하므로 두 작업을 병렬로 진행한다(최소 3.2초 연출은 유지).
+    //
+    // [웹 플랫폼 결제 차단 버그 수정 — 2026-11-27] 과거에는 "서버 플랜이
+    // canRealPurchase가 아니면 mock으로 폴백"하는 로직이 googlePlayProductId가
+    // 실제로 등록되어 있는 경우에도 적용돼, 웹처럼 Google Play 결제 자체가
+    // 존재할 수 없는 플랫폼에서 실결제 상품을 "조용히 mock 성공"으로 지급해
+    // 버렸다(PC 웹 프리뷰에서 결제가 '그냥 다 되는' 버그의 원인). mock
+    // 폴백은 "관리자가 아직 Play Console에 상품을 등록하지 않은 과도기"만을
+    // 위한 안전망이어야 하므로, kIsWeb(=Google Play 결제가 원천적으로 불가능한
+    // 플랫폼)에서는 그 안전망 자체를 밟지 못하도록 최상단에서 차단한다.
+    if (kIsWeb) {
+      if (!mounted) return;
+      setState(() {
+        _result = const PouchPayResult(
+          success: false,
+          blockedReason: '앱(안드로이드)에서만 실제 결제가 가능합니다. 웹에서는 결제할 수 없어요.',
+        );
+        _stage = _CheckoutStage.fail;
+      });
+      return;
+    }
     PouchPayResult result;
     try {
       if (req.isSub) {

@@ -111,7 +111,22 @@ class IapPurchaseManager {
   }) async {
     if (!_initialized) init();
 
-    final available = await _iap.isAvailable();
+    bool available;
+    try {
+      available = await _iap.isAvailable();
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[IapPurchaseManager] isAvailable() 예외: $e\n$st');
+      }
+      return IapPurchaseResult(
+        outcome: IapOutcome.unavailable,
+        productId: productId,
+        errorMessage: 'Google Play 결제를 사용할 수 없습니다(플랫폼 미지원: $e).',
+      );
+    }
+    if (kDebugMode) {
+      debugPrint('[IapPurchaseManager] isAvailable()=$available');
+    }
     if (!available) {
       return const IapPurchaseResult(
         outcome: IapOutcome.unavailable,
